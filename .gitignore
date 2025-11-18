@@ -1,0 +1,11 @@
+*.txt
+*.md
+!README.md
+*.exe
+*.ps1
+*.json
+*.ch
+extras/
+build/
+sources/
+VS Solution/
