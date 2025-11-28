@@ -7,7 +7,7 @@
 
 static std::unordered_map<std::string_view, TokenType> keywords = {
 	{"int",     TOK_INT},
-	{"u_int",	TOK_UINT},
+	{"uint",	TOK_UINT},
 	{"dec",     TOK_DEC},
 	{"boolean", TOK_BOOL},
 	{"string",  TOK_STRING},

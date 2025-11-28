@@ -38,7 +38,7 @@ enum TokenType : uint8_t
 	// Keywords.
 
 	TOK_INT,            // int
-	TOK_UINT,			// u_int
+	TOK_UINT,			// uint
 	TOK_DEC,            // dec
 	TOK_BOOL,           // boolean
 	TOK_STRING,         // string
