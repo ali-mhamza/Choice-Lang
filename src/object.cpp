@@ -1,4 +1,8 @@
 #include "../include/object.h"
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <string_view>
 #include <type_traits>
 using namespace Object;
 
@@ -10,58 +14,75 @@ Base::Base() :
 Base::Base(ObjType type, size_t size) :
     type(type), size(size) {}
 
-// Int.
+std::string Base::printType()
+{
+    return "OBJECT";
+}
 
-template<typename SizeInt>
-Int<SizeInt>::Int() :
-    Base(OBJ_INT, sizeof(SizeInt)), value(0) {}
+void Base::emit(std::ofstream& os)
+{
+    os.put(static_cast<char>(OBJ_BASE));
+}
 
-template<typename SizeInt>
-Int<SizeInt>::Int(SizeInt value) :
-    Base(OBJ_INT, sizeof(SizeInt)), value(value) {}
-
-// UInt.
-template<typename SizeUInt>
-UInt<SizeUInt>::UInt() :
-    Base(OBJ_INT, sizeof(SizeUInt)), value(0) {}
-
-template<typename SizeUInt>
-UInt<SizeUInt>::UInt(SizeUInt value) :
-    Base(OBJ_UINT, sizeof(SizeUInt)), value(value) {}
-
-// Dec.
-
-template<typename SizeDec>
-Dec<SizeDec>::Dec() :
-    Base(OBJ_DEC, sizeof(SizeDec)), value(0.0) {}
-
-// template<typename SizeDec>
-// Dec<SizeDec>::Dec() :
-//     Base(OBJ_DEC, sizeof(SizeDec))
-// {
-//     if constexpr (std::is_same_v<SizeDec, float>)
-//         value = 0.0f;
-//     else if constexpr (std::is_same_v<SizeDec, double>)
-//         value = 0.0;
-// }
-
-template<typename SizeDec>
-Dec<SizeDec>::Dec(SizeDec value) :
-    Base(OBJ_DEC, sizeof(SizeDec)), value(value) {}
+// Int and Dec covered in the header file since they use templates.
 
 // Bool.
 
 Bool::Bool(bool value) :
     Base(OBJ_BOOL, sizeof(bool)), value(value) {}
 
+std::string Bool::print()
+{
+    return (this->value ? "true" : "false");
+}
+
+std::string Bool::printType()
+{
+    return "BOOL";
+}
+
 // String.
 
 String::String() :
-    Base(OBJ_STRING, sizeof(std::string)), value("") {} // Default initialize to empty string.
+    Base(OBJ_STRING, sizeof(std::string_view)), value("") {} // Default initialize to empty string.
 
-String::String(std::string& value) :
-    Base(OBJ_STRING, sizeof(std::string)), value(value) {}
+String::String(std::string_view& value) :
+    Base(OBJ_STRING, sizeof(std::string_view)), value(value) {}
+
+String String::makeString(const std::string& value)
+{
+    String str;
+    str.alt = value;
+    return str;
+}
+
+std::string String::print()
+{
+    return std::string(this->value);
+}
+
+std::string String::printType()
+{
+    return "STRING";
+}
+
+void String::emit(std::ofstream& os)
+{
+    os.put(static_cast<char>(OBJ_STRING));
+    os.write(value.data(), value.size());
+    os.put('\0');
+}
 
 // Null.
 Null::Null() :
     Base(OBJ_NULL, sizeof(Base)) {}
+
+std::string Null::print()
+{
+    return "null";
+}
+
+std::string Null::printType()
+{
+    return "NULL";
+}
