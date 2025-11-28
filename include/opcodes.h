@@ -1,15 +1,21 @@
 #pragma once
 #include "common.h"
+#include <string_view>
+#include <unordered_map>
 
 enum Opcode : uint8_t // Each opcode is a single byte.
 {
 	// Basic values.
+
 	OP_ZERO,		// 0
 	OP_ONE,			// 1
 	OP_TWO,			// 2
 	OP_NEG_ONE,		// -1
 	OP_NEG_TWO,		// -2
+	OP_TRUE,		// true
+	OP_FALSE,		// false
 	OP_NULL,		// null
+    OP_CONST,       // Load constant.
 	
 	// Arithmetic.
 
@@ -59,24 +65,44 @@ enum Opcode : uint8_t // Each opcode is a single byte.
 
 	// Internal opcodes.
 
-	OP_JUMP,		// Jump through the byte-code.
+	OP_JUMP,		// Jump forward through the byte-code (unconditional).
+	OP_JUMP_TRUE,	// Jump only if previous condition evaluated to true.
+	OP_JUMP_FALSE,	// Jump only if previous condition evaluated to false.
 	OP_LOOP,		// Loop back through the byte-code.
 	OP_BYTE_OPER,	// Operand is a single byte.
 	OP_SHORT_OPER,	// Operand is two bytes.
-	OP_LONG_OPER	// Operand is four bytes.
+	OP_LONG_OPER,	// Operand is four bytes.
+
+	// For testing.
+	OP_LOAD_R,		// Load a constant pointer into a register.
+	OP_STORE_R,		// Store a register's value in another register.
+	// OP_FREE_R		// Free a particular register.
 };
 
-Opcode voids[] = {OP_ZERO, OP_ONE, OP_TWO, OP_NEG_ONE, OP_NULL,
-					OP_BYTE_OPER, OP_SHORT_OPER, OP_LONG_OPER};
+static std::string_view opNames[] = {
+	"OP_ZERO", "OP_ONE", "OP_TWO", "OP_NEG_ONE",
+	"OP_NEG_TWO", "OP_TRUE", "OP_FALSE", "OP_NULL",
+    "OP_CONST",
 
-bool noOper(Opcode code)
-{
-	for (Opcode op : voids)
-		if (code == op)
-			return true;
-	return false;
-}
+	"OP_ADD", "OP_SUB", "OP_MULT", "OP_DIV", "OP_NEGATE",
+	"OP_POWER", "OP_MOD",
 
-bool byteOper(Opcode code);
-bool shortOper(Opcode code);
-bool longOper(Opcode code);
+	"OP_DEF_VAR", "OP_GET_VAR", "OP_SET_VAR",
+
+	"OP_LIST", "OP_TABLE",
+
+	"OP_EQUAL", "OP_GT", "OP_LT", "OP_NOT", "OP_AND",
+	"OP_OR",
+
+    "OP_BIT_AND", "OP_BIT_OR", "OP_BIT_COMP", "OP_BIT_XOR",
+    "OP_BIT_SHIFT_R", "OP_BIT_SHIFT_L",
+
+	"OP_PRINT", "OP_RETURN",
+
+	"OP_JUMP", "OP_JUMP_TRUE", "OP_JUMP_FALSE", "OP_LOOP",
+	"OP_BYTE_OPER", "OP_SHORT_OPER", "OP_LONG_OPER",
+
+	// For testing.
+	
+	"OP_LOAD_R", // "OP_FREE_R"
+};
