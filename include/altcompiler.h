@@ -4,7 +4,7 @@
 #include "token.h"
 #include <string_view>
 
-class Compiler
+class AltCompiler
 {
     private:
         ByteCode code;
@@ -12,6 +12,14 @@ class Compiler
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
+        static constexpr int regSize = 256;
+        uint8_t registers[regSize];
+        uint8_t previousReg;
+        uint8_t currentReg;
+
+        // For registers.
+        void freeReg();
+        void reserveReg();
 
         // Utilities.
 
@@ -43,6 +51,6 @@ class Compiler
         void primary();
     
     public:
-        Compiler(const vT& tokens);
+        AltCompiler(const vT& tokens);
         ByteCode& compile();
 };
