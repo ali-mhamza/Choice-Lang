@@ -122,6 +122,9 @@ namespace Object
 };
 
 using namespace Object;
+#define IS_NUM(type) \
+		((type == OBJ_INT) || (type == OBJ_UINT) \
+		|| (type == OBJ_DEC))
 
 // Int.
 
