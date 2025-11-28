@@ -9,6 +9,7 @@ class VM;
 class Disassembler;
 // For testing.
 class AltDisassembler;
+class AltVM;
 
 struct ByteCode
 {
@@ -41,6 +42,7 @@ struct ByteCode
         friend class Disassembler;
         // For testing.
         friend class AltDisassembler;
+        friend class AltVM;
 };
 
 template<typename... Bytes>
