@@ -46,7 +46,6 @@ enum TokenType : uint8_t
 	TOK_NUM_US,			// 123_u8 (S: size)
 	TOK_NUM_DEC,		// 1.23
 	TOK_NUM_DEC_S,		// 1.23_d32 (S: size)
-
 	TOK_STR_LIT,		// "Hello, world!"
 	TOK_TRUE,			// true
 	TOK_FALSE,			// false
