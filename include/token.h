@@ -1,13 +1,25 @@
 #pragma once
 #include "common.h"
 #include "object.h"
-#include <any>
+#include <iostream>
 #include <string_view>
 #include <variant>
 using namespace Object;
 
+struct NumLiteral
+{
+	ObjType	type; // int, uint, dec
+	size_t	size; // 0 (= default), 8, 16, 32, 64
+
+	using literalVar = std::variant<int8_t, int16_t, int32_t, int64_t,
+									uint8_t, uint16_t, uint32_t, uint64_t,
+									float, double>;
+	
+	literalVar value;
+};
+
 // Can hold a literal of any needed size.
-using Value = std::variant<long, double, bool, std::string_view, void *>;
+using Value = std::variant<NumLiteral, bool, std::string_view, void *>;
 class Lexer;
 class TokenPrinter;
 class Compiler; class AltCompiler;
@@ -28,8 +40,13 @@ enum TokenType : uint8_t
 	
 	// Literals.
 
-	TOK_NUM_INT,		// 123
+	TOK_NUM,			// 123 (default)
+	TOK_NUM_S,			// 123_i8 (S: Size)
+	TOK_NUM_U,			// 123_u
+	TOK_NUM_US,			// 123_u8 (S: size)
 	TOK_NUM_DEC,		// 1.23
+	TOK_NUM_DEC_S,		// 1.23_d32 (S: size)
+
 	TOK_STR_LIT,		// "Hello, world!"
 	TOK_TRUE,			// true
 	TOK_FALSE,			// false
@@ -119,8 +136,5 @@ class Token
 		friend class CompileError;
 };
 
-#define IS_LITERAL(type)	((TOK_NUM_INT <= type) && (type <= TOK_NULL))
+#define IS_LITERAL(type)	((TOK_NUM <= type) && (type <= TOK_NULL))
 #define IS_TYPE(type)		((TOK_INT <= type) && (type <= TOK_ANY))
-#define IS_NUM(type)		(type == TOK_NUM_INT)
-#define IS_DEC(type)		(type == TOK_NUM_DEC)
-#define IS_STR(type)		(type == TOK_STR_LIT)

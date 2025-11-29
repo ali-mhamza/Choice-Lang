@@ -31,18 +31,24 @@ class Lexer
         char peekChar(int distance = 0);
         char previousChar(int distance = 0);
         TokenType identifierType();
+        bool matchString(std::string_view str, bool consume = false);
         bool matchSequence(char c, int length, bool forward = true);
         void updateColumn();
 
-        int intValue(const std::string_view& text);
-        double decValue(const std::string_view& text);
-        std::string_view stringValue(const std::string_view& text);
-        bool boolValue(TokenType type);
+        // Value conversion methods.
+
+        Value intSizedValue(std::string_view text);
+        Value uIntSizedValue(std::string_view text);
+        Value intValue(const std::string_view& text);
+        Value decValue(std::string_view text);
+        Value stringValue(const std::string_view& text);
+        Value boolValue(TokenType type);
 
         // Token makers.
 
         void makeToken(TokenType type);
         void charToken(TokenType type, int length = 1);
+        void numLiteral(TokenType type); // For more complex numeric literals.
         void numToken();
         void stringToken();
         void multiStringToken(); // For multi-line strings.

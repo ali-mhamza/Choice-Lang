@@ -7,8 +7,20 @@
 TokenPrinter::TokenPrinter(const vT& tokens) :
     tokens(tokens) {}
 
-static void printValue(Value value)
+static std::ostream& operator<<(std::ostream& os, const NumLiteral& lit)
 {
+    std::visit([](auto&& val) {
+        if (val < 256)
+            std::cout << static_cast<float>(val); // Cast to float will not affect integers.
+        else
+            std::cout << val;
+    }, lit.value);
+
+    return os;
+}
+
+static void printValue(Value value)
+{   
     std::visit([](auto&& val){
         std::cout << std::boolalpha << val;
     }, value);
@@ -19,7 +31,8 @@ static const char* typeStrings[] = {
     "TOK_RIGHT_PAREN", "TOK_LEFT_BRACE", "TOK_RIGHT_BRACE",
     "TOK_NEWLINE", "TOK_SEMICOLON", "TOK_COMMA",
 
-    "TOK_NUM_INT", "TOK_NUM_DEC", "TOK_STR_LIT", "TOK_TRUE",
+    "TOK_NUM", "TOK_NUM_S", "TOK_NUM_U", "TOK_NUM_US",
+    "TOK_NUM_DEC", "TOK_NUM_DEC_S", "TOK_STR_LIT", "TOK_TRUE",
     "TOK_FALSE", "TOK_NULL",
 
     "TOK_INT", "TOK_UINT", "TOK_DEC", "TOK_BOOL", "TOK_STRING",

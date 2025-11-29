@@ -1,7 +1,9 @@
 #include "../include/lexer.h"
 #include "../include/error.h"
 #include "../include/token.h"
+#include "../include/utils.h"
 #include <cctype>
+#include <cstring>
 #include <string>
 #include <unordered_map>
 
@@ -93,23 +95,115 @@ void Lexer::updateColumn()
 	column += static_cast<uint8_t>(lastTokText.length());
 }
 
-int Lexer::intValue(const std::string_view& text)
+Value Lexer::intSizedValue(std::string_view text)
 {
-	return std::stoi(std::string(text));
+	if (ends_with(text, "_i8"))
+	{
+		text = text.substr(0, text.size() - 3);
+		return NumLiteral(OBJ_INT, 8, static_cast<int8_t>(
+				std::stoi(std::string(text)))
+			);
+	}
+
+	else if (ends_with(text, "_i16"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_INT, 16, static_cast<int16_t>(
+				std::stoi(std::string(text)))
+			);
+	}
+
+	else if (ends_with(text, "_i32"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_INT, 32, static_cast<int32_t>(
+				std::stol(std::string(text)))
+			);
+	}
+
+	else if (ends_with(text, "_i64"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_INT, 64, static_cast<int64_t>(
+				std::stoll(std::string(text)))
+			);
+	}
 }
 
-double Lexer::decValue(const std::string_view& text)
+Value Lexer::uIntSizedValue(std::string_view text)
 {
-	return std::stod(std::string(text));
+	if (ends_with(text, "_u"))
+	{
+		text = text.substr(0, text.size() - 2);
+		return NumLiteral(OBJ_UINT, 0, static_cast<uint64_t>(
+				std::stoull(std::string(text))
+			));
+	}
+	
+	else if (ends_with(text, "_u8"))
+	{
+		text = text.substr(0, text.size() - 3);
+		return NumLiteral(OBJ_UINT, 8, static_cast<uint8_t>(
+				std::stoi(std::string(text))
+			));
+	}
+
+	else if (ends_with(text, "_u16"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_UINT, 16, static_cast<uint16_t>(
+				std::stoi(std::string(text))
+			));
+	}
+
+	else if (ends_with(text, "_u32"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_UINT, 32, static_cast<uint32_t>(
+				std::stoul(std::string(text))
+			));
+	}
+
+	else if (ends_with(text, "_u64"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_UINT, 64, static_cast<uint64_t>(
+				std::stoull(std::string(text))
+			));
+	}
 }
 
-std::string_view Lexer::stringValue(const std::string_view& text)
+Value Lexer::intValue(const std::string_view& text)
+{	
+	return NumLiteral(OBJ_INT, 0, static_cast<int64_t>(
+			std::stoll(std::string(text))
+		));
+}
+
+Value Lexer::decValue(std::string_view text)
+{
+	if (ends_with(text, "_d32"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_DEC, 32, std::stof(std::string(text)));
+	}
+
+	else if (ends_with(text, "_d64"))
+	{
+		text = text.substr(0, text.size() - 4);
+		return NumLiteral(OBJ_DEC, 64, std::stod(std::string(text)));
+	}
+	
+	return NumLiteral(OBJ_DEC, 0, std::stod(std::string(text)));
+}
+
+Value Lexer::stringValue(const std::string_view& text)
 {
 	// -2 to cut off the quote marks.
 	return text.substr(1, text.length() - 2);
 }
 
-bool Lexer::boolValue(TokenType type)
+Value Lexer::boolValue(TokenType type)
 {
 	return (type == TOK_TRUE);
 }
@@ -123,9 +217,15 @@ void Lexer::makeToken(TokenType type)
 	{
 		switch (type)
 		{
-			case TOK_NUM_INT: value = intValue(text);       break;
-			case TOK_NUM_DEC: value = decValue(text);       break;
-			case TOK_STR_LIT: value = stringValue(text);    break;
+			case TOK_NUM:		value = intValue(text);       	break;
+			case TOK_NUM_DEC:	value = decValue(text);       	break;
+			case TOK_NUM_S:		value = intSizedValue(text);	break;
+			case TOK_NUM_U:
+			case TOK_NUM_US:
+				value = uIntSizedValue(text);
+				break;
+			case TOK_NUM_DEC_S:	value = decValue(text);			break;
+			case TOK_STR_LIT:	value = stringValue(text);		break;
 			case TOK_TRUE:
 			case TOK_FALSE:
 				value = boolValue(type);
@@ -147,18 +247,111 @@ void Lexer::charToken(TokenType type, int length /* = 1*/)
 	column += length;
 }
 
+bool Lexer::matchString(std::string_view str, bool consume /* = false */)
+{
+	int i = 0;
+	for (char c : str)
+	{
+		if (peekChar(i) != c)
+			return false;
+		i++;
+	}
+
+	if (consume)
+	{
+		for (char c : str)
+			advance();
+	}
+
+	return true;
+}
+
+void Lexer::numLiteral(TokenType type)
+{
+	if (type == TOK_NUM)
+	{
+		switch (peekChar())
+		{
+			case 'u':
+			{
+				advance();
+				if (isdigit(peekChar()))
+				{
+					if (matchString("8", true) || matchString("16", true)
+						|| matchString("32", true) || matchString("64", true))
+					{
+						makeToken(TOK_NUM_US);
+						return;
+					}
+					else
+						// Column value may be inaccurate.
+						throw LexError(peekChar(), line, column,
+							"Invalid unsigned integer size.");
+				}
+				makeToken(TOK_NUM_U);
+				break;
+			}
+
+			case 'i':
+			{
+				advance();
+				if (isdigit(peekChar()))
+				{
+					if (matchString("8", true) || matchString("16", true)
+						|| matchString("32", true) || matchString("64", true))
+					{
+						makeToken(TOK_NUM_S);
+						return;
+					}
+					else
+						// Column value may be inaccurate.
+						throw LexError(peekChar(), line, column,
+							"Invalid signed integer size.");
+				}
+				else
+					throw LexError(peekChar(), line, column,
+						"Must specify integer size when using _i modifier.");
+			}
+
+			default:
+				throw LexError(peekChar(), line, column,
+					"Invalid literal modifier for integer value.");
+		}
+	}
+
+	else if (type == TOK_NUM_DEC)
+	{
+		if (consumeChar('d'))
+		{
+			if (matchString("32", true) || matchString("64", true))
+				makeToken(TOK_NUM_DEC_S);
+			else
+				throw LexError(peekChar(), line, column,
+					"Invalid floating-point value size.");
+		}
+		else
+			throw LexError(peekChar(), line, column,
+				"Must specify floating-point size using _d modifier.");
+	}
+}
+
 void Lexer::numToken()
 {
+	TokenType type;	
 	while (isdigit(peekChar()) && !hitEnd())
 		advance();
 	if (consumeChar('.'))
 	{
 		while (isdigit(peekChar()) && !hitEnd())
 			advance();
-		makeToken(TOK_NUM_DEC);
+		type = TOK_NUM_DEC;
 	}
 	else
-		makeToken(TOK_NUM_INT);
+		type = TOK_NUM;
+	if (consumeChar('_'))
+		numLiteral(type);
+	else
+		makeToken(type);
 	updateColumn();
 }
 
