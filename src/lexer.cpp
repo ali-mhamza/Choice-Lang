@@ -97,7 +97,7 @@ void Lexer::updateColumn()
 
 Value Lexer::intSizedValue(std::string_view text)
 {
-	if (ends_with(text, "_i8"))
+	if (ends_with(text, "8"))
 	{
 		text = text.substr(0, text.size() - 3);
 		return NumLiteral(OBJ_INT, 8, static_cast<int8_t>(
@@ -105,7 +105,7 @@ Value Lexer::intSizedValue(std::string_view text)
 			);
 	}
 
-	else if (ends_with(text, "_i16"))
+	else if (ends_with(text, "16"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_INT, 16, static_cast<int16_t>(
@@ -113,7 +113,7 @@ Value Lexer::intSizedValue(std::string_view text)
 			);
 	}
 
-	else if (ends_with(text, "_i32"))
+	else if (ends_with(text, "32"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_INT, 32, static_cast<int32_t>(
@@ -121,7 +121,7 @@ Value Lexer::intSizedValue(std::string_view text)
 			);
 	}
 
-	else if (ends_with(text, "_i64"))
+	else if (ends_with(text, "64"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_INT, 64, static_cast<int64_t>(
@@ -140,7 +140,7 @@ Value Lexer::uIntSizedValue(std::string_view text)
 			));
 	}
 	
-	else if (ends_with(text, "_u8"))
+	else if (ends_with(text, "8"))
 	{
 		text = text.substr(0, text.size() - 3);
 		return NumLiteral(OBJ_UINT, 8, static_cast<uint8_t>(
@@ -148,7 +148,7 @@ Value Lexer::uIntSizedValue(std::string_view text)
 			));
 	}
 
-	else if (ends_with(text, "_u16"))
+	else if (ends_with(text, "16"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_UINT, 16, static_cast<uint16_t>(
@@ -156,7 +156,7 @@ Value Lexer::uIntSizedValue(std::string_view text)
 			));
 	}
 
-	else if (ends_with(text, "_u32"))
+	else if (ends_with(text, "32"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_UINT, 32, static_cast<uint32_t>(
@@ -164,7 +164,7 @@ Value Lexer::uIntSizedValue(std::string_view text)
 			));
 	}
 
-	else if (ends_with(text, "_u64"))
+	else if (ends_with(text, "64"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_UINT, 64, static_cast<uint64_t>(
@@ -182,13 +182,13 @@ Value Lexer::intValue(const std::string_view& text)
 
 Value Lexer::decValue(std::string_view text)
 {
-	if (ends_with(text, "_d32"))
+	if (ends_with(text, "32"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_DEC, 32, std::stof(std::string(text)));
 	}
 
-	else if (ends_with(text, "_d64"))
+	else if (ends_with(text, "64"))
 	{
 		text = text.substr(0, text.size() - 4);
 		return NumLiteral(OBJ_DEC, 64, std::stod(std::string(text)));
