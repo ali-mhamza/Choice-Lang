@@ -1,6 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -pedantic
-ALT = #-DALT
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -Werror -pedantic
+ALT = -DALT
 
 
 ifeq ($(OS), Windows_NT)
@@ -20,53 +20,41 @@ NAME = choice
 SRC_DIR = src
 OBJ_DIR = build
 
-
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
-
 all: $(NAME)
 
+$(OBJ_DIR):
+ifeq ($(PLATFORM), windows)
+	@powershell -Command "if (-not (Test-Path $(OBJ_DIR))) \
+	{[void](New-Item -ItemType Directory -Path $(OBJ_DIR))}"
+else
+	@mkdir -p $(OBJ_DIR)
+endif
 
 $(NAME): $(OBJS)
-ifeq ($(PLATFORM), windows)
-	@powershell -Command "if (-not (Test-Path $(OBJ_DIR))) \
-	{[void](New-Item -ItemType Directory -Path $(OBJ_DIR))}"
-else
-	@mkdir -p $(OBJ_DIR)
-endif
-	@$(CXX) $(CXXFLAGS) $^ -o $(OBJ_DIR)/$(NAME)
+	@$(CXX) $(CXXFLAGS) $^ -o $(NAME)
 
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-ifeq ($(PLATFORM), windows)
-	@powershell -Command "if (-not (Test-Path $(OBJ_DIR))) \
-	{[void](New-Item -ItemType Directory -Path $(OBJ_DIR))}"
-else
-	@mkdir -p $(OBJ_DIR)
-endif
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) $(ALT) -c $< -o $@
-
 
 clean:
 ifeq ($(PLATFORM), windows)
 	@powershell -Command "if (Test-Path $(OBJ_DIR)) \
-	{Remove-Item -Recurse -Force $(OBJ_DIR)/*.o}"
+	{[void](Remove-Item -Recurse -Force $(OBJ_DIR)/*.o)}"
 else
 	@rm -f $(OBJ_DIR)/*.o
 endif
 
-
-fclean:
+fclean: clean
 ifeq ($(PLATFORM), windows)
-	@powershell -Command "if (Test-Path $(OBJ_DIR)) \
-	{Remove-Item -Path $(OBJ_DIR) -Recurse -Force}"
+	@powershell -Command "if (Test-Path $(NAME)) \
+	{[void](Remove-Item -Force $(NAME))}"
 else
-	@rm -rf $(OBJ_DIR)
+	@rm -f $(NAME)
 endif
 
-
 re: fclean all
-
 
 .PHONY: all clean fclean re
