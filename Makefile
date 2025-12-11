@@ -1,7 +1,8 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -Werror -pedantic
-ALT = -DALT
-
+AST = -DCOMP_AST
+TYPE = -DTYPE
+OPT = -DOPT
 
 ifeq ($(OS), Windows_NT)
     PLATFORM = windows
@@ -14,7 +15,6 @@ else
         PLATFORM = macos
     endif
 endif
-
 
 NAME = choice
 SRC_DIR = src
@@ -36,8 +36,17 @@ endif
 $(NAME): $(OBJS)
 	@$(CXX) $(CXXFLAGS) $^ -o $(NAME)
 
+ast: $(OBJS)
+	@$(CXX) $(AST) $(CXXFLAGS) $^ -o $(NAME)
+
+type: $(OBJS)
+	@$(CXX) $(AST) $(TYPE) $(CXXFLAGS) $^ -o $(NAME)
+
+opt: $(OBJS)
+	@$(CXX) $(AST) $(OPT) $(CXXFLAGS) $^ -o $(NAME)
+
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	@$(CXX) $(CXXFLAGS) $(ALT) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 ifeq ($(PLATFORM), windows)
