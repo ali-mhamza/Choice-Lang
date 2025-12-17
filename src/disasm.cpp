@@ -1,35 +1,35 @@
-#include "../include/altdisasm.h"
+#include "../include/disasm.h"
 #include "../include/opcodes.h"
 #include <iostream>
 #include <iomanip>
 
-AltDisassembler::AltDisassembler(const ByteCode& code) :
+Disassembler::Disassembler(const ByteCode& code) :
 	code(code), ip(code.block.begin()),
 	start(code.block.begin()) {}
 
-void AltDisassembler::printOperValue(const BaseUP& oper)
+void Disassembler::printOperValue(const BaseUP& oper)
 {
 	std::cout << "'" << oper->print() << "' ";
 	std::cout << oper->printType() << '\n';
 }
 
-uint8_t AltDisassembler::restoreByte()
+ui8 Disassembler::restoreByte()
 {
 	return *(ip + 1);
 }
 
-uint16_t AltDisassembler::restoreShort()
+ui16 Disassembler::restoreShort()
 {
-	uint16_t value = static_cast<uint16_t>(
+	ui16 value = static_cast<ui16>(
 		(*(ip + 1) << 8) | *(ip + 2)
 	);
 
 	return value;
 }
 
-uint32_t AltDisassembler::restoreLong()
+ui32 Disassembler::restoreLong()
 {
-	uint32_t value = static_cast<uint32_t>(
+	ui32 value = static_cast<ui32>(
 		(*(ip + 1) << 24) | (*(ip + 2) << 16)
 		| (*(ip + 3) << 8) | *(ip + 4)
 	);
@@ -37,7 +37,7 @@ uint32_t AltDisassembler::restoreLong()
 	return value;
 }
 
-void AltDisassembler::singleOper(std::string_view opName)
+void Disassembler::singleOper(std::string_view opName)
 {
 	std::cout << std::right << std::setfill('0') 
 		<< std::setw(4) << static_cast<int>(ip - start) << ' ';
@@ -48,7 +48,7 @@ void AltDisassembler::singleOper(std::string_view opName)
 	ip += 2;
 }
 
-void AltDisassembler::doubleOper(std::string_view opName)
+void Disassembler::doubleOper(std::string_view opName)
 {
 	std::cout << std::right << std::setfill('0')
 		<< std::setw(4) << static_cast<int>(ip - start) << ' ';
@@ -63,7 +63,7 @@ void AltDisassembler::doubleOper(std::string_view opName)
 	ip += 3;
 }
 
-void AltDisassembler::tripleOper(std::string_view opName)
+void Disassembler::tripleOper(std::string_view opName)
 {
 	std::cout << std::right << std::setfill('0')
 		<< std::setw(4) << static_cast<int>(ip - start) << ' ';
@@ -78,7 +78,7 @@ void AltDisassembler::tripleOper(std::string_view opName)
 	ip += 4;
 }
 
-void AltDisassembler::loadOper(std::string_view opName)
+void Disassembler::loadOper(std::string_view opName)
 {
 	std::cout << std::right << std::setfill('0')
 		<< std::setw(4) << static_cast<int>(ip - start) << ' ';
@@ -91,7 +91,7 @@ void AltDisassembler::loadOper(std::string_view opName)
 	{
 		case OP_BYTE_OPER:
 		{
-			uint8_t operand = restoreByte();
+			ui8 operand = restoreByte();
 			std::cout << "C[" << static_cast<int>(operand) << "] ";
 			printOperValue(code.pool[operand]);
 			ip += 2;
@@ -99,7 +99,7 @@ void AltDisassembler::loadOper(std::string_view opName)
 		}
 		case OP_SHORT_OPER:
 		{	
-			uint16_t operand = restoreShort();
+			ui16 operand = restoreShort();
 			std::cout << "C[" << operand << "] ";
 			printOperValue(code.pool[operand]);
 			ip += 3;
@@ -107,7 +107,7 @@ void AltDisassembler::loadOper(std::string_view opName)
 		}
 		case OP_LONG_OPER:
 		{
-			uint32_t operand = restoreLong();
+			ui32 operand = restoreLong();
 			std::cout << "C[" << operand << "] ";
 			printOperValue(code.pool[operand]);
 			ip += 5;
@@ -119,15 +119,21 @@ void AltDisassembler::loadOper(std::string_view opName)
 	}
 }
 
-void AltDisassembler::disassembleOp(uint8_t byte)
+void Disassembler::disassembleOp(ui8 byte)
 {
 	switch (byte)
 	{
-		case OP_ADD:    tripleOper("OP_ADD");   	break;
-		case OP_SUB:	tripleOper("OP_SUB");		break;
-		case OP_MULT:	tripleOper("OP_MULT");		break;
-		case OP_DIV:	tripleOper("OP_DIV");		break;
-		case OP_MOD:	tripleOper("OP_MOD");		break;
+		case OP_ADD:		case OP_SUB:		case OP_MULT:			case OP_DIV:
+		case OP_MOD:		case OP_POWER:		case OP_AND:			case OP_OR:			
+		case OP_EQUAL:		case OP_GT:			case OP_LT:				case OP_BIT_AND:
+		case OP_BIT_OR:		case OP_BIT_XOR:	case OP_BIT_SHIFT_R:
+		case OP_BIT_SHIFT_L:
+			tripleOper(opNames[byte]);
+			break;
+		case OP_NEGATE:		case OP_NOT:		case OP_BIT_COMP:	case OP_MOVE_R:
+		case OP_GET_VAR:	case OP_SET_VAR:
+			doubleOper(opNames[byte]);
+			break;
 		case OP_LOAD_R: loadOper("OP_LOAD_R");  	break;
 		case OP_RETURN:	singleOper("OP_RETURN");	break;
 		// case OP_FREE_R:	singleOper("OP_FREE_R");	break;
@@ -142,13 +148,18 @@ void AltDisassembler::disassembleOp(uint8_t byte)
 	}
 }
 
-void AltDisassembler::disassembleCode()
+void Disassembler::disassembleCode()
 {
 	auto end = code.block.end();
 	if ((file != "") && (ip < end)) // ip < end -> We have some bytecode to print.
 		// std::cout << "=== CODE ===\n";
 		std::cout << "=== CODE [" << file << "] ===\n";
 	std::cout << "Bytes: " << code.block.size() << '\n';
+	int opers = 0;
 	while (ip < end)
+	{
 		disassembleOp(*ip);
+		opers++;
+	}
+	std::cout << "Instructions: " << opers << '\n';
 }

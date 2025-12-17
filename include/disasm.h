@@ -1,7 +1,7 @@
 #include "bytecode.h"
 #include "common.h"
 
-class AltDisassembler
+class Disassembler
 {
     private:
         const ByteCode& code;
@@ -10,18 +10,18 @@ class AltDisassembler
 
         void printOperValue(const BaseUP& oper);
 
-        uint8_t restoreByte();
-        uint16_t restoreShort();
-        uint32_t restoreLong();
+        ui8 restoreByte();
+        ui16 restoreShort();
+        ui32 restoreLong();
 
         void singleOper(std::string_view opName);
         void doubleOper(std::string_view opName);
         void tripleOper(std::string_view opName);
         void loadOper(std::string_view opName);
 
-        void disassembleOp(uint8_t byte);
+        void disassembleOp(ui8 byte);
     
     public:
-        AltDisassembler(const ByteCode& code);
+        Disassembler(const ByteCode& code);
         void disassembleCode();
 };
