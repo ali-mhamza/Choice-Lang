@@ -1,4 +1,5 @@
 #pragma once
+#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -6,10 +7,34 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <variant>
 
 namespace Object
 {
+	// Basic type aliases.
+
+	// int
+	using int_type = std::conditional_t<
+		sizeof(void*) == 8,
+		int64_t,
+		int32_t
+	>;
+
+	// u_int
+	using uint_type = std::conditional_t<
+		sizeof(void*) == 8,
+		uint64_t,
+		uint32_t
+	>;
+
+	// dec
+	using dec_type = std::conditional_t<
+		sizeof(void*) == 8,
+		double,
+		float
+	>;
+	
 	enum ObjType : uint8_t
 	{
 		OBJ_BASE,
@@ -20,6 +45,13 @@ namespace Object
 		OBJ_STRING,
 		OBJ_NULL,
 		OBJ_INVALID
+	};
+
+	struct TypeMismatch // General type mismatch error class.
+	{
+		std::string_view message;
+		ObjType first;
+		ObjType second;
 	};
 	
 	struct Base
@@ -34,6 +66,10 @@ namespace Object
 		virtual std::string print() = 0;
 		virtual std::string printType();
 		virtual void emit(std::ofstream& is);
+
+		// virtual bool operator==(const Base& other) const;
+		// virtual Base& operator+(const Base& other) const;
+		// virtual Base& operator-(const Base& other) const;
 	};
 
 	using BaseUP = std::unique_ptr<Base>;
@@ -112,6 +148,16 @@ namespace Object
 		void emit(std::ofstream& is) override;
 	};
 
+	struct List : public Base
+	{
+
+	};
+
+	struct Table : public Base
+	{
+
+	};
+
 	struct Null : public Base
 	{
 		Null();
@@ -119,7 +165,7 @@ namespace Object
 		std::string print() override;
 		std::string printType() override;
 	};
-};
+}
 
 using namespace Object;
 #define IS_NUM(type) \
@@ -169,7 +215,11 @@ void Int<SizeInt>::emit(std::ofstream& os)
 	os.put(static_cast<char>(size));
 	Int<SizeInt> temp(*this);
 	for (size_t i = 0; i < size; i++)
-		os.put(static_cast<char>(temp.value >> (size - i - 1)));
+	{
+		int shift = (size - i - 1) * CHAR_BIT;
+		uint8_t byte = (temp.value >> shift) & 0xff;
+		os.put(static_cast<char>(byte));
+	}
 }
 
 // UInt.
@@ -214,7 +264,11 @@ void UInt<SizeUInt>::emit(std::ofstream& os)
 	os.put(static_cast<char>(size));
 	UInt<SizeUInt> temp(*this);
 	for (size_t i = 0; i < size; i++)
-		os.put(static_cast<char>(temp.value >> (size - i - 1)));
+	{
+		int shift = (size - i - 1) * CHAR_BIT;
+		uint8_t byte = (temp.value >> shift) & 0xff;
+		os.put(static_cast<char>(byte));
+	}
 }
 
 // Dec.
