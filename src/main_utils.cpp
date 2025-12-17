@@ -208,6 +208,9 @@ ByteCode readCache(std::ifstream& fileIn)
 			funcName.push_back(static_cast<char>(ch));
 		}
 
+		while (ch == '\0') // In case of extra null bytes.
+			ch = fileIn.get();
+
 		while ((ch = fileIn.get()) != EOF)
 			poolBytes.push_back(static_cast<ui8>(ch));
 
