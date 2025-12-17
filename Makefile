@@ -1,5 +1,10 @@
+include .env
+
 CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -Werror -pedantic
+# Includes for my separate chaining hash table implementation (found on Github).
+CXXFLAGS = $(INCLUDE) $(INCLUDE_WSL) -std=c++17 -Wall -Wextra \
+			-Wno-unused-parameter -Wno-sign-compare \
+			-Werror -pedantic -g
 AST = -DCOMP_AST
 TYPE = -DTYPE
 OPT = -DOPT
@@ -24,6 +29,10 @@ SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 all: $(NAME)
+ifeq ($(PLATFORM), windows)
+# Open Powershell to run the executable in a proper window.
+	@start powershell
+endif
 
 $(OBJ_DIR):
 ifeq ($(PLATFORM), windows)
