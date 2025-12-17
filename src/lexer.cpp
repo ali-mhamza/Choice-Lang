@@ -632,6 +632,7 @@ void Lexer::singleToken()
 				makeToken(TOK_UNDER_UNDER);
 				break;
 			}
+			[[fallthrough]];
 			// No break since we interpret it
 			// as the first character in an
 			// identifier instead.
