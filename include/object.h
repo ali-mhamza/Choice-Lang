@@ -39,7 +39,7 @@ struct HeapObj
     HeapObj(HeapType type);
     virtual ~HeapObj() = default;
 
-    bool operator==(const HeapObj& other);
+    bool operator==(const HeapObj& other) const;
 
     std::string printVal();
     std::string printType();
@@ -72,6 +72,10 @@ struct Table : public HeapObj
 #define AS_LIST(obj)    (*(static_cast<List*>(obj)))
 #define AS_TABLE(obj)   (*(static_cast<Table*>(obj)))
 
+#define AS_CONST_STRING(obj)    (*(static_cast<const String*>(obj)))
+#define AS_CONST_LIST(obj)      (*(static_cast<const List*>(obj)))
+#define AS_CONST_TABLE(obj)     (*(static_cast<const Table*>(obj)))
+
 class Object
 {
     private:
@@ -95,9 +99,9 @@ class Object
         Object& operator=(Object&& other) noexcept;
         ~Object();
 
-        bool operator==(const Object& other);
-        bool operator>(const Object& other);
-        bool operator<(const Object& other);
+        bool operator==(const Object& other) const;
+        bool operator>(const Object& other) const;
+        bool operator<(const Object& other) const;
 
         std::string printVal() const;
         std::string printType() const;

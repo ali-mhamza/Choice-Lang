@@ -13,7 +13,7 @@ HeapObj::HeapObj() :
 HeapObj::HeapObj(HeapType type) :
     type(type), refCount(0) {}
 
-bool HeapObj::operator==(const HeapObj& other)
+bool HeapObj::operator==(const HeapObj& other) const
 {
     HeapObj* obj = const_cast<HeapObj*>(&other);
 
@@ -21,7 +21,8 @@ bool HeapObj::operator==(const HeapObj& other)
     
     switch (type)
     {
-        case HEAP_STRING:   return AS_STRING(this).str == AS_STRING(obj).str;
+        case HEAP_STRING:
+            return AS_CONST_STRING(this).str == AS_CONST_STRING(obj).str;
         default:            UNREACHABLE();
     }
 }
@@ -142,7 +143,7 @@ Object::~Object()
     clean();
 }
 
-bool Object::operator==(const Object& other)
+bool Object::operator==(const Object& other) const
 {
     if (this->type != other.type) return false;
     
@@ -157,14 +158,14 @@ bool Object::operator==(const Object& other)
     }
 }
 
-bool Object::operator>(const Object& other)
+bool Object::operator>(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
         return AS_NUM(*this) > AS_NUM(other);
     return false;
 }
 
-bool Object::operator<(const Object& other)
+bool Object::operator<(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
         return AS_NUM(*this) < AS_NUM(other);
