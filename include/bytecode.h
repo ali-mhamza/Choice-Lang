@@ -13,17 +13,17 @@ class ByteCode
         vByte block;
         vObj pool;
 
-    public:
-        ByteCode();
-        ByteCode(const vByte& block);
-        ByteCode(const vByte& block, const vObj& pool);
-
         void addByte(ui8 byte);
         template<typename... Bytes>
         void addBytes(Bytes... bytes);
         // Using big endian.
         void addShort(ui16 bytes);
         void addLong(ui32 bytes);
+
+    public:
+        ByteCode();
+        ByteCode(const vByte& block);
+        ByteCode(const vByte& block, const vObj& pool);
 
         void loadReg(ui8 reg, ui8 op);
         void loadRegConst(Object& constant, ui8 reg);
