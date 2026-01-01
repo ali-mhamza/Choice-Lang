@@ -16,10 +16,8 @@ class ASTCompVarsWrapper
 
 ASTCompiler::ASTCompiler() :
     previousReg(0), currentReg(1),
-    lastVarReg(0), scope(0), varScopes(1) // For global scope.
-{
-    varsWrapper = new ASTCompVarsWrapper;
-}
+    lastVarReg(0), scope(0), varScopes(1), // For global scope.
+    varsWrapper(new ASTCompVarsWrapper) {}
 
 ASTCompiler::~ASTCompiler()
 {
