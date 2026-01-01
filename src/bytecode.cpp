@@ -4,7 +4,6 @@
 #include <cstring>
 #include <fstream>
 #include <type_traits>
-using namespace Object;
 
 ByteCode::ByteCode() :
 	block(0), pool(0) {}
@@ -12,8 +11,8 @@ ByteCode::ByteCode() :
 ByteCode::ByteCode(const vByte& block) :
 	block(block) {}
 
-ByteCode::ByteCode(const vByte& block, vObj pool) :
-	block(block), pool(std::move(pool)) {}
+ByteCode::ByteCode(const vByte& block, const vObj& pool) :
+	block(block), pool(pool) {}
 
 void ByteCode::addByte(ui8 byte)
 {
@@ -39,7 +38,9 @@ void ByteCode::loadReg(ui8 reg, ui8 op)
 	addBytes(static_cast<ui8>(OP_LOAD_R), reg, op);
 }
 
-void ByteCode::loadRegConst(BaseUP constant, ui8 reg)
+#define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
+
+void ByteCode::loadRegConst(Object& constant, ui8 reg)
 {
 	// Must do them separately since addBytes
 	// cannot handle an opcode and a regular byte together.
@@ -47,17 +48,20 @@ void ByteCode::loadRegConst(BaseUP constant, ui8 reg)
 	// Destination first.
 	addByte(reg);
 
-	if (constant->type == OBJ_INT)
+	if (constant.type == OBJ_INT)
 	{
-		Int* temp = static_cast<Int*>(constant.get());
-		ADD_IF_SMALL(temp->value);
-	}
-	else if (constant->type == OBJ_UINT)
-	{
-		UInt* temp = static_cast<UInt*>(constant.get());
-		if (temp->value < INT64_MAX)
+		if (IS_SMALL(constant.as.intVal))
 		{
-			ADD_IF_SMALL(temp->value);
+			addByte(constant.as.intVal + 2);
+			return;
+		}
+	}
+	else if (constant.type == OBJ_DEC)
+	{
+		if (IS_SMALL(constant.as.doubleVal))
+		{
+			addByte(constant.as.doubleVal + 2);
+			return;
 		}
 	}
 
@@ -85,7 +89,7 @@ void ByteCode::loadRegConst(BaseUP constant, ui8 reg)
 
 void ByteCode::cacheStream(std::ofstream& os) const
 {
-	os.write(reinterpret_cast<const char*>(block.data()), 
+	os.write(reinterpret_cast<const char*>(block.data()),
 				block.size());
 
 	// Hypothetical for constant pool.
@@ -94,8 +98,8 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	if (file != "")
 		os.write(file.data(), file.length());
 	os.put('\0');
-	for (const BaseUP& constant : pool)
-		constant->emit(os);
+	for (const Object& constant : pool)
+		constant.emit(os);
 }
 
 void ByteCode::clearCode()
