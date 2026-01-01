@@ -1,11 +1,21 @@
 #pragma once
-#include "object.h"
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 #define COMP_AST
+//#define TIME_TOTAL
+#define TIME_RUN
+
+#if defined(__cpp_lib_unreachable) // Check for C++23 support.
+#include <utility>
+#define UNREACHABLE() std::unreachable()
+#elif defined(__GNUC__) || defined(__clang__)
+#define UNREACHABLE() __builtin_unreachable()
+#elif defined(_MSC_VER)
+#define UNREACHABLE() __assume(false)
+#endif
 
 #define GETV(variant, type) std::get<type>(variant)
 
@@ -22,9 +32,10 @@ using ui64      = uint64_t;
 using Hash      = uint32_t;
 
 class Token;
+class Object;
 using vT    	= std::vector<Token>;
 using vByte 	= std::vector<ui8>;
-using vObj  	= std::vector<Object::BaseUP>;
+using vObj  	= std::vector<Object>;
 
 constexpr int TAB_SIZE = 4;
 // Whether we're running an externally loaded
