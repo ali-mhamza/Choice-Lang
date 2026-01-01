@@ -8,7 +8,7 @@ using namespace AST::Expression;
 
 void Parser::nextTok()
 {
-    if (currentTok.type != TOKEN_EOF)
+    if (currentTok.type != TOK_EOF)
     {
         previousTok = currentTok;
         currentTok = *(++it);
@@ -111,7 +111,7 @@ StmtUP Parser::statement()
 StmtUP Parser::blockStmt()
 {
     StmtVec block;
-    while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOKEN_EOF))
+    while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         block.push_back(declaration());
     matchError(TOK_RIGHT_BRACE, "Expect '}' after block.");
     return std::make_unique<BlockStmt>(block);
@@ -325,7 +325,7 @@ StmtVec& Parser::parseToAST(const vT& tokens)
 
     try
     {
-        while (!checkTok(TOKEN_EOF))
+        while (!checkTok(TOK_EOF))
             program.push_back(declaration());
     }
     catch (CompileError& error)

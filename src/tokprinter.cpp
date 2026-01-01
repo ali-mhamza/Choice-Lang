@@ -49,13 +49,13 @@ static const char* typeStrings[] = {
 
     "TOK_DOT", "TOK_UNDER_UNDER", "TOK_RARROW",
 
-    "TOKEN_EOF"
+    "TOK_EOF"
 };
 
 void TokenPrinter::printToken(const Token& token)
 {
     std::cout << std::left << std::setw(20) << typeStrings[token.type];
-    if (token.type != TOKEN_EOF)
+    if (token.type != TOK_EOF)
     {
         // Line up the line:column printing.
         std::ostringstream oss;

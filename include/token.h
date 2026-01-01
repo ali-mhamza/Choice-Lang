@@ -104,7 +104,7 @@ enum TokenType : ui8
 	TOK_UNDER_UNDER,	// __
 	TOK_RARROW,			// ->
 
-	TOKEN_EOF
+	TOK_EOF
 };
 
 class Token

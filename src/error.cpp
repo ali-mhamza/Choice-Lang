@@ -29,7 +29,7 @@ CompileError::CompileError(const Token& token, std::string message) :
 void CompileError::report()
 {
     std::cerr << "Compile Error";
-    if (token.type != TOKEN_EOF)
+    if (token.type != TOK_EOF)
     {
         std::cerr << " at '" << token.text << "'";
         std::cerr << " [" << token.line << ":"

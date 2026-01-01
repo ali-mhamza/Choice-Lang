@@ -1,7 +1,7 @@
 #include "../include/token.h"
 
 Token::Token() :
-    text(""), line(0), position(0), type(TOKEN_EOF)
+    text(""), line(0), position(0), type(TOK_EOF)
 {
     content.s = nullptr;
 }
