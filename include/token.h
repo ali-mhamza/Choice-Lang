@@ -4,10 +4,9 @@
 #include <iostream>
 #include <string_view>
 #include <variant>
-using namespace Object;
 
 // Can hold a literal of any needed size.
-using Value = std::variant<i64, ui64, double, bool, std::string_view, void *>;
+using Value = std::variant<i64, double, bool, std::string_view, void*>;
 class Lexer;
 class TokenPrinter;
 class Compiler; class AltCompiler;
@@ -30,7 +29,6 @@ enum TokenType : ui8
 	// Literals.
 
 	TOK_NUM,			// 123 (default)
-	TOK_NUM_U,			// 123_u
 	TOK_NUM_DEC,		// 1.23
 	TOK_STR_LIT,		// "Hello, world!"
 	TOK_TRUE,			// true
@@ -40,7 +38,6 @@ enum TokenType : ui8
 	// Keywords.
 
 	TOK_INT,            // int
-	TOK_UINT,			// uint
 	TOK_DEC,            // dec
 	TOK_BOOL,           // boolean
 	TOK_STRING,         // string
@@ -106,11 +103,11 @@ enum TokenType : ui8
 class Token
 {
 	private:
-		TokenType type;
-		std::string_view text; // The actual text of the token.
 		Value content; // The literal's actual value.
+		std::string_view text; // The actual text of the token.
 		ui16 line; // The line holding the token.
 		ui8 position; // The starting position of the token.
+		TokenType type;
 	
 	public:
 		Token();
