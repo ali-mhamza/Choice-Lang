@@ -136,6 +136,11 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	if (cacheOptimize(option))
 		return;
 
+	using namespace std::chrono;
+	#if defined(TIME_TOTAL) && !defined(TIME_RUN)
+		auto begin = high_resolution_clock::now();
+	#endif
+
 	std::string code = readFile(fileName);
 	#ifdef COMP_AST
 		ASTCompiler compiler;
@@ -184,8 +189,18 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		return;
 	}
 
+	#if defined(TIME_RUN) && !defined(TIME_TOTAL)
+		auto begin = high_resolution_clock::now();
+	#endif
+
 	// Execution logic.
 	vm.executeCode(chunk);
+
+	#if defined(TIME_RUN) || defined(TIME_TOTAL)
+		auto end = high_resolution_clock::now();
+		auto time = duration_cast<milliseconds>(end - begin);
+		std::cout << "Time: " << (long double) time.count() / 1000 << '\n';
+	#endif
 }
 
 static void repl(ArgvOption option = EXECUTE)
@@ -255,11 +270,7 @@ static void repl(ArgvOption option = EXECUTE)
 }
 
 int main(int argc, const char* argv[])
-{   
-	using namespace std::chrono;
-	
-	auto begin = high_resolution_clock::now();
-
+{
 	if (argc == 3)
 		runFile(argv[2], options[argv[1]]);
 	else if (argc == 2)
@@ -272,10 +283,6 @@ int main(int argc, const char* argv[])
 	}
 	else
 		repl();
-	
-	auto end = high_resolution_clock::now();
-	auto time = duration_cast<milliseconds>(end - begin);
-	std::cout << "Time: " << (long double) time.count() / 1000 << '\n';
 
 	return 0;
 }
