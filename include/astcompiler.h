@@ -30,8 +30,8 @@ class ASTCompiler
         // The last register that contains a variable (initially 0).
         ui8 lastVarReg;
         ui8 scope; // Our current lexical scope depth.
-        ASTCompVarsWrapper* varsWrapper;
         std::vector<std::vector<std::string>> varScopes;
+        ASTCompVarsWrapper* varsWrapper;
 
         // Variables.
 
