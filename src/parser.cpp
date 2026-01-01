@@ -86,16 +86,7 @@ StmtUP Parser::varDecl()
     Token name = previousTok;
 
     if (consumeTok(TOK_COLON))
-    {
-        TokenType varType = matchType("Expect variable type.");
-        bool isNum = (varType == TOK_INT) || (varType == TOK_UINT)
-            || (varType == TOK_DEC);
-        if (isNum && consumeTok(TOK_LEFT_PAREN))
-        {
-            matchError(TOK_NUM, "Expect numeric size.");
-            consumeTok(TOK_RIGHT_PAREN);
-        }
-    }
+        matchType("Expect variable type.");
 
     ExprUP init = nullptr;
     if (consumeTok(TOK_EQUAL))
@@ -145,7 +136,8 @@ ExprUP Parser::assignment()
     {
         if (target->type != E_VAR_EXPR) // Temporary.
             throw CompileError(previousTok, "Invalid assignment target.");
-        target = std::make_unique<AssignExpr>(std::move(target), expression());
+        target = std::make_unique<AssignExpr>(std::move(target),
+            expression());
     }
     return target;
 }
@@ -315,6 +307,13 @@ ExprUP Parser::primary()
     else if (type == TOK_IDENTIFIER)
         return ExprUP(std::make_unique<VarExpr>(previousTok));
     
+    else if (type == TOK_LEFT_PAREN)
+    {
+        ExprUP expr = expression();
+        matchError(TOK_RIGHT_PAREN, "Expect ')' after grouped expression.");
+        return expr;
+    }
+    
     return nullptr; // Temporary.
 }
 
@@ -324,17 +323,16 @@ StmtVec& Parser::parseToAST(const vT& tokens)
     currentTok = tokens[0];
     program.clear(); // In case we want to reuse the parser.
 
-    while (!checkTok(TOKEN_EOF))
+    try
     {
-        try
-        {
+        while (!checkTok(TOKEN_EOF))
             program.push_back(declaration());
-        }
-        catch (CompileError& error)
-        {
-            error.report();
-            // reset();
-        }
+    }
+    catch (CompileError& error)
+    {
+        error.report();
+        program.clear(); // Temporarily.
+        // reset();
     }
 
     return program;
