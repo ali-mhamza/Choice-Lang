@@ -179,21 +179,21 @@ void Compiler::primary()
 {
     if (consumeTok(TOK_NUM))
     {
-        Object obj{GET_TOK_V(previousTok, i64)};
+        Object obj{previousTok.content.i};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (consumeTok(TOK_NUM_DEC))
     {
-        Object obj{GET_TOK_V(previousTok, double)};
+        Object obj{previousTok.content.d};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
     
     else if (consumeTok(TOK_STR_LIT))
     {
-        HeapObj* ptr = new String(GET_TOK_V(previousTok, std::string_view));
+        HeapObj* ptr = new String(GET_STR(previousTok));
         Object obj{ptr};
         code.loadRegConst(obj, previousReg);
         reserveReg();
@@ -201,7 +201,7 @@ void Compiler::primary()
 
     else if (consumeToks(TOK_TRUE, TOK_FALSE))
     {
-        bool value = GET_TOK_V(previousTok, bool);
+        bool value = previousTok.content.b;
         code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE));
         reserveReg();
     }

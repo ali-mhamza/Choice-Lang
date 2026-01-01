@@ -3,13 +3,12 @@
 #include "common.h"
 #include "token.h"
 #include <string_view>
+#include <string>
 
 class Compiler
 {
-    #define GET_TOK_V(token, type) GETV(token.content, type)
-    #define VAL_PTR(val, type) std::make_unique<type>(val)
-    #define TOK_VAL_PTR(token, origType, newType) \
-		VAL_PTR(GET_TOK_V(token, origType), newType)
+    #define GET_STR(tok) \
+        std::string((tok).text.substr(1, (tok).text.size() - 2))
     
     private:
         ByteCode code;

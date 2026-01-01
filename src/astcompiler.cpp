@@ -284,21 +284,21 @@ DEF(LiteralExpr)
     
     if (tok.type == TOK_NUM)
     {
-        Object obj{GET_TOK_V(tok, i64)};
+        Object obj{tok.content.i};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_NUM_DEC)
     {
-        Object obj{GET_TOK_V(tok, double)};
+        Object obj{tok.content.d};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
     
     else if (tok.type == TOK_STR_LIT)
     {
-        HeapObj* ptr = new String(GET_TOK_V(tok, std::string_view));
+        HeapObj* ptr = new String(GET_STR(tok));
         Object obj{ptr};
         code.loadRegConst(obj, previousReg);
         reserveReg();
@@ -306,7 +306,7 @@ DEF(LiteralExpr)
 
     else if ((tok.type == TOK_TRUE) || (tok.type == TOK_FALSE))
     {
-        bool value = GET_TOK_V(tok, bool);
+        bool value = tok.content.b;
         code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE));
         reserveReg();
     }
