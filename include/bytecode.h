@@ -19,6 +19,7 @@ class ByteCode
         // Using big endian.
         void addShort(ui16 bytes);
         void addLong(ui32 bytes);
+        ui64 countPool() const;
 
     public:
         ByteCode();

@@ -87,17 +87,61 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 	}
 }
 
+ui64 ByteCode::countPool() const
+{
+	ui64 count = 0;
+	
+	for (const Object& obj : pool)
+	{
+		if ((obj.type == OBJ_INT) || (obj.type == OBJ_DEC))
+			count += 9; // 8 bytes + 1 type byte.
+		else if (obj.type == OBJ_HEAP)
+		{
+			HeapObj* temp = AS_HEAP_PTR(obj);
+			switch (temp->type)
+			{
+				case HEAP_STRING:
+					count += 2 + AS_STRING(temp).str.size() + 1; // For null byte.
+					break;
+				default: UNREACHABLE();
+			}
+		}
+	}
+
+	return count;
+}
+
 void ByteCode::cacheStream(std::ofstream& os) const
 {
-	os.write(reinterpret_cast<const char*>(block.data()),
-				block.size());
+	// Magic.
+	os.write("choice", 6);
 
-	// Hypothetical for constant pool.
-	constexpr ui8 POOL_START = 100; // Beyond any opcodes we have.
-	os.put(static_cast<char>(POOL_START));
-	if (file != "")
-		os.write(file.data(), file.length());
-	os.put('\0');
+	// Version number.
+	os.put(static_cast<char>(VERSION_MAJOR));
+	os.put(static_cast<char>(VERSION_MINOR));
+	os.put(static_cast<char>(VERSION_PATCH));
+
+	// File name length.
+	os.put(static_cast<char>(file.size()));
+
+	// Bytecode length.
+	ui64 codeSize = block.size();
+	os.write(reinterpret_cast<const char*>(&codeSize),
+		sizeof(ui64));
+
+	// Constant pool length.
+	ui64 poolSize = countPool();
+	os.write(reinterpret_cast<const char*>(&poolSize),
+		sizeof(ui64));
+
+	// File name.
+	os.write(file.data(), file.size());	
+
+	// Bytecode.
+	os.write(reinterpret_cast<const char*>(block.data()),
+		block.size());
+
+	// Constant pool.	
 	for (const Object& constant : pool)
 		constant.emit(os);
 }

@@ -5,15 +5,12 @@
 #include "../include/object.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
-#include <functional>
 #include <iostream>
-#include <cmath>
 #include <cstring>
-#include <memory>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 std::string readFile(const char* fileName)
@@ -114,38 +111,68 @@ vObj reconstructPool(const vByte& poolBytes)
 	return pool;
 }
 
+static void handleFileLength(std::ifstream& fileIn, size_t expected)
+{
+	if (fileIn.gcount() < expected)
+	{
+		if (fileIn.eof())
+		{
+			std::cerr << "Reached end of file prematurely.\n";
+			exit(65);
+		}
+		else if (fileIn.fail())
+		{
+			std::cerr << "Encountered internal I/O error.\n";
+			exit(74);
+		}
+	}
+}
+
+static void readMagic(std::ifstream& fileIn)
+{
+	char magic[6];
+	fileIn.read(magic, sizeof(magic));
+	handleFileLength(fileIn, sizeof(magic));
+	if (strncmp(magic, "choice", 6) != 0)
+	{
+		std::cerr << "Improper magic flag for bytecode file.\n";
+		exit(65);
+	}
+}
+
+static void readVersionNum(std::ifstream& fileIn)
+{
+	char num[3];
+	fileIn.read(num, sizeof(num));
+	handleFileLength(fileIn, sizeof(num));
+}
+
 ByteCode readCache(std::ifstream& fileIn)
 {
-	vByte codeBytes;
-	std::string funcName;
-	vByte poolBytes;
-
 	if (fileIn.is_open())
 	{
-		int ch{0};
+		std::string fileName;	ui8 nameLength;
+		vByte codeBytes;		ui64 codeLength;
+		vByte poolBytes;		ui64 poolLength;
 
-		// Build up bytecode.
-		while ((ch = fileIn.get()) != EOF)
-		{
-			if (ch == 100)
-				break;
-			codeBytes.push_back(static_cast<ui8>(ch));
-		}
+		readMagic(fileIn);
+		readVersionNum(fileIn);
 
-		// fileIn.get(); // Skip POOL_START.
+		nameLength = static_cast<ui8>(fileIn.get()); // Check for EOF.
+		fileName.resize(nameLength);
 
-		// Store function name.
-		while ((ch = fileIn.get()) != EOF)
-		{
-			if (static_cast<char>(ch) == '\0')
-				break;
-			funcName.push_back(static_cast<char>(ch));
-		}
+		fileIn.read(reinterpret_cast<char*>(&codeLength), sizeof(ui64));
+		codeBytes.resize(codeLength);
 
-		while ((ch = fileIn.get()) != EOF)
-			poolBytes.push_back(static_cast<ui8>(ch));
+		fileIn.read(reinterpret_cast<char*>(&poolLength), sizeof(ui64));
+		poolBytes.resize(poolLength);
 
-		file = funcName;
+		fileIn.read(reinterpret_cast<char*>(fileName.data()), nameLength);
+		file = fileName;
+		fileIn.read(reinterpret_cast<char*>(codeBytes.data()), codeLength);
+		fileIn.read(reinterpret_cast<char*>(poolBytes.data()), poolLength);
+
+		fileIn.close();
 		return ByteCode(codeBytes, reconstructPool(poolBytes));
 	}
 
