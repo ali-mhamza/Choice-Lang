@@ -9,7 +9,6 @@
 #include <variant>
 #include <vector>
 using AST::Expression::VarExpr;
-class ASTCompiler;
 
 class VM
 {   
@@ -38,5 +37,4 @@ class VM
     public:
         VM();
         void executeCode(const ByteCode& code);
-        friend class ASTCompiler;
 };
