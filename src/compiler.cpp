@@ -8,13 +8,9 @@
 #include <iostream>
 #include <memory>
 #include <variant>
-using namespace Object;
 
 Compiler::Compiler() :
-    previousReg(0), currentReg(1)
-{
-    // std::memset(&registers[0], OBJ_INVALID, regSize);
-}
+    previousReg(0), currentReg(1) {}
 
 void Compiler::freeReg()
 {
@@ -170,8 +166,7 @@ void Compiler::product()
             case TOK_STAR:      op = OP_MULT;   break;
             case TOK_SLASH:     op = OP_DIV;    break;
             case TOK_PERCENT:   op = OP_MOD;    break;
-            default: 
-                return; // Unreachable.
+            default: UNREACHABLE();
         }
         code.addOp(op, firstOper, firstOper, secondOper);
         // code.addOp(OP_FREE_R, secondOper);
@@ -184,29 +179,23 @@ void Compiler::primary()
 {
     if (consumeTok(TOK_NUM))
     {
-        BaseUP ptr = VAL_PTR(GET_TOK_V(previousTok, i64), Int);
-        code.loadRegConst(std::move(ptr), previousReg);
-        reserveReg();
-    }
-
-    else if (consumeTok(TOK_NUM_U))
-    {
-        BaseUP ptr = VAL_PTR(GET_TOK_V(previousTok, ui64), UInt);
-        code.loadRegConst(std::move(ptr), previousReg);
+        Object obj{GET_TOK_V(previousTok, i64)};
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (consumeTok(TOK_NUM_DEC))
     {
-        BaseUP ptr = VAL_PTR(GET_TOK_V(previousTok, double), Dec);
-        code.loadRegConst(std::move(ptr), previousReg);
+        Object obj{GET_TOK_V(previousTok, double)};
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
     
     else if (consumeTok(TOK_STR_LIT))
     {
-        BaseUP ptr = TOK_VAL_PTR(previousTok, std::string_view, String);
-        code.loadRegConst(std::move(ptr), previousReg);
+        HeapObj* ptr = new String(GET_TOK_V(previousTok, std::string_view));
+        Object obj{ptr};
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 

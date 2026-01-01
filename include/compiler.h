@@ -10,11 +10,6 @@ class Compiler
     #define VAL_PTR(val, type) std::make_unique<type>(val)
     #define TOK_VAL_PTR(token, origType, newType) \
 		VAL_PTR(GET_TOK_V(token, origType), newType)
-	
-	// For checking previous Boolean values we've evaluated.
-	// Will be useful when executing conditional jump instructions.
-	//#define EVAL_TRUE()	(registers[regSize - 1] == 1)
-	//#define EVAL_FALSE()	(registers[regSize - 1] == 0)
     
     private:
         ByteCode code;
@@ -23,7 +18,6 @@ class Compiler
         Token currentTok;
         vT::const_iterator it;
         static constexpr int regSize = 256;
-        // ui8 registers[regSize];
         ui8 previousReg;
         ui8 currentReg;
 

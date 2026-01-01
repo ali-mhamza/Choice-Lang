@@ -174,7 +174,7 @@ DEF(CompareExpr)
         case TOK_GT_EQ:
             op = OP_LT;
             break;
-        default: return; // Unreachable.
+        default: UNREACHABLE();
     }
 
     code.addOp(op, firstOper, firstOper, secondOper);
@@ -197,7 +197,7 @@ DEF(BitExpr)
         case TOK_AMP:       op = OP_BIT_AND;    break;
         case TOK_BAR:       op = OP_BIT_OR;     break;
         case TOK_UARROW:    op = OP_BIT_XOR;    break;
-        default: return; // Unreachable.
+        default: UNREACHABLE();
     }
 
     code.addOp(op, firstOper, firstOper, secondOper);
@@ -235,7 +235,7 @@ DEF(BinaryExpr)
         case TOK_SLASH:     op = OP_DIV;    break;
         case TOK_PERCENT:   op = OP_MOD;    break;
         case TOK_STAR_STAR: op = OP_POWER;  break;
-        default: return; // Unreachable.
+        default: UNREACHABLE();
     }
 
     code.addOp(op, firstOper, firstOper, secondOper);
@@ -253,11 +253,14 @@ DEF(UnaryExpr)
         case TOK_MINUS: op = OP_NEGATE;     break;
         case TOK_BANG:  op = OP_NOT;        break;
         case TOK_TILDE: op = OP_BIT_COMP;   break;
-        default: return; // Unreachable.
+        default: UNREACHABLE();
     }
 
     code.addOp(op, firstOper, firstOper);
-    freeReg();
+    // We don't free a register since unary
+    // operators don't use any extra registers.
+    // They apply an operator directly onto a
+    // register.
 }
 
 DEF(CallExpr) { (void) node; }
@@ -279,31 +282,25 @@ DEF(LiteralExpr)
 {
     Token tok = node->value;
     
-    if ((tok.type == TOK_NUM))
+    if (tok.type == TOK_NUM)
     {
-        BaseUP ptr = VAL_PTR(GET_TOK_V(tok, i64), Int);
-        code.loadRegConst(std::move(ptr), previousReg);
+        Object obj{GET_TOK_V(tok, i64)};
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
-    else if ((tok.type == TOK_NUM_U))
+    else if (tok.type == TOK_NUM_DEC)
     {
-        BaseUP ptr = VAL_PTR(GET_TOK_V(tok, ui64), UInt);
-        code.loadRegConst(std::move(ptr), previousReg);
-        reserveReg();
-    }
-
-    else if ((tok.type == TOK_NUM_DEC))
-    {
-        BaseUP ptr = VAL_PTR(GET_TOK_V(tok, double), Dec);
-        code.loadRegConst(std::move(ptr), previousReg);
+        Object obj{GET_TOK_V(tok, double)};
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
     
     else if (tok.type == TOK_STR_LIT)
     {
-        BaseUP ptr = TOK_VAL_PTR(tok, std::string_view, String);
-        code.loadRegConst(std::move(ptr), previousReg);
+        HeapObj* ptr = new String(GET_TOK_V(tok, std::string_view));
+        Object obj{ptr};
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
@@ -360,6 +357,8 @@ void ASTCompiler::compileStmt(StmtUP& node)
     // Reset our registers.
 }
 
+#define MIN(a, b) (a < b ? a : b)
+
 ByteCode& ASTCompiler::compile(StmtVec& program)
 {
     code.clear();
@@ -367,7 +366,8 @@ ByteCode& ASTCompiler::compile(StmtVec& program)
     {
         for (StmtUP& node : program)
             compileStmt(node);
-        code.addOp(OP_RETURN, static_cast<ui8>(0));
+        if (!program.empty())
+            code.addOp(OP_RETURN, static_cast<ui8>(previousReg));
     }
     catch (CompileError& error)
     {
