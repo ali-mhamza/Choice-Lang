@@ -7,10 +7,10 @@ Disassembler::Disassembler(const ByteCode& code) :
 	code(code), ip(code.block.begin()),
 	start(code.block.begin()) {}
 
-void Disassembler::printOperValue(const BaseUP& oper)
+void Disassembler::printOperValue(const Object& oper)
 {
-	std::cout << "'" << oper->print() << "' ";
-	std::cout << oper->printType() << '\n';
+	std::cout << "'" << oper.printVal() << "' ";
+	std::cout << oper.printType() << '\n';
 }
 
 ui8 Disassembler::restoreByte()
@@ -98,7 +98,7 @@ void Disassembler::loadOper(std::string_view opName)
 			break;
 		}
 		case OP_SHORT_OPER:
-		{	
+		{
 			ui16 operand = restoreShort();
 			std::cout << "C[" << operand << "] ";
 			printOperValue(code.pool[operand]);

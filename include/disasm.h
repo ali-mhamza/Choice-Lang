@@ -1,5 +1,6 @@
 #include "bytecode.h"
 #include "common.h"
+#include "object.h"
 
 class Disassembler
 {
@@ -8,7 +9,7 @@ class Disassembler
         vByte::const_iterator ip;
         vByte::const_iterator start;
 
-        void printOperValue(const BaseUP& oper);
+        void printOperValue(const Object& oper);
 
         ui8 restoreByte();
         ui16 restoreShort();
