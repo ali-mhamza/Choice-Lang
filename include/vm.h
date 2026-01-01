@@ -5,32 +5,35 @@
 #include "object.h"
 #include "opcodes.h"
 #include "vartable.h"
+#include <memory>
 #include <variant>
 #include <vector>
 using AST::Expression::VarExpr;
-using RegVar = std::variant<BaseUP, int, bool, Null>;
 class ASTCompiler;
 
 class VM
-{
-    #define HAS_TYPE(type, val) std::holds_alternative<type>(val)
-    #define OBJ_TYPE(obj)       std::get<BaseUP>(obj)->type
-
+{   
     private:
         vByte::const_iterator ip;
         static constexpr int regSize = 256;
-        std::vector<RegVar> registers;
+        std::unique_ptr<Object[]> registers;
         ui8 regSlot;
 
         // Utilities.
 
-        bool checkNumOper(ui8 slot);
-        bool checkNumOpers(ui8 slot1, ui8 slot2);
-        void arithOper(Opcode oper);
+        inline ui8 readByte();
+        inline ui16 readShort();
+        inline ui32 readLong();
+        bool isTruthy(const Object& obj);
+        void loadOper(const vObj& pool);
+        Object arithOper(Opcode oper);
+        inline Object compareOper(Opcode oper);
+        inline Object bitOper(Opcode oper);
+        inline Object unaryOper(Opcode oper);
 
         // Variables.
 
-        void executeOp(Opcode op);
+        void executeOp(Opcode op, const vObj& pool);
     
     public:
         VM();
