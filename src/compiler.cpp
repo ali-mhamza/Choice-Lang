@@ -443,8 +443,6 @@ ByteCode& Compiler::compile(const vT& tokens)
     {
         while (!checkTok(TOK_EOF))
             declaration();
-        if (!tokens.empty())
-            code.addOp(OP_RETURN, static_cast<ui8>(previousReg));
     }
     catch (CompileError& error)
     {

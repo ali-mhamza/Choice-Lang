@@ -30,6 +30,10 @@ class VM
         inline Object bitOper(Opcode oper);
         inline Object unaryOper(Opcode oper);
 
+        #ifdef WATCH_REG
+        void printRegister();
+        #endif
+
         // Variables.
 
         void executeOp(Opcode op, const vObj& pool);

@@ -1,13 +1,16 @@
 #include "bytecode.h"
 #include "common.h"
 #include "object.h"
+#include <optional>
 
 class Disassembler
 {
     private:
+        using vBit = vByte::const_iterator;
+
         const ByteCode& code;
-        vByte::const_iterator ip;
-        vByte::const_iterator start;
+        vBit ip;
+        vBit start;
 
         void printOperValue(const Object& oper);
 
@@ -19,10 +22,9 @@ class Disassembler
         void doubleOper(std::string_view opName);
         void tripleOper(std::string_view opName);
         void loadOper(std::string_view opName);
-
-        void disassembleOp(ui8 byte);
     
     public:
         Disassembler(const ByteCode& code);
+        void disassembleOp(ui8 byte);
         void disassembleCode();
 };

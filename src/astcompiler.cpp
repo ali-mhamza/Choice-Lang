@@ -365,8 +365,6 @@ ByteCode& ASTCompiler::compile(StmtVec& program)
     {
         for (StmtUP& node : program)
             compileStmt(node);
-        if (!program.empty())
-            code.addOp(OP_RETURN, static_cast<ui8>(previousReg));
     }
     catch (CompileError& error)
     {

@@ -1,4 +1,5 @@
 #include "../include/vm.h"
+#include "../include/disasm.h"
 #include "../include/opcodes.h"
 #include <cmath>
 using namespace AST::Statement;
@@ -52,6 +53,7 @@ bool VM::isTruthy(const Object& obj)
 void VM::loadOper(const vObj& pool)
 {
     ui8 dest = readByte();
+    regSlot = dest;
     ui8 oper = readByte();
 
     switch (oper)
@@ -203,7 +205,23 @@ inline Object VM::unaryOper(Opcode op)
     }
 }
 
+#ifdef WATCH_REG
 #include <iostream>
+
+void VM::printRegister()
+{
+    for (int i = 0; i <= regSlot; i++)
+    {
+        if (!IS_VALID(registers[i]))
+            break;
+        std::cout << "[ " << registers[i].printVal()
+            << " ]";
+    }
+    std::cout << '\n';
+}
+
+#endif
+
 void VM::executeOp(Opcode op, const vObj& pool)
 {    
     switch (op)
@@ -215,15 +233,9 @@ void VM::executeOp(Opcode op, const vObj& pool)
         case OP_SET_VAR:
         {
             ui8 dest = readByte();
+            regSlot = (op == OP_GET_VAR ? dest : regSlot);
             ui8 src = readByte();
             registers[dest] = registers[src];
-            break;
-        }
-        case OP_RETURN:
-        {
-            ui8 ret = readByte();
-            if (IS_VALID(registers[ret]))
-                std::cout << registers[ret].printVal() << '\n';
             break;
         }
         
@@ -234,6 +246,7 @@ void VM::executeOp(Opcode op, const vObj& pool)
         {
             ui8 dest = readByte();
             registers[dest] = arithOper(op);
+            regSlot--;
             break;
         }
 
@@ -242,6 +255,7 @@ void VM::executeOp(Opcode op, const vObj& pool)
         {
             ui8 dest = readByte();
             registers[dest] = compareOper(op);
+            regSlot--;
             break;
         }
 
@@ -251,6 +265,7 @@ void VM::executeOp(Opcode op, const vObj& pool)
         {
             ui8 dest = readByte();
             registers[dest] = bitOper(op);
+            regSlot--;
             break;
         }
 
@@ -271,12 +286,24 @@ void VM::executeCode(const ByteCode& code)
     ip = code.block.begin();
     auto end = code.block.end();
     const vObj& pool = code.pool;
+
+    #ifdef WATCH_EXEC
+        Disassembler dis(code);
+    #endif
     
     while (ip < end)
     {
         try
         {
+            #ifdef WATCH_EXEC
+                dis.disassembleOp(*ip);
+            #endif
+
             executeOp(static_cast<Opcode>(readByte()), pool);
+
+            #ifdef WATCH_REG
+                printRegister();
+            #endif
         }
         catch (TypeMismatch& error)
         {
