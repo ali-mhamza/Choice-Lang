@@ -48,11 +48,11 @@ $(NAME): $(OBJS)
 ast: CXXFLAGS += $(AST)
 ast: $(NAME)
 
-type: $(OBJS)
-	@$(CXX) $(AST) $(TYPE) $(CXXFLAGS) $^ -o $(NAME)
+type: CXXFLAGS += $(AST) $(TYPE)
+type: $(NAME)
 
-opt: $(OBJS)
-	@$(CXX) $(AST) $(OPT) $(CXXFLAGS) $^ -o $(NAME)
+opt: $(CXXFLAGS) += $(AST) $(OPT)
+opt: $(NAME)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
