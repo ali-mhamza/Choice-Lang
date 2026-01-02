@@ -157,12 +157,17 @@ Object::Object(T val)
 #define IS_BOOL(obj)        ((obj).type == OBJ_BOOL)
 #define IS_NULL(obj)        ((obj).type == OBJ_NULL)
 #define IS_HEAP_OBJ(obj)    ((obj).type == OBJ_HEAP)
+
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
+
 
 #define AS_INT(obj)         ((obj).as.intVal)
 #define AS_DEC(obj)         ((obj).as.doubleVal)
 #define AS_BOOL(obj)        ((obj).as.boolVal)
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_HEAP_VAL(obj)    (*((obj).as.heapVal))
+
 #define AS_NUM(obj)         ((obj).type == OBJ_INT ? AS_INT(obj) : AS_DEC(obj))
+#define AS_UINT(obj)        (static_cast<ui64>(AS_INT(obj)))
+#define FROM_UINT(val)      (static_cast<i64>(val))

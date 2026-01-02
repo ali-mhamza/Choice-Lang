@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -10,6 +9,7 @@
 
 // #define TIME_TOTAL
 #define TIME_RUN
+#define WATCH_REG
 
 #define FALLTHROUGH() [[fallthrough]]
 
@@ -20,6 +20,24 @@
 #define UNREACHABLE() __builtin_unreachable()
 #elif defined(_MSC_VER)
 #define UNREACHABLE() __assume(false)
+#endif
+
+#ifndef NDEBUG
+#include <cstdio>
+#include <cstdlib>
+#define ASSERT(expr, msg) \
+	do { \
+		if (expr) \
+			break; \
+		else \
+		{ \
+			printf("ASSERTION FAILED [%s: %s, %d]: %s.\n", \
+				(__FILE__), (__func__), (__LINE__), msg); \
+			exit(EXIT_FAILURE); \
+		} \
+	} while (false)
+#else
+#define ASSERT(expr, msg)
 #endif
 
 using i8        = int8_t;
