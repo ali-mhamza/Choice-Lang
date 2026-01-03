@@ -13,10 +13,14 @@
 #include <memory>
 #include <variant>
 
+constexpr bool accessFix = false;
+constexpr bool accessVar = true;
+
 class TokCompVarsWrapper
 {
     public:
         chainTable<VarEntry, ui8, VarHasher> vars;
+        chainTable<ui8, bool> access;
 
         TokCompVarsWrapper() = default;
 };
@@ -36,10 +40,20 @@ void Compiler::defVar(std::string name, ui8 reg)
     varScopes.back().push_back(name);
 }
 
+void Compiler::defAccess(ui8 reg, bool access)
+{
+    varsWrapper->access[reg] = access;
+}
+
 ui8* Compiler::getVarSlot(const Token& token)
 {
     VarEntry entry(token.text, scope);
     return varsWrapper->vars.get(entry);
+}
+
+bool Compiler::getAccess(ui8 reg)
+{
+    return *(varsWrapper->access.get(reg));
 }
 
 void Compiler::popScope()
@@ -161,6 +175,8 @@ void Compiler::varDecl()
         std::string(name.text),
         slot
     );
+    defAccess(slot,
+        declType == TOK_MAKE ? accessVar : accessFix);
 }
 
 void Compiler::statement()
@@ -195,13 +211,13 @@ void Compiler::expression()
     assignment();
 }
 
+// For the time being, we just look for direct
+// identifier names.
+// This would need to be modified when other types
+// of "variables" are introduced, like class fields.
+
 void Compiler::assignment()
 {
-    // For the time being, we just look for direct
-    // identifier names.
-    // This would need to be modified when other types
-    // of "variables" are introduced, like class fields.
-
     // Bit of a hack.
     const Token& firstTok = currentTok;
     const Token& secondTok = *(it + 1);
@@ -214,6 +230,11 @@ void Compiler::assignment()
         nextTok();
         if (slot != nullptr)
         {
+            bool access = getAccess(*slot);
+            if (access == accessFix)
+                throw CompileError(
+                    secondTok, "Cannot assign to a fixed-value variable."
+                );
             ui8 value = previousReg;
             expression(); // Does not consume the ';'.
             code.addOp(OP_SET_VAR, *slot, value);

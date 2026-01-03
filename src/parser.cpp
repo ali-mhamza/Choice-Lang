@@ -1,4 +1,4 @@
-#ifdef COMP_AST
+//#ifdef COMP_AST
 
 #include "../include/parser.h"
 #include "../include/astnodes.h"
@@ -136,10 +136,11 @@ ExprUP Parser::assignment()
     ExprUP target = logicOr();
     if (consumeTok(TOK_EQUAL))
     {
+        Token oper = previousTok;
         if (target->type != E_VAR_EXPR) // Temporary.
             throw CompileError(previousTok, "Invalid assignment target.");
         target = std::make_unique<AssignExpr>(std::move(target),
-            expression());
+            oper, expression());
     }
     return target;
 }
@@ -340,4 +341,4 @@ StmtVec& Parser::parseToAST(const vT& tokens)
     return program;
 }
 
-#endif
+//#endif

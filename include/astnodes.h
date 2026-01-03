@@ -127,9 +127,10 @@ namespace AST
         struct AssignExpr : public Expr
         {
             ExprUP target;
+            Token oper;
             ExprUP value;
 
-            AssignExpr(ExprUP target, ExprUP value);
+            AssignExpr(ExprUP target, Token oper, ExprUP value);
         };
 
         // All five are effectively the same,

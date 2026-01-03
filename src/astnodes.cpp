@@ -40,9 +40,9 @@ BlockStmt::BlockStmt(StmtVec& block) :
 Expr::Expr(ExprType type) :
     type(type) {}
 
-AssignExpr::AssignExpr(ExprUP target, ExprUP value) :
+AssignExpr::AssignExpr(ExprUP target, Token oper, ExprUP value) :
     Expr(E_ASSIGN_EXPR),
-    target(std::move(target)), value(std::move(value)) {}
+    target(std::move(target)), oper(oper), value(std::move(value)) {}
 
 LogicExpr::LogicExpr(ExprUP left, TokenType oper, ExprUP right) :
     Expr(E_LOGIC_EXPR),

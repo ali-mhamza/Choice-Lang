@@ -1,4 +1,4 @@
-#ifdef COMP_AST
+//#ifdef COMP_AST
 
 #include "chainTable.h"
 #include "../include/astcompiler.h"
@@ -8,10 +8,14 @@
 #include "../include/opcodes.h"
 #include "../include/vartable.h"
 
+constexpr bool accessFix = false;
+constexpr bool accessVar = true;
+
 class ASTCompVarsWrapper
 {
     public:
         chainTable<VarEntry, ui8, VarHasher> vars;
+        chainTable<ui8, bool> access;
 
         ASTCompVarsWrapper() = default;
 };
@@ -31,6 +35,11 @@ inline void ASTCompiler::defVar(std::string name, ui8 reg)
     varScopes.back().push_back(name);
 }
 
+inline void ASTCompiler::defAccess(ui8 reg, bool access)
+{
+    varsWrapper->access[reg] = access;
+}
+
 inline ui8* ASTCompiler::getVarSlot(const Token& token)
 {
     VarEntry entry(token.text, scope);
@@ -44,6 +53,11 @@ ui8* ASTCompiler::getVarSlot(ExprUP& node)
     VarEntry entry(varUP->name.text, scope);
     node.reset(varUP.release());
     return varsWrapper->vars.get(entry);
+}
+
+bool ASTCompiler::getAccess(ui8 reg)
+{
+    return *(varsWrapper->access.get(reg));
 }
 
 void ASTCompiler::popScope()
@@ -82,6 +96,8 @@ DEF(VarDecl)
         std::string(node->name.text),
         varSlot
     );
+    defAccess(varSlot,
+        node->declType == TOK_MAKE ? accessVar : accessFix);
 }
 
 DEF(FunDecl) { (void) node; }
@@ -122,6 +138,9 @@ DEF(AssignExpr)
         throw CompileError(varUP->name, "Undefined variable '"
             + std::string(varUP->name.text) + "'.");
     }
+    else if (getAccess(*ptr) == accessFix)
+        throw CompileError(node->oper,
+            "Cannot assign to a fixed-value variable.");
     code.addOp(OP_SET_VAR, *ptr, reg);
 }
 
@@ -355,4 +374,4 @@ ByteCode& ASTCompiler::compile(StmtVec& program)
     return code;
 }
 
-#endif
+//#endif
