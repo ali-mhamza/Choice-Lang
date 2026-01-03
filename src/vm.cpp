@@ -2,6 +2,8 @@
 #include "../include/disasm.h"
 #include "../include/opcodes.h"
 #include <cmath>
+#include <cstring>
+
 using namespace AST::Statement;
 using namespace AST::Expression;
 
@@ -88,7 +90,6 @@ Object VM::arithOper(Opcode oper)
 {
     ui8 op1 = readByte();
     ui8 op2 = readByte();
-    Object obj;
 
     Object a = registers[op1];
     Object b = registers[op2];
@@ -101,13 +102,13 @@ Object VM::arithOper(Opcode oper)
             i64 bVal = b.as.intVal;
             switch (oper)
             {
-                case OP_ADD:    obj = aVal + bVal;          break;
-                case OP_SUB:    obj = aVal - bVal;          break;
-                case OP_MULT:   obj = aVal * bVal;          break;
-                case OP_DIV:    obj = (double) aVal / bVal; break;
-                case OP_MOD:    obj = aVal % bVal;          break;
-                case OP_POWER:  obj = i64(pow(aVal, bVal)); break;
-                default: break;
+                case OP_ADD:    return aVal + bVal;
+                case OP_SUB:    return aVal - bVal;
+                case OP_MULT:   return aVal * bVal;
+                case OP_DIV:    return (double) aVal / bVal;
+                case OP_MOD:    return aVal % bVal;
+                case OP_POWER:  return i64(pow(aVal, bVal));
+                default: UNREACHABLE();
             }
         }
         else
@@ -116,14 +117,14 @@ Object VM::arithOper(Opcode oper)
             double bVal = (double) AS_NUM(b);
             switch (oper)
             {
-                case OP_ADD:    obj = aVal + bVal;      break;
-                case OP_SUB:    obj = aVal - bVal;      break;
-                case OP_MULT:   obj = aVal * bVal;      break;
-                case OP_DIV:    obj = aVal / bVal;      break;
-                case OP_POWER:  obj = pow(aVal, bVal);  break;
+                case OP_ADD:    return aVal + bVal;
+                case OP_SUB:    return aVal - bVal;
+                case OP_MULT:   return aVal * bVal;
+                case OP_DIV:    return aVal / bVal;
+                case OP_POWER:  return pow(aVal, bVal);
                 // Cannot do modulus for non-integers.
                 // Maybe raise an error?
-                default: break;
+                default: UNREACHABLE();
             }
         }
     }
@@ -133,8 +134,6 @@ Object VM::arithOper(Opcode oper)
             OBJ_NUM,
             (IS_NUM(a) ? b.type : a.type)
         );
-
-    return obj;
 }
 
 inline Object VM::compareOper(Opcode op)
@@ -151,6 +150,13 @@ inline Object VM::compareOper(Opcode op)
     }
 }
 
+static inline i64 fromUnsigned(ui64 num)
+{
+    i64 i;
+    std::memcpy(&i, &num, sizeof(ui64));
+    return i;
+}
+
 inline Object VM::bitOper(Opcode op)
 {
     Object a = registers[readByte()];
@@ -162,14 +168,17 @@ inline Object VM::bitOper(Opcode op)
             OBJ_INT,
             (IS_INT(a) ? b.type : a.type)
         );
+    
+    ui64 aVal = AS_UINT(a);
+    ui64 bVal = AS_UINT(b);
 
     switch (op)
     {
-        case OP_BIT_AND:        return AS_INT(a) & AS_INT(b);
-        case OP_BIT_OR:         return AS_INT(a) | AS_INT(b);
-        case OP_BIT_XOR:        return AS_INT(a) ^ AS_INT(b);
-        case OP_BIT_SHIFT_L:    return AS_INT(a) << AS_INT(b);
-        case OP_BIT_SHIFT_R:    return AS_INT(a) >> AS_INT(b);
+        case OP_BIT_AND:        return fromUnsigned(aVal & bVal);
+        case OP_BIT_OR:         return fromUnsigned(aVal | bVal);
+        case OP_BIT_XOR:        return fromUnsigned(aVal ^ bVal);
+        case OP_BIT_SHIFT_L:    return fromUnsigned(aVal << bVal);
+        case OP_BIT_SHIFT_R:    return fromUnsigned(aVal >> bVal);
         default: UNREACHABLE();
     }
 }
@@ -199,7 +208,7 @@ inline Object VM::unaryOper(Opcode op)
                     OBJ_INT,
                     obj.type
                 );
-            return i64(~AS_INT(obj));
+            return i64(~AS_UINT(obj));
         }
         default: UNREACHABLE();
     }
