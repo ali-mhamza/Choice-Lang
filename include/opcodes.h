@@ -29,7 +29,6 @@ enum Opcode : ui8 // Each opcode is a single byte.
 
 	// Variables.
 
-	// OP_DEF_VAR,		// Define a variable.
 	OP_GET_VAR,		// Retrieve/load a variable.
 	OP_SET_VAR,		// Assign to a variable.
 
@@ -76,7 +75,6 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	// For testing.
 	OP_LOAD_R,		// Load a constant pointer into a register.
 	OP_MOVE_R,		// Store a register's value in another register.
-	// OP_FREE_R		// Free a particular register.
 };
 
 static std::string_view opNames[] = {
@@ -87,7 +85,7 @@ static std::string_view opNames[] = {
 	"OP_ADD", "OP_SUB", "OP_MULT", "OP_DIV", "OP_POWER",
 	"OP_MOD", "OP_NEGATE",
 
-	/*"OP_DEF_VAR",*/ "OP_GET_VAR", "OP_SET_VAR",
+	"OP_GET_VAR", "OP_SET_VAR",
 
 	"OP_LIST", "OP_TABLE",
 
@@ -102,5 +100,5 @@ static std::string_view opNames[] = {
 	"OP_JUMP", "OP_JUMP_TRUE", "OP_JUMP_FALSE", "OP_LOOP",
 	"OP_BYTE_OPER", "OP_SHORT_OPER", "OP_LONG_OPER",
 	
-	"OP_LOAD_R", "OP_MOVE_R" // "OP_FREE_R"
+	"OP_LOAD_R", "OP_MOVE_R"
 };

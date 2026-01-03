@@ -170,4 +170,3 @@ Object::Object(T val)
 
 #define AS_NUM(obj)         ((obj).type == OBJ_INT ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<ui64>(AS_INT(obj)))
-#define FROM_UINT(val)      (static_cast<i64>(val))
