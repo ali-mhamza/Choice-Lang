@@ -52,7 +52,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 	{
 		if (IS_SMALL(constant.as.intVal))
 		{
-			addByte(constant.as.intVal + 2);
+			addByte(static_cast<ui8>(constant.as.intVal + 2));
 			return;
 		}
 	}
@@ -60,7 +60,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 	{
 		if (IS_SMALL(constant.as.doubleVal))
 		{
-			addByte(constant.as.doubleVal + 2);
+			addByte(static_cast<ui8>(constant.as.doubleVal + 2));
 			return;
 		}
 	}
@@ -68,18 +68,16 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 	pool.push_back(std::move(constant));
 
 	size_t size = pool.size();
-	if (size - 1 < 256)
+	if (size - 1 < (1 << 8))
 	{
 		addByte(OP_BYTE_OPER);
 		addByte(static_cast<ui8>(size - 1));
 	}
-
-	else if (size - 1 < 65536)
+	else if (size - 1 < (1 << 16))
 	{
 		addByte(OP_SHORT_OPER);
 		addShort(static_cast<ui16>(size - 1));
 	}
-
 	else
 	{
 		addByte(OP_LONG_OPER);
@@ -101,7 +99,8 @@ ui64 ByteCode::countPool() const
 			switch (temp->type)
 			{
 				case HEAP_STRING:
-					count += 2 + AS_STRING(temp).str.size() + 1; // For null byte.
+					// Added type bytes (2) and null byte (1).
+					count += 2 + AS_STRING(temp).str.size() + 1;
 					break;
 				default: UNREACHABLE();
 			}
