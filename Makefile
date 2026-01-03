@@ -6,12 +6,13 @@ CXX = g++
 INCLUDES = $(INCLUDE) $(INCLUDE_WSL)
 CXX_STANDARD = -std=c++17
 DEFINES = -DFMT_HEADER_ONLY
-DEBUG_FLAGS = -g -O0 -DDEBUG
-RELEASE_FLAGS = -O2 -DNDEBUG
+# DEBUG_FLAGS = -g -O0 -DDEBUG
+# RELEASE_FLAGS = -g -O2 -DNDEBUG
+REGULAR_FLAGS = -g -O2
 WARNINGS = -Wall -Wextra \
-			-Wno-unused-parameter -Wno-sign-compare \
+			-Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized\
 			-Werror -pedantic
-CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(DEBUG_FLAGS) $(WARNINGS) $(DEFINES)
+CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(REGULAR_FLAGS) $(WARNINGS) $(DEFINES)
 AST = -DCOMP_AST
 TYPE = -DTYPE
 OPT = -DOPT
