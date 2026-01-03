@@ -258,3 +258,12 @@ bool fileNameCheck(std::string_view fileName)
 {
 	return (ends_with(fileName, ".ch") || ends_with(fileName, ".bch"));
 }
+
+std::string normalizeNewlines(const std::string_view& sv)
+{
+	std::string str(sv);
+	str.erase(std::remove_if(str.begin(), str.end(), [](char c){
+        return (c == '\r');
+    }), str.end());
+	return str;
+}

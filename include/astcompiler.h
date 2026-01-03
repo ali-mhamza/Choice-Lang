@@ -1,6 +1,7 @@
 #pragma once
 #include "astnodes.h"
 #include "bytecode.h"
+#include "main_utils.h"
 #include "vartable.h"
 #include "vm.h"
 #include <memory>
@@ -21,7 +22,9 @@ class ASTCompiler
         } while (false)
 
     #define GET_STR(tok) \
-        std::string((tok).text.substr(1, (tok).text.size() - 2))
+        normalizeNewlines( \
+            (tok).text.substr(1, (tok).text.size() - 2) \
+        )
 
     private:
         ByteCode code;

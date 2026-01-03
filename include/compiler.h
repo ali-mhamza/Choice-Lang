@@ -1,6 +1,7 @@
 #pragma once
 #include "bytecode.h"
 #include "common.h"
+#include "main_utils.h"
 #include "token.h"
 #include <string_view>
 #include <string>
@@ -11,7 +12,9 @@ class TokCompVarsWrapper;
 class Compiler
 {
     #define GET_STR(tok) \
-        std::string((tok).text.substr(1, (tok).text.size() - 2))
+        normalizeNewlines( \
+            (tok).text.substr(1, (tok).text.size() - 2) \
+        )
     
     private:
         ByteCode code;
