@@ -32,7 +32,8 @@
 	#endif
 	#include <fmt/base.h>
 	#include <fmt/core.h>
-	#define FORMAT_PRINT fmt::print
+	#define FORMAT_PRINT	fmt::print
+	#define FORMAT_STR		fmt::format
 #endif
 
 #ifndef NDEBUG
