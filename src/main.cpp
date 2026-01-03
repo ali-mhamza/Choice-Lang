@@ -276,7 +276,16 @@ static void repl(ArgvOption option = EXECUTE)
 int main(int argc, const char* argv[])
 {
 	if (argc == 3)
-		runFile(argv[2], options[argv[1]]);
+	{
+		auto it = options.find(argv[1]);
+		if (it != options.end())
+			runFile(argv[2], it->second);
+		else
+		{
+			std::cerr << "Invalid command-line option.\n";
+			exit(64);
+		}
+	}
 	else if (argc == 2)
 	{
 		auto it = options.find(argv[1]);
