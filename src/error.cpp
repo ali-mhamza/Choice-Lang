@@ -31,7 +31,6 @@ CompileError::CompileError(const Token& token,
 
 void CompileError::report()
 {
-    std::cerr << "Compile Error";
     FORMAT_PRINT(stderr, "Compile Error");
     if (token.type != TOK_EOF)
     {
