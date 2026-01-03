@@ -215,7 +215,7 @@ inline Object VM::unaryOper(Opcode op)
 }
 
 #ifdef WATCH_REG
-#include <iostream>
+#include "../include/common.h"
 
 void VM::printRegister()
 {
@@ -223,8 +223,7 @@ void VM::printRegister()
     {
         if (!IS_VALID(registers[i]))
             break;
-        std::cout << "[ " << registers[i].printVal()
-            << " ]";
+        FORMAT_PRINT("[{}]", registers[i].printVal());
     }
     std::cout << '\n';
 }
