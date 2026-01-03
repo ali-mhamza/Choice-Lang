@@ -13,6 +13,8 @@
 #include <string_view>
 #include <vector>
 
+using vBit = vByte::const_iterator;
+
 std::string readFile(const char* fileName)
 {
 	std::ifstream file(fileName);
@@ -35,49 +37,55 @@ std::string readFile(const char* fileName)
 	exit(66);
 }
 
+static inline void eofError()
+{
+	std::cerr << "Reached end of file prematurely.\n";
+	exit(65);
+}
+
 template<typename Size>
-static Size reconstructBytes(vByte::const_iterator& it)
+static Size reconstructBytes(vBit& it, const vBit& end)
 {
 	Size value = 0;
 	ui8 bytes[sizeof(Size)];
 	for (size_t i = 0; i < sizeof(Size); i++)
+	{
+		if (it == end)
+			eofError();
 		bytes[i] = *(it++);
+	}
 	it--;
 	std::memcpy(&value, &bytes[0], sizeof(Size));
 	return value;
 }
 
-static Object reconstructInt(vByte::const_iterator& it)
-{
-	return Object(reconstructBytes<i64>(it));
-}
-
-static Object reconstructDec(vByte::const_iterator& it)
-{
-	return Object(reconstructBytes<double>(it));
-}
-
-static Object reconstructString(vByte::const_iterator& it)
+static Object reconstructString(vBit& it, const vBit& end)
 {
 	std::string str;
+	if (it == end)
+		eofError();
 	while (static_cast<char>(*it) != '\0')
 	{
 		str.push_back(static_cast<char>(*it));
 		it++;
+		if (it == end)
+			eofError();
 	}
 
 	HeapObj* obj = new String(str);
 	return Object(obj);
 }
 
-static Object reconstructHeapObj(vByte::const_iterator& it)
+static Object reconstructHeapObj(vBit& it, const vBit& end)
 {
+	if (it == end)
+		eofError();
 	ObjType type = static_cast<ObjType>(*it);
 	it++;
 	switch (type)
 	{
-		case HEAP_STRING:	return reconstructString(it);
-		default:			return Object(); // Temporarily.
+		case HEAP_STRING:	return reconstructString(it, end);
+		default:			UNREACHABLE();
 	}
 }
 
@@ -85,25 +93,29 @@ vObj reconstructPool(const vByte& poolBytes)
 {
 	vObj pool;
 
-	for (auto it = poolBytes.begin(); it != poolBytes.end(); it++)
+	for (auto it = poolBytes.begin(); it < poolBytes.end(); it++)
 	{
 		ObjType type = static_cast<ObjType>(*it);
+		it++;
 		switch (type)
 		{
 			case OBJ_INT:
-				pool.push_back(reconstructInt(++it));
+				pool.push_back(reconstructBytes<i64>(it, poolBytes.end()));
 				break;
 			case OBJ_DEC:
-				pool.push_back(reconstructDec(++it));
+				pool.push_back(reconstructBytes<double>(it, poolBytes.end()));
 				break;
 			case OBJ_HEAP:
-				pool.push_back(reconstructHeapObj(++it));
+				pool.push_back(reconstructHeapObj(it, poolBytes.end()));
 				break;
 			default:
 			{
 				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
+				{
 					std::cout << "Error: byte is "
-						<< static_cast<int>(*it) << ".\n";
+						<< static_cast<int>(type) << ".\n";
+					exit(65);
+				}
 			}
 		}
 	}
@@ -116,10 +128,7 @@ static void handleFileLength(std::ifstream& fileIn, size_t expected)
 	if (fileIn.gcount() < expected)
 	{
 		if (fileIn.eof())
-		{
-			std::cerr << "Reached end of file prematurely.\n";
-			exit(65);
-		}
+			eofError();
 		else if (fileIn.fail())
 		{
 			std::cerr << "Encountered internal I/O error.\n";
@@ -158,19 +167,29 @@ ByteCode readCache(std::ifstream& fileIn)
 		readMagic(fileIn);
 		readVersionNum(fileIn);
 
-		nameLength = static_cast<ui8>(fileIn.get()); // Check for EOF.
+		int ch = fileIn.get();
+		if (ch == -1) // EOF.
+			eofError();
+		nameLength = static_cast<ui8>(ch); // Check for EOF.
 		fileName.resize(nameLength);
 
 		fileIn.read(reinterpret_cast<char*>(&codeLength), sizeof(ui64));
+		handleFileLength(fileIn, sizeof(ui64));
 		codeBytes.resize(codeLength);
 
 		fileIn.read(reinterpret_cast<char*>(&poolLength), sizeof(ui64));
+		handleFileLength(fileIn, sizeof(ui64));
 		poolBytes.resize(poolLength);
 
 		fileIn.read(reinterpret_cast<char*>(fileName.data()), nameLength);
+		handleFileLength(fileIn, nameLength);
 		file = fileName;
+
 		fileIn.read(reinterpret_cast<char*>(codeBytes.data()), codeLength);
+		handleFileLength(fileIn, codeLength);
+
 		fileIn.read(reinterpret_cast<char*>(poolBytes.data()), poolLength);
+		handleFileLength(fileIn, poolLength);
 
 		fileIn.close();
 		return ByteCode(codeBytes, reconstructPool(poolBytes));
