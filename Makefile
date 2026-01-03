@@ -1,10 +1,17 @@
 include .env
 
 CXX = g++
-# Includes for my separate chaining hash table implementation (found on GitHub).
-CXXFLAGS = $(INCLUDE) $(INCLUDE_WSL) -std=c++17 -Wall -Wextra \
+# Includes for my separate chaining hash table implementation (found on GitHub),
+# as well as the libfmt library.
+INCLUDES = $(INCLUDE) $(INCLUDE_WSL)
+CXX_STANDARD = -std=c++17
+DEFINES = -DFMT_HEADER_ONLY
+DEBUG_FLAGS = -g -O0 -DDEBUG
+RELEASE_FLAGS = -O2 -DNDEBUG
+WARNINGS = -Wall -Wextra \
 			-Wno-unused-parameter -Wno-sign-compare \
-			-Werror -pedantic -g
+			-Werror -pedantic
+CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(DEBUG_FLAGS) $(WARNINGS) $(DEFINES)
 AST = -DCOMP_AST
 TYPE = -DTYPE
 OPT = -DOPT
