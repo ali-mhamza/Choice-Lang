@@ -256,8 +256,8 @@ void TypeMismatch::report()
         actualSV = heapTypes[GETV(actual, HeapType)];
     
     FORMAT_PRINT(stderr,
-        "Type mismatch: Expected type ({}) but found ({}) instead.",
+        "Type mismatch: Expected type ({}) but found ({}) instead.\n",
         expectSV, actualSV
     );
-    FORMAT_PRINT("{:>15}\n", message);
+    FORMAT_PRINT("{:>15}{}\n", "", message);
 }
