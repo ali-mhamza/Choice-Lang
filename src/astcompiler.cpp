@@ -322,7 +322,7 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
     }
     else if (getAccess(*ptr) == accessFix)
         throw CompileError(node->oper,
-            "Cannot assign to a fixed-value variable.");
+            "Cannot modify a fixed-value variable.");
 
     ui8 reg = previousReg;
     code.loadReg(reg, OP_ONE);
