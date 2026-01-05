@@ -177,7 +177,7 @@ std::string Object::printVal() const
     switch (type)
     {
         case OBJ_INT:   return std::to_string(AS_INT(*this));
-        case OBJ_DEC:   return std::to_string(AS_DEC(*this));
+        case OBJ_DEC:   return std::to_string(AS_DEC(*this)).substr(0, 4);
         case OBJ_BOOL:  return (AS_BOOL(*this) ? "true" : "false");
         case OBJ_NULL:  return "null";
         case OBJ_HEAP:  return AS_HEAP_PTR(*this)->printVal();
