@@ -1,4 +1,4 @@
-//#ifndef COMP_AST
+#ifndef COMP_AST
 
 #include "chainTable.h"
 #include "../include/compiler.h"
@@ -147,7 +147,6 @@ void Compiler::varDecl()
 {
     TokenType declType = previousTok.type;
     consumeTok(TOK_DEF); // In case it's there.
-
     matchError(TOK_IDENTIFIER, "Expect variable name.");
     Token name = previousTok;
 
@@ -580,4 +579,4 @@ ByteCode& Compiler::compile(const vT& tokens)
     return code;
 }
 
-//#endif
+#endif
