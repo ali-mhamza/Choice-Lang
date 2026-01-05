@@ -20,9 +20,9 @@ static std::unordered_map<std::string_view, TokenType> keywords = {
 	{"continue", TOK_CONT},	{"match", TOK_MATCH},	{"is", TOK_IS},
 	{"fallthrough", TOK_FALL}, {"end", TOK_END},	{"make", TOK_MAKE},
 	{"fix", TOK_FIX},		{"true", TOK_TRUE},		{"false", TOK_FALSE},
-	{"null", TOK_NULL},		{"and", TOK_AND},
-	{"or", TOK_OR},			{"new", TOK_NEW},		{"def", TOK_DEF},
-	{"fields", TOK_FIELDS},	{"in", TOK_IN}
+	{"null", TOK_NULL},		{"and", TOK_AND},		{"or", TOK_OR},
+	{"new", TOK_NEW},		{"def", TOK_DEF},		{"fields", TOK_FIELDS},
+	{"in", TOK_IN}
 };
 
 Lexer::Lexer() :
