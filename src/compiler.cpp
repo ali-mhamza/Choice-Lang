@@ -151,6 +151,13 @@ void Compiler::varDecl()
     matchError(TOK_IDENTIFIER, "Expect variable name.");
     Token name = previousTok;
 
+    ui8* check = getVarSlot(name);
+    if (check != nullptr)
+    {
+         throw CompileError(name, "Variable '" + std::string(name.text)
+            + "' is already defined in this scope.");
+    }
+
     if (consumeTok(TOK_COLON))
         matchType("Expect variable type.");
 
@@ -258,14 +265,16 @@ void Compiler::assignment()
     const Token& firstTok = currentTok;
     const Token& secondTok = *(it + 1);
 
-    if ((firstTok.type == TOK_IDENTIFIER)
-        && (secondTok.type == TOK_EQUAL))
+    if (secondTok.type == TOK_EQUAL)
     {
+        if (firstTok.type != TOK_IDENTIFIER)
+            throw CompileError(firstTok, "Invalid assignment target.");
+        
         nextTok();
         ui8* slot = getVarSlot(previousTok);
-        nextTok();
         if (slot != nullptr)
         {
+            nextTok();
             bool access = getAccess(*slot);
             if (access == accessFix)
                 throw CompileError(
@@ -275,6 +284,9 @@ void Compiler::assignment()
             expression(); // Does not consume the ';'.
             code.addOp(OP_SET_VAR, *slot, value);
         }
+        else
+            throw CompileError(previousTok, "Undefined variable '"
+                + std::string(previousTok.text) + "'.");
     }
     else
         logicOr();
@@ -504,6 +516,9 @@ void Compiler::primary()
             code.addOp(OP_GET_VAR, previousReg, *slot);
             reserveReg();
         }
+        else
+            throw CompileError(previousTok, "Undefined variable '"
+                + std::string(previousTok.text) + "'.");
     }
 
     else if (consumeTok(TOK_IF))
