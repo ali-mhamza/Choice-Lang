@@ -174,6 +174,7 @@ void ASTCompiler::compoundAssign(UP(AssignExpr)& node, ui8 slot)
     }
 
     code.addOp(op, slot, slot, reg);
+    code.addOp(OP_GET_VAR, reg, slot);
 }
 
 DEF(AssignExpr)
@@ -329,6 +330,7 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
     reserveReg();
     code.addOp((node->oper.type == TOK_INCR ? OP_ADD : OP_SUB),
         *ptr, *ptr, reg);
+    code.addOp(OP_GET_VAR, reg, *ptr);
 }
 
 DEF(UnaryExpr)

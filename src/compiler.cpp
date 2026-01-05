@@ -278,6 +278,7 @@ void Compiler::compoundAssign(TokenType oper, ui8 slot)
     }
 
     code.addOp(op, slot, slot, reg);
+    code.addOp(OP_GET_VAR, reg, slot);
 }
 
 // For the time being, we just look for direct
@@ -462,6 +463,7 @@ void Compiler::_crementExpr(TokenType oper)
             reserveReg();
             code.addOp((oper == TOK_INCR ? OP_ADD : OP_SUB),
                 *slot, *slot, reg);
+            code.addOp(OP_GET_VAR, reg, *slot);
         }
     }
     else
