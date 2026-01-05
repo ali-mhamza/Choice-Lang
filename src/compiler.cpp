@@ -178,7 +178,9 @@ void Compiler::varDecl()
 void Compiler::statement()
 {
     if (consumeTok(TOK_IF))
-        ifStmt();   
+        ifStmt();
+    else if (consumeTok(TOK_WHILE))
+        whileStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
         blockStmt();
     else
@@ -203,6 +205,22 @@ void Compiler::ifStmt()
     else if (consumeTok(TOK_ELSE))
         statement();
     code.patchJump(trueJump);
+}
+
+void Compiler::whileStmt()
+{
+    matchError(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
+    // Allow a declaration first?
+    ui8 reg = previousReg;
+    ui64 loopStart = code.getLoopStart();
+    expression();
+    ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+    freeReg();
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+
+    statement();
+    code.addLoop(loopStart);
+    code.patchJump(falseJump);
 }
 
 void Compiler::blockStmt()

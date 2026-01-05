@@ -107,6 +107,8 @@ StmtUP Parser::statement()
 {
     if (consumeTok(TOK_IF))
         return ifStmt();
+    else if (consumeTok(TOK_WHILE))
+        return whileStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
         return blockStmt();
     return exprStmt();
@@ -129,6 +131,17 @@ StmtUP Parser::ifStmt()
         std::move(trueBranch),
         std::move(falseBranch)
     );
+}
+
+StmtUP Parser::whileStmt()
+{
+    matchError(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
+    // Allow a declaration first?
+    ExprUP condition = expression();
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+
+    return std::make_unique<WhileStmt>(std::move(condition),
+        statement());
 }
 
 StmtUP Parser::blockStmt()

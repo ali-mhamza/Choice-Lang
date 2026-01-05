@@ -118,7 +118,18 @@ DEF(IfStmt)
 }
 
 DEF(ReturnStmt) { (void) node; }
-DEF(LoopStmt) { (void) node; }
+
+DEF(WhileStmt)
+{
+    ui8 reg = previousReg;
+    ui64 loopStart = code.getLoopStart();
+    compileExpr(node->condition);
+    ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+    freeReg();
+    compileStmt(node->body);
+    code.addLoop(loopStart);
+    code.patchJump(falseJump);
+}
 
 DEF(ExprStmt)
 {
@@ -382,7 +393,7 @@ void ASTCompiler::compileStmt(StmtUP& node)
         case S_CLASS_DECL:  COMPILE(ClassDecl, node);   break;
         case S_IF_STMT:     COMPILE(IfStmt, node);      break;
         case S_RETURN_STMT: COMPILE(ReturnStmt, node);  break;
-        case S_LOOP_STMT:   COMPILE(LoopStmt, node);    break;
+        case S_WHILE_STMT:  COMPILE(WhileStmt, node);   break;
         case S_EXPR_STMT:   COMPILE(ExprStmt, node);    break;
         case S_BLOCK_STMT:  COMPILE(BlockStmt, node);   break;
     }

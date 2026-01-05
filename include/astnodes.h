@@ -30,7 +30,7 @@ namespace AST
             S_CLASS_DECL,
             S_IF_STMT,
             S_RETURN_STMT,
-            S_LOOP_STMT,
+            S_WHILE_STMT,
             S_EXPR_STMT,
             S_BLOCK_STMT
         };
@@ -88,12 +88,12 @@ namespace AST
             ReturnStmt(Token& keyword, ExprUP expr);
         };
 
-        struct LoopStmt : public Stmt
+        struct WhileStmt : public Stmt
         {
             ExprUP condition;
-            StmtVec body;
+            StmtUP body;
 
-            LoopStmt(ExprUP condition, StmtVec& body);
+            WhileStmt(ExprUP condition, StmtUP body);
         };
 
         struct ExprStmt : public Stmt

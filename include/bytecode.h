@@ -35,6 +35,8 @@ class ByteCode
         // fitting all register values.
         ui64 addJump(Opcode op, i16 reg = -1);
         void patchJump(ui64 offset);
+        inline ui64 getLoopStart() { return static_cast<ui64>(block.size()); }
+        void addLoop(ui64 start);
 
         void cacheStream(std::ofstream& os) const;
         void clearCode();

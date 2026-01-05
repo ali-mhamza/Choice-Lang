@@ -71,7 +71,7 @@ class Compiler
         void statement();
         void ifStmt();
         void returnStmt();
-        void loopStmt();
+        void whileStmt();
         void blockStmt();
         void exprStmt();
 

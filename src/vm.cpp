@@ -238,6 +238,15 @@ void VM::executeOp(Opcode op, const vObj& pool)
         case OP_LOAD_R:
             loadOper(pool); // Could re-write this to be like the operators below.
             break;
+        case OP_LOOP:
+        {
+            ui16 jump = readShort();
+            ip -= jump;
+            #ifdef WATCH_EXEC
+                this->dis->ip -= jump;
+            #endif
+            break;
+        }
         case OP_JUMP:
         {
             ui16 jump = readShort();

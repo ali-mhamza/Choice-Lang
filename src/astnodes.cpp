@@ -28,8 +28,8 @@ ReturnStmt::ReturnStmt(Token& keyword, ExprUP expr) :
     Stmt(S_RETURN_STMT),
     keyword(keyword), expr(std::move(expr)) {}
 
-LoopStmt::LoopStmt(ExprUP condition, StmtVec& body) :
-    Stmt(S_LOOP_STMT),
+WhileStmt::WhileStmt(ExprUP condition, StmtUP body) :
+    Stmt(S_WHILE_STMT),
     condition(std::move(condition)), body(std::move(body)) {}
 
 ExprStmt::ExprStmt(ExprUP expr) :

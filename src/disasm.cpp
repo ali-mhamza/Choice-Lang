@@ -115,21 +115,18 @@ void Disassembler::loadOper(std::string_view opName)
 	}
 }
 
-void Disassembler::jumpOper(ui8 byte)
+void Disassembler::jumpOper(ui8 byte, int sign)
 {
 	printOpcode(opNames[byte]);
-	ui8 reg = 0;
-	if (byte != OP_JUMP)
+	if ((byte == OP_JUMP_TRUE) || (byte == OP_JUMP_FALSE))
 	{
-		reg = restoreByte();
+		ui8 reg = restoreByte();
 		ip++;
+		FORMAT_PRINT("R[{}] ", reg);
 	}
 	ui16 jump = restoreShort();
 	ip += 3;
-	if (byte != OP_JUMP)
-		FORMAT_PRINT("R[{}] -> {}\n", reg, ip - start + jump);
-	else
-		FORMAT_PRINT("-> {}\n", ip - start + jump);
+	FORMAT_PRINT("-> {}\n", ip - start + (sign * jump));
 }
 
 void Disassembler::disassembleOp(ui8 byte)
@@ -147,8 +144,8 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_GET_VAR:	case OP_SET_VAR:
 			doubleOper(opNames[byte]);
 			break;
-		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:
-			jumpOper(byte);
+		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
+			jumpOper(byte, byte == OP_LOOP ? -1 : 1);
 			break;
 		case OP_LOAD_R: loadOper("OP_LOAD_R");  	break;
 		case OP_RETURN:	singleOper("OP_RETURN");	break;

@@ -99,7 +99,8 @@ ui64 ByteCode::addJump(Opcode op, i16 reg)
 
 void ByteCode::patchJump(ui64 offset)
 {
-	ui16 diff = block.size() - offset - 2; // We've skipped the 2 jump bytes.
+	// We've skipped the 2 jump bytes.
+	ui16 diff = static_cast<ui16>(block.size() - offset - 2);
 	if (diff < (1 << 16))
 	{
 		block[offset] = static_cast<ui8>((diff >> 8) & 0xff);
@@ -109,6 +110,20 @@ void ByteCode::patchJump(ui64 offset)
 	{
 		// Jump is too big.
 	}
+}
+
+void ByteCode::addLoop(ui64 start)
+{
+	// We jump back the difference from our opcode to the
+	// start, plus 2 more for the decoded offset bytes,
+	// plus another 1 since we are on the instruction
+	// *after* the two bytes by the time we've decoded the
+	// offset.
+
+	ui16 diff = static_cast<ui16>(block.size() - start + 3);	
+	addByte(OP_LOOP);
+	addByte(static_cast<ui8>((diff >> 8) & 0xff));
+	addByte(static_cast<ui8>(diff & 0xff));
 }
 
 ui64 ByteCode::countPool() const
