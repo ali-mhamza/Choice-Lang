@@ -109,6 +109,8 @@ StmtUP Parser::statement()
         return ifStmt();
     else if (consumeTok(TOK_WHILE))
         return whileStmt();
+    else if (consumeTok(TOK_REPEAT))
+        return repeatStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
         return blockStmt();
     return exprStmt();
@@ -142,6 +144,20 @@ StmtUP Parser::whileStmt()
 
     return std::make_unique<WhileStmt>(std::move(condition),
         statement());
+}
+
+StmtUP Parser::repeatStmt()
+{
+    matchError(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
+    StmtUP body = blockStmt(); // Will consume the '}'.
+    matchError(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
+    matchError(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
+    ExprUP condition = expression();
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
+    matchError(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
+
+    return std::make_unique<RepeatStmt>(std::move(condition),
+        std::move(body));
 }
 
 StmtUP Parser::blockStmt()

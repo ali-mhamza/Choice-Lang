@@ -122,8 +122,6 @@ DEF(IfStmt)
     code.patchJump(trueJump);
 }
 
-DEF(ReturnStmt) { (void) node; }
-
 DEF(WhileStmt)
 {
     ui8 reg = previousReg;
@@ -135,6 +133,20 @@ DEF(WhileStmt)
     code.addLoop(loopStart);
     code.patchJump(falseJump);
 }
+
+DEF(RepeatStmt)
+{
+    ui64 loopStart = code.getLoopStart();
+    compileStmt(node->body);
+    ui8 reg = previousReg;
+    compileExpr(node->condition);
+    ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
+    freeReg();
+    code.addLoop(loopStart);
+    code.patchJump(trueJump);
+}
+
+DEF(ReturnStmt) { (void) node; }
 
 DEF(ExprStmt)
 {
@@ -467,8 +479,9 @@ void ASTCompiler::compileStmt(StmtUP& node)
         case S_FUN_DECL:    COMPILE(FunDecl, node);     break;
         case S_CLASS_DECL:  COMPILE(ClassDecl, node);   break;
         case S_IF_STMT:     COMPILE(IfStmt, node);      break;
-        case S_RETURN_STMT: COMPILE(ReturnStmt, node);  break;
         case S_WHILE_STMT:  COMPILE(WhileStmt, node);   break;
+        case S_REPEAT_STMT: COMPILE(RepeatStmt, node);  break;
+        case S_RETURN_STMT: COMPILE(ReturnStmt, node);  break;
         case S_EXPR_STMT:   COMPILE(ExprStmt, node);    break;
         case S_BLOCK_STMT:  COMPILE(BlockStmt, node);   break;
     }

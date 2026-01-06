@@ -57,8 +57,9 @@ class ASTCompiler
         // Statements.
 
         DECL(IfStmt);
-        DECL(ReturnStmt);
         DECL(WhileStmt);
+        DECL(RepeatStmt);
+        DECL(ReturnStmt);
         DECL(ExprStmt);
         DECL(BlockStmt);
 

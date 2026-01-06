@@ -29,8 +29,9 @@ namespace AST
             S_FUN_DECL,
             S_CLASS_DECL,
             S_IF_STMT,
-            S_RETURN_STMT,
             S_WHILE_STMT,
+            S_REPEAT_STMT,
+            S_RETURN_STMT,
             S_EXPR_STMT,
             S_BLOCK_STMT
         };
@@ -80,20 +81,28 @@ namespace AST
                 StmtUP falseBranch);
         };
 
-        struct ReturnStmt : public Stmt
-        {
-            Token keyword;
-            ExprUP expr;
-
-            ReturnStmt(Token& keyword, ExprUP expr);
-        };
-
         struct WhileStmt : public Stmt
         {
             ExprUP condition;
             StmtUP body;
 
             WhileStmt(ExprUP condition, StmtUP body);
+        };
+
+        struct RepeatStmt : public Stmt
+        {
+            ExprUP condition;
+            StmtUP body; // Must be a block statement.
+
+            RepeatStmt(ExprUP condition, StmtUP body);
+        };
+
+        struct ReturnStmt : public Stmt
+        {
+            Token keyword;
+            ExprUP expr;
+
+            ReturnStmt(Token& keyword, ExprUP expr);
         };
 
         struct ExprStmt : public Stmt

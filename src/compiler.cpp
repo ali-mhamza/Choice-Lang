@@ -194,6 +194,8 @@ void Compiler::statement()
         ifStmt();
     else if (consumeTok(TOK_WHILE))
         whileStmt();
+    else if (consumeTok(TOK_REPEAT))
+        repeatStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
         blockStmt();
     else
@@ -234,6 +236,25 @@ void Compiler::whileStmt()
     statement();
     code.addLoop(loopStart);
     code.patchJump(falseJump);
+}
+
+void Compiler::repeatStmt()
+{
+    matchError(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
+    ui64 loopStart = code.getLoopStart();
+    blockStmt(); // Will consume the '}'.
+
+    matchError(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
+    matchError(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
+    ui8 reg = previousReg;
+    expression();
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
+    matchError(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
+
+    ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
+    freeReg();
+    code.addLoop(loopStart);
+    code.patchJump(trueJump);
 }
 
 void Compiler::blockStmt()

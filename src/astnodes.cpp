@@ -24,13 +24,17 @@ IfStmt::IfStmt(ExprUP condition, StmtUP trueBranch, StmtUP falseBranch) :
     condition(std::move(condition)), trueBranch(std::move(trueBranch)),
     falseBranch(std::move(falseBranch)) {}
 
-ReturnStmt::ReturnStmt(Token& keyword, ExprUP expr) :
-    Stmt(S_RETURN_STMT),
-    keyword(keyword), expr(std::move(expr)) {}
-
 WhileStmt::WhileStmt(ExprUP condition, StmtUP body) :
     Stmt(S_WHILE_STMT),
     condition(std::move(condition)), body(std::move(body)) {}
+
+RepeatStmt::RepeatStmt(ExprUP condition, StmtUP body) :
+    Stmt(S_REPEAT_STMT),
+    condition(std::move(condition)), body(std::move(body)) {}
+
+ReturnStmt::ReturnStmt(Token& keyword, ExprUP expr) :
+    Stmt(S_RETURN_STMT),
+    keyword(keyword), expr(std::move(expr)) {}
 
 ExprStmt::ExprStmt(ExprUP expr) :
     Stmt(S_EXPR_STMT),

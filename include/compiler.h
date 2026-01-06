@@ -70,8 +70,9 @@ class Compiler
 
         void statement();
         void ifStmt();
-        void returnStmt();
         void whileStmt();
+        void repeatStmt();
+        void returnStmt();
         void blockStmt();
         void exprStmt();
 
