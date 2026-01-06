@@ -25,6 +25,7 @@ enum HeapType
     HEAP_BIGINT,
     HEAP_BIGDEC,
     HEAP_STRING,
+    HEAP_RANGE,
     HEAP_LIST,
     HEAP_TABLE,
     HEAP_INVALID
@@ -54,6 +55,16 @@ struct String : public HeapObj
     String(const std::string_view& view);
 };
 
+struct Range : public HeapObj
+{
+    i32 start;
+    i32 stop;
+    i32 step;
+
+    Range(i32 start, i32 stop, i32 step = 1);
+    bool operator==(const Range& other) const;
+};
+
 struct List : public HeapObj
 {
 
@@ -65,14 +76,17 @@ struct Table : public HeapObj
 };
 
 #define IS_STRING(ptr)  ((ptr)->type == HEAP_STRING)
+#define IS_RANGE(ptr)   ((ptr)->type == HEAP_RANGE)
 #define IS_LIST(ptr)    ((ptr)->type == HEAP_LIST)
 #define IS_TABLE(ptr)   ((ptr)->type == HEAP_TABLE)
 
 #define AS_STRING(obj)  (*(static_cast<String*>(obj)))
+#define AS_RANGE(obj)   (*(static_cast<Range*>(obj)))
 #define AS_LIST(obj)    (*(static_cast<List*>(obj)))
 #define AS_TABLE(obj)   (*(static_cast<Table*>(obj)))
 
 #define AS_CONST_STRING(obj)    (*(static_cast<const String*>(obj)))
+#define AS_CONST_RANGE(obj)     (*(static_cast<const Range*>(obj)))
 #define AS_CONST_LIST(obj)      (*(static_cast<const List*>(obj)))
 #define AS_CONST_TABLE(obj)     (*(static_cast<const Table*>(obj)))
 

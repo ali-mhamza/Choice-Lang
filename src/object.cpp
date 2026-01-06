@@ -15,14 +15,14 @@ HeapObj::HeapObj(HeapType type) :
 
 bool HeapObj::operator==(const HeapObj& other) const
 {
-    HeapObj* obj = const_cast<HeapObj*>(&other);
-
-    if (this->type != obj->type) return false;
+    if (this->type != other.type) return false;
     
     switch (type)
     {
         case HEAP_STRING:
-            return AS_CONST_STRING(this).str == AS_CONST_STRING(obj).str;
+            return AS_CONST_STRING(this).str == AS_CONST_STRING(&other).str;
+        case HEAP_RANGE:
+            return AS_CONST_RANGE(this) == AS_CONST_RANGE(&other);
         default:            UNREACHABLE();
     }
 }
@@ -31,6 +31,12 @@ std::string HeapObj::printVal()
 {
     if (IS_STRING(this))
         return AS_STRING(this).str;
+    else if (IS_RANGE(this))
+    {
+        const Range& range = AS_RANGE(this);
+        return FORMAT_STR("{}..{}, {}", range.start,
+            range.stop, range.step);
+    }
     return ""; // Temporary.
 }
 
@@ -41,6 +47,7 @@ std::string HeapObj::printType()
         case HEAP_BIGINT:   return "BIGINT";    break;
         case HEAP_BIGDEC:   return "BIGDEC";    break;
         case HEAP_STRING:   return "STRING";    break;
+        case HEAP_RANGE:    return "RANGE";     break;
         case HEAP_LIST:     return "LIST";      break;
         case HEAP_TABLE:    return "TABLE";     break;
         default:            return "";
@@ -73,6 +80,17 @@ String::String(const std::string& str) :
 
 String::String(const std::string_view& view) :
     HeapObj(HEAP_STRING), str(view) {}
+
+Range::Range(i32 start, i32 stop, i32 step) :
+    HeapObj(HEAP_RANGE), start(start), stop(stop),
+    step(step) {}
+
+bool Range::operator==(const Range& other) const
+{
+    return ((this->start == other.start)
+            && (this->stop == other.stop)
+            && (this->step == other.step));
+}
 
 
 /* Object. */
@@ -235,7 +253,7 @@ static std::string_view objTypes[] = {
 };
 
 static std::string_view heapTypes[] = {
-    "bigint", "bigdec", "string", "list",
+    "bigint", "bigdec", "string", "range", "list",
     "table"
 };
 
@@ -259,5 +277,5 @@ void TypeMismatch::report()
         "Type mismatch: Expected type ({}) but found ({}) instead.\n",
         expectSV, actualSV
     );
-    FORMAT_PRINT("{:>15}{}\n", "", message);
+    FORMAT_PRINT(stderr, "{:>15}{}\n", "", message);
 }
