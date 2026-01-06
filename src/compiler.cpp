@@ -43,8 +43,15 @@ void Compiler::defAccess(ui8 reg, bool access)
 
 ui8* Compiler::getVarSlot(const Token& token)
 {
-    VarEntry entry(token.text, scope);
-    return varsWrapper->vars.get(entry);
+    for (ui8 i = 0; i <= scope; i++)
+    {
+        VarEntry entry(token.text, scope - i);
+        ui8* slot = varsWrapper->vars.get(entry);
+        if (slot != nullptr)
+            return slot;
+    }
+
+    return nullptr;
 }
 
 bool Compiler::getAccess(ui8 reg)

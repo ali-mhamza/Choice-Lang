@@ -38,7 +38,7 @@ class ASTCompiler
         inline void defVar(std::string name, ui8 reg);
         inline void defAccess(ui8 reg, bool access);
         inline ui8* getVarSlot(const Token& token);
-        ui8* getVarSlot(ExprUP& node);
+        inline ui8* getVarSlot(ExprUP& node);
         inline bool getAccess(ui8 reg);
         void popScope();
 

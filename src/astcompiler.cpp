@@ -42,17 +42,23 @@ inline void ASTCompiler::defAccess(ui8 reg, bool access)
 
 inline ui8* ASTCompiler::getVarSlot(const Token& token)
 {
-    VarEntry entry(token.text, scope);
-    return varsWrapper->vars.get(entry);
+    for (ui8 i = 0; i <= scope; i++)
+    {
+        VarEntry entry(token.text, scope - i);
+        ui8* slot = varsWrapper->vars.get(entry);
+        if (slot != nullptr)
+            return slot;
+    }
+
+    return nullptr;
 }
 
-ui8* ASTCompiler::getVarSlot(ExprUP& node)
+inline ui8* ASTCompiler::getVarSlot(ExprUP& node)
 {
     VarExpr* var = static_cast<VarExpr*>(node.release());
-    UP(VarExpr) varUP = UP(VarExpr)(var);
-    VarEntry entry(varUP->name.text, scope);
-    node.reset(varUP.release());
-    return varsWrapper->vars.get(entry);
+    ui8* slot = getVarSlot(var->name);
+    node.reset(var);
+    return slot;
 }
 
 bool ASTCompiler::getAccess(ui8 reg)
