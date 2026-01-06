@@ -30,6 +30,7 @@ namespace AST
             S_CLASS_DECL,
             S_IF_STMT,
             S_WHILE_STMT,
+            S_MATCH_STMT,
             S_REPEAT_STMT,
             S_RETURN_STMT,
             S_EXPR_STMT,
@@ -87,6 +88,24 @@ namespace AST
             StmtUP body;
 
             WhileStmt(ExprUP condition, StmtUP body);
+        };
+
+        struct MatchStmt : public Stmt
+        {
+            struct matchCase
+            {
+                ExprUP value; // Must be a literal (even if an iterable).
+                StmtUP body; // No declarations without a block.
+                bool fallthrough;
+                bool end;
+
+                matchCase(ExprUP value, StmtUP body, bool fall, bool end);
+            };
+            
+            ExprUP matchValue;
+            std::vector<matchCase> cases;
+
+            MatchStmt(ExprUP matchValue, std::vector<matchCase>& cases);
         };
 
         struct RepeatStmt : public Stmt

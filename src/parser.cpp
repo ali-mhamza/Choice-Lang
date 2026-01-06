@@ -109,6 +109,8 @@ StmtUP Parser::statement()
         return ifStmt();
     else if (consumeTok(TOK_WHILE))
         return whileStmt();
+    else if (consumeTok(TOK_MATCH))
+        return matchStmt();
     else if (consumeTok(TOK_REPEAT))
         return repeatStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
@@ -138,12 +140,64 @@ StmtUP Parser::ifStmt()
 StmtUP Parser::whileStmt()
 {
     matchError(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
-    // Allow a declaration first?
     ExprUP condition = expression();
     matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     return std::make_unique<WhileStmt>(std::move(condition),
         statement());
+}
+
+StmtUP Parser::matchStmt()
+{
+    matchError(TOK_LEFT_PAREN, "Expect '(' before match value.");
+    ExprUP match = expression();
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after match value.");
+    matchError(TOK_LEFT_BRACE, "Expect '{' before match cases.");
+
+    std::vector<MatchStmt::matchCase> cases;
+    cases.reserve(MATCH_CASES_MAX);
+
+    while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
+    {
+        if (static_cast<int>(cases.size()) == MATCH_CASES_MAX)
+            throw CompileError(currentTok,
+                "Too many cases in match-is structure.");
+        
+        matchError(TOK_IS, "Expect 'is' before case value.");
+        ExprUP value;
+        bool defaultCase = false;
+        
+        if (consumeTok(TOK_QMARK))
+        {
+            value = nullptr;
+            defaultCase = true;
+        }
+        else
+        {
+            Token errorToken = currentTok;
+            value = primary();
+            if (value->type != E_LITERAL_EXPR)
+                throw CompileError(errorToken,
+                    "Case value must be a literal.");
+        }
+
+        matchError(TOK_COLON, "Expect ':' before case body.");
+        StmtUP body = statement();
+
+        if (defaultCase && consumeTok(TOK_IS))
+            throw CompileError(previousTok,
+                "Cannot have another case after the default case.");
+
+        cases.emplace_back(
+            std::move(value), std::move(body), false, false
+        );
+        if (defaultCase)
+            break;
+    }
+
+    matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
+
+    return std::make_unique<MatchStmt>(std::move(match), cases);
 }
 
 StmtUP Parser::repeatStmt()

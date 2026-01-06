@@ -58,6 +58,7 @@ class ASTCompiler
 
         DECL(IfStmt);
         DECL(WhileStmt);
+        DECL(MatchStmt);
         DECL(RepeatStmt);
         DECL(ReturnStmt);
         DECL(ExprStmt);

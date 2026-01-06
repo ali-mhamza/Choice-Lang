@@ -134,6 +134,35 @@ DEF(WhileStmt)
     code.patchJump(falseJump);
 }
 
+DEF(MatchStmt)
+{
+    ui8 matchReg = previousReg;
+    compileExpr(node->matchValue);
+    std::vector<ui64> jumps(node->cases.size());
+    int caseCount = 0;
+
+    for (MatchStmt::matchCase& checkCase : node->cases)
+    {
+        ui8 caseReg = previousReg;
+        if (checkCase.value != nullptr)
+        {
+            compileExpr(checkCase.value);
+            code.addOp(OP_EQUAL, caseReg, matchReg, caseReg);
+            ui64 falseJump = code.addJump(OP_JUMP_FALSE, caseReg);
+            freeReg();
+            compileStmt(checkCase.body);
+            jumps[caseCount++] = code.addJump(OP_JUMP);
+            code.patchJump(falseJump);
+        }
+        else // Default case.
+            compileStmt(checkCase.body); // No need for any jumps.
+    }
+
+    for (int i = 0; i < caseCount; i++)
+        code.patchJump(jumps[i]);
+    freeReg();
+}
+
 DEF(RepeatStmt)
 {
     ui64 loopStart = code.getLoopStart();
@@ -480,6 +509,7 @@ void ASTCompiler::compileStmt(StmtUP& node)
         case S_CLASS_DECL:  COMPILE(ClassDecl, node);   break;
         case S_IF_STMT:     COMPILE(IfStmt, node);      break;
         case S_WHILE_STMT:  COMPILE(WhileStmt, node);   break;
+        case S_MATCH_STMT:  COMPILE(MatchStmt, node);   break;
         case S_REPEAT_STMT: COMPILE(RepeatStmt, node);  break;
         case S_RETURN_STMT: COMPILE(ReturnStmt, node);  break;
         case S_EXPR_STMT:   COMPILE(ExprStmt, node);    break;

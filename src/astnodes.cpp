@@ -28,6 +28,15 @@ WhileStmt::WhileStmt(ExprUP condition, StmtUP body) :
     Stmt(S_WHILE_STMT),
     condition(std::move(condition)), body(std::move(body)) {}
 
+MatchStmt::matchCase::matchCase(ExprUP value, StmtUP body,
+    bool fall, bool end) :
+    value(std::move(value)), body(std::move(body)),
+    fallthrough(fall), end(end) {}
+
+MatchStmt::MatchStmt(ExprUP matchValue, std::vector<matchCase>& cases) :
+    Stmt(S_MATCH_STMT),
+    matchValue(std::move(matchValue)), cases(std::move(cases)) {}
+
 RepeatStmt::RepeatStmt(ExprUP condition, StmtUP body) :
     Stmt(S_REPEAT_STMT),
     condition(std::move(condition)), body(std::move(body)) {}
