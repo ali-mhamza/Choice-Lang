@@ -1,4 +1,5 @@
 #pragma once
+#include "config.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -6,11 +7,6 @@
 #define VERSION_MAJOR   0
 #define VERSION_MINOR   0
 #define VERSION_PATCH   1
-
-// #define TIME_TOTAL
-#define TIME_RUN
-#define WATCH_EXEC
-#define WATCH_REG
 
 #define FALLTHROUGH() [[fallthrough]]
 
@@ -72,7 +68,6 @@ using vT    	= std::vector<Token>;
 using vByte 	= std::vector<ui8>;
 using vObj  	= std::vector<Object>;
 
-constexpr int TAB_SIZE = 4;
 // Whether we're running an externally loaded
 // program or not.
 extern bool external;
