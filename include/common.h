@@ -27,8 +27,7 @@
 	#ifndef FMT_HEADER_ONLY
 		#define FMT_HEADER_ONLY
 	#endif
-	#include <fmt/base.h>
-	#include <fmt/core.h>
+	#include <fmt/format.h>
 	#define FORMAT_PRINT	fmt::print
 	#define FORMAT_STR		fmt::format
 #endif
