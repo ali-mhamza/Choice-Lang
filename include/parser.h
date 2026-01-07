@@ -8,6 +8,7 @@ class Parser
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
+        bool inMatch, fall, end; // For match-is structures.
 
         // Utilities.
 
@@ -61,10 +62,8 @@ class Parser
         ExprUP call();
         ExprUP ifExpr();
         ExprUP primary();
-
-        // Nothing for grouping () yet.
     
     public:
-        Parser() = default;
+        Parser();
         StmtVec& parseToAST(const vT& tokens);
 };

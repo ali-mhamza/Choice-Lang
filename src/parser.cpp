@@ -8,6 +8,9 @@
 using namespace AST::Statement;
 using namespace AST::Expression;
 
+Parser::Parser() :
+    inMatch(false), fall(false), end(false) {}
+
 void Parser::nextTok()
 {
     if (currentTok.type != TOK_EOF)
@@ -104,7 +107,7 @@ StmtUP Parser::varDecl()
 }
 
 StmtUP Parser::statement()
-{
+{   
     if (consumeTok(TOK_IF))
         return ifStmt();
     else if (consumeTok(TOK_WHILE))
@@ -115,6 +118,27 @@ StmtUP Parser::statement()
         return repeatStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
         return blockStmt();
+    else if (consumeTok(TOK_FALL))
+    {
+        if (!inMatch)
+            throw CompileError(previousTok, "Invalid instruction 'fallthrough'" \
+                " outside of match-is structure.");
+        matchError(TOK_SEMICOLON, "Expect ';' after 'fallthrough'.");
+        if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
+            throw CompileError(currentTok,
+                "Cannot have a statement following a 'fallthrough' instruction.");
+        fall = true;
+        return nullptr;
+    }
+    else if (consumeTok(TOK_END))
+    {
+        if (!inMatch)
+            throw CompileError(previousTok,
+                "Invalid instruction 'end outside of match-is structure.");
+        matchError(TOK_SEMICOLON, "Expect ';' after 'end'.");
+        end = true;
+        return nullptr;
+    }
     return exprStmt();
 }
 
@@ -149,6 +173,8 @@ StmtUP Parser::whileStmt()
 
 StmtUP Parser::matchStmt()
 {
+    inMatch = true;
+    
     matchError(TOK_LEFT_PAREN, "Expect '(' before match value.");
     ExprUP match = expression();
     matchError(TOK_RIGHT_PAREN, "Expect ')' after match value.");
@@ -182,15 +208,21 @@ StmtUP Parser::matchStmt()
         }
 
         matchError(TOK_COLON, "Expect ':' before case body.");
-        StmtUP body = statement();
+        StmtUP body;
+        if (checkTok(TOK_IS) || checkTok(TOK_RIGHT_BRACE))
+            body = nullptr;
+        else
+            body = statement();
 
         if (defaultCase && consumeTok(TOK_IS))
             throw CompileError(previousTok,
                 "Cannot have another case after the default case.");
 
         cases.emplace_back(
-            std::move(value), std::move(body), false, false
+            // 'fall' and 'end' updated in statement().
+            std::move(value), std::move(body), fall, end
         );
+        fall = end = false; // Reset.
         if (defaultCase)
             break;
     }
