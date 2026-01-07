@@ -140,6 +140,8 @@ DEF(MatchStmt)
     compileExpr(node->matchValue);
     std::vector<ui64> jumps(node->cases.size());
     int caseCount = 0;
+    ui64 fallJump = 0; // Invalid jump offset value.
+    ui64 emptyJump = 0;
 
     for (MatchStmt::matchCase& checkCase : node->cases)
     {
@@ -150,8 +152,29 @@ DEF(MatchStmt)
             code.addOp(OP_EQUAL, caseReg, matchReg, caseReg);
             ui64 falseJump = code.addJump(OP_JUMP_FALSE, caseReg);
             freeReg();
-            compileStmt(checkCase.body);
-            jumps[caseCount++] = code.addJump(OP_JUMP);
+
+            if (fallJump != 0) // We skip condition checking during fallthrough.
+                code.patchJump(fallJump);
+            if (emptyJump != 0)
+            {
+                code.patchJump(emptyJump);
+                emptyJump = 0;
+            }
+            // We check here since compileStmt will call .release()
+            // on the unique_ptr body field, which will make it a
+            // nullptr regardless.
+            bool empty = (checkCase.body == nullptr);
+            compileStmt(checkCase.body); // Can handle empty (nullptr) body.
+
+            // If we have fallthrough, or there's already fallthrough,
+            // fall/keep falling.
+            if (checkCase.fallthrough || (fallJump != 0))
+                fallJump = code.addJump(OP_JUMP);
+            else if (empty)
+                emptyJump = code.addJump(OP_JUMP);
+            else
+                jumps[caseCount++] = code.addJump(OP_JUMP);
+
             code.patchJump(falseJump);
         }
         else // Default case.
