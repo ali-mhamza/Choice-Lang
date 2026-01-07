@@ -91,10 +91,14 @@ class Compiler
         void shift();
         void sum();
         void product();
-        void _crementExpr(TokenType oper);
+        // prev: Whether or not it evaluates to the previous
+        // value in the register (like with post-increment/
+        // decrement operators) or the new value.
+        void _crementExpr(TokenType oper, bool prev);
         void unary();
         void exponent();
         void call();
+        void post(); // Post-increment/decrement.
         void ifExpr();
         void primary();
     

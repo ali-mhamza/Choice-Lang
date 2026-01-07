@@ -490,7 +490,7 @@ void Compiler::product()
     }
 }
 
-void Compiler::_crementExpr(TokenType oper)
+void Compiler::_crementExpr(TokenType oper, bool prev)
 {
     // Temporarily assuming only regular identifier variables.
     matchError(TOK_IDENTIFIER, "Invalid increment/decrement target.");
@@ -504,9 +504,15 @@ void Compiler::_crementExpr(TokenType oper)
             );
         else
         {
+            if (prev) // Post-increment/decrement operator(s).
+            {
+                consumeToks(TOK_INCR, TOK_DECR); // Skip the operator token.
+                code.addOp(OP_GET_VAR, previousReg, *slot);
+            }
             code.addOp(oper == TOK_INCR ? OP_INCREMENT : OP_DECREMENT,
                 *slot, *slot);
-            code.addOp(OP_GET_VAR, previousReg, *slot);
+            if (!prev)
+                code.addOp(OP_GET_VAR, previousReg, *slot);
             reserveReg();
         }
     }
@@ -518,7 +524,7 @@ void Compiler::_crementExpr(TokenType oper)
 void Compiler::unary()
 {
     if (consumeToks(TOK_INCR, TOK_DECR))
-        _crementExpr(previousTok.type);
+        _crementExpr(previousTok.type, false);
     else if (consumeToks(TOK_MINUS, TOK_BANG, TOK_TILDE))
     {
         TokenType oper = previousTok.type;
@@ -546,7 +552,19 @@ void Compiler::unary()
 
 void Compiler::exponent()
 {
-    compileDescent(&Compiler::primary, TOK_STAR_STAR, OP_POWER);
+    compileDescent(&Compiler::post, TOK_STAR_STAR, OP_POWER);
+}
+
+void Compiler::post()
+{
+    const Token& firstTok = currentTok;
+    const Token& secondTok = *(it + 1);
+
+    if ((firstTok.type == TOK_IDENTIFIER)
+        && ((secondTok.type == TOK_INCR) || (secondTok.type == TOK_DECR)))
+            _crementExpr(secondTok.type, true);
+    else
+        primary();
 }
 
 void Compiler::ifExpr()

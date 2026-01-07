@@ -82,9 +82,9 @@ BinaryExpr::BinaryExpr(ExprUP left, TokenType oper, ExprUP right) :
     Expr(E_BINARY_EXPR),
     left(std::move(left)), oper(oper), right(std::move(right)) {}
 
-UnaryExpr::UnaryExpr(Token oper, ExprUP expr) :
+UnaryExpr::UnaryExpr(Token oper, ExprUP expr, bool prev) :
     Expr(E_UNARY_EXPR),
-    oper(oper), expr(std::move(expr)) {}
+    oper(oper), expr(std::move(expr)), prev(prev) {}
 
 CallExpr::CallExpr(ExprUP callee, ExprVec& args) :
     Expr(E_CALL_EXPR),

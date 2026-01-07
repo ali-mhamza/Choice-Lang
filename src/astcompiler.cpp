@@ -381,9 +381,12 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
         throw CompileError(node->oper,
             "Cannot modify a fixed-value variable.");
 
+    if (node->prev) // Load the original value.
+        code.addOp(OP_GET_VAR, previousReg, *ptr);
     code.addOp(node->oper.type == TOK_INCR ? OP_INCREMENT : OP_DECREMENT,
         *ptr, *ptr);
-    code.addOp(OP_GET_VAR, previousReg, *ptr);
+    if (!node->prev) // Load the new value.
+        code.addOp(OP_GET_VAR, previousReg, *ptr);
     reserveReg();
 }
 

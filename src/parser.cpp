@@ -418,7 +418,7 @@ ExprUP Parser::unary()
         TOK_BANG, TOK_TILDE))
     {
         Token oper = previousTok;
-        return ExprUP(std::make_unique<UnaryExpr>(oper, unary()));
+        return ExprUP(std::make_unique<UnaryExpr>(oper, unary(), false));
     }
 
     return exponent();
@@ -426,12 +426,30 @@ ExprUP Parser::unary()
 
 ExprUP Parser::exponent()
 {
-    ExprUP expr = primary();
+    ExprUP expr = post();
     while (consumeTok(TOK_STAR_STAR))
     {
         TokenType oper = previousTok.type;
         expr = std::make_unique<BinaryExpr>(std::move(expr), oper,
-            primary());
+            post());
+    }
+
+    return expr;
+}
+
+ExprUP Parser::post()
+{
+    ExprUP expr = primary();
+
+    if (consumeToks(TOK_INCR, TOK_DECR))
+    {
+        if (expr->type != E_VAR_EXPR)
+            throw CompileError(previousTok,
+                "Invalid increment/decrement target.");
+        do {
+            Token oper = previousTok;
+            expr = std::make_unique<UnaryExpr>(oper, std::move(expr), true);
+        } while (consumeToks(TOK_INCR, TOK_DECR));
     }
 
     return expr;

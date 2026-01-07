@@ -60,6 +60,7 @@ class Parser
         ExprUP unary();
         ExprUP exponent();
         ExprUP call();
+        ExprUP post(); // Post-increment/decrement.
         ExprUP ifExpr();
         ExprUP primary();
     

@@ -226,8 +226,12 @@ namespace AST
         {
             Token oper;
             ExprUP expr;
+            // Whether or not it evaluates to the previous
+            // value in the register (like with post-increment/
+            // decrement operators) or the new value.
+            bool prev;
 
-            UnaryExpr(Token oper, ExprUP expr);
+            UnaryExpr(Token oper, ExprUP expr, bool prev);
         };
 
         struct CallExpr : public Expr
