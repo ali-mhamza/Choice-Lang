@@ -37,7 +37,7 @@ inline bool VM::isTruthy(const Object& obj)
     switch (obj.type)
     {
         case OBJ_INT:   return (AS_INT(obj) != 0);
-        case OBJ_DEC:   return (AS_DEC(obj) != 0);
+        case OBJ_DEC:   return (AS_DEC(obj) != 0.0);
         case OBJ_BOOL:  return AS_BOOL(obj);
         case OBJ_NULL:  return false;
         case OBJ_HEAP:
