@@ -252,15 +252,24 @@ DEF(AssignExpr)
 
 DEF(LogicExpr)
 {
-    ui8 firstOper = previousReg;
-    compileExpr(node->left);
-
-    ui8 secondOper = previousReg;
-    compileExpr(node->right);
-
-    code.addOp(node->oper == TOK_AMP_AMP ? OP_AND : OP_OR,
-        firstOper, firstOper, secondOper);
-    freeReg();
+    if (node->oper == TOK_AMP_AMP) // &&
+    {
+        ui8 reg = previousReg;
+        compileExpr(node->left);
+        ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+        previousReg = reg;
+        compileExpr(node->right);
+        code.patchJump(falseJump);
+    }
+    else if (node->oper == TOK_BAR_BAR) // ||
+    {
+        ui8 reg = previousReg;
+        compileExpr(node->left);
+        ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
+        previousReg = reg;
+        compileExpr(node->right);
+        code.patchJump(trueJump);
+    }
 }
 
 DEF(CompareExpr)

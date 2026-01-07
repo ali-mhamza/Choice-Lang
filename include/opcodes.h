@@ -48,8 +48,8 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	// Boolean operators.
 
 	OP_NOT,			// Invert a Boolean value.
-	OP_AND,			// AND two Boolean values.
-	OP_OR,			// OR two Boolean values.
+	// && and || are implemented as control flow.
+	// They don't get their own opcodes.
 
     // Bit-wise operators.
     OP_BIT_AND,     // AND two numeric values by bits.

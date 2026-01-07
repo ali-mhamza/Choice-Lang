@@ -354,12 +354,30 @@ void Compiler::assignment()
 
 void Compiler::logicOr()
 {
-    compileDescent(&Compiler::logicAnd, TOK_BAR_BAR, OP_OR);
+    ui8 reg = previousReg;
+    logicAnd();
+
+    while (consumeTok(TOK_BAR_BAR))
+    {
+        ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
+        previousReg = reg;
+        logicAnd();
+        code.patchJump(trueJump);
+    }
 }
 
 void Compiler::logicAnd()
 {
-    compileDescent(&Compiler::equality, TOK_AMP_AMP, OP_AND);
+    ui8 reg = previousReg;
+    equality();
+
+    while (consumeTok(TOK_AMP_AMP))
+    {
+        ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+        previousReg = reg;
+        equality();
+        code.patchJump(falseJump);
+    }
 }
 
 void Compiler::equality()
