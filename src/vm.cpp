@@ -32,7 +32,7 @@ inline ui32 VM::readLong()
         | *(ip - 1));
 }
 
-bool VM::isTruthy(const Object& obj)
+inline bool VM::isTruthy(const Object& obj)
 {
     switch (obj.type)
     {
@@ -158,7 +158,7 @@ static inline i64 fromUnsigned(ui64 num)
     return i;
 }
 
-inline Object VM::bitOper(Opcode op)
+Object VM::bitOper(Opcode op)
 {
     Object a = registers[readByte()];
     Object b = registers[readByte()];
@@ -184,7 +184,7 @@ inline Object VM::bitOper(Opcode op)
     }
 }
 
-inline Object VM::unaryOper(Opcode op)
+Object VM::unaryOper(Opcode op)
 {
     Object obj = registers[readByte()];
     

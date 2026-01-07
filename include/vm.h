@@ -26,12 +26,12 @@ class VM
         inline ui8 readByte();
         inline ui16 readShort();
         inline ui32 readLong();
-        bool isTruthy(const Object& obj);
+        inline bool isTruthy(const Object& obj);
         void loadOper(const vObj& pool);
         Object arithOper(Opcode oper);
         inline Object compareOper(Opcode oper);
-        inline Object bitOper(Opcode oper);
-        inline Object unaryOper(Opcode oper);
+        Object bitOper(Opcode oper);
+        Object unaryOper(Opcode oper);
 
         #ifdef WATCH_REG
         void printRegister();
