@@ -333,9 +333,9 @@ void Compiler::matchStmt()
         }
         else
             retJump = matchCaseHelper(matchReg, fallJump, emptyJump);
+
         if (retJump != 0)
             jumps.push_back(retJump);
-
         if (defaultCase)
         {
             if (consumeTok(TOK_IS))
