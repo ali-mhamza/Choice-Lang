@@ -163,8 +163,8 @@ Object::Object(T val)
 #define IS_BOOL(obj)        ((obj).type == OBJ_BOOL)
 #define IS_NULL(obj)        ((obj).type == OBJ_NULL)
 
-#define IS_HEAP_TYPE(type)  (type > OBJ_NULL)
-#define IS_HEAP_OBJ(obj)    ((obj).type > OBJ_NULL)
+#define IS_HEAP_TYPE(type)  (((type) > OBJ_NULL) && ((type) < OBJ_NUM))
+#define IS_HEAP_OBJ(obj)    (IS_HEAP_TYPE((obj).type))
 
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))

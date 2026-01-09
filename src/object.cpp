@@ -102,7 +102,7 @@ Object::Object() :
 
 void Object::clean()
 {
-    if (IS_VALID(*this) && IS_HEAP_OBJ(*this))
+    if (IS_HEAP_OBJ(*this))
     {
         HeapObj* temp = AS_HEAP_PTR(*this);
         temp->refCount--;
