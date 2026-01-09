@@ -134,14 +134,14 @@ ui64 ByteCode::countPool() const
 	{
 		if ((obj.type == OBJ_INT) || (obj.type == OBJ_DEC))
 			count += 9; // 8 bytes + 1 type byte.
-		else if (obj.type == OBJ_HEAP)
+		else if (IS_HEAP_OBJ(obj))
 		{
 			HeapObj* temp = AS_HEAP_PTR(obj);
 			switch (temp->type)
 			{
-				case HEAP_STRING:
-					// Added type bytes (2) and null byte (1).
-					count += 2 + AS_STRING(temp).str.size() + 1;
+				case OBJ_STRING:
+					// Added type byte (1) and null byte (1).
+					count += 1 + AS_STRING(temp).str.size() + 1;
 					break;
 				default: UNREACHABLE();
 			}

@@ -3,14 +3,13 @@
 #include <cstring>
 #include <string_view>
 #include <type_traits>
-#include <variant>
 
 /* Heap obj. */
 
 HeapObj::HeapObj() :
-    type(HEAP_INVALID), refCount(0) {}
+    type(OBJ_INVALID), refCount(0) {}
 
-HeapObj::HeapObj(HeapType type) :
+HeapObj::HeapObj(ObjType type) :
     type(type), refCount(0) {}
 
 bool HeapObj::operator==(const HeapObj& other) const
@@ -19,9 +18,9 @@ bool HeapObj::operator==(const HeapObj& other) const
     
     switch (type)
     {
-        case HEAP_STRING:
+        case OBJ_STRING:
             return AS_CONST_STRING(this).str == AS_CONST_STRING(&other).str;
-        case HEAP_RANGE:
+        case OBJ_RANGE:
             return AS_CONST_RANGE(this) == AS_CONST_RANGE(&other);
         default:            UNREACHABLE();
     }
@@ -44,13 +43,13 @@ std::string HeapObj::printType()
 {
     switch (type)
     {
-        case HEAP_BIGINT:   return "BIGINT";    break;
-        case HEAP_BIGDEC:   return "BIGDEC";    break;
-        case HEAP_STRING:   return "STRING";    break;
-        case HEAP_RANGE:    return "RANGE";     break;
-        case HEAP_LIST:     return "LIST";      break;
-        case HEAP_TABLE:    return "TABLE";     break;
-        default:            return "";
+        case OBJ_BIGINT:   return "BIGINT";    break;
+        case OBJ_BIGDEC:   return "BIGDEC";    break;
+        case OBJ_STRING:   return "STRING";    break;
+        case OBJ_RANGE:    return "RANGE";     break;
+        case OBJ_LIST:     return "LIST";      break;
+        case OBJ_TABLE:    return "TABLE";     break;
+        default:           return "";
     }
 }
 
@@ -76,13 +75,13 @@ void HeapObj::emit(std::ofstream& os)
 }
 
 String::String(const std::string& str) :
-    HeapObj(HEAP_STRING), str(str) {}
+    HeapObj(OBJ_STRING), str(str) {}
 
 String::String(const std::string_view& view) :
-    HeapObj(HEAP_STRING), str(view) {}
+    HeapObj(OBJ_STRING), str(view) {}
 
 Range::Range(i32 start, i32 stop, i32 step) :
-    HeapObj(HEAP_RANGE), start(start), stop(stop),
+    HeapObj(OBJ_RANGE), start(start), stop(stop),
     step(step) {}
 
 bool Range::operator==(const Range& other) const
@@ -103,7 +102,7 @@ Object::Object() :
 
 void Object::clean()
 {
-    if (this->type == OBJ_HEAP)
+    if (IS_VALID(*this) && IS_HEAP_OBJ(*this))
     {
         HeapObj* temp = AS_HEAP_PTR(*this);
         temp->refCount--;
@@ -171,8 +170,8 @@ bool Object::operator==(const Object& other) const
         case OBJ_DEC:   return AS_DEC(*this) == AS_DEC(other);
         case OBJ_BOOL:  return AS_BOOL(*this) == AS_BOOL(other);
         case OBJ_NULL:  return true;
-        case OBJ_HEAP:  return AS_HEAP_VAL(*this) == AS_HEAP_VAL(other);
-        default:        UNREACHABLE();
+        // Heap object.
+        default:        return AS_HEAP_VAL(*this) == AS_HEAP_VAL(other);
     }
 }
 
@@ -198,8 +197,7 @@ std::string Object::printVal() const
         case OBJ_DEC:   return std::to_string(AS_DEC(*this)).substr(0, 4);
         case OBJ_BOOL:  return (AS_BOOL(*this) ? "true" : "false");
         case OBJ_NULL:  return "null";
-        case OBJ_HEAP:  return AS_HEAP_PTR(*this)->printVal();
-        default:        UNREACHABLE();
+        default:        return AS_HEAP_PTR(*this)->printVal();
     }
 }
 
@@ -211,8 +209,7 @@ std::string Object::printType() const
         case OBJ_DEC:   return "DEC";
         case OBJ_BOOL:  return "BOOL";
         case OBJ_NULL:  return "NULL";
-        case OBJ_HEAP:  return AS_HEAP_PTR(*this)->printType();
-        default:        UNREACHABLE();
+        default:        return AS_HEAP_PTR(*this)->printType();
     }
 }
 
@@ -231,51 +228,32 @@ void Object::emit(std::ofstream& os) const
     {
         case OBJ_INT:   emitBytes(os, OBJ_INT, AS_INT(*this));  break;
         case OBJ_DEC:   emitBytes(os, OBJ_DEC, AS_DEC(*this));  break;
-        case OBJ_HEAP:
+        default:
         {
-            os.put(static_cast<char>(OBJ_HEAP));
-            AS_HEAP_PTR(*this)->emit(os);
+            if (IS_HEAP_OBJ(*this))
+                AS_HEAP_PTR(*this)->emit(os);
             break;
         }
-        default: break;
     }
 }
 
 
 /* Type Mismatch Error Class.*/
 
-TypeMismatch::TypeMismatch(const std::string& message, varType expect,
-    varType actual) :
-        message(message), expect(expect), actual(actual) {}
+TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
+    ObjType actual) :
+    message(message), expect(expect), actual(actual) {}
 
 static std::string_view objTypes[] = {
-    "int", "dec", "bool", "null", "num"
+    "int", "dec", "bool", "null", "bigint", "bigdec",
+    "string", "range", "list", "table", "num"
 };
-
-static std::string_view heapTypes[] = {
-    "bigint", "bigdec", "string", "range", "list",
-    "table"
-};
-
-#define GETV(variant, type) std::get<type>(variant)
 
 void TypeMismatch::report()
-{
-    std::string_view expectSV;
-    if (std::holds_alternative<ObjType>(expect))
-        expectSV = objTypes[GETV(expect, ObjType)];
-    else
-        expectSV = heapTypes[GETV(expect, HeapType)];
-
-    std::string_view actualSV;
-    if (std::holds_alternative<ObjType>(actual))
-        actualSV = objTypes[GETV(actual, ObjType)];
-    else
-        actualSV = heapTypes[GETV(actual, HeapType)];
-    
+{    
     FORMAT_PRINT(stderr,
         "Type mismatch: Expected type ({}) but found ({}) instead.\n",
-        expectSV, actualSV
+        objTypes[expect], objTypes[actual]
     );
     FORMAT_PRINT(stderr, "{:>15}{}\n", "", message);
 }

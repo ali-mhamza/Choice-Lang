@@ -84,7 +84,7 @@ static Object reconstructHeapObj(vBit& it, const vBit& end)
 	it++;
 	switch (type)
 	{
-		case HEAP_STRING:	return reconstructString(it, end);
+		case OBJ_STRING:	return reconstructString(it, end);
 		default:			UNREACHABLE();
 	}
 }
@@ -96,21 +96,22 @@ vObj reconstructPool(const vByte& poolBytes)
 	for (auto it = poolBytes.begin(); it < poolBytes.end(); it++)
 	{
 		ObjType type = static_cast<ObjType>(*it);
-		it++;
 		switch (type)
 		{
 			case OBJ_INT:
-				pool.push_back(reconstructBytes<i64>(it, poolBytes.end()));
+				pool.push_back(reconstructBytes<i64>(++it, poolBytes.end()));
 				break;
 			case OBJ_DEC:
-				pool.push_back(reconstructBytes<double>(it, poolBytes.end()));
-				break;
-			case OBJ_HEAP:
-				pool.push_back(reconstructHeapObj(it, poolBytes.end()));
+				pool.push_back(reconstructBytes<double>(++it, poolBytes.end()));
 				break;
 			default:
 			{
-				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
+				if (IS_HEAP_TYPE(type))
+				{
+					pool.push_back(reconstructHeapObj(it, poolBytes.end()));
+					break;
+				}
+				else if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
 					FORMAT_PRINT(stderr, "Error: byte is {}.\n",
 						static_cast<int>(type));

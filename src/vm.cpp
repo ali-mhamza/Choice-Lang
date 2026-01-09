@@ -40,16 +40,19 @@ inline bool VM::isTruthy(const Object& obj)
         case OBJ_DEC:   return (AS_DEC(obj) != 0.0);
         case OBJ_BOOL:  return AS_BOOL(obj);
         case OBJ_NULL:  return false;
-        case OBJ_HEAP:
+        default:
         {
-            HeapObj* temp = AS_HEAP_PTR(obj);
-            switch (temp->type)
+            if (IS_HEAP_OBJ(obj))
             {
-                case HEAP_STRING:   return (AS_STRING(temp).str.size() != 0);
-                default:            return true;
+                HeapObj* temp = AS_HEAP_PTR(obj);
+                switch (temp->type)
+                {
+                    case OBJ_STRING:   return (AS_STRING(temp).str.size() != 0);
+                    default:           return true;
+                }
             }
+            return true;
         }
-        default: return true;
     }
 }
 

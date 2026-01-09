@@ -13,31 +13,25 @@ enum ObjType
     OBJ_DEC,
     OBJ_BOOL,
     OBJ_NULL,
+    OBJ_BIGINT,
+    OBJ_BIGDEC,
+    OBJ_STRING,
+    OBJ_RANGE,
+    OBJ_LIST,
+    OBJ_TABLE,
     // OBJ_NUM only used with TypeMismatch (below).
     // Not to be stored in any Object.
     OBJ_NUM,
-    OBJ_HEAP,
     OBJ_INVALID,
-};
-
-enum HeapType
-{
-    HEAP_BIGINT,
-    HEAP_BIGDEC,
-    HEAP_STRING,
-    HEAP_RANGE,
-    HEAP_LIST,
-    HEAP_TABLE,
-    HEAP_INVALID
 };
 
 struct HeapObj
 {
-    HeapType type;
+    ObjType type;
     int refCount;
 
     HeapObj();
-    HeapObj(HeapType type);
+    HeapObj(ObjType type);
     virtual ~HeapObj() = default;
 
     bool operator==(const HeapObj& other) const;
@@ -75,10 +69,10 @@ struct Table : public HeapObj
 
 };
 
-#define IS_STRING(ptr)  ((ptr)->type == HEAP_STRING)
-#define IS_RANGE(ptr)   ((ptr)->type == HEAP_RANGE)
-#define IS_LIST(ptr)    ((ptr)->type == HEAP_LIST)
-#define IS_TABLE(ptr)   ((ptr)->type == HEAP_TABLE)
+#define IS_STRING(ptr)  ((ptr)->type == OBJ_STRING)
+#define IS_RANGE(ptr)   ((ptr)->type == OBJ_RANGE)
+#define IS_LIST(ptr)    ((ptr)->type == OBJ_LIST)
+#define IS_TABLE(ptr)   ((ptr)->type == OBJ_TABLE)
 
 #define AS_STRING(obj)  (*(static_cast<String*>(obj)))
 #define AS_RANGE(obj)   (*(static_cast<Range*>(obj)))
@@ -123,15 +117,13 @@ class Object
 };
 
 struct TypeMismatch // General type mismatch error class.
-{
-    using varType = std::variant<ObjType, HeapType>;
-    
+{    
     std::string message;
-    varType expect;
-    varType actual;
+    ObjType expect;
+    ObjType actual;
 
-    TypeMismatch(const std::string& message, varType expect,
-        varType actual);
+    TypeMismatch(const std::string& message, ObjType expect,
+        ObjType actual);
     void report();
 };
 
@@ -160,7 +152,7 @@ Object::Object(T val)
     }
     else if constexpr (std::is_same_v<T, HeapObj*>)
     {
-        type = OBJ_HEAP;
+        type = val->type;
         val->refCount = 1;
         this->as.heapVal = val;
     }
@@ -170,7 +162,9 @@ Object::Object(T val)
 #define IS_DEC(obj)         ((obj).type == OBJ_DEC)
 #define IS_BOOL(obj)        ((obj).type == OBJ_BOOL)
 #define IS_NULL(obj)        ((obj).type == OBJ_NULL)
-#define IS_HEAP_OBJ(obj)    ((obj).type == OBJ_HEAP)
+
+#define IS_HEAP_TYPE(type)  (type > OBJ_NULL)
+#define IS_HEAP_OBJ(obj)    ((obj).type > OBJ_NULL)
 
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
