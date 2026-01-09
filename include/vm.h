@@ -8,7 +8,6 @@
 #include <memory>
 #include <variant>
 #include <vector>
-using AST::Expression::VarExpr;
 
 class Disassembler;
 

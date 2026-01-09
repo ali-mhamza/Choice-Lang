@@ -4,9 +4,6 @@
 #include <cmath>
 #include <cstring>
 
-using namespace AST::Statement;
-using namespace AST::Expression;
-
 VM::VM() :
     registers(std::make_unique<Object[]>(256)), regSlot(0),
     dis(nullptr) {}
