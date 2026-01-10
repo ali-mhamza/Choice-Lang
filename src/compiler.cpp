@@ -334,6 +334,7 @@ void Compiler::matchStmt()
         else
             retJump = matchCaseHelper(matchReg, fallJump, emptyJump);
 
+        fall = end = false;
         if (retJump != 0)
             jumps.push_back(retJump);
         if (defaultCase)
@@ -348,6 +349,7 @@ void Compiler::matchStmt()
 
     matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
     freeReg(); // Remove the match value.
+    inMatch = false;
 }
 
 void Compiler::repeatStmt()

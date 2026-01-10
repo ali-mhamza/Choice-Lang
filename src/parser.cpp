@@ -229,6 +229,7 @@ StmtUP Parser::matchStmt()
 
     matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
 
+    inMatch = false;
     return std::make_unique<MatchStmt>(std::move(match), cases);
 }
 
