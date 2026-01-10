@@ -9,7 +9,7 @@ using namespace AST::Statement;
 using namespace AST::Expression;
 
 Parser::Parser() :
-    inMatch(false), fall(false), end(false) {}
+    inMatch(false), fall(false) {}
 
 void Parser::nextTok()
 {
@@ -134,10 +134,9 @@ StmtUP Parser::statement()
     {
         if (!inMatch)
             throw CompileError(previousTok,
-                "Invalid instruction 'end outside of match-is structure.");
+                "Invalid instruction 'end' outside of match-is structure.");
         matchError(TOK_SEMICOLON, "Expect ';' after 'end'.");
-        end = true;
-        return nullptr;
+        return std::make_unique<EndStmt>();
     }
     return exprStmt();
 }
@@ -173,6 +172,7 @@ StmtUP Parser::whileStmt()
 
 StmtUP Parser::matchStmt()
 {
+    bool prevInMatch = inMatch;
     inMatch = true;
     
     matchError(TOK_LEFT_PAREN, "Expect '(' before match value.");
@@ -219,17 +219,17 @@ StmtUP Parser::matchStmt()
                 "Cannot have another case after the default case.");
 
         cases.emplace_back(
-            // 'fall' and 'end' updated in statement().
-            std::move(value), std::move(body), fall, end
+            // 'fall' updated in statement().
+            std::move(value), std::move(body), fall
         );
-        fall = end = false; // Reset.
+        fall = false; // Reset.
         if (defaultCase)
             break;
     }
 
     matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
 
-    inMatch = false;
+    inMatch = prevInMatch;
     return std::make_unique<MatchStmt>(std::move(match), cases);
 }
 

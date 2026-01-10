@@ -8,7 +8,7 @@ class Parser
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
-        bool inMatch, fall, end; // For match-is structures.
+        bool inMatch, fall; // For match-is structures.
 
         // Utilities.
 

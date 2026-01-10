@@ -24,7 +24,7 @@ class TokCompVarsWrapper
 Compiler::Compiler() :
     previousReg(0), scope(0), varScopes(1),
     varsWrapper(new TokCompVarsWrapper),
-    inMatch(false), fall(false), end(false) {}
+    inMatch(false), fall(false), endJumps(nullptr) {}
 
 Compiler::~Compiler()
 {
@@ -216,9 +216,9 @@ void Compiler::statement()
     {
         if (!inMatch)
             throw CompileError(previousTok,
-                "Invalid instruction 'end outside of match-is structure.");
+                "Invalid instruction 'end' outside of match-is structure.");
         matchError(TOK_SEMICOLON, "Expect ';' after 'end'.");
-        end = true;
+        this->endJumps->push_back(code.addJump(OP_JUMP));
     }
     else
         exprStmt();
@@ -303,6 +303,7 @@ ui64 Compiler::matchCaseHelper(const ui8 matchReg, ui64& fallJump,
 
 void Compiler::matchStmt()
 {
+    bool prevInMatch = inMatch;
     inMatch = true;
     
     matchError(TOK_LEFT_PAREN, "Expect '(' before match value.");
@@ -314,7 +315,10 @@ void Compiler::matchStmt()
     int caseCount = 0;
     ui64 fallJump = 0; // Invalid jump offset value.
     ui64 emptyJump = 0;
+
     std::vector<ui64> jumps;
+    auto prevEndJumps = endJumps;
+    endJumps = &jumps;
 
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
@@ -333,8 +337,9 @@ void Compiler::matchStmt()
         }
         else
             retJump = matchCaseHelper(matchReg, fallJump, emptyJump);
+        caseCount++;
 
-        fall = end = false;
+        fall = false;
         if (retJump != 0)
             jumps.push_back(retJump);
         if (defaultCase)
@@ -348,8 +353,12 @@ void Compiler::matchStmt()
     }
 
     matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
+    for (ui64 jump : jumps)
+        code.patchJump(jump);
     freeReg(); // Remove the match value.
-    inMatch = false;
+
+    inMatch = prevInMatch;
+    endJumps = prevEndJumps;
 }
 
 void Compiler::repeatStmt()

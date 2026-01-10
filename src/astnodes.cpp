@@ -29,9 +29,9 @@ WhileStmt::WhileStmt(ExprUP condition, StmtUP body) :
     condition(std::move(condition)), body(std::move(body)) {}
 
 MatchStmt::matchCase::matchCase(ExprUP value, StmtUP body,
-    bool fall, bool end) :
+    bool fall) :
     value(std::move(value)), body(std::move(body)),
-    fallthrough(fall), end(end) {}
+    fallthrough(fall) {}
 
 MatchStmt::MatchStmt(ExprUP matchValue, std::vector<matchCase>& cases) :
     Stmt(S_MATCH_STMT),
@@ -44,6 +44,9 @@ RepeatStmt::RepeatStmt(ExprUP condition, StmtUP body) :
 ReturnStmt::ReturnStmt(Token& keyword, ExprUP expr) :
     Stmt(S_RETURN_STMT),
     keyword(keyword), expr(std::move(expr)) {}
+
+EndStmt::EndStmt() :
+    Stmt(S_END_STMT) {}
 
 ExprStmt::ExprStmt(ExprUP expr) :
     Stmt(S_EXPR_STMT),

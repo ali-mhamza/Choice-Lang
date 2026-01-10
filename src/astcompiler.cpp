@@ -22,7 +22,8 @@ class ASTCompVarsWrapper
 
 ASTCompiler::ASTCompiler() :
     previousReg(0), scope(0), varScopes(1), // For global scope.
-    varsWrapper(new ASTCompVarsWrapper) {}
+    varsWrapper(new ASTCompVarsWrapper),
+    endJumps(nullptr) {}
 
 ASTCompiler::~ASTCompiler()
 {
@@ -138,8 +139,11 @@ DEF(MatchStmt)
 {
     ui8 matchReg = previousReg;
     compileExpr(node->matchValue);
-    std::vector<ui64> jumps(node->cases.size());
-    int caseCount = 0;
+
+    std::vector<ui64> jumps;
+    auto prevEndJumps = endJumps;
+    this->endJumps = &jumps;
+
     ui64 fallJump = 0; // Invalid jump offset value.
     ui64 emptyJump = 0;
 
@@ -173,7 +177,7 @@ DEF(MatchStmt)
             else if (empty)
                 emptyJump = code.addJump(OP_JUMP);
             else
-                jumps[caseCount++] = code.addJump(OP_JUMP);
+                jumps.push_back(code.addJump(OP_JUMP));
 
             code.patchJump(falseJump);
         }
@@ -181,9 +185,11 @@ DEF(MatchStmt)
             compileStmt(checkCase.body); // No need for any jumps.
     }
 
-    for (int i = 0; i < caseCount; i++)
-        code.patchJump(jumps[i]);
+    for (ui64 jump : jumps)
+        code.patchJump(jump);
     freeReg(); // Remove the match value.
+
+    this->endJumps = prevEndJumps;
 }
 
 DEF(RepeatStmt)
@@ -199,6 +205,11 @@ DEF(RepeatStmt)
 }
 
 DEF(ReturnStmt) { (void) node; }
+
+DEF(EndStmt)
+{
+    this->endJumps->push_back(code.addJump(OP_JUMP));
+}
 
 DEF(ExprStmt)
 {
@@ -546,6 +557,7 @@ void ASTCompiler::compileStmt(StmtUP& node)
         case S_MATCH_STMT:  COMPILE(MatchStmt, node);   break;
         case S_REPEAT_STMT: COMPILE(RepeatStmt, node);  break;
         case S_RETURN_STMT: COMPILE(ReturnStmt, node);  break;
+        case S_END_STMT:    COMPILE(EndStmt, node);     break;
         case S_EXPR_STMT:   COMPILE(ExprStmt, node);    break;
         case S_BLOCK_STMT:  COMPILE(BlockStmt, node);   break;
     }

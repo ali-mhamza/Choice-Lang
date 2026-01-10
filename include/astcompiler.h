@@ -5,6 +5,7 @@
 #include "vartable.h"
 #include "vm.h"
 #include <memory>
+#include <vector>
 using namespace AST::Statement;
 using namespace AST::Expression;
 
@@ -32,6 +33,7 @@ class ASTCompiler
         ui8 scope; // Our current lexical scope depth.
         std::vector<std::vector<std::string>> varScopes;
         ASTCompVarsWrapper* varsWrapper;
+        std::vector<ui64>* endJumps;
 
         // Variables.
 
@@ -61,6 +63,7 @@ class ASTCompiler
         DECL(MatchStmt);
         DECL(RepeatStmt);
         DECL(ReturnStmt);
+        DECL(EndStmt);
         DECL(ExprStmt);
         DECL(BlockStmt);
 

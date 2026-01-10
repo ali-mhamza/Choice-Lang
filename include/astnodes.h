@@ -33,6 +33,7 @@ namespace AST
             S_MATCH_STMT,
             S_REPEAT_STMT,
             S_RETURN_STMT,
+            S_END_STMT,
             S_EXPR_STMT,
             S_BLOCK_STMT
         };
@@ -97,9 +98,8 @@ namespace AST
                 ExprUP value; // Must be a literal (even if an iterable).
                 StmtUP body; // No declarations without a block.
                 bool fallthrough;
-                bool end;
 
-                matchCase(ExprUP value, StmtUP body, bool fall, bool end);
+                matchCase(ExprUP value, StmtUP body, bool fall);
             };
             
             ExprUP matchValue;
@@ -122,6 +122,11 @@ namespace AST
             ExprUP expr;
 
             ReturnStmt(Token& keyword, ExprUP expr);
+        };
+
+        struct EndStmt : public Stmt
+        {
+            EndStmt();
         };
 
         struct ExprStmt : public Stmt
