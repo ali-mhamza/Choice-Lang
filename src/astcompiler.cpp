@@ -73,12 +73,12 @@ inline ui8* ASTCompiler::getVarSlot(ExprUP& node)
     return slot;
 }
 
-bool ASTCompiler::getAccess(ui8 reg)
+inline bool ASTCompiler::getAccess(ui8 reg)
 {
     return *(varsWrapper->access.get(reg));
 }
 
-void ASTCompiler::popScope()
+inline void ASTCompiler::popScope()
 {
     for (std::string& var : varScopes.back())
         varsWrapper->vars.remove({var, scope});

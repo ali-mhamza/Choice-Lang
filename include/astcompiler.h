@@ -46,7 +46,7 @@ class ASTCompiler
         inline ui8* getVarSlot(const Token& token);
         inline ui8* getVarSlot(ExprUP& node);
         inline bool getAccess(ui8 reg);
-        void popScope();
+        inline void popScope();
 
         // Registers.
         // Defined here for increased likelihood of inlining.
