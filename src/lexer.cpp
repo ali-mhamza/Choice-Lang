@@ -92,12 +92,18 @@ char Lexer::previousChar(int distance /* = 0 */)
 
 i64 Lexer::intValue(std::string_view text)
 {
-	return static_cast<i64>(std::stoll(std::string(text)));
+	std::string temp(text);
+	temp.erase(std::remove(temp.begin(), temp.end(), '\''), temp.end());
+	
+	return static_cast<i64>(std::stoll(temp));
 }
 
 double Lexer::decValue(std::string_view text)
 {
-	return static_cast<double>(std::stod(std::string(text)));
+	std::string temp(text);
+	temp.erase(std::remove(temp.begin(), temp.end(), '\''), temp.end());
+	
+	return static_cast<double>(std::stod(temp));
 }
 
 bool Lexer::boolValue(TokenType type)
@@ -131,7 +137,7 @@ void Lexer::makeToken(TokenType type)
 void Lexer::numToken()
 {
 	TokenType type;	
-	while (isdigit(peekChar()) && !hitEnd())
+	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 		advance();
 
 	if (consumeChar('.'))
