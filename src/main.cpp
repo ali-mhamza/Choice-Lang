@@ -25,9 +25,16 @@
 
 #define TIME_TOTAL
 // #define TIME_RUN
-#define TRACK_REPL_HISTORY 1
-#define SAVE_REPL_HISTORY 1
-#define LOAD_REPL_HISTORY 1
+
+// Use replxx library instead of standard
+// std::getline. 
+#define EXTERNAL_REPL 1
+
+#if EXTERNAL_REPL
+	#define TRACK_REPL_HISTORY	1
+	#define SAVE_REPL_HISTORY	1
+	#define LOAD_REPL_HISTORY	1
+#endif
 
 std::string file = "";
 bool external = false;
@@ -248,7 +255,11 @@ static void repl(ArgvOption option = EXECUTE)
 
 	while (true)
 	{
-		line = rx.input(">>> ");
+		#if EXTERNAL_REPL
+			line = rx.input(">>> ");
+		#else
+			std::getline(std::cin, line);
+		#endif
 		buildLine(line);
 
 		if (!line.empty())
