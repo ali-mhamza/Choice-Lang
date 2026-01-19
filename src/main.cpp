@@ -23,6 +23,9 @@
 #include <string_view>
 #include <unordered_map>
 
+#define TIME_TOTAL
+// #define TIME_RUN
+
 std::string file = "";
 bool external = false;
 

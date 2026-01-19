@@ -7,8 +7,17 @@
 #include <cstring>
 
 VM::VM() :
-    registers(std::make_unique<Object[]>(256)), regSlot(0),
-    dis(nullptr) {}
+    ip(nullptr), end(nullptr),
+    registers(std::make_unique<Object[]>(regSize))
+{
+    #ifdef WATCH_REG
+    regSlot = 0;
+    #endif
+
+    #ifdef WATCH_EXEC
+    dis = nullptr;
+    #endif
+}
 
 inline ui8 VM::readByte()
 {
@@ -55,37 +64,20 @@ inline bool VM::isTruthy(const Object& obj)
     }
 }
 
-void VM::loadOper(const vObj& pool)
+inline Object VM::loadOper(const vObj& pool)
 {
-    ui8 dest = readByte();
-    regSlot = dest;
-    ui8 oper = readByte();
-
-    switch (oper)
+    switch (ui8 oper = readByte())
     {
         case OP_NEG_TWO:    case OP_NEG_ONE:    case OP_ZERO:
         case OP_ONE:        case OP_TWO:
-            registers[dest] = i64(oper - 2);
-            break;
-        case OP_TRUE:       registers[dest] = true;    break;
-        case OP_FALSE:      registers[dest] = false;   break;
-        case OP_NULL:       registers[dest] = nullptr; break;
-        
-        case OP_BYTE_OPER:
-        {
-            registers[dest] = pool[readByte()]; // Temporarily as integer.
-            break;
-        }
-        case OP_SHORT_OPER:
-        {
-            registers[dest] = pool[readShort()];
-            break;
-        }
-        case OP_LONG_OPER:
-        {
-            registers[dest] = pool[readLong()];
-            break;
-        }
+            return i64(oper) - 2;
+        case OP_TRUE:       return true;
+        case OP_FALSE:      return false;
+        case OP_NULL:       return nullptr;
+        case OP_BYTE_OPER:  return pool[readByte()];
+        case OP_SHORT_OPER: return pool[readShort()];
+        case OP_LONG_OPER:  return pool[readLong()];
+        default: UNREACHABLE();
     }
 }
 
@@ -101,53 +93,48 @@ inline Object VM::concatStrings(const Object& str1, const Object& str2)
 
 Object VM::arithOper(Opcode oper)
 {
-    Object a = registers[readByte()];
-    Object b = registers[readByte()];
+    const Object& a = registers[readByte()];
+    const Object& b = registers[readByte()];
 
-    if (IS_STRING(&a) && IS_STRING(&b))
-        return concatStrings(a, b);
-
-    if (IS_NUM(a) && IS_NUM(b))
+    if (IS_INT(a) && IS_INT(b))
     {
-        if (IS_INT(a) && IS_INT(b))
+        i64 aVal = a.as.intVal;
+        i64 bVal = b.as.intVal;
+        switch (oper)
         {
-            i64 aVal = a.as.intVal;
-            i64 bVal = b.as.intVal;
-            switch (oper)
-            {
-                case OP_ADD:    return aVal + bVal;
-                case OP_SUB:    return aVal - bVal;
-                case OP_MULT:   return aVal * bVal;
-                case OP_DIV:    return (double) aVal / bVal;
-                case OP_MOD:    return aVal % bVal;
-                case OP_POWER:  return i64(pow(aVal, bVal));
-                default: UNREACHABLE();
-            }
-        }
-        else
-        {
-            double aVal = (double) AS_NUM(a);
-            double bVal = (double) AS_NUM(b);
-            switch (oper)
-            {
-                case OP_ADD:    return aVal + bVal;
-                case OP_SUB:    return aVal - bVal;
-                case OP_MULT:   return aVal * bVal;
-                case OP_DIV:    return aVal / bVal;
-                case OP_POWER:  return pow(aVal, bVal);
-                // Cannot do modulus for non-integers.
-                // Maybe raise an error?
-                default: UNREACHABLE();
-            }
+            case OP_ADD:    return aVal + bVal;
+            case OP_SUB:    return aVal - bVal;
+            case OP_MULT:   return aVal * bVal;
+            case OP_DIV:    return (double) aVal / bVal;
+            case OP_MOD:    return aVal % bVal;
+            case OP_POWER:  return i64(pow(aVal, bVal));
+            default: UNREACHABLE();
         }
     }
+    else if (IS_NUM(a) && IS_NUM(b))
+    {
+        double aVal = (double) AS_NUM(a);
+        double bVal = (double) AS_NUM(b);
+        switch (oper)
+        {
+            case OP_ADD:    return aVal + bVal;
+            case OP_SUB:    return aVal - bVal;
+            case OP_MULT:   return aVal * bVal;
+            case OP_DIV:    return aVal / bVal;
+            case OP_POWER:  return pow(aVal, bVal);
+            // Cannot do modulus for non-integers.
+            // Maybe raise an error?
+            default: UNREACHABLE();
+        }
+    }
+    else if (IS_STRING(&a) && IS_STRING(&b) && (oper == OP_ADD))
+        return concatStrings(a, b);
     else
         throw TypeMismatch(
             "Cannot apply arithmetic operator to non-numeric values.",
             OBJ_NUM,
             (IS_NUM(a) ? b.type : a.type)
         );
-    UNREACHABLE();
 }
 
 inline Object VM::compareOper(Opcode op)
@@ -173,8 +160,8 @@ static inline i64 fromUnsigned(ui64 num)
 
 Object VM::bitOper(Opcode op)
 {
-    Object a = registers[readByte()];
-    Object b = registers[readByte()];
+    const Object& a = registers[readByte()];
+    const Object& b = registers[readByte()];
     
     if (!IS_INT(a) || !IS_INT(b))
         throw TypeMismatch(
@@ -199,7 +186,7 @@ Object VM::bitOper(Opcode op)
 
 Object VM::unaryOper(Opcode op)
 {
-    Object obj = registers[readByte()];
+    const Object& obj = registers[readByte()];
     
     switch (op)
     {
@@ -256,37 +243,88 @@ void VM::printRegister()
             break;
         FORMAT_PRINT("[{}]", registers[i].printVal());
     }
-    std::cout << '\n';
+    FORMAT_PRINT("\n");
 }
 
 #endif
 
 void VM::executeOp(Opcode op, const vObj& pool)
-{    
-    switch (op)
+{
+    #if COMPUTED_GOTO
+        static void* dispatchTable[] = {
+            #define LABEL_ENABLE(op)    &&CASE_##op
+            #define LABEL_DISABLE(op)   &&CASE_NO_REACH
+
+            #define LABEL(op, state) LABEL_##state(op),
+            #include "../include/opcode_list.h"
+            &&CASE_NO_REACH
+            #undef LABEL
+        };
+
+        #ifdef WATCH_EXEC
+            #define DEBUG_OP(op)    dis->disassembleOp(op)
+        #else
+            #define DEBUG_OP(op)
+        #endif
+
+        #ifdef WATCH_REG
+            #define PRINT_REGS()    printRegister()
+        #else
+            #define PRINT_REGS()
+        #endif
+
+        #define DISPATCH_OP(op)  goto *dispatchTable[op]
+        #define DISPATCH()                                                          \
+            do {                                                                    \
+                if (ip >= end)                                                      \
+                    return;                                                         \
+                op = static_cast<Opcode>(readByte());                               \
+                ASSERT(IS_VALID_OP(op),                                             \
+                    FORMAT_STR("Invalid opcode {}", static_cast<ui8>(op)));         \
+                DEBUG_OP(op);                                                       \
+                DISPATCH_OP(op);                                                    \
+                PRINT_REGS();                                                       \
+            } while (false)
+        #define SWITCH(op)  DISPATCH();
+        #define CASE(op)    CASE_##op
+        #define DEFAULT     CASE_NO_REACH
+    #else
+        #define SWITCH(op)  switch (op)
+        #define CASE(op)    case op
+        #define DISPATCH()  break
+        #define DEFAULT     default
+    #endif
+    
+    SWITCH(op)
     {
-        case OP_LOAD_R:
-            loadOper(pool); // Could re-write this to be like the operators below.
-            break;
-        case OP_LOOP:
+        CASE(OP_LOAD_R):
+        {
+            ui8 dest = readByte();
+            registers[dest] = loadOper(pool);
+            #ifdef WATCH_REG
+            regSlot = dest;
+            #endif
+            DISPATCH();
+        }
+        CASE(OP_LOOP):
         {
             ui16 jump = readShort();
             ip -= jump;
             #ifdef WATCH_EXEC
                 this->dis->ip -= jump;
             #endif
-            break;
+            DISPATCH();
         }
-        case OP_JUMP:
+        CASE(OP_JUMP):
         {
             ui16 jump = readShort();
             ip += jump;
             #ifdef WATCH_EXEC
                 this->dis->ip += jump;
             #endif
-            break;
+            DISPATCH();
         }
-        case OP_JUMP_TRUE:
+        CASE(OP_JUMP_TRUE):
         {
             ui8 check = readByte();
             ui16 jump = readShort();
@@ -297,9 +335,9 @@ void VM::executeOp(Opcode op, const vObj& pool)
                     this->dis->ip += jump;
                 #endif
             }
-            break;
+            DISPATCH();
         }
-        case OP_JUMP_FALSE:
+        CASE(OP_JUMP_FALSE):
         {
             ui8 check = readByte();
             ui16 jump = readShort();
@@ -310,59 +348,67 @@ void VM::executeOp(Opcode op, const vObj& pool)
                     this->dis->ip += jump;
                 #endif
             }
-            break;
+            DISPATCH();
         }
-        case OP_GET_VAR:
-        case OP_SET_VAR:
+        CASE(OP_GET_VAR):
+        CASE(OP_SET_VAR):
         {
             ui8 dest = readByte();
-            regSlot = (op == OP_GET_VAR ? dest : regSlot);
             ui8 src = readByte();
             registers[dest] = registers[src];
-            break;
+            #ifdef WATCH_REG
+            regSlot = (op == OP_GET_VAR ? dest : regSlot);
+            #endif
+            DISPATCH();
         }
         
         // Arithmetic operators.
 
-        case OP_ADD:    case OP_SUB:    case OP_MULT:
-        case OP_DIV:    case OP_MOD:    case OP_POWER:
+        CASE(OP_ADD):   CASE(OP_SUB):   CASE(OP_MULT):
+        CASE(OP_DIV):   CASE(OP_MOD):   CASE(OP_POWER):
         {
             ui8 dest = readByte();
             registers[dest] = arithOper(op);
+            #ifdef WATCH_REG
             regSlot--;
-            break;
+            #endif
+            DISPATCH();
         }
 
         // Comparison operators.
-        case OP_GT:     case OP_LT:     case OP_EQUAL:
+        CASE(OP_GT):    CASE(OP_LT):    CASE(OP_EQUAL):
         {
             ui8 dest = readByte();
             registers[dest] = compareOper(op);
+            #ifdef WATCH_REG
             regSlot--;
-            break;
+            #endif
+            DISPATCH();
         }
 
         // Bit-wise operators.
-        case OP_BIT_AND:        case OP_BIT_OR:         case OP_BIT_XOR:
-        case OP_BIT_SHIFT_L:    case OP_BIT_SHIFT_R:
+        CASE(OP_BIT_AND):       CASE(OP_BIT_OR):        CASE(OP_BIT_XOR):
+        CASE(OP_BIT_SHIFT_L):   CASE(OP_BIT_SHIFT_R):
         {
             ui8 dest = readByte();
             registers[dest] = bitOper(op);
+            #ifdef WATCH_REG
             regSlot--;
-            break;
+            #endif
+            DISPATCH();
         }
 
         // Unary operators.
-        case OP_INCREMENT:      case OP_DECREMENT:      case OP_NEGATE:
-        case OP_NOT:            case OP_BIT_COMP:
+        CASE(OP_INCREMENT):     CASE(OP_DECREMENT):     CASE(OP_NEGATE):
+        CASE(OP_NOT):           CASE(OP_BIT_COMP):
         {
             ui8 dest = readByte();
             registers[dest] = unaryOper(op);
-            break;
+            DISPATCH();
         }
 
         // Functions.
-        case OP_CALL_NAT:
+        CASE(OP_CALL_NAT):
         {
             ui8 callee = readByte();
             ui8 start = readByte();
@@ -371,16 +417,17 @@ void VM::executeOp(Opcode op, const vObj& pool)
             registers[start] = Natives::functions[callee](
                 &registers[start], argCount, Token() // Temporarily.
             );
+            DISPATCH();
         }
 
-        default: break;
+        DEFAULT: DISPATCH();
     }
 }
 
 void VM::executeCode(const ByteCode& code)
 {
-    ip = code.block.begin();
-    auto end = code.block.end();
+    ip = code.block.data();
+    end = ip + code.block.size();
     const vObj& pool = code.pool;
 
     #ifdef WATCH_EXEC
@@ -388,29 +435,35 @@ void VM::executeCode(const ByteCode& code)
         this->dis = &dis;
     #endif
 
-    while (ip < end)
+    try
     {
-        try
-        {
-            #ifdef WATCH_EXEC
-                dis.disassembleOp(*ip);
-            #endif
+        #if !COMPUTED_GOTO
+            while (ip < end)
+            {
+                #ifdef WATCH_EXEC
+                    dis.disassembleOp(*ip);
+                #endif
 
-            executeOp(static_cast<Opcode>(readByte()), pool);
+                executeOp(static_cast<Opcode>(readByte()), pool);
 
-            #ifdef WATCH_REG
-                printRegister();
-            #endif
-        }
-        catch (TypeMismatch& error)
-        {
-            error.report();
-        }
-        catch (RuntimeError& error)
-        {
-            error.report();
-        }
+                #ifdef WATCH_REG
+                    printRegister();
+                #endif
+            }
+        #else
+            executeOp(static_cast<Opcode>(0), pool);
+        #endif
+    }
+    catch (TypeMismatch& error)
+    {
+        error.report();
+    }
+    catch (RuntimeError& error)
+    {
+        error.report();
     }
 
+    #ifdef WATCH_EXEC
     this->dis = nullptr;
+    #endif
 }

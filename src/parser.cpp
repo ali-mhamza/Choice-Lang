@@ -219,7 +219,7 @@ StmtUP Parser::matchStmt()
         {
             Token errorToken = currentTok;
             value = primary();
-            if (value->type != E_LITERAL_EXPR)
+            if ((value == nullptr) || (value->type != E_LITERAL_EXPR))
                 throw CompileError(errorToken,
                     "Case value must be a literal.");
         }
@@ -278,6 +278,7 @@ StmtUP Parser::breakStmt()
 StmtUP Parser::blockStmt()
 {
     StmtVec block;
+    block.reserve(10);
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         block.push_back(declaration());
     matchError(TOK_RIGHT_BRACE, "Expect '}' after block.");
@@ -303,7 +304,7 @@ ExprUP Parser::assignment()
     {
         nextTok();
         Token oper = previousTok;
-        if (target->type != E_VAR_EXPR) // Temporary.
+        if ((target == nullptr) || (target->type != E_VAR_EXPR)) // Temporary.
             throw CompileError(previousTok, "Invalid assignment target.");
         target = std::make_unique<AssignExpr>(std::move(target),
             oper, expression());
@@ -479,8 +480,9 @@ ExprUP Parser::call()
         // Just has to evaluate to a callable object.
         // Exception: builtin with ! token.
 
-        if (expr->type != E_VAR_EXPR)
-            throw CompileError(previousTok, "Attempting to call a non-callable object.");
+        if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
+            throw CompileError(previousTok,
+                "Attempting to call a non-callable object.");
 
         ExprVec args;
         while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
@@ -503,7 +505,7 @@ ExprUP Parser::post()
 
     if (consumeToks(TOK_INCR, TOK_DECR))
     {
-        if (expr->type != E_VAR_EXPR)
+        if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
             throw CompileError(previousTok,
                 "Invalid increment/decrement target.");
         do {

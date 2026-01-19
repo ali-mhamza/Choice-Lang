@@ -78,6 +78,8 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_MOVE_R,		// Store a register's value in another register.
 };
 
+#define IS_VALID_OP(op)	(((op) >= OP_NEG_TWO) && ((op) <= OP_MOVE_R))
+
 static std::string_view opNames[] = {
 	"OP_NEG_TWO", "OP_NEG_ONE", "OP_ZERO", "OP_ONE",
 	"OP_TWO", "OP_TRUE", "OP_FALSE", "OP_NULL",

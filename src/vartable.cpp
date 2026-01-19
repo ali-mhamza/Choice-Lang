@@ -37,11 +37,11 @@ std::ostream& operator<<(std::ostream& os, const VarEntry& entry)
 
 Hash hashVarEntry(const VarEntry& entry)
 {
-    size_t nameSize = entry.name.size();
-    ui8* bytes = new ui8[nameSize + sizeof(entry.scope)];
-    std::memcpy(bytes, entry.name.data(), nameSize);
-    std::memcpy(bytes + nameSize, &entry.scope, sizeof(entry.scope));
-    Hash hash = hashBytes(bytes, nameSize + sizeof(entry.scope));
-    delete[] bytes;
-    return hash;
+    Hash nameHash = hashBytes(
+        reinterpret_cast<const ui8*>(entry.name.data()), entry.name.size()
+    );
+    Hash scopeHash = hashBytes(
+        reinterpret_cast<const ui8*>(&entry.scope), sizeof(entry.scope)
+    );
+    return nameHash + scopeHash;
 }

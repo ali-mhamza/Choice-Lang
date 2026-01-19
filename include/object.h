@@ -36,8 +36,8 @@ struct HeapObj
 
     bool operator==(const HeapObj& other) const;
 
-    std::string printVal();
-    std::string printType();
+    std::string printVal() const;
+    std::string printType() const;
     void emit(std::ofstream& os);
 };
 

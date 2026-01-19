@@ -26,20 +26,20 @@ bool HeapObj::operator==(const HeapObj& other) const
     }
 }
 
-std::string HeapObj::printVal()
+std::string HeapObj::printVal() const
 {
     if (IS_STRING(this))
-        return AS_STRING(this).str;
+        return AS_CONST_STRING(this).str;
     else if (IS_RANGE(this))
     {
-        const Range& range = AS_RANGE(this);
+        const Range& range = AS_CONST_RANGE(this);
         return FORMAT_STR("{}..{}, {}", range.start,
             range.stop, range.step);
     }
     return ""; // Temporary.
 }
 
-std::string HeapObj::printType()
+std::string HeapObj::printType() const
 {
     switch (type)
     {

@@ -46,7 +46,7 @@ void TokenPrinter::printValue(const Token& token)
 static const char* typeStrings[] = {
     "TOK_LEFT_BRACKET", "TOK_RIGHT_BRACKET", "TOK_LEFT_PAREN",
     "TOK_RIGHT_PAREN", "TOK_LEFT_BRACE", "TOK_RIGHT_BRACE",
-    "TOK_NEWLINE", "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
+    "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
 
     "TOK_NUM", "TOK_NUM_DEC","TOK_STR_LIT", "TOK_TRUE",
     "TOK_FALSE", "TOK_NULL",
@@ -90,7 +90,7 @@ void TokenPrinter::printToken(const Token& token)
             token.line, token.position);
         FORMAT_PRINT("{:<10}", format);
 
-        if ((token.type != TOK_NEWLINE) && (token.type != TOK_STR_LIT))
+        if (token.type != TOK_STR_LIT)
             FORMAT_PRINT("'{}' ", token.text);
         else if (token.type == TOK_STR_LIT)
             FORMAT_PRINT("'{}' ", formatMultiLineString(token.text));

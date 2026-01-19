@@ -3,11 +3,7 @@
 #include "../include/error.h"
 #include "../include/object.h"
 #include "../include/token.h"
-#include "../include/utils.h"
-#include <algorithm>
 #include <cctype>
-#include <cstring>
-#include <string>
 #include <unordered_map>
 
 static std::unordered_map<std::string_view, TokenType> keywords = {
@@ -27,14 +23,14 @@ static std::unordered_map<std::string_view, TokenType> keywords = {
 
 Lexer::Lexer() :
 	line(1), column(1), start(0), current(0),
-	state({false, 0})/*, inGrouping(false)*/ {}
+	state({false, 0}) {}
 
-bool Lexer::hitEnd()
+inline bool Lexer::hitEnd()
 {
 	return (current >= code.length());
 }
 
-char Lexer::advance()
+inline char Lexer::advance()
 {
 	if (!hitEnd())
 	{
@@ -52,14 +48,14 @@ char Lexer::advance()
 	return EOF;
 }
 
-bool Lexer::checkChar(char c)
+inline bool Lexer::checkChar(char c)
 {
 	if (!hitEnd())
 		return (code[current] == c);
 	return false;
 }
 
-bool Lexer::consumeChar(char c)
+inline bool Lexer::consumeChar(char c)
 {
 	if (checkChar(c))
 	{
@@ -70,20 +66,20 @@ bool Lexer::consumeChar(char c)
 	return false;
 }
 
-void Lexer::consumeChars(char c, int count /* = 1 */)
+inline void Lexer::consumeChars(char c, int count /* = 1 */)
 {
 	for (int i = 0; i < count; i++)
 		consumeChar(c);
 }
 
-char Lexer::peekChar(int distance /* = 0 */)
+inline char Lexer::peekChar(int distance /* = 0 */)
 {
 	if (current + distance < code.length())
 		return code[current + distance];
 	return EOF;
 }
 
-char Lexer::previousChar(int distance /* = 0 */)
+inline char Lexer::previousChar(int distance /* = 0 */)
 {
 	if (current - distance > 1)
 		return code[current - distance - 1];
@@ -92,21 +88,46 @@ char Lexer::previousChar(int distance /* = 0 */)
 
 i64 Lexer::intValue(std::string_view text)
 {
-	std::string temp(text);
-	temp.erase(std::remove(temp.begin(), temp.end(), '\''), temp.end());
+	i64 ret = 0;
+	for (char c : text)
+	{
+		if (isdigit(c))
+			ret = (ret * 10) + (c - '0');
+		else if (c != '\'')
+			break;
+	}
 	
-	return static_cast<i64>(std::stoll(temp));
+	return ret;
 }
 
 double Lexer::decValue(std::string_view text)
 {
-	std::string temp(text);
-	temp.erase(std::remove(temp.begin(), temp.end(), '\''), temp.end());
+	double ret = 0;
+	auto it = text.begin();
+	auto end = text.end();
+	for (; it < end; it++)
+	{
+		char c = *it;
+		if (isdigit(c))
+			ret = (ret * 10) + (c - '0');
+		else if (c != '\'')
+			break;
+	}
+
+	it++; // Skip the '.'.
+
+	double div = (double) 1 / 10;
+	for (; it < end; it++)
+	{
+		char c = *it;
+		ret += (c - '0') * div;
+		div /= 10;
+	}
 	
-	return static_cast<double>(std::stod(temp));
+	return ret;
 }
 
-bool Lexer::boolValue(TokenType type)
+inline bool Lexer::boolValue(TokenType type)
 {
 	return (type == TOK_TRUE);
 }
@@ -190,7 +211,10 @@ void Lexer::multiStringToken()
 }
 
 TokenType Lexer::identifierType()
-{
+{	
+	if (current - start < 2)
+		return TOK_IDENTIFIER;
+	
 	std::string_view text = code.substr(start, current - start);
 	auto it = keywords.find(text);
 	if (it != keywords.end())
@@ -247,6 +271,14 @@ bool Lexer::checkHyperComment()
 		return false;
 }
 
+inline void Lexer::conditionalToken(char c, TokenType two, TokenType one)
+{
+	if (consumeChar(c))
+		makeToken(two);
+	else
+		makeToken(one);
+}
+
 void Lexer::singleToken()
 {
 	char c = advance();
@@ -259,8 +291,7 @@ void Lexer::singleToken()
 		case ')': makeToken(TOK_RIGHT_PAREN);	break;
 		case '{':
 		{
-			if (state.inClass)
-				state.braceCount++;
+			if (state.inClass) state.braceCount++;
 			makeToken(TOK_LEFT_BRACE);
 			break;
 		}
@@ -269,23 +300,23 @@ void Lexer::singleToken()
 			if (state.inClass)
 			{
 				state.braceCount--;
-				if (state.braceCount == 0)
-					state.inClass = false;
+				state.inClass = !(state.braceCount == 0);
 			}
 			makeToken(TOK_RIGHT_BRACE);
 			break;
 		}
-		case ';': makeToken(TOK_SEMICOLON);	break;
-		case ',': makeToken(TOK_COMMA);		break;
+		case ';':	makeToken(TOK_SEMICOLON);	break;
+		case ',':	makeToken(TOK_COMMA);		break;
+		case ':':	makeToken(TOK_COLON);		break;
+		case '.':	makeToken(TOK_DOT);			break;
+		case '?':	makeToken(TOK_QMARK);		break;
 
 		case '+':
 		{
 			if (consumeChar('+'))
 				makeToken(TOK_INCR);
-			else if (consumeChar('='))
-				makeToken(TOK_PLUS_EQ);
 			else
-				makeToken(TOK_PLUS);
+				conditionalToken('=', TOK_PLUS_EQ, TOK_PLUS);
 			break;
 		}
 		case '-':
@@ -294,25 +325,16 @@ void Lexer::singleToken()
 				makeToken(TOK_DECR);
 			else if (consumeChar('='))
 				makeToken(TOK_MINUS_EQ);
-			else if (consumeChar('>'))
-				makeToken(TOK_RARROW);
 			else
-				makeToken(TOK_MINUS);
+				conditionalToken('>', TOK_RARROW, TOK_MINUS);
 			break;
 		}
 		case '*':
 		{
-			if (consumeChar('='))
-				makeToken(TOK_STAR_EQ);
-			else if (consumeChar('*'))
-			{
-				if (consumeChar('='))
-					makeToken(TOK_STAR_STAR_EQ);
-				else
-					makeToken(TOK_STAR_STAR);
-			}
+			if (consumeChar('*'))
+				conditionalToken('=', TOK_STAR_STAR_EQ, TOK_STAR_STAR);
 			else
-				makeToken(TOK_STAR);
+				conditionalToken('=', TOK_STAR_EQ, TOK_STAR);
 			break;
 		}
 		case '/':
@@ -322,85 +344,29 @@ void Lexer::singleToken()
 				while ((peekChar() != '\n') && !hitEnd())
 					advance();
 			}
-			else if (consumeChar('='))
-				makeToken(TOK_SLASH_EQ);
 			else
-				makeToken(TOK_SLASH);
+				conditionalToken('=', TOK_SLASH_EQ, TOK_SLASH);
 			break;
 		}
-		case '%':
-		{
-			if (consumeChar('='))
-				makeToken(TOK_PERCENT_EQ);
-			else
-				makeToken(TOK_PERCENT);
-			break;
-		}
-
-		case '^':
-		{
-			if (consumeChar('='))
-				makeToken(TOK_UARROW_EQ);
-			else
-				makeToken(TOK_UARROW);
-			break;
-		}
-		case '~':
-		{
-			if (consumeChar('='))
-				makeToken(TOK_TILDE_EQ);
-			else
-				makeToken(TOK_TILDE);
-			break;
-		}
-		case ':': makeToken(TOK_COLON);		break;
-		case '.': makeToken(TOK_DOT);		break;
-		case '?': makeToken(TOK_QMARK);		break;
-
-		case '=':
-		{
-			if (consumeChar('='))
-				makeToken(TOK_EQ_EQ);
-			else
-				makeToken(TOK_EQUAL);
-			break;
-		}
-		case '!':
-		{
-			if (consumeChar('='))
-				makeToken(TOK_BANG_EQ);
-			else
-				makeToken(TOK_BANG);
-			break;
-		}
+		case '%':	conditionalToken('=', TOK_PERCENT_EQ, TOK_PERCENT);	break;
+		case '^':	conditionalToken('=', TOK_UARROW_EQ, TOK_UARROW);	break;
+		case '~':	conditionalToken('=', TOK_TILDE_EQ, TOK_TILDE);		break;
+		case '=':	conditionalToken('=', TOK_EQ_EQ, TOK_EQUAL);		break;
+		case '!':	conditionalToken('=', TOK_BANG_EQ, TOK_BANG);		break;
 		case '>':
 		{
 			if (consumeChar('>'))
-			{
-				if (consumeChar('='))
-					makeToken(TOK_RSHIFT_EQ);
-				else
-					makeToken(TOK_RIGHT_SHIFT);
-			}
-			else if (consumeChar('='))
-				makeToken(TOK_GT_EQ);
+				conditionalToken('=', TOK_RSHIFT_EQ, TOK_RIGHT_SHIFT);
 			else
-				makeToken(TOK_GT);
+				conditionalToken('=', TOK_GT_EQ, TOK_GT);
 			break;
 		}
 		case '<':
 		{
 			if (consumeChar('<'))
-			{
-				if (consumeChar('='))
-					makeToken(TOK_LSHIFT_EQ);
-				else
-					makeToken(TOK_LEFT_SHIFT);
-			}
-			else if (consumeChar('='))
-				makeToken(TOK_LT_EQ);
+				conditionalToken('=', TOK_LSHIFT_EQ, TOK_LEFT_SHIFT);
 			else
-				makeToken(TOK_LT);
+				conditionalToken('=', TOK_LT_EQ, TOK_LT);
 			break;
 		}
 
@@ -408,47 +374,32 @@ void Lexer::singleToken()
 		{
 			if (consumeChar('&'))
 				makeToken(TOK_AMP_AMP);
-			else if (consumeChar('='))
-				makeToken(TOK_AMP_EQ);
 			else
-				makeToken(TOK_AMP);
+				conditionalToken('=', TOK_AMP_EQ, TOK_AMP);
 			break;
 		}
 		case '|':
 		{
 			if (consumeChar('|'))
 				makeToken(TOK_BAR_BAR);
-			else if (consumeChar('='))
-				makeToken(TOK_BAR_EQ);
 			else
-				makeToken(TOK_BAR);
+				conditionalToken('=', TOK_BAR_EQ, TOK_BAR);
 			break;
 		}
 		
 		// Strings.
 
-		case '"':
-			stringToken();
-			break;
-		
-		case '`':
-			multiStringToken();
-			break;
+		case '"':	stringToken();		break;
+		case '`':	multiStringToken();	break;
 
 		// Whitespace.
 		
 		case ' ':
 		case '\r':
-			break;
 		case '\n':
-		{
-			// if (!inGrouping)
-				// makeToken(TOK_NEWLINE);
 			break;
-		}
-		case '\t':
-			column += TAB_SIZE - 1; // Open to change.
-			break;
+		// Open to change.
+		case '\t':	column += TAB_SIZE - 1; break;
 
 		// Multi-line comment.
 
@@ -491,9 +442,10 @@ void Lexer::singleToken()
 	}
 }
 
-std::vector<Token>& Lexer::tokenize(std::string_view code)
+vT& Lexer::tokenize(std::string_view code)
 {
 	this->code = code;
+	stream.reserve(code.size() / AVG_TOK_SIZE);
 	
 	// Consider placing the try-catch block inside
 	// the while-loop so that the lexer continues to

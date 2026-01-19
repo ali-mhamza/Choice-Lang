@@ -30,7 +30,6 @@ enum TokenType : ui8
 	TOK_RIGHT_PAREN,	// )
 	TOK_LEFT_BRACE,		// {
 	TOK_RIGHT_BRACE,	// }
-	TOK_NEWLINE,		// \n
 	TOK_SEMICOLON,		// ;
 	TOK_COMMA,          // ,
 	TOK_QMARK,			// ?

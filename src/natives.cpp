@@ -25,7 +25,22 @@ Object Natives::print(Natives::iter it, ui8 args, const Token& error)
     
     for (int i = 0; i < args; i++)
     {
-        FORMAT_PRINT("{}", (it + i)->printVal());
+        switch ((it + i)->type)
+        {
+            // Fast path printing.
+            case OBJ_INT:   FORMAT_PRINT("{}", AS_INT(*(it + i)));      break;
+            case OBJ_DEC:   FORMAT_PRINT("{:.6f}", AS_DEC(*(it + i)));  break;
+            case OBJ_BOOL:  FORMAT_PRINT("{}", AS_BOOL(*(it + i)));     break;
+            case OBJ_NULL:  FORMAT_PRINT("null");                       break;
+            case OBJ_STRING:
+            {
+                HeapObj& temp = AS_HEAP_VAL(*(it + i));
+                FORMAT_PRINT("{}", AS_STRING(&temp).str);
+                break;
+            }
+            // Slower alternative.
+            default:        FORMAT_PRINT("{}", (it + i)->printVal());
+        }
         if (i != args - 1)
             FORMAT_PRINT(" ");
     }

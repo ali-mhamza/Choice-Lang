@@ -33,21 +33,27 @@
 	#define FORMAT_STR		fmt::format
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+	#define COMPUTED_GOTO 1
+#elif defined(_MSC_VER)
+	#define COMPUTED_GOTO 0
+#endif
+
 #ifndef NDEBUG
-#include <cstdlib>
-#define ASSERT(expr, msg)											\
-	do {															\
-		if (expr)													\
-			break;													\
-		else														\
-		{															\
-			FORMAT_PRINT("ASSERTION FAILED [%s: %s, %d]: %s.\n",	\
-				(__FILE__), (__func__), (__LINE__), msg);			\
-			exit(EXIT_FAILURE);										\
-		}															\
-	} while (false)
+	#include <cstdlib>
+	#define ASSERT(expr, msg)											\
+		do {															\
+			if (expr)													\
+				break;													\
+			else														\
+			{															\
+				FORMAT_PRINT("ASSERTION FAILED [{}: {}, {}]: {}.\n",	\
+					(__FILE__), (__func__), (__LINE__), msg);			\
+				exit(EXIT_FAILURE);										\
+			}															\
+		} while (false)
 #else
-#define ASSERT(expr, msg)
+	#define ASSERT(expr, msg)
 #endif
 
 using i8        = int8_t;

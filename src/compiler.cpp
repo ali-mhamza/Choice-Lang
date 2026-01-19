@@ -334,8 +334,7 @@ ui64 Compiler::matchCaseHelper(const ui8 matchReg, ui64& fallJump,
     ui64 retJump = 0;
     Token errorToken = currentTok;
     if (!IS_LITERAL(errorToken.type))
-        throw CompileError(errorToken,
-            "Case value must be a literal.");
+        throw CompileError(errorToken, "Case value must be a literal.");
 
     ui8 caseReg = previousReg;
     primary(); // Compile the literal.
