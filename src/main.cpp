@@ -12,7 +12,14 @@
 #include "../include/main_utils.h"
 #include "../include/utils.h"
 
-#include "replxx.hxx"
+// Use replxx library instead of standard
+// std::getline. 
+#define EXTERNAL_REPL 0
+
+#if EXTERNAL_REPL
+	#include "replxx.hxx"
+#endif
+
 #include <chrono>
 #include <cstdio> // For stderr.
 #include <filesystem>
@@ -25,10 +32,6 @@
 
 #define TIME_TOTAL
 // #define TIME_RUN
-
-// Use replxx library instead of standard
-// std::getline. 
-#define EXTERNAL_REPL 1
 
 #if EXTERNAL_REPL
 	#define TRACK_REPL_HISTORY	1
@@ -247,10 +250,15 @@ static void repl(ArgvOption option = EXECUTE)
 	
 	file = "";
 	std::string line;
+
+	#if EXTERNAL_REPL
 	replxx::Replxx rx;
+	#endif
+
 	#if LOAD_REPL_HISTORY
 		rx.history_load("history.txt");
 	#endif
+
 	VM vm; // Must persist for the entire execution.
 
 	while (true)
@@ -258,6 +266,7 @@ static void repl(ArgvOption option = EXECUTE)
 		#if EXTERNAL_REPL
 			line = rx.input(">>> ");
 		#else
+			FORMAT_PRINT(">>> ");
 			std::getline(std::cin, line);
 		#endif
 		buildLine(line);
