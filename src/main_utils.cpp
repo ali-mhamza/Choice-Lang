@@ -3,6 +3,7 @@
 #include "../include/common.h"
 #include "../include/disasm.h"
 #include "../include/object.h"
+#include "../include/tokprinter.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 #include <cstdio> // For stderr.
@@ -200,6 +201,29 @@ ByteCode readCache(std::ifstream& fileIn)
 	exit(66);
 }
 
+void optionShowTokens(const vT& tokens)
+{
+	TokenPrinter printer(tokens);
+	printer.printTokens();
+}
+
+void optionShowBytes(const ByteCode& chunk)
+{
+	Disassembler dis(chunk);
+	dis.disassembleCode();
+}
+
+void optionCacheBytes(const ByteCode& chunk, const char* fileName)
+{
+	std::string outFile(fileName);
+	// Cut off extension.
+	outFile = outFile.substr(0, outFile.size() - 3);
+	// Add new extension.
+	outFile += ".bch";
+	std::ofstream cacheFile(outFile, std::ios::binary);
+	chunk.cacheStream(cacheFile);
+}
+
 void optionLoad(const char* fileName)
 {	
 	if (!ends_with(fileName, ".bch"))
@@ -242,17 +266,6 @@ void optionDis(const char* fileName)
 	ByteCode chunk = readCache(program);
 	Disassembler dis(chunk);
 	dis.disassembleCode();
-}
-
-void optionCacheBytes(const ByteCode& chunk, const char* fileName)
-{
-	std::string outFile(fileName);
-	// Cut off extension.
-	outFile = outFile.substr(0, outFile.size() - 3);
-	// Add new extension.
-	outFile += ".bch";
-	std::ofstream cacheFile(outFile, std::ios::binary);
-	chunk.cacheStream(cacheFile);
 }
 
 bool fileNameCheck(std::string_view fileName)

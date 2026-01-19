@@ -446,6 +446,7 @@ vT& Lexer::tokenize(std::string_view code)
 	start = code.data();	
 	current = start;
 	end = start + code.size();
+	stream.clear();
 	stream.reserve(code.size() / AVG_TOK_SIZE);
 	
 	// Consider placing the try-catch block inside

@@ -3,7 +3,7 @@ CXX = g++
 # as well as the libfmt and replxx libraries.
 INCLUDES = -Idependencies/personal \
 			-Idependencies/fmt \
-			-Idependencies/replxx
+			-Idependencies/replxx -Idependencies/replxx/include
 CXX_STANDARD = -std=c++17
 DEFINES = -DFMT_HEADER_ONLY
 DEBUG_FLAGS = -g -O0 -DDEBUG

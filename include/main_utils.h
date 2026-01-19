@@ -10,6 +10,8 @@
 std::string readFile(const char* fileName);
 vObj reconstructPool(const vByte& poolBytes);
 ByteCode readCache(std::ifstream& fileIn);
+void optionShowTokens(const vT& tokens);
+void optionShowBytes(const ByteCode& chunk);
 void optionLoad(const char* fileName);
 void optionDis(const char* fileName);
 void optionCacheBytes(const ByteCode& chunk, const char* fileName);

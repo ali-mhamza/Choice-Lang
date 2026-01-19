@@ -5,14 +5,14 @@
 	#include "../include/compiler.h"
 #endif
 
-#include "../include/disasm.h"
 #include "../include/vm.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/lexer.h"
 #include "../include/main_utils.h"
-#include "../include/tokprinter.h"
 #include "../include/utils.h"
+
+#include "replxx.hxx"
 #include <chrono>
 #include <cstdio> // For stderr.
 #include <filesystem>
@@ -25,6 +25,9 @@
 
 #define TIME_TOTAL
 // #define TIME_RUN
+#define TRACK_REPL_HISTORY 1
+#define SAVE_REPL_HISTORY 1
+#define LOAD_REPL_HISTORY 1
 
 std::string file = "";
 bool external = false;
@@ -57,21 +60,40 @@ enum ArgvOption
 };
 
 static std::unordered_map<std::string_view, ArgvOption> options = {
-	{"-token", EMIT_TOKENS},
-	{"-t", EMIT_TOKENS},
-
-	{"-bytecode", EMIT_BYTECODE},
-	{"-b", EMIT_BYTECODE},
-
-	{"-cache", CACHE_BYTECODE},
-	{"-c", CACHE_BYTECODE},
-
-	{"-load", LOAD_PROGRAM},
-	{"-l", LOAD_PROGRAM},
-
-	{"-dis", DIS_PROGRAM},
-	{"-d", DIS_PROGRAM}
+	{"-token", EMIT_TOKENS},		{"-t", EMIT_TOKENS},
+	{"-bytecode", EMIT_BYTECODE},	{"-b", EMIT_BYTECODE},
+	{"-cache", CACHE_BYTECODE},		{"-c", CACHE_BYTECODE},
+	{"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
+	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM}
 };
+
+static inline vT& runLexer(std::string_view source)
+{
+	static Lexer lexer;
+	return lexer.tokenize(source);
+}
+
+static ByteCode& runCompiler(const vT& tokens)
+{
+	#ifdef COMP_AST
+		static Parser parser;
+		static ASTCompiler compiler;
+		StmtVec& program = parser.parseToAST(tokens);
+
+		#ifdef TYPE
+			// Perform type-checking here.
+		#endif
+
+		#ifdef OPT
+			// Optimize here.
+		#endif
+
+		return compiler.compile(program);
+	#else
+		static Compiler compiler;
+		return compiler.compile(tokens);
+	#endif
+}
 
 // Optimization to run a cached bytecode
 // file if it is recent enough rather than
@@ -80,12 +102,14 @@ static std::unordered_map<std::string_view, ArgvOption> options = {
 // compilation.
 static bool cacheOptimize(ArgvOption option)
 {
-	using namespace std::filesystem;
+	using std::filesystem::exists;
+	using std::filesystem::last_write_time;
+
 	if (exists(file))
 	{
 		std::string cached = 
 			file.substr(0, file.size() - 3) + ".bch";
-		if (exists(cached) && 
+		if (exists(cached) &&
 			(last_write_time(cached) >= last_write_time(file)))
 		{
 			if (option == CACHE_BYTECODE)
@@ -96,10 +120,8 @@ static bool cacheOptimize(ArgvOption option)
 
 			if (option == EMIT_BYTECODE)
 			{
-				Disassembler dis(chunk);
-				dis.disassembleCode();
+				optionShowBytes(chunk);
 				return true;
-
 			}
 
 			if (option == EXECUTE)
@@ -119,7 +141,7 @@ static bool cacheOptimize(ArgvOption option)
 	return false;
 }
 
-static void runFile(const char* fileName, ArgvOption option = EXECUTE)
+static bool prelimChecks(const char* fileName, ArgvOption option)
 {
 	if (!fileNameCheck(fileName))
 	{
@@ -131,16 +153,24 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	if (option == LOAD_PROGRAM)
 	{
 		optionLoad(fileName);
-		return;
+		return true;
 	}
 
 	if (option == DIS_PROGRAM)
 	{
 		optionDis(fileName);
-		return;
+		return true;
 	}
 
 	if (cacheOptimize(option))
+		return true;
+
+	return false;
+}
+
+static void runFile(const char* fileName, ArgvOption option = EXECUTE)
+{
+	if (prelimChecks(fileName, option))
 		return;
 
 	using namespace std::chrono;
@@ -149,48 +179,20 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#endif
 
 	std::string code = readFile(fileName);
-	#ifdef COMP_AST
-		ASTCompiler compiler;
-	#else
-		Compiler compiler;
-	#endif
-	VM vm; // Must persist for the entire execution.
-
-	// Performing tokenization outside.
-	Lexer lexer;
-	vT& tokens = lexer.tokenize(code);
+	vT& tokens = runLexer(code);
 	if (option == EMIT_TOKENS)
 	{
-		TokenPrinter printer(tokens);
-		printer.printTokens();
+		optionShowTokens(tokens);
 		return;
 	}
 
-	// Perform compilation outside.
-	#ifdef COMP_AST
-		Parser parser;
-		StmtVec& program = parser.parseToAST(tokens);
-
-		#ifdef TYPE
-			// Perform type-checking here.
-		#endif
-
-		#ifdef OPT
-			// Optimize here.
-		#endif
-
-		ByteCode& chunk = compiler.compile(program);
-	#else
-		ByteCode& chunk = compiler.compile(tokens);
-	#endif
+	ByteCode& chunk = runCompiler(tokens);
 
 	if (option == EMIT_BYTECODE)
 	{
-		Disassembler dis(chunk);
-		dis.disassembleCode();
+		optionShowBytes(chunk);
 		return;
 	}
-
 	if (option == CACHE_BYTECODE)
 	{
 		optionCacheBytes(chunk, fileName);
@@ -201,7 +203,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		auto begin = steady_clock::now();
 	#endif
 
-	// Execution logic.
+	VM vm; // Must persist for the entire execution.
 	vm.executeCode(chunk);
 
 	#if defined(TIME_RUN) || defined(TIME_TOTAL)
@@ -210,6 +212,20 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		FORMAT_PRINT("Time: {:.6f}\n",
 			static_cast<long double>(time.count()) / 1000000);
 	#endif
+}
+
+static std::string& buildLine(std::string& line)
+{
+	while (ends_with(line, "\\"))
+	{
+		line[line.size() - 1] = '\n';
+		std::string temp;
+		FORMAT_PRINT("... ");
+		std::getline(std::cin, temp);
+		line += temp;
+	}
+
+	return line;
 }
 
 static void repl(ArgvOption option = EXECUTE)
@@ -223,69 +239,43 @@ static void repl(ArgvOption option = EXECUTE)
 	}
 	
 	file = "";
-
 	std::string line;
-	#ifdef COMP_AST
-		ASTCompiler compiler;
-	#else
-		Compiler compiler;
+	replxx::Replxx rx;
+	#if LOAD_REPL_HISTORY
+		rx.history_load("history.txt");
 	#endif
 	VM vm; // Must persist for the entire execution.
+
 	while (true)
 	{
-		FORMAT_PRINT(">>> ");
-		std::getline(std::cin, line);
-
-		while (ends_with(line, "\\"))
-		{
-			line[line.size() - 1] = '\n';
-			std::string temp;
-			FORMAT_PRINT("... ");
-			std::getline(std::cin, temp);
-			line += temp;
-		}
+		line = rx.input(">>> ");
+		buildLine(line);
 
 		if (!line.empty())
 		{
-			Lexer lexer;
-			vT& tokens = lexer.tokenize(line);
-			if (option == EMIT_TOKENS)
-			{
-				TokenPrinter printer(tokens);
-				printer.printTokens();
-				continue;
-			}
-
-			// Perform compilation outside.
-			#ifdef COMP_AST
-				Parser parser;
-				StmtVec& program = parser.parseToAST(tokens);
-
-				#ifdef TYPE
-					// Perform type-checking here.
-				#endif
-
-				#ifdef OPT
-					// Optimize here.
-				#endif
-
-				ByteCode& chunk = compiler.compile(program);
-			#else
-				ByteCode& chunk = compiler.compile(tokens);
+			#if TRACK_REPL_HISTORY
+				rx.history_add(line);
 			#endif
 
-			if (option == EMIT_BYTECODE)
+			vT& tokens = runLexer(line);
+			if (option == EMIT_TOKENS)
+				optionShowTokens(tokens);
+			else
 			{
-				Disassembler dis(chunk);
-				dis.disassembleCode();
-				continue;
+				ByteCode& chunk = runCompiler(tokens);
+				if (option == EMIT_BYTECODE)
+					optionShowBytes(chunk);
+				else
+					vm.executeCode(chunk);
 			}
-
-			vm.executeCode(chunk);
 		}
 		else
 			break;
 	}
+
+	#if SAVE_REPL_HISTORY
+		rx.history_save("history.txt");
+	#endif
 }
 
 int main(int argc, const char* argv[])
