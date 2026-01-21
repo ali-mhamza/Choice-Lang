@@ -15,12 +15,12 @@ LexError::LexError(char c, ui16 line, ui8 position,
 
 void LexError::report()
 {
-    if (errorChar != '\0')
-        FORMAT_PRINT(stderr, "Scan error at '{}' [{}:{}]: {}\n",
-            errorChar, line, position, message);
-    else
+    if ((errorChar == 0) || (errorChar == (char) EOF))
         FORMAT_PRINT(stderr, "Scan Error at line end [{}]: {}\n",
             line, message);
+    else
+        FORMAT_PRINT(stderr, "Scan error at '{:c}' [{}:{}]: {}\n",
+            errorChar, line, position, message);
 }
 
 // CompileError.
