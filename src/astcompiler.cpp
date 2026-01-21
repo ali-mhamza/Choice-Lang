@@ -7,6 +7,7 @@
 #include "../include/error.h"
 #include "../include/natives.h"
 #include "../include/opcodes.h"
+#include "../include/utils.h"
 #include "../include/vartable.h"
 
 constexpr bool accessFix = false;
@@ -608,6 +609,14 @@ DEF(LiteralExpr)
     else if (tok.type == TOK_NUM_DEC)
     {
         Object obj{tok.content.d};
+        code.loadRegConst(obj, previousReg);
+        reserveReg();
+    }
+
+    else if (tok.type == TOK_RANGE)
+    {
+        HeapObj* ptr = new Range(constructRange(tok.text));
+        Object obj{ptr};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }

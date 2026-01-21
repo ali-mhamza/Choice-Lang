@@ -24,6 +24,7 @@ enum TokenType : ui8
 
 	TOK_NUM,			// 123 (default)
 	TOK_NUM_DEC,		// 1.23
+	TOK_RANGE,			// 1..10..2
 	TOK_STR_LIT,		// "Hello, world!"
 	TOK_TRUE,			// true
 	TOK_FALSE,			// false
@@ -165,6 +166,11 @@ class Token
 		Token();
 		Token(TokenType type, std::string_view text, Value content,
 				ui16 line, ui8 position);
+
+		Token(const Token& other);
+		Token& operator=(const Token& other);
+		Token(Token&& other);
+		Token& operator=(Token&& other);
 
 		friend class Lexer;
 		friend class TokenPrinter;

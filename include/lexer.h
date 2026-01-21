@@ -22,6 +22,8 @@ class Lexer
 
         // Utilities.
 
+        // Prepares our lexer state.
+        inline void setUp(const std::string_view& code);
         inline bool hitEnd(); // Check if we've reached the end.
         inline char advance(); // Move to next character.
         inline bool checkChar(char c); // Check next character.
@@ -41,6 +43,7 @@ class Lexer
         // Token makers.
 
         void makeToken(TokenType type);
+        void rangeToken();
         void numToken();
         void stringToken();
         void multiStringToken(); // For multi-line strings.

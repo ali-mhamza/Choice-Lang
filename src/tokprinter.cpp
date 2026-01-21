@@ -6,6 +6,16 @@
 TokenPrinter::TokenPrinter(const vT& tokens) :
     tokens(tokens) {}
 
+static std::string removeDigitSeps(const std::string_view& sv)
+{
+    std::string newStr(sv);
+    newStr.erase(std::remove_if(newStr.begin(), newStr.end(), [](char c){
+        return (c == '\'');
+    }), newStr.end());
+
+    return newStr;
+}
+
 static std::string formatMultiLineString(const std::string_view& sv)
 {
     std::string newStr(sv);
@@ -31,6 +41,9 @@ void TokenPrinter::printValue(const Token& token)
     {
         case TOK_NUM:       FORMAT_PRINT("{}", token.content.i);    break;
         case TOK_NUM_DEC:   FORMAT_PRINT("{}", token.content.d);    break;
+        case TOK_RANGE:
+            FORMAT_PRINT("{}", removeDigitSeps(token.text));
+            break;
         case TOK_STR_LIT:
             FORMAT_PRINT("{}", formatMultiLineString(
                 token.text.substr(1, token.text.size() - 2)
@@ -48,8 +61,8 @@ static const char* typeStrings[] = {
     "TOK_RIGHT_PAREN", "TOK_LEFT_BRACE", "TOK_RIGHT_BRACE",
     "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
 
-    "TOK_NUM", "TOK_NUM_DEC","TOK_STR_LIT", "TOK_TRUE",
-    "TOK_FALSE", "TOK_NULL",
+    "TOK_NUM", "TOK_NUM_DEC", "TOK_RANGE", "TOK_STR_LIT",
+    "TOK_TRUE", "TOK_FALSE", "TOK_NULL",
 
     "TOK_INT", "TOK_DEC", "TOK_BOOL", "TOK_STRING",
     "TOK_FUNC", "TOK_ARRAY", "TOK_TABLE", "TOK_ANY", "TOK_CLASS",
@@ -92,10 +105,8 @@ void TokenPrinter::printToken(const Token& token)
 
         if (token.type != TOK_STR_LIT)
             FORMAT_PRINT("'{}' ", token.text);
-        else if (token.type == TOK_STR_LIT)
-            FORMAT_PRINT("'{}' ", formatMultiLineString(token.text));
         else
-            FORMAT_PRINT("'\\n ");
+            FORMAT_PRINT("'{}' ", formatMultiLineString(token.text));
 
         if (IS_LITERAL(token.type))
             printValue(token);

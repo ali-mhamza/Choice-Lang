@@ -54,8 +54,9 @@ struct Range : public HeapObj
     i32 start;
     i32 stop;
     i32 step;
+    i32 iter; // The value we will iterate over.
 
-    Range(i32 start, i32 stop, i32 step = 1);
+    Range(const std::array<i32, 3>& limits);
     bool operator==(const Range& other) const;
 };
 

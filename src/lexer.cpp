@@ -25,6 +25,20 @@ Lexer::Lexer() :
 	start(nullptr), current(nullptr), end(nullptr),
 	line(1), column(1), state({false, 0}) {}
 
+inline void Lexer::setUp(const std::string_view& code)
+{
+	start = code.data();
+	current = start;
+	end = start + code.size();
+
+	line = 1;
+	column = 1;
+	state = {false, 0};
+
+	stream.clear();
+	stream.reserve(code.size() / AVG_TOK_SIZE);
+}
+
 inline bool Lexer::hitEnd()
 {
 	return (current >= end);
@@ -68,7 +82,8 @@ inline bool Lexer::consumeChar(char c)
 
 inline void Lexer::consumeChars(int count /* = 1 */)
 {
-	current += count;
+	for (int i = 0; i < count; i++)
+		advance();
 }
 
 inline char Lexer::peekChar(int distance /* = 0 */)
@@ -154,6 +169,26 @@ void Lexer::makeToken(TokenType type)
 		column - (current - start));
 }
 
+void Lexer::rangeToken()
+{
+	if (!isdigit(peekChar()))
+		throw LexError(peekChar(), line, column + 1, // Check column value here.
+			"Expecting range-end value after '..'.");
+	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
+		advance();
+	if (matchSequence('.', 2))
+	{
+		consumeChars(2);
+		if (!isdigit(peekChar()))
+			throw LexError(peekChar(), line, column + 1, // Check column value here.
+				"Expecting skip value after '..'.");
+		while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
+			advance();
+	}
+
+	makeToken(TOK_RANGE);
+}
+
 void Lexer::numToken()
 {
 	TokenType type;	
@@ -162,6 +197,11 @@ void Lexer::numToken()
 
 	if (consumeChar('.'))
 	{
+		if (consumeChar('.'))
+		{
+			rangeToken();
+			return;
+		}
 		while (isdigit(peekChar()) && !hitEnd())
 			advance();
 		type = TOK_NUM_DEC;
@@ -443,11 +483,7 @@ void Lexer::singleToken()
 
 vT& Lexer::tokenize(std::string_view code)
 {
-	start = code.data();	
-	current = start;
-	end = start + code.size();
-	stream.clear();
-	stream.reserve(code.size() / AVG_TOK_SIZE);
+	setUp(code);
 	
 	// Consider placing the try-catch block inside
 	// the while-loop so that the lexer continues to
