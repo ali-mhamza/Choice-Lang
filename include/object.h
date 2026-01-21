@@ -1,11 +1,11 @@
 #pragma once
 #include "common.h"
 #include "opcodes.h"
+#include <array>
 #include <cstdint>
 #include <fstream>
 #include <memory>
 #include <string>
-#include <variant>
 
 enum ObjType
 {
@@ -47,16 +47,17 @@ struct String : public HeapObj
 
     String(const std::string& str);
     String(const std::string_view& view);
+    String(const char* str, size_t len = -1);
 };
 
 struct Range : public HeapObj
 {
-    i32 start;
-    i32 stop;
-    i32 step;
-    i32 iter; // The value we will iterate over.
+    i64 start;
+    i64 stop;
+    i64 step;
+    i64 iter; // The value we will iterate over.
 
-    Range(const std::array<i32, 3>& limits);
+    Range(const std::array<i64, 3>& limits);
     bool operator==(const Range& other) const;
 };
 

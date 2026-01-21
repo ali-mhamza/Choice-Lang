@@ -62,7 +62,7 @@ void HeapObj::emit(std::ofstream& os)
     
     if (IS_STRING(this))
     {
-        String temp = AS_STRING(this);
+        const String& temp = AS_STRING(this);
         os.write(temp.str.data(), temp.str.size());
         os.put('\0');
     }
