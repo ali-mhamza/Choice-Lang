@@ -1,14 +1,26 @@
+# Personal note files.
 *.txt
 !THIRD_PARTY_LICENSES/*.txt
+
+# In-progress documentation files.
 *.md
 !README.md
+
+# VSCode set up.
 *.json
+
+# Test scripts and bytecode files I
+# use for quick testing.
 *.ch
 *.bch
+
+# Extra directories with notes or build files/
+# solutions.
 extras/
 build/
 sources/
 VS Solution/
 dependencies/
-.env
+
+# Executable.
 choice
