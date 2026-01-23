@@ -1,6 +1,6 @@
 #ifndef COMP_AST
 
-#include "chainTable.h"
+#include "linearTable.h"
 #include "../include/compiler.h"
 #include "../include/common.h"
 #include "../include/error.h"
@@ -17,8 +17,8 @@ constexpr bool accessVar = true;
 class TokCompVarsWrapper
 {
     public:
-        chainTable<VarEntry, ui8, VarHasher> vars;
-        chainTable<ui8, bool> access;
+        linearTable<VarEntry, ui8, VarHasher> vars;
+        linearTable<ui8, bool> access;
 
         TokCompVarsWrapper() = default;
 };
@@ -26,7 +26,7 @@ class TokCompVarsWrapper
 class TokCompLoopLabels
 {
     public:
-        chainTable<std::string, std::vector<ui64>> labels;
+        linearTable<std::string, std::vector<ui64>> labels;
 
         TokCompLoopLabels() = default;
 };

@@ -1,6 +1,6 @@
 #ifdef COMP_AST
 
-#include "chainTable.h"
+#include "linearTable.h"
 #include "../include/astcompiler.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
@@ -16,8 +16,8 @@ constexpr bool accessVar = true;
 class ASTCompVarsWrapper
 {
     public:
-        chainTable<VarEntry, ui8, VarHasher> vars;
-        chainTable<ui8, bool> access;
+        linearTable<VarEntry, ui8, VarHasher> vars;
+        linearTable<ui8, bool> access;
 
         ASTCompVarsWrapper() = default;
 };
@@ -25,7 +25,7 @@ class ASTCompVarsWrapper
 class ASTCompLoopLabels
 {
     public:
-        chainTable<std::string, std::vector<ui64>> labels;
+        linearTable<std::string, std::vector<ui64>> labels;
 
         ASTCompLoopLabels() = default;
 };
