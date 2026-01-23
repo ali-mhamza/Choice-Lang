@@ -17,7 +17,7 @@ class ASTCompiler
 {
     #define DECL(type)  void compile##type(UP(type) node)
     #define DEF(type)   void ASTCompiler::compile##type(UP(type) node)
-    #define COMPILE(type, node) \
+    #define COMPILE(type) \
         do { \
             type* ptr = static_cast<type*>(node.release()); \
             compile##type(UP(type)(ptr)); \

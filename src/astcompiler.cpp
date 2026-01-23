@@ -268,7 +268,7 @@ DEF(BreakStmt)
         auto* vec = this->labelsWrapper->labels.get(
             std::string(node->label.text)
         );
-        if (vec == nullptr) // Handle error.
+        if (vec == nullptr)
             throw CompileError(node->label,
                 "Break label is not assigned to any loop.");
         else
@@ -598,7 +598,7 @@ DEF(VarExpr)
 DEF(LiteralExpr)
 {
     Token tok = node->value;
-    
+
     if (tok.type == TOK_NUM)
     {
         Object obj{tok.content.i};
@@ -620,7 +620,7 @@ DEF(LiteralExpr)
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
-    
+
     else if (tok.type == TOK_STR_LIT)
     {
         HeapObj* ptr = new String(GET_STR(tok));
@@ -649,17 +649,17 @@ void ASTCompiler::compileExpr(ExprUP& node)
     
     switch (node->type)
     {
-        case E_ASSIGN_EXPR:     COMPILE(AssignExpr, node);  break;
-        case E_LOGIC_EXPR:      COMPILE(LogicExpr, node);   break;
-        case E_COMPARE_EXPR:    COMPILE(CompareExpr, node); break;
-        case E_BIT_EXPR:        COMPILE(BitExpr, node);     break;
-        case E_SHIFT_EXPR:      COMPILE(ShiftExpr, node);   break;
-        case E_BINARY_EXPR:     COMPILE(BinaryExpr, node);  break;
-        case E_UNARY_EXPR:      COMPILE(UnaryExpr, node);   break;
-        case E_CALL_EXPR:       COMPILE(CallExpr, node);    break;
-        case E_IF_EXPR:         COMPILE(IfExpr, node);      break;
-        case E_VAR_EXPR:        COMPILE(VarExpr, node);     break;
-        case E_LITERAL_EXPR:    COMPILE(LiteralExpr, node); break;
+        case E_ASSIGN_EXPR:     COMPILE(AssignExpr);    break;
+        case E_LOGIC_EXPR:      COMPILE(LogicExpr);     break;
+        case E_COMPARE_EXPR:    COMPILE(CompareExpr);   break;
+        case E_BIT_EXPR:        COMPILE(BitExpr);       break;
+        case E_SHIFT_EXPR:      COMPILE(ShiftExpr);     break;
+        case E_BINARY_EXPR:     COMPILE(BinaryExpr);    break;
+        case E_UNARY_EXPR:      COMPILE(UnaryExpr);     break;
+        case E_CALL_EXPR:       COMPILE(CallExpr);      break;
+        case E_IF_EXPR:         COMPILE(IfExpr);        break;
+        case E_VAR_EXPR:        COMPILE(VarExpr);       break;
+        case E_LITERAL_EXPR:    COMPILE(LiteralExpr);   break;
     }
 }
 
@@ -669,19 +669,20 @@ void ASTCompiler::compileStmt(StmtUP& node)
     
     switch (node->type)
     {
-        case S_VAR_DECL:    COMPILE(VarDecl, node);         break;
-        case S_FUN_DECL:    COMPILE(FunDecl, node);         break;
-        case S_CLASS_DECL:  COMPILE(ClassDecl, node);       break;
-        case S_IF_STMT:     COMPILE(IfStmt, node);          break;
-        case S_WHILE_STMT:  COMPILE(WhileStmt, node);       break;
-        case S_MATCH_STMT:  COMPILE(MatchStmt, node);       break;
-        case S_REPEAT_STMT: COMPILE(RepeatStmt, node);      break;
-        case S_RETURN_STMT: COMPILE(ReturnStmt, node);      break;
-        case S_BREAK_STMT:  COMPILE(BreakStmt, node);       break;
-        case S_CONT_STMT:   COMPILE(ContinueStmt, node);    break;
-        case S_END_STMT:    COMPILE(EndStmt, node);         break;
-        case S_EXPR_STMT:   COMPILE(ExprStmt, node);        break;
-        case S_BLOCK_STMT:  COMPILE(BlockStmt, node);       break;
+        case S_VAR_DECL:    COMPILE(VarDecl);       break;
+        case S_FUN_DECL:    COMPILE(FunDecl);       break;
+        case S_CLASS_DECL:  COMPILE(ClassDecl);     break;
+        case S_IF_STMT:     COMPILE(IfStmt);        break;
+        case S_WHILE_STMT:  COMPILE(WhileStmt);     break;
+        case S_FOR_STMT:    COMPILE(ForStmt);       break;
+        case S_MATCH_STMT:  COMPILE(MatchStmt);     break;
+        case S_REPEAT_STMT: COMPILE(RepeatStmt);    break;
+        case S_RETURN_STMT: COMPILE(ReturnStmt);    break;
+        case S_BREAK_STMT:  COMPILE(BreakStmt);     break;
+        case S_CONT_STMT:   COMPILE(ContinueStmt);  break;
+        case S_END_STMT:    COMPILE(EndStmt);       break;
+        case S_EXPR_STMT:   COMPILE(ExprStmt);      break;
+        case S_BLOCK_STMT:  COMPILE(BlockStmt);     break;
     }
 }
 
