@@ -132,7 +132,7 @@ ui64 ByteCode::countPool() const
 	
 	for (const Object& obj : pool)
 	{
-		if ((obj.type == OBJ_INT) || (obj.type == OBJ_DEC))
+		if (IS_INT(obj) || IS_DEC(obj))
 			count += 9; // 8 bytes + 1 type byte.
 		else if (IS_HEAP_OBJ(obj))
 		{
