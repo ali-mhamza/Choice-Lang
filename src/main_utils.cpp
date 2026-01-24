@@ -6,6 +6,7 @@
 #include "../include/tokprinter.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
+#include <array>
 #include <cstdio> // For stderr.
 #include <cstring>
 #include <fstream>
@@ -77,6 +78,23 @@ static Object reconstructString(vBit& it, const vBit& end)
 	return Object(obj);
 }
 
+static Object reconstructRange(vBit& it, const vBit& end)
+{
+	std::array<i64, 3> array;
+	array[0] = reconstructBytes<i64>(it, end);
+	// reconstructBytes decrements the iterator once done
+	// to account for the extra increment for the last loop
+	// iteration.
+	// This undoes that to actually move the iterator forward.
+	it++;
+	array[1] = reconstructBytes<i64>(it, end);
+	it++;
+	array[2] = reconstructBytes<i64>(it, end);
+
+	HeapObj* obj = new Range(array);
+	return Object(obj);
+}
+
 static Object reconstructHeapObj(vBit& it, const vBit& end)
 {
 	if (it == end)
@@ -86,6 +104,7 @@ static Object reconstructHeapObj(vBit& it, const vBit& end)
 	switch (type)
 	{
 		case OBJ_STRING:	return reconstructString(it, end);
+		case OBJ_RANGE:		return reconstructRange(it, end);
 		default:			UNREACHABLE();
 	}
 }

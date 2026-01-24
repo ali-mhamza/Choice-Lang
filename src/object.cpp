@@ -66,6 +66,13 @@ void HeapObj::emit(std::ofstream& os)
         os.write(temp.str.data(), temp.str.size());
         os.put('\0');
     }
+    else if (IS_RANGE(this))
+    {
+        const Range& temp = AS_RANGE(this);
+        os.write(reinterpret_cast<const char*>(&temp.start), sizeof(i64));
+        os.write(reinterpret_cast<const char*>(&temp.stop), sizeof(i64));
+        os.write(reinterpret_cast<const char*>(&temp.step), sizeof(i64));
+    }
     else if (IS_LIST(this))
     {
         // List* temp = static_cast<List*>(this);

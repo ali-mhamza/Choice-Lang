@@ -143,6 +143,10 @@ ui64 ByteCode::countPool() const
 					// Added type byte (1) and null byte (1).
 					count += 1 + AS_STRING(temp).str.size() + 1;
 					break;
+				case OBJ_RANGE:
+					// Added type byte (1) and three i64 (3 * 8) values.
+					count += 1 + 3 * 8;
+					break;
 				default: UNREACHABLE();
 			}
 		}
