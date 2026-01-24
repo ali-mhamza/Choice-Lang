@@ -112,6 +112,8 @@ StmtUP Parser::statement()
         return ifStmt();
     else if (consumeTok(TOK_WHILE))
         return whileStmt();
+    else if (consumeTok(TOK_FOR))
+        return forStmt();
     else if (consumeTok(TOK_MATCH))
         return matchStmt();
     else if (consumeTok(TOK_REPEAT))
@@ -184,6 +186,36 @@ StmtUP Parser::whileStmt()
         elseClause = statement();
 
     return std::make_unique<WhileStmt>(std::move(condition),
+        label, std::move(body), std::move(elseClause));
+}
+
+StmtUP Parser::forStmt()
+{
+    matchError(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
+    if (!consumeTok(TOK_IDENTIFIER))
+        throw CompileError(currentTok, "Expect loop variable identifier.");
+    Token var = previousTok;
+    matchError(TOK_IN, "Expect 'in' keyword after loop identifier.");
+    ExprUP iter = expression();
+
+    ExprUP where = nullptr;
+    if (consumeTok(TOK_WHERE))
+        where = expression();
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+
+    Token label; // Default: TOK_EOF.
+    if (consumeTok(TOK_COLON))
+    {
+        matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
+        label = previousTok;
+    }
+
+    StmtUP body = statement();
+    StmtUP elseClause = nullptr;
+    if (consumeTok(TOK_ELSE))
+        elseClause = statement();
+
+    return std::make_unique<ForStmt>(var, std::move(iter), std::move(where),
         label, std::move(body), std::move(elseClause));
 }
 

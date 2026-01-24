@@ -247,6 +247,47 @@ Object VM::unaryOper(Opcode op)
     }
 }
 
+// Handle regSlot.
+void VM::handleIter(Opcode oper)
+{
+    if (oper == OP_MAKE_ITER)
+    {
+        Object& var = registers[readByte()];
+        Object& iterable = registers[readByte()];
+
+        ObjIter* iter;
+        if ((iter = iterable.makeIter()) == nullptr)
+            throw TypeMismatch(
+                "Given object is not iterable.",
+                OBJ_ITER,
+                iterable.type
+            );
+
+        if (iter->start(var))
+        {
+            iterable = Object(iter);
+            ip += 3; // Skip our fail-case jump.
+            #ifdef WATCH_EXEC
+                this->dis->ip += 3;
+            #endif
+        }
+    }
+    else if (oper == OP_UPDATE_ITER)
+    {
+        Object& var = registers[readByte()];
+        Object& iter = registers[readByte()];
+        ui16 jump = readShort();
+
+        if (AS_ITER(iter)->next(var))
+        {
+            ip -= jump;
+            #ifdef WATCH_EXEC
+                this->dis->ip -= jump;
+            #endif
+        }
+    }
+}
+
 #ifdef WATCH_REG
 #include "../include/common.h"
 
@@ -374,6 +415,12 @@ void VM::executeOp(Opcode op, const vObj& pool)
             #ifdef WATCH_REG
             regSlot = (op == OP_GET_VAR ? dest : regSlot);
             #endif
+            DISPATCH();
+        }
+        CASE(OP_MAKE_ITER):
+        CASE(OP_UPDATE_ITER):
+        {
+            handleIter(op);
             DISPATCH();
         }
         

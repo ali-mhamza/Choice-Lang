@@ -30,6 +30,7 @@ namespace AST
             S_CLASS_DECL,
             S_IF_STMT,
             S_WHILE_STMT,
+            S_FOR_STMT,
             S_MATCH_STMT,
             S_REPEAT_STMT,
             S_RETURN_STMT,
@@ -94,6 +95,19 @@ namespace AST
 
             WhileStmt(ExprUP condition, const Token& label, StmtUP body,
                 StmtUP elseClause);
+        };
+
+        struct ForStmt : public Stmt
+        {
+            Token var;
+            ExprUP iter; // Must be an iterable.
+            ExprUP where;
+            Token label;
+            StmtUP body;
+            StmtUP elseClause;
+
+            ForStmt(const Token& var, ExprUP iter, ExprUP where,
+                const Token& label, StmtUP body, StmtUP elseClause);
         };
 
         struct MatchStmt : public Stmt

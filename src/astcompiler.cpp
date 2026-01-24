@@ -188,6 +188,51 @@ DEF(WhileStmt)
     continueJumps = prevContinues;
 }
 
+DEF(ForStmt)
+{
+    scope++;
+    ui8 origVarReg = previousReg;
+    varScopes.emplace_back();
+    
+    ui8 varReg = previousReg;
+    defVar(std::string(node->var.text), varReg);
+    defAccess(varReg, accessFix); // For now.
+    reserveReg();
+
+    ui8 iterReg = previousReg;
+    compileExpr(node->iter);
+
+    code.addOp(OP_MAKE_ITER, varReg, iterReg);
+    ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
+
+    ui64 loopStart = code.getLoopStart();
+    ui64 whereJump = 0;
+    if (node->where != nullptr)
+    {
+        ui8 whereReg = previousReg;
+        compileExpr(node->where);
+        whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
+    }
+
+    compileStmt(node->body);
+
+    if (whereJump != 0)
+        code.patchJump(whereJump);
+
+    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart + 5);
+    code.addOp(OP_UPDATE_ITER, varReg, iterReg,
+        static_cast<ui8>((diff >> 8) & 0xff),
+        static_cast<ui8>(diff & 0xff)
+    );
+
+    code.patchJump(failJump);
+
+    popScope();
+    varScopes.pop_back();
+    scope--;
+    previousReg = origVarReg;
+}
+
 DEF(MatchStmt)
 {
     ui8 matchReg = previousReg;

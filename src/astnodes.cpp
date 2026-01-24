@@ -30,6 +30,12 @@ WhileStmt::WhileStmt(ExprUP condition, const Token& label, StmtUP body,
     condition(std::move(condition)), label(label), body(std::move(body)),
     elseClause(std::move(elseClause)) {}
 
+ForStmt::ForStmt(const Token& var, ExprUP iter, ExprUP where,
+    const Token& label, StmtUP body, StmtUP elseClause) :
+    Stmt(S_FOR_STMT),
+    var(var), iter(std::move(iter)), where(std::move(where)),
+    label(label), body(std::move(body)), elseClause(std::move(elseClause)) {}
+
 MatchStmt::matchCase::matchCase(ExprUP value, StmtUP body,
     bool fall) :
     value(std::move(value)), body(std::move(body)),

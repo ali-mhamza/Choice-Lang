@@ -149,6 +149,25 @@ void Disassembler::callOper(std::string_view opName)
 	FORMAT_PRINT("'{}' ({}) R[{}]\n", func, count, start);
 }
 
+void Disassembler::iterOper(ui8 byte)
+{
+	printOpcode(opNames[byte]);
+	
+	if (static_cast<Opcode>(byte) == OP_MAKE_ITER)
+	{
+		FORMAT_PRINT("R[{}] R[{}]\n", *(ip + 1), *(ip + 2));
+		ip += 3;
+	}
+	else if (static_cast<Opcode>(byte) == OP_UPDATE_ITER)
+	{
+		ip += 2;
+		ui16 jump = restoreShort();
+		ip += 3;
+		FORMAT_PRINT("R[{}] R[{}] -> {}\n", *(ip - 4), *(ip -3),
+			ip - start - jump);
+	}
+}
+
 void Disassembler::disassembleOp(ui8 byte)
 {
 	switch (byte)
@@ -165,6 +184,9 @@ void Disassembler::disassembleOp(ui8 byte)
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
 			jumpOper(byte, byte == OP_LOOP ? -1 : 1);
+			break;
+		case OP_MAKE_ITER:	case OP_UPDATE_ITER:
+			iterOper(byte);
 			break;
 		case OP_LOAD_R: 	loadOper("OP_LOAD_R");  	break;
 		case OP_CALL_NAT:	callOper(opNames[byte]);	break;

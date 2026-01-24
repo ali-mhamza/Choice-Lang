@@ -27,6 +27,7 @@ class Disassembler
         void loadOper(std::string_view opName);
         void jumpOper(ui8 byte, int sign);
         void callOper(std::string_view opName);
+        void iterOper(ui8 byte);
     
     public:
         Disassembler(const ByteCode& code);

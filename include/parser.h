@@ -37,6 +37,7 @@ class Parser
         StmtUP statement();
         StmtUP ifStmt();
         StmtUP whileStmt();
+        StmtUP forStmt();
         StmtUP matchStmt();
         StmtUP repeatStmt();
         StmtUP returnStmt();

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <variant>
 
 enum ObjType
 {
@@ -22,6 +23,8 @@ enum ObjType
     // OBJ_NUM only used with TypeMismatch (below).
     // Not to be stored in any Object.
     OBJ_NUM,
+    // Only used internally for for-loops.
+    OBJ_ITER,
     OBJ_INVALID,
 };
 
@@ -55,7 +58,6 @@ struct Range : public HeapObj
     i64 start;
     i64 stop;
     i64 step;
-    i64 iter; // The value we will iterate over.
 
     Range(const std::array<i64, 3>& limits);
     bool operator==(const Range& other) const;
@@ -86,6 +88,8 @@ struct Table : public HeapObj
 #define AS_CONST_LIST(obj)      (*(static_cast<const List*>(obj)))
 #define AS_CONST_TABLE(obj)     (*(static_cast<const Table*>(obj)))
 
+struct ObjIter;
+
 class Object
 {
     private:
@@ -98,6 +102,7 @@ class Object
             double      doubleVal;
             bool        boolVal;
             HeapObj*    heapVal;
+            ObjIter*    iterVal;
         } as;
 
         Object();
@@ -116,6 +121,57 @@ class Object
         std::string printVal() const;
         std::string printType() const;
         void emit(std::ofstream& os) const;
+
+        ObjIter* makeIter();
+};
+
+struct StringIter
+{
+    String* obj;
+    String* iter;
+    const char* begin;
+
+    StringIter();
+    StringIter(String* obj);
+    StringIter(const StringIter&) = delete;
+    StringIter& operator=(const StringIter&) = delete;
+    StringIter(StringIter&& other);
+    StringIter& operator=(StringIter&& other);
+    ~StringIter();
+
+    bool start(Object& var);
+    bool next(Object& var);
+};
+
+struct RangeIter
+{
+    Range* obj;
+    i64 val;
+
+    RangeIter();
+    RangeIter(Range* obj);
+    RangeIter(const RangeIter&) = delete;
+    RangeIter& operator=(const RangeIter&) = delete;
+    RangeIter(RangeIter&& other);
+    RangeIter& operator=(RangeIter&& other);
+    ~RangeIter();
+
+    bool start(Object& var);
+    bool next(Object& var);
+};
+
+struct ObjIter
+{
+    using Iter = std::variant<StringIter, RangeIter>;
+
+    Iter iter;
+
+    ObjIter() = default;
+    ObjIter(Object& obj);
+    ~ObjIter() = default;
+
+    bool start(Object& var);
+    bool next(Object& var);
 };
 
 struct TypeMismatch // General type mismatch error class.
@@ -156,7 +212,14 @@ Object::Object(T val)
     {
         type = val->type;
         val->refCount++;
-        this->as.heapVal = val;
+        as.heapVal = val;
+    }
+    else if constexpr (std::is_same_v<T, ObjIter*>)
+    {
+        type = OBJ_ITER;
+        // Iterators should never be copied, so we
+        // don't use a refcount.
+        as.iterVal = val;
     }
 }
 
@@ -167,16 +230,19 @@ Object::Object(T val)
 
 #define IS_HEAP_TYPE(type)  (((type) > OBJ_NULL) && ((type) < OBJ_NUM))
 #define IS_HEAP_OBJ(obj)    (IS_HEAP_TYPE((obj).type))
+#define IS_ITER(obj)        ((obj).type == OBJ_ITER)
 
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
+#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
 
 
 #define AS_INT(obj)         ((obj).as.intVal)
 #define AS_DEC(obj)         ((obj).as.doubleVal)
 #define AS_BOOL(obj)        ((obj).as.boolVal)
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
-#define AS_HEAP_VAL(obj)    (*((obj).as.heapVal))
+#define AS_HEAP_VAL(obj)    (*AS_HEAP_PTR(obj))
+#define AS_ITER(obj)        ((obj).as.iterVal)
 
 #define AS_NUM(obj)         ((obj).type == OBJ_INT ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<ui64>(AS_INT(obj)))

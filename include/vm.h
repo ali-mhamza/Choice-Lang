@@ -43,6 +43,7 @@ class VM
         inline Object compareOper(Opcode oper);
         Object bitOper(Opcode oper);
         Object unaryOper(Opcode oper);
+        void handleIter(Opcode oper);
 
         #ifdef WATCH_REG
         void printRegister();

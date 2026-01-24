@@ -4,7 +4,7 @@
 #include <string_view>
 #include <type_traits>
 
-/* Heap obj. */
+/* HeapObj. */
 
 HeapObj::HeapObj() :
     type(OBJ_INVALID), refCount(0) {}
@@ -119,17 +119,23 @@ void Object::clean()
         if (temp->refCount == 0)
             delete temp;
     }
+    else if (IS_ITER(*this))
+        delete AS_ITER(*this); // We never copy iterators, so no refcount.
 }
 
 Object::Object(const Object& other) :
     type(other.type), as(other.as)
 {
+    ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
+    
     if (IS_HEAP_OBJ(*this))
         AS_HEAP_PTR(*this)->refCount++;
 }
 
 Object& Object::operator=(const Object& other)
 {
+    ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
+    
     if (this != &other)
     {
         clean();
@@ -247,6 +253,167 @@ void Object::emit(std::ofstream& os) const
     }
 }
 
+ObjIter* Object::makeIter()
+{
+    if (!IS_ITERABLE(*this)) return nullptr;
+    return new ObjIter(*this);
+}
+
+
+/* Object iterator struct types. */
+
+StringIter::StringIter() :
+    obj(nullptr), iter(nullptr), begin(nullptr) {}
+
+StringIter::StringIter(String* obj) :
+    obj(obj), iter(nullptr), begin(obj->str.c_str())
+{
+    obj->refCount++;
+}
+
+StringIter::StringIter(StringIter&& other) :
+    obj(other.obj), iter(other.iter), begin(other.begin)
+{
+    other.obj = other.iter = nullptr;
+    other.begin = nullptr; // Must split; pointers are of different types.
+}
+
+StringIter& StringIter::operator=(StringIter&& other)
+{
+    if (this != &other)
+    {
+        this->obj = other.obj;
+        this->iter = other.iter;
+        this->begin = other.begin;
+
+        other.obj = other.iter = nullptr;
+        other.begin = nullptr;
+    }
+
+    return *this;
+}
+
+StringIter::~StringIter()
+{
+    if (obj != nullptr)
+    {
+        obj->refCount--;
+        if (obj->refCount == 0) delete obj;
+    }
+    if (iter != nullptr)
+    {
+        iter->refCount--;
+        if (iter->refCount == 0) delete iter;
+    }
+}
+
+bool StringIter::start(Object& var)
+{
+    if (obj->str.size() == 0) return false;
+    iter = new String(begin, 1);
+    iter->refCount++;
+    var = Object(static_cast<HeapObj*>(iter));
+    return true;
+}
+
+bool StringIter::next(Object& var)
+{
+    begin++;
+    if ((iter->str[0] = *begin) == '\0') return false;
+    return true;
+}
+
+RangeIter::RangeIter() :
+    obj(nullptr), val(0) {}
+
+RangeIter::RangeIter(Range* obj) :
+    obj(obj), val(obj->start)
+{
+    obj->refCount++;
+}
+
+RangeIter::RangeIter(RangeIter&& other) :
+    obj(other.obj), val(other.val)
+{
+    other.obj = nullptr;
+}
+
+RangeIter& RangeIter::operator=(RangeIter&& other)
+{
+    if (this != &other)
+    {
+        this->obj = other.obj;
+        this->val = other.val;
+
+        other.obj = nullptr;
+    }
+
+    return *this;
+}
+
+RangeIter::~RangeIter()
+{
+    if (obj != nullptr)
+    {
+        obj->refCount--;
+        if (obj->refCount == 0) delete obj;
+    }
+}
+
+bool RangeIter::start(Object& var)
+{
+    if (obj->start > obj->stop)
+        return false;
+    var = Object(obj->start);
+    return true;
+}
+
+bool RangeIter::next(Object& var)
+{
+    val += obj->step;
+    if (val > obj->stop) return false;
+    AS_INT(var) = val;
+    return true;
+}
+
+ObjIter::ObjIter(Object& obj)
+{
+    switch (obj.type)
+    {
+        case OBJ_STRING:
+            // Use emplace instead of assignment so we construct the
+            // iterator in-place with no intermediate temporary object
+            // (otherwise the temporary's destructor will mess with
+            // the refcount).
+            iter.emplace<StringIter>(static_cast<String*>(AS_HEAP_PTR(obj)));
+            break;
+        case OBJ_RANGE:
+            iter.emplace<RangeIter>(static_cast<Range*>(AS_HEAP_PTR(obj)));
+            break;
+        default: break;
+    }
+}
+
+bool ObjIter::start(Object& var)
+{
+    bool ret;
+    std::visit([&var, &ret](auto&& iter) {
+        ret = iter.start(var);
+    }, iter);
+
+    return ret;
+}
+
+bool ObjIter::next(Object& var)
+{
+    bool ret;
+    std::visit([&var, &ret](auto&& iter) {
+        ret = iter.next(var);
+    }, iter);
+
+    return ret;
+}
+
 
 /* Type Mismatch Error Class.*/
 
@@ -256,7 +423,7 @@ TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
 
 static std::string_view objTypes[] = {
     "int", "dec", "bool", "null", "bigint", "bigdec",
-    "string", "range", "list", "table", "num"
+    "string", "range", "list", "table", "num", "iterable"
 };
 
 void TypeMismatch::report()
