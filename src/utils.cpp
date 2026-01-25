@@ -30,11 +30,11 @@ split(const std::string_view& str, std::string_view delim)
 		found != std::string_view::npos;
 		found = str.find(delim, start))
     {
-		result.emplace_back(str.begin() + start, found - start);
+		result.emplace_back(str.data() + start, found - start);
         start = found + delim.size();
     }
     if (start != str.size())
-        result.emplace_back(str.begin() + start, str.size() - start);
+        result.emplace_back(str.data() + start, str.size() - start);
     return result;      
 }
 
