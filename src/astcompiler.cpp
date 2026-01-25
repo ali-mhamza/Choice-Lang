@@ -698,17 +698,17 @@ DEF(LiteralExpr)
         reserveReg();
     }
 
-    else if (tok.type == TOK_RANGE)
+    else if (tok.type == TOK_STR_LIT)
     {
-        HeapObj* ptr = new Range(constructRange(tok.text));
+        HeapObj* ptr = new String(GET_STR(tok));
         Object obj{ptr};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
-    else if (tok.type == TOK_STR_LIT)
+    else if (tok.type == TOK_RANGE)
     {
-        HeapObj* ptr = new String(GET_STR(tok));
+        HeapObj* ptr = new Range(constructRange(tok.text));
         Object obj{ptr};
         code.loadRegConst(obj, previousReg);
         reserveReg();
