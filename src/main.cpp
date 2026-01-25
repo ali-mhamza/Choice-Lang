@@ -13,7 +13,7 @@
 #include "../include/utils.h"
 
 // Use replxx library instead of standard
-// std::getline. 
+// std::getline.
 #define EXTERNAL_REPL 1
 
 #if EXTERNAL_REPL
