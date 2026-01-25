@@ -19,7 +19,6 @@ class Compiler
     
     private:
         ByteCode code;
-        // const vT& tokens;
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
@@ -28,9 +27,7 @@ class Compiler
         std::vector<std::vector<std::string>> varScopes;
         TokCompVarsWrapper* varsWrapper;
         TokCompLoopLabels* labelsWrapper;
-        std::vector<ui64>* endJumps;
-        std::vector<ui64>* breakJumps;
-        std::vector<ui64>* continueJumps;
+        std::vector<ui64> *endJumps, *breakJumps, *continueJumps;
         bool inMatch, fall;
 
         // For registers.

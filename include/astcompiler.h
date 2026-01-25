@@ -35,9 +35,7 @@ class ASTCompiler
         std::vector<std::vector<std::string>> varScopes;
         ASTCompVarsWrapper* varsWrapper;
         ASTCompLoopLabels* labelsWrapper;
-        std::vector<ui64>* endJumps;
-        std::vector<ui64>* breakJumps;
-        std::vector<ui64>* continueJumps;
+        std::vector<ui64> *endJumps, *breakJumps, *continueJumps;
 
         // Variables.
 
