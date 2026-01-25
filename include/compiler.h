@@ -76,7 +76,10 @@ class Compiler
 
         void statement();
         void ifStmt();
+        void whileLoopHelper(ui64 loopStart, ui64 falseJump);
         void whileStmt();
+        void forLoopHelper(ui8 varReg, ui8 iterReg);
+        void forStmt();
         ui64 matchCaseHelper(const ui8 matchReg, ui64& fallJump,
             ui64& emptyJump); // For individual cases.
         void matchStmt();

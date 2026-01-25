@@ -8,6 +8,7 @@
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include "../include/token.h"
+#include "../include/utils.h"
 #include "../include/vartable.h"
 #include <string_view>
 
@@ -208,6 +209,8 @@ void Compiler::statement()
         ifStmt();
     else if (consumeTok(TOK_WHILE))
         whileStmt();
+    else if (consumeTok(TOK_FOR))
+        forStmt();
     else if (consumeTok(TOK_MATCH))
         matchStmt();
     else if (consumeTok(TOK_REPEAT))
@@ -270,6 +273,44 @@ void Compiler::ifStmt()
         code.patchJump(falseJump);
 }
 
+void Compiler::whileLoopHelper(ui64 loopStart, ui64 falseJump)
+{
+    Token label;
+    if (consumeTok(TOK_COLON))
+    {
+        matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
+        label = previousTok;
+        this->labelsWrapper->labels.add(
+            std::string(label.text),
+            {}
+        );
+    }
+
+    statement();
+
+    for (ui64 jump : *continueJumps)
+        code.patchJump(jump);
+
+    code.addLoop(loopStart);
+    code.patchJump(falseJump);
+
+    if (consumeTok(TOK_ELSE))
+        statement();
+
+    for (ui64 jump : *breakJumps)
+        code.patchJump(jump);
+
+    if (label.type != TOK_EOF)
+    {
+        auto* vec = this->labelsWrapper->labels.get(
+            std::string(label.text)
+        );
+
+        for (ui64 jump : *vec)
+            code.patchJump(jump);
+    }
+}
+
 void Compiler::whileStmt()
 {
     matchError(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -289,7 +330,29 @@ void Compiler::whileStmt()
     freeReg();
     matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
-    Token label;
+    whileLoopHelper(loopStart, falseJump);
+
+    breakJumps = prevBreaks;
+    continueJumps = prevContinues;
+}
+
+void Compiler::forLoopHelper(ui8 varReg, ui8 iterReg)
+{
+    code.addOp(OP_MAKE_ITER, varReg, iterReg);
+    ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
+
+    ui64 loopStart = code.getLoopStart();
+    ui64 whereJump = 0;
+    if (consumeTok(TOK_WHERE))
+    {
+        ui8 whereReg = previousReg;
+        expression();
+        whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
+    }
+
+    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+
+    Token label; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
         matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
@@ -302,27 +365,60 @@ void Compiler::whileStmt()
 
     statement();
 
-    for (ui64 jump : continues)
+    if (whereJump != 0)
+        code.patchJump(whereJump);
+    for (ui64 jump : *continueJumps)
         code.patchJump(jump);
 
-    code.addLoop(loopStart);
-    code.patchJump(falseJump);
+    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart + 5);
+    code.addOp(OP_UPDATE_ITER, varReg, iterReg,
+        static_cast<ui8>((diff >> 8) & 0xff),
+        static_cast<ui8>(diff & 0xff)
+    );
 
+    code.patchJump(failJump);
     if (consumeTok(TOK_ELSE))
         statement();
-
-    for (ui64 jump : breaks)
+    for (ui64 jump : *breakJumps)
         code.patchJump(jump);
-
     if (label.type != TOK_EOF)
     {
         auto* vec = this->labelsWrapper->labels.get(
             std::string(label.text)
         );
-
         for (ui64 jump : *vec)
             code.patchJump(jump);
     }
+}
+
+void Compiler::forStmt()
+{
+    scope++;
+    ui8 origVarReg = previousReg;
+    varScopes.emplace_back();
+
+    std::vector<ui64> breaks;
+    auto prevBreaks = breakJumps;
+    breakJumps = &breaks;
+
+    std::vector<ui64> continues;
+    auto prevContinues = continueJumps;
+    continueJumps = &continues;
+
+    matchError(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
+    if (!consumeTok(TOK_IDENTIFIER))
+        throw CompileError(currentTok, "Expect loop variable identifier.");
+    Token var = previousTok;
+    ui8 varReg = previousReg;
+    defVar(std::string(var.text), varReg);
+    defAccess(varReg, accessFix); // For now.
+    reserveReg();
+
+    matchError(TOK_IN, "Expect 'in' keyword after loop identifier.");
+    ui8 iterReg = previousReg;
+    expression();
+
+    forLoopHelper(varReg, iterReg);
 
     breakJumps = prevBreaks;
     continueJumps = prevContinues;
@@ -888,6 +984,14 @@ void Compiler::primary()
                 break;
             default: UNREACHABLE();
         }
+        code.loadRegConst(obj, previousReg);
+        reserveReg();
+    }
+
+    else if (consumeTok(TOK_RANGE))
+    {
+        HeapObj* ptr = new Range(constructRange(previousTok.text));
+        Object obj{ptr};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
