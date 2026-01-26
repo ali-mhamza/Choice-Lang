@@ -228,7 +228,7 @@ std::string Object::printVal() const
             {
                 const auto& iter = AS_ITER(*this)->iter;
                 std::string ret;
-                std::visit([&ret](auto&& iter){
+                std::visit([&ret](auto&& iter) {
                     ret = "->" + iter.obj->printVal();
                 }, iter);
 
