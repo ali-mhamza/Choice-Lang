@@ -483,7 +483,7 @@ void VM::executeOp(Opcode op, const vObj& pool)
             DISPATCH();
         }
 
-        DEFAULT: DISPATCH();
+        DEFAULT: UNREACHABLE();
     }
 }
 
