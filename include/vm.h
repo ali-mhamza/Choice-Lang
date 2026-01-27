@@ -9,8 +9,8 @@
 #include <variant>
 #include <vector>
 
-#define WATCH_EXEC 0
-#define WATCH_REG 0
+#define WATCH_EXEC  0
+#define WATCH_REG   0
 
 class Disassembler;
 
