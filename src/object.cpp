@@ -22,7 +22,7 @@ bool HeapObj::operator==(const HeapObj& other) const
             return AS_CONST_STRING(this).str == AS_CONST_STRING(&other).str;
         case OBJ_RANGE:
             return AS_CONST_RANGE(this) == AS_CONST_RANGE(&other);
-        default:            UNREACHABLE();
+        default: UNREACHABLE();
     }
 }
 
