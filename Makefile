@@ -11,7 +11,7 @@ RELEASE_FLAGS = -O2 -DNDEBUG
 WARNINGS = -Wall -Wextra \
 			-Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-label \
 			-Wno-error=pedantic -Werror
-CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(DEBUG_FLAGS) $(WARNINGS) $(DEFINES)
+CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(RELEASE_FLAGS) $(WARNINGS) $(DEFINES)
 
 REPL_DIR = dependencies/replxx
 REPL_LIB = $(REPL_DIR)/libreplxx.a
@@ -23,6 +23,7 @@ OPT = -DOPT
 
 NAME = choice
 SRC_DIR = src
+INCLUDE_DIR = include
 OBJ_DIR = build
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -45,7 +46,10 @@ opt: $(NAME)
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+$(OBJ_DIR)/main.o: $(SRC_DIR)/main.cpp | $(OBJ_DIR)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INCLUDE_DIR)/%.h | $(OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(REPL_LIB):
