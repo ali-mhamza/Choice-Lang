@@ -16,12 +16,14 @@ namespace Natives
         FUNC_PRINT,
         FUNC_TYPE,
         FUNC_CLOCK,
+        FUNC_RANGE,
         NUM_FUNCS
     };
 
     Object print(iter it, ui8 args, const Token& error);
     Object type(iter it, ui8 args, const Token& error);
     Object clock(iter it, ui8 args, const Token& error);
+    Object range(iter it, ui8 args, const Token& error);
 
     extern const std::function<Object(iter, ui8,
         const Token&)> functions[NUM_FUNCS];
