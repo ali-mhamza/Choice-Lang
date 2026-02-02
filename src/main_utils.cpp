@@ -63,9 +63,9 @@ static Size reconstructBytes(vBit& it, const vBit& end)
 
 static Object reconstructString(vBit& it, const vBit& end)
 {
-	std::string str;
 	if (it == end)
 		eofError();
+	std::string str;
 	while (static_cast<char>(*it) != '\0')
 	{
 		str.push_back(static_cast<char>(*it));
@@ -74,39 +74,26 @@ static Object reconstructString(vBit& it, const vBit& end)
 			eofError();
 	}
 
-	HeapObj* obj = new String(str);
-	return Object(obj);
+	return Object(new String(str));
 }
 
 static Object reconstructRange(vBit& it, const vBit& end)
 {
 	std::array<i64, 3> array;
-	array[0] = reconstructBytes<i64>(it, end);
-	// reconstructBytes decrements the iterator once done
-	// to account for the extra increment for the last loop
-	// iteration.
-	// This undoes that to actually move the iterator forward.
-	it++;
-	array[1] = reconstructBytes<i64>(it, end);
-	it++;
-	array[2] = reconstructBytes<i64>(it, end);
-
-	HeapObj* obj = new Range(array);
-	return Object(obj);
-}
-
-static Object reconstructHeapObj(vBit& it, const vBit& end)
-{
-	if (it == end)
-		eofError();
-	ObjType type = static_cast<ObjType>(*it);
-	it++;
-	switch (type)
+	for (int i = 0; i < 3; i++)
 	{
-		case OBJ_STRING:	return reconstructString(it, end);
-		case OBJ_RANGE:		return reconstructRange(it, end);
-		default:			UNREACHABLE();
+		if (it == end)
+			eofError();
+		array[i] = reconstructBytes<i64>(it, end);
+		// reconstructBytes decrements the iterator once done
+		// to account for the extra increment for the last loop
+		// iteration.
+		// This undoes that to actually move the iterator forward.
+		it++;
 	}
+
+	it--;
+	return Object(new Range(array));
 }
 
 vObj reconstructPool(const vByte& poolBytes)
@@ -124,14 +111,15 @@ vObj reconstructPool(const vByte& poolBytes)
 			case OBJ_DEC:
 				pool.push_back(reconstructBytes<double>(++it, poolBytes.end()));
 				break;
+			case OBJ_STRING:
+				pool.push_back(reconstructString(++it, poolBytes.end()));
+				break;
+			case OBJ_RANGE:
+				pool.push_back(reconstructRange(++it, poolBytes.end()));
+				break;
 			default:
 			{
-				if (IS_HEAP_TYPE(type))
-				{
-					pool.push_back(reconstructHeapObj(it, poolBytes.end()));
-					break;
-				}
-				else if ((type != OBJ_BOOL) && (type != OBJ_NULL))
+				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
 					FORMAT_PRINT(stderr, "Error: byte is {}.\n",
 						static_cast<int>(type));

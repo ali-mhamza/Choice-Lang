@@ -136,12 +136,11 @@ ui64 ByteCode::countPool() const
 			count += 9; // 8 bytes + 1 type byte.
 		else if (IS_HEAP_OBJ(obj))
 		{
-			HeapObj* temp = AS_HEAP_PTR(obj);
-			switch (temp->type)
+			switch (obj.type)
 			{
 				case OBJ_STRING:
 					// Added type byte (1) and null byte (1).
-					count += 1 + AS_STRING(temp).str.size() + 1;
+					count += 1 + AS_STRING(obj).str.size() + 1;
 					break;
 				case OBJ_RANGE:
 					// Added type byte (1) and three i64 (3 * 8) values.

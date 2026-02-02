@@ -34,8 +34,7 @@ Object Natives::print(Natives::iter it, ui8 args, const Token& error)
             case OBJ_NULL:  FORMAT_PRINT("null");                       break;
             case OBJ_STRING:
             {
-                HeapObj& temp = AS_HEAP_VAL(*(it + i));
-                FORMAT_PRINT("{}", AS_STRING(&temp).str);
+                FORMAT_PRINT("{}", AS_STRING(*(it + i)).str);
                 break;
             }
             // Slower alternative.
@@ -56,8 +55,7 @@ Object Natives::type(Natives::iter it, ui8 args, const Token& error)
             FORMAT_STR("Expected 1 argument but found {}.", args)
         );
 
-    HeapObj* str = new String(it->printType());
-    return Object(str);
+    return Object(new String(it->printType()));
 }
 
 Object Natives::clock(Natives::iter it, ui8 args, const Token& error)

@@ -980,7 +980,7 @@ void Compiler::primary()
             case TOK_NUM:       obj = previousTok.content.i;    break;
             case TOK_NUM_DEC:   obj = previousTok.content.d;    break;
             case TOK_STR_LIT:
-                obj = static_cast<HeapObj*>(new String(GET_STR(previousTok)));
+                obj = new String(GET_STR(previousTok));
                 break;
             default: UNREACHABLE();
         }
@@ -990,8 +990,7 @@ void Compiler::primary()
 
     else if (consumeTok(TOK_RANGE))
     {
-        HeapObj* ptr = new Range(constructRange(previousTok.text));
-        Object obj{ptr};
+        Object obj = new Range(constructRange(previousTok.text));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }

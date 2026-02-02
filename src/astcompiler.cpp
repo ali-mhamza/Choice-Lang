@@ -686,30 +686,28 @@ DEF(LiteralExpr)
 
     if (tok.type == TOK_NUM)
     {
-        Object obj{tok.content.i};
+        Object obj = tok.content.i;
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_NUM_DEC)
     {
-        Object obj{tok.content.d};
+        Object obj = tok.content.d;
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_STR_LIT)
     {
-        HeapObj* ptr = new String(GET_STR(tok));
-        Object obj{ptr};
+        Object obj = new String(GET_STR(tok));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RANGE)
     {
-        HeapObj* ptr = new Range(constructRange(tok.text));
-        Object obj{ptr};
+        Object obj = new Range(constructRange(tok.text));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }

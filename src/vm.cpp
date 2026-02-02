@@ -44,23 +44,13 @@ inline bool VM::isTruthy(const Object& obj)
 {
     switch (obj.type)
     {
-        case OBJ_INT:   return (AS_INT(obj) != 0);
-        case OBJ_DEC:   return (AS_DEC(obj) != 0.0);
-        case OBJ_BOOL:  return AS_BOOL(obj);
-        case OBJ_NULL:  return false;
-        default:
-        {
-            if (IS_HEAP_OBJ(obj))
-            {
-                HeapObj* temp = AS_HEAP_PTR(obj);
-                switch (temp->type)
-                {
-                    case OBJ_STRING:   return (AS_STRING(temp).str.size() != 0);
-                    default:           return true;
-                }
-            }
-            return true;
-        }
+        case OBJ_INT:       return (AS_INT(obj) != 0);
+        case OBJ_DEC:       return (AS_DEC(obj) != 0.0);
+        case OBJ_BOOL:      return AS_BOOL(obj);
+        case OBJ_NULL:      return false;
+        case OBJ_STRING:    return (AS_STRING(obj).str.size() != 0);
+        // Ranges are always truthy.
+        default:            return true;
     }
 }
 
@@ -83,12 +73,8 @@ inline Object VM::loadOper(const vObj& pool)
 
 inline Object VM::concatStrings(const Object& str1, const Object& str2)
 {
-    HeapObj* temp1 = AS_HEAP_PTR(str1);
-    HeapObj* temp2 = AS_HEAP_PTR(str2);
-
-    std::string concat = AS_STRING(temp1).str + AS_STRING(temp2).str;
-    HeapObj* newStr = new String(concat);
-    return newStr;
+    std::string concat = AS_STRING(str1).str + AS_STRING(str2).str;
+    return new String(concat);
 }
 
 Object VM::arithOper(Opcode oper)
@@ -127,7 +113,7 @@ Object VM::arithOper(Opcode oper)
             default: UNREACHABLE();
         }
     }
-    else if (IS_STRING(&a) && IS_STRING(&b) && (oper == OP_ADD))
+    else if (IS_STRING(a) && IS_STRING(b) && (oper == OP_ADD))
         return concatStrings(a, b);
     else
         throw TypeMismatch(
@@ -149,17 +135,17 @@ inline Object VM::compareOper(Opcode op)
         case OP_LT:     return (a < b);
         case OP_IN:
         {
-            if (IS_STRING(&a) && IS_STRING(&b)) // Temporarily.
+            if (IS_STRING(a) && IS_STRING(b)) // Temporarily.
             {
-                const String& s1 = AS_CONST_STRING(AS_HEAP_PTR(a));
-                const String& s2 = AS_CONST_STRING(AS_HEAP_PTR(b));
+                const String& s1 = AS_STRING(a);
+                const String& s2 = AS_STRING(b);
                 return (strstr(s2.str.c_str(), s1.str.c_str()) != nullptr);
             }
             else
                 throw TypeMismatch(
                     "Left operand not matching member type of iterable object.",
                     OBJ_STRING,
-                    (IS_STRING(&a) ? b.type : a.type)
+                    (IS_STRING(a) ? b.type : a.type)
                 );
         }
         default: UNREACHABLE();

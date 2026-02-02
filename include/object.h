@@ -36,12 +36,6 @@ struct HeapObj
     HeapObj();
     HeapObj(ObjType type);
     virtual ~HeapObj() = default;
-
-    bool operator==(const HeapObj& other) const;
-
-    std::string printVal() const;
-    std::string printType() const;
-    void emit(std::ofstream& os);
 };
 
 struct String : public HeapObj
@@ -51,6 +45,11 @@ struct String : public HeapObj
     String(const std::string& str);
     String(const std::string_view& view);
     String(const char* str, size_t len = -1);
+
+    bool operator==(const String& other) const;
+
+    std::string printVal() const;
+    void emit(std::ofstream& os);
 };
 
 struct Range : public HeapObj
@@ -60,7 +59,11 @@ struct Range : public HeapObj
     i64 step;
 
     Range(const std::array<i64, 3>& limits);
+
     bool operator==(const Range& other) const;
+
+    std::string printVal() const;
+    void emit(std::ofstream& os);
 };
 
 struct List : public HeapObj
@@ -72,21 +75,6 @@ struct Table : public HeapObj
 {
 
 };
-
-#define IS_STRING(ptr)  ((ptr)->type == OBJ_STRING)
-#define IS_RANGE(ptr)   ((ptr)->type == OBJ_RANGE)
-#define IS_LIST(ptr)    ((ptr)->type == OBJ_LIST)
-#define IS_TABLE(ptr)   ((ptr)->type == OBJ_TABLE)
-
-#define AS_STRING(obj)  (*(static_cast<String*>(obj)))
-#define AS_RANGE(obj)   (*(static_cast<Range*>(obj)))
-#define AS_LIST(obj)    (*(static_cast<List*>(obj)))
-#define AS_TABLE(obj)   (*(static_cast<Table*>(obj)))
-
-#define AS_CONST_STRING(obj)    (*(static_cast<const String*>(obj)))
-#define AS_CONST_RANGE(obj)     (*(static_cast<const Range*>(obj)))
-#define AS_CONST_LIST(obj)      (*(static_cast<const List*>(obj)))
-#define AS_CONST_TABLE(obj)     (*(static_cast<const Table*>(obj)))
 
 struct ObjIter;
 
@@ -101,6 +89,8 @@ class Object
             i64         intVal;
             double      doubleVal;
             bool        boolVal;
+            String*     stringVal;
+            Range*      rangeVal;
             HeapObj*    heapVal;
             ObjIter*    iterVal;
         } as;
@@ -208,6 +198,18 @@ Object::Object(T val)
         type = OBJ_NULL;
         as.heapVal = val; // Dummy assignment.
     }
+    else if constexpr (std::is_same_v<T, String*>)
+    {
+        type = OBJ_STRING;
+        val->refCount++;
+        as.stringVal = val;
+    }
+    else if constexpr (std::is_same_v<T, Range*>)
+    {
+        type = OBJ_RANGE;
+        val->refCount++;
+        as.rangeVal = val;
+    }
     else if constexpr (std::is_same_v<T, HeapObj*>)
     {
         type = val->type;
@@ -227,6 +229,8 @@ Object::Object(T val)
 #define IS_DEC(obj)         ((obj).type == OBJ_DEC)
 #define IS_BOOL(obj)        ((obj).type == OBJ_BOOL)
 #define IS_NULL(obj)        ((obj).type == OBJ_NULL)
+#define IS_STRING(obj)      ((obj).type == OBJ_STRING)
+#define IS_RANGE(obj)       ((obj).type == OBJ_RANGE)
 
 #define IS_HEAP_TYPE(type)  (((type) > OBJ_NULL) && ((type) < OBJ_NUM))
 #define IS_HEAP_OBJ(obj)    (IS_HEAP_TYPE((obj).type))
@@ -240,8 +244,10 @@ Object::Object(T val)
 #define AS_INT(obj)         ((obj).as.intVal)
 #define AS_DEC(obj)         ((obj).as.doubleVal)
 #define AS_BOOL(obj)        ((obj).as.boolVal)
+#define AS_STRING(obj)      (*((obj).as.stringVal))
+#define AS_RANGE(obj)       (*((obj).as.rangeVal))
+
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
-#define AS_HEAP_VAL(obj)    (*AS_HEAP_PTR(obj))
 #define AS_ITER(obj)        ((obj).as.iterVal)
 
 #define AS_NUM(obj)         ((obj).type == OBJ_INT ? AS_INT(obj) : AS_DEC(obj))
