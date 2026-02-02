@@ -10,7 +10,7 @@ namespace Natives
 {
     // using iter = vObj::const_iterator;
     using iter = Object*;
-    
+
     enum FuncType
     {
         FUNC_PRINT,
@@ -18,7 +18,7 @@ namespace Natives
         FUNC_CLOCK,
         NUM_FUNCS
     };
-    
+
     Object print(iter it, ui8 args, const Token& error);
     Object type(iter it, ui8 args, const Token& error);
     Object clock(iter it, ui8 args, const Token& error);
