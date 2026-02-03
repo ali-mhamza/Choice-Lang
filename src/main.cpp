@@ -5,16 +5,17 @@
 	#include "../include/compiler.h"
 #endif
 
-#include "../include/vm.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
+#include "../include/gen_alloc.h"
 #include "../include/lexer.h"
 #include "../include/main_utils.h"
 #include "../include/utils.h"
+#include "../include/vm.h"
 
 // Use replxx library instead of standard
 // std::getline.
-#define EXTERNAL_REPL 1
+#define EXTERNAL_REPL 0
 
 #if EXTERNAL_REPL
 	#include "replxx.hxx"
@@ -42,6 +43,11 @@
 
 std::string file = "";
 bool external = false;
+
+#ifdef LINEAR_ALLOC
+	#include "../include/linear_alloc.h"
+	LinearAlloc allocator(MiB(10));
+#endif
 
 enum ArgvOption
 {

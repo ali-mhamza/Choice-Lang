@@ -1,6 +1,7 @@
 #include "../include/natives.h"
 #include "../include/common.h"
 #include "../include/error.h"
+#include "../include/linear_alloc.h"
 #include <array>
 #include <chrono>
 
@@ -58,7 +59,7 @@ Object Natives::type(Natives::iter it, ui8 args, const Token& error)
             FORMAT_STR("Expected 1 argument but found {}.", args)
         );
 
-    return Object(new String(it->printType()));
+    return Object(ALLOC(String, StringDealloc, it->printType()));
 }
 
 Object Natives::clock(Natives::iter it, ui8 args, const Token& error)
@@ -94,5 +95,5 @@ Object Natives::range(Natives::iter it, ui8 args, const Token& error)
     std::array<i64, 3> limits = {AS_INT(*it), AS_INT(*(it + 1)), 1};
     if (args == 3)
         limits[2] = AS_INT(*(it + 2));
-    return Object(new Range(limits));
+    return Object(ALLOC(Range, RangeDealloc, limits));
 }

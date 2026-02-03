@@ -47,6 +47,25 @@
 	#define ASSERT(expr, msg)
 #endif
 
+#ifdef USE_ALLOC
+	#define ALLOC(type, dealloc, ...) allocator.alloc<type, dealloc>(__VA_ARGS__)
+#else
+	#define ALLOC(type, dealloc, ...) new type(__VA_ARGS__)
+#endif
+
+#define ASSERT_MEM(expr, msg, arena)								\
+    do {															\
+        if (expr)													\
+            break;													\
+        else														\
+        {															\
+            FORMAT_PRINT("ASSERTION FAILED [{}: {}, {}]: {}.\n",    \
+                (__FILE__), (__func__), (__LINE__), msg);			\
+            free(arena);                                            \
+            exit(EXIT_FAILURE);										\
+        }															\
+    } while (false)
+
 #if defined(DEBUG)
 	#define UNREACHABLE() ASSERT(false, 		\
 		"This point should not be reachable.")
@@ -85,3 +104,8 @@ using vObj  	= std::vector<Object>;
 // program or not.
 extern bool external;
 extern std::string file;
+
+#ifdef LINEAR_ALLOC
+	class LinearAlloc;
+	extern LinearAlloc allocator;
+#endif

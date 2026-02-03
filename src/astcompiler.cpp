@@ -5,6 +5,7 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/error.h"
+#include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include "../include/opcodes.h"
 #include "../include/utils.h"
@@ -700,14 +701,14 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj = new String(GET_STR(tok));
+        Object obj = ALLOC(String, StringDealloc, GET_STR(tok));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RANGE)
     {
-        Object obj = new Range(constructRange(tok.text));
+        Object obj = ALLOC(Range, RangeDealloc, constructRange(tok.text));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }

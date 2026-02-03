@@ -2,6 +2,7 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/disasm.h"
+#include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include "../include/tokprinter.h"
 #include "../include/utils.h"
@@ -74,7 +75,7 @@ static Object reconstructString(vBit& it, const vBit& end)
 			eofError();
 	}
 
-	return Object(new String(str));
+	return Object(ALLOC(String, StringDealloc, str));
 }
 
 static Object reconstructRange(vBit& it, const vBit& end)
@@ -93,7 +94,7 @@ static Object reconstructRange(vBit& it, const vBit& end)
 	}
 
 	it--;
-	return Object(new Range(array));
+	return Object(ALLOC(Range, RangeDealloc, array));
 }
 
 vObj reconstructPool(const vByte& poolBytes)

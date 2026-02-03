@@ -1,6 +1,7 @@
 #include "../include/vm.h"
 #include "../include/disasm.h"
 #include "../include/error.h"
+#include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include "../include/opcodes.h"
 #include <cmath>
@@ -74,7 +75,7 @@ inline Object VM::loadOper(const vObj& pool)
 inline Object VM::concatStrings(const Object& str1, const Object& str2)
 {
     std::string concat = AS_STRING(str1).str + AS_STRING(str2).str;
-    return new String(concat);
+    return ALLOC(String, StringDealloc, concat);
 }
 
 Object VM::arithOper(Opcode oper)

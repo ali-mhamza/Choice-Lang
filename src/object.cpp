@@ -1,4 +1,5 @@
 #include "../include/object.h"
+#include "../include/linear_alloc.h"
 #include <cstdio> // For stderr.
 #include <cstring>
 #include <string_view>
@@ -104,31 +105,35 @@ Object::Object() :
 
 void Object::clean()
 {
-    if (IS_HEAP_OBJ(*this))
-    {
-        HeapObj* temp = AS_HEAP_PTR(*this);
+    #ifndef USE_ALLOC
+        if (IS_HEAP_OBJ(*this))
+        {
+            HeapObj* temp = AS_HEAP_PTR(*this);
+            ASSERT(temp != nullptr, "NULL object pointer");
 
-        ASSERT(temp != nullptr, "NULL object pointer");
-        ASSERT(temp->refCount != 0, "Zero object refcount");
+            ASSERT(temp->refCount != 0, "Zero object refcount");
 
-        temp->refCount--;
-        if (temp->refCount == 0) delete temp;
-    }
-    else if (IS_ITER(*this))
-    {
-        ObjIter* iter = AS_ITER(*this);
-        ASSERT(iter != nullptr, "NULL iterator pointer");
-        delete iter; // We never copy iterators, so no refcount.
-    }
+            temp->refCount--;
+            if (temp->refCount == 0) delete temp;
+        }
+        else if (IS_ITER(*this))
+        {
+            ObjIter* iter = AS_ITER(*this);
+            ASSERT(iter != nullptr, "NULL iterator pointer");
+            delete iter; // We never copy iterators, so no refcount.
+        }
+    #endif
 }
 
 Object::Object(const Object& other) :
     type(other.type), as(other.as)
 {
     ASSERT(!IS_ITER(other), "Copying an iterator is not allowed");
-    
-    if (IS_HEAP_OBJ(*this))
-        AS_HEAP_PTR(*this)->refCount++;
+
+    #ifndef USE_ALLOC
+        if (IS_HEAP_OBJ(*this))
+            AS_HEAP_PTR(*this)->refCount++;
+    #endif
 }
 
 Object& Object::operator=(const Object& other)
@@ -142,8 +147,10 @@ Object& Object::operator=(const Object& other)
         this->type = other.type;
         this->as = other.as;
 
-        if (IS_HEAP_OBJ(*this))
-            AS_HEAP_PTR(*this)->refCount++;
+        #ifndef USE_ALLOC
+            if (IS_HEAP_OBJ(*this))
+                AS_HEAP_PTR(*this)->refCount++;
+        #endif
     }
 
     return *this;
@@ -258,7 +265,7 @@ void Object::emit(std::ofstream& os) const
 ObjIter* Object::makeIter()
 {
     if (!IS_ITERABLE(*this)) return nullptr;
-    return new ObjIter(*this);
+    return ALLOC(ObjIter, ObjIterDealloc, *this);
 }
 
 
@@ -270,7 +277,9 @@ StringIter::StringIter() :
 StringIter::StringIter(String* obj) :
     obj(obj), iter(nullptr), begin(obj->str.c_str())
 {
-    obj->refCount++;
+    #ifndef USE_ALLOC
+        obj->refCount++;
+    #endif
 }
 
 StringIter::StringIter(StringIter&& other) :
@@ -297,24 +306,28 @@ StringIter& StringIter::operator=(StringIter&& other)
 
 StringIter::~StringIter()
 {
-    if (obj != nullptr)
-    {
-        ASSERT(obj->refCount != 0, "Zero iterable refcount");
-        obj->refCount--;
-        if (obj->refCount == 0) delete obj;
-    }
-    if (iter != nullptr)
-    {
-        iter->refCount--;
-        if (iter->refCount == 0) delete iter;
-    }
+    #ifndef USE_ALLOC
+        if (obj != nullptr)
+        {
+            ASSERT(obj->refCount != 0, "Zero iterable refcount");
+            obj->refCount--;
+            if (obj->refCount == 0) delete obj;
+        }
+        if (iter != nullptr)
+        {
+            iter->refCount--;
+            if (iter->refCount == 0) delete iter;
+        }
+    #endif
 }
 
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
-    iter = new String(begin, 1);
-    iter->refCount++;
+    iter = ALLOC(String, StringDealloc, begin, 1);
+    #ifndef USE_ALLOC
+        iter->refCount++;
+    #endif
     var = Object(iter);
     return true;
 }
@@ -332,7 +345,9 @@ RangeIter::RangeIter() :
 RangeIter::RangeIter(Range* obj) :
     obj(obj), val(obj->start)
 {
-    obj->refCount++;
+    #ifndef USE_ALLOC
+        obj->refCount++;
+    #endif
 }
 
 RangeIter::RangeIter(RangeIter&& other) :
@@ -356,12 +371,14 @@ RangeIter& RangeIter::operator=(RangeIter&& other)
 
 RangeIter::~RangeIter()
 {
-    if (obj != nullptr)
-    {
-        ASSERT(obj->refCount != 0, "Zero iterable refcount");
-        obj->refCount--;
-        if (obj->refCount == 0) delete obj;
-    }
+    #ifndef USE_ALLOC
+        if (obj != nullptr)
+        {
+            ASSERT(obj->refCount != 0, "Zero iterable refcount");
+            obj->refCount--;
+            if (obj->refCount == 0) delete obj;
+        }
+    #endif
 }
 
 bool RangeIter::start(Object& var)
@@ -416,6 +433,27 @@ bool ObjIter::next(Object& var)
     }, iter);
 
     return ret;
+}
+
+
+/* Deallocation functors. */
+
+void StringDealloc::operator()(void* mem)
+{
+    String* string = reinterpret_cast<String*>(mem);
+    string->~String();
+}
+
+void RangeDealloc::operator()(void* mem)
+{
+    Range* range = reinterpret_cast<Range*>(mem);
+    range->~Range();
+}
+
+void ObjIterDealloc::operator()(void* mem)
+{
+    ObjIter* iter = reinterpret_cast<ObjIter*>(mem);
+    iter->~ObjIter();
 }
 
 

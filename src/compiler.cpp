@@ -4,6 +4,7 @@
 #include "../include/compiler.h"
 #include "../include/common.h"
 #include "../include/error.h"
+#include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
@@ -980,7 +981,7 @@ void Compiler::primary()
             case TOK_NUM:       obj = previousTok.content.i;    break;
             case TOK_NUM_DEC:   obj = previousTok.content.d;    break;
             case TOK_STR_LIT:
-                obj = new String(GET_STR(previousTok));
+                obj = ALLOC(String, StringDealloc, GET_STR(previousTok));
                 break;
             default: UNREACHABLE();
         }
@@ -990,7 +991,7 @@ void Compiler::primary()
 
     else if (consumeTok(TOK_RANGE))
     {
-        Object obj = new Range(constructRange(previousTok.text));
+        Object obj = ALLOC(Range, RangeDealloc, constructRange(previousTok.text));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }

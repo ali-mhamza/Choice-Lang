@@ -164,7 +164,15 @@ struct ObjIter
     bool next(Object& var);
 };
 
-struct TypeMismatch // General type mismatch error class.
+// Deallocation functors.
+
+struct StringDealloc    { void operator()(void* mem); };
+struct RangeDealloc     { void operator()(void* mem); };
+struct ObjIterDealloc   { void operator()(void* mem); };
+
+// General type mismatch error class.
+
+struct TypeMismatch
 {    
     std::string message;
     ObjType expect;
@@ -201,19 +209,25 @@ Object::Object(T val)
     else if constexpr (std::is_same_v<T, String*>)
     {
         type = OBJ_STRING;
-        val->refCount++;
+        #ifndef USE_ALLOC
+            val->refCount++;
+        #endif
         as.stringVal = val;
     }
     else if constexpr (std::is_same_v<T, Range*>)
     {
         type = OBJ_RANGE;
-        val->refCount++;
+        #ifndef USE_ALLOC
+            val->refCount++;
+        #endif
         as.rangeVal = val;
     }
     else if constexpr (std::is_same_v<T, HeapObj*>)
     {
         type = val->type;
-        val->refCount++;
+        #ifndef USE_ALLOC
+            val->refCount++;
+        #endif
         as.heapVal = val;
     }
     else if constexpr (std::is_same_v<T, ObjIter*>)
