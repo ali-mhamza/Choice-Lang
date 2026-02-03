@@ -15,7 +15,7 @@
 
 // Use replxx library instead of standard
 // std::getline.
-#define EXTERNAL_REPL 0
+#define EXTERNAL_REPL 1
 
 #if EXTERNAL_REPL
 	#include "replxx.hxx"
