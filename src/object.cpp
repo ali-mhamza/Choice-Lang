@@ -105,7 +105,7 @@ Object::Object() :
 
 void Object::clean()
 {
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         if (IS_HEAP_OBJ(*this))
         {
             HeapObj* temp = AS_HEAP_PTR(*this);
@@ -130,7 +130,7 @@ Object::Object(const Object& other) :
 {
     ASSERT(!IS_ITER(other), "Copying an iterator is not allowed");
 
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         if (IS_HEAP_OBJ(*this))
             AS_HEAP_PTR(*this)->refCount++;
     #endif
@@ -147,7 +147,7 @@ Object& Object::operator=(const Object& other)
         this->type = other.type;
         this->as = other.as;
 
-        #ifndef USE_ALLOC
+        #if !USE_ALLOC
             if (IS_HEAP_OBJ(*this))
                 AS_HEAP_PTR(*this)->refCount++;
         #endif
@@ -277,7 +277,7 @@ StringIter::StringIter() :
 StringIter::StringIter(String* obj) :
     obj(obj), iter(nullptr), begin(obj->str.c_str())
 {
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         obj->refCount++;
     #endif
 }
@@ -306,7 +306,7 @@ StringIter& StringIter::operator=(StringIter&& other)
 
 StringIter::~StringIter()
 {
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         if (obj != nullptr)
         {
             ASSERT(obj->refCount != 0, "Zero iterable refcount");
@@ -325,7 +325,7 @@ bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
     iter = ALLOC(String, StringDealloc, begin, 1);
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         iter->refCount++;
     #endif
     var = Object(iter);
@@ -345,7 +345,7 @@ RangeIter::RangeIter() :
 RangeIter::RangeIter(Range* obj) :
     obj(obj), val(obj->start)
 {
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         obj->refCount++;
     #endif
 }
@@ -371,7 +371,7 @@ RangeIter& RangeIter::operator=(RangeIter&& other)
 
 RangeIter::~RangeIter()
 {
-    #ifndef USE_ALLOC
+    #if !USE_ALLOC
         if (obj != nullptr)
         {
             ASSERT(obj->refCount != 0, "Zero iterable refcount");

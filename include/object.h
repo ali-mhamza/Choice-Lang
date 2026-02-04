@@ -209,7 +209,7 @@ Object::Object(T val)
     else if constexpr (std::is_same_v<T, String*>)
     {
         type = OBJ_STRING;
-        #ifndef USE_ALLOC
+        #if !USE_ALLOC
             val->refCount++;
         #endif
         as.stringVal = val;
@@ -217,7 +217,7 @@ Object::Object(T val)
     else if constexpr (std::is_same_v<T, Range*>)
     {
         type = OBJ_RANGE;
-        #ifndef USE_ALLOC
+        #if !USE_ALLOC
             val->refCount++;
         #endif
         as.rangeVal = val;
@@ -225,7 +225,7 @@ Object::Object(T val)
     else if constexpr (std::is_same_v<T, HeapObj*>)
     {
         type = val->type;
-        #ifndef USE_ALLOC
+        #if !USE_ALLOC
             val->refCount++;
         #endif
         as.heapVal = val;

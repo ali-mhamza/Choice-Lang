@@ -47,7 +47,7 @@
 	#define ASSERT(expr, msg)
 #endif
 
-#ifdef USE_ALLOC
+#if USE_ALLOC
 	#define ALLOC(type, dealloc, ...) allocator.alloc<type, dealloc>(__VA_ARGS__)
 #else
 	#define ALLOC(type, dealloc, ...) new type(__VA_ARGS__)
