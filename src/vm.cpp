@@ -28,17 +28,20 @@ inline ui8 VM::readByte()
 
 inline ui16 VM::readShort()
 {
+    ui16 b1 = ip[0];
+    ui16 b2 = ip[1];
     ip += 2;
-    return static_cast<ui16>((*(ip - 2) << 8) | *(ip - 1));
+    return static_cast<ui16>((b1 << 8) | b2);
 }
 
 inline ui32 VM::readLong()
 {
+    ui32 b1 = ip[0];
+    ui32 b2 = ip[1];
+    ui32 b3 = ip[2];
+    ui32 b4 = ip[3];
     ip += 4;
-    return static_cast<ui32>((*(ip - 4) << 24)
-        | (*(ip - 3) << 16)
-        | (*(ip - 2) << 8)
-        | *(ip - 1));
+    return static_cast<ui32>((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
 }
 
 inline bool VM::isTruthy(const Object& obj)
