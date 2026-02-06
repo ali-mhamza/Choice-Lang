@@ -642,7 +642,7 @@ ExprUP Parser::primary()
     else if (type == TOK_IF)
         return ifExpr();
     
-    return nullptr; // Temporary.
+    throw CompileError(previousTok, "Invalid token in current position.");
 }
 
 StmtVec& Parser::parseToAST(const vT& tokens)

@@ -1041,6 +1041,9 @@ void Compiler::primary()
 
     else if (consumeTok(TOK_IF))
         ifExpr();
+    
+    else
+        throw CompileError(currentTok, "Invalid token in current position.");
 }
 
 ByteCode& Compiler::compile(const vT& tokens)
