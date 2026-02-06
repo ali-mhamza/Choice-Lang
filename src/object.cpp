@@ -77,6 +77,7 @@ Object::Object(Object&& other) noexcept :
     type(other.type), as(other.as)
 {
     other.type = OBJ_INVALID; // To prevent deallocation when it is destroyed.
+    AS_INT(other) = 0;
 }
 
 Object& Object::operator=(Object&& other) noexcept
@@ -89,6 +90,7 @@ Object& Object::operator=(Object&& other) noexcept
         this->as = other.as;
 
         other.type = OBJ_INVALID;
+        AS_INT(other) = 0;
     }
 
     return *this;
