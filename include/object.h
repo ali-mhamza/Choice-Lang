@@ -1,4 +1,5 @@
 #pragma once
+#include "bytecode.h"
 #include "common.h"
 #include "opcodes.h"
 #include <array>
@@ -14,6 +15,7 @@ enum ObjType
     OBJ_DEC,
     OBJ_BOOL,
     OBJ_NULL,
+    OBJ_FUNC,
     OBJ_BIGINT,
     OBJ_BIGDEC,
     OBJ_STRING,
@@ -36,6 +38,15 @@ struct HeapObj
     HeapObj();
     HeapObj(ObjType type);
     virtual ~HeapObj() = default;
+};
+
+struct Function : public HeapObj
+{
+    std::string name;
+    ByteCode code;
+
+    Function() = default;
+    Function(const std::string& name, const ByteCode& code);
 };
 
 struct String : public HeapObj
@@ -89,6 +100,7 @@ class Object
             i64         intVal;
             double      doubleVal;
             bool        boolVal;
+            Function*   funcVal;
             String*     stringVal;
             Range*      rangeVal;
             HeapObj*    heapVal;
@@ -166,6 +178,7 @@ struct ObjIter
 
 // Deallocation functors.
 
+struct FuncDealloc      { void operator()(void* mem); };
 struct StringDealloc    { void operator()(void* mem); };
 struct RangeDealloc     { void operator()(void* mem); };
 struct ObjIterDealloc   { void operator()(void* mem); };
@@ -206,6 +219,14 @@ Object::Object(T val)
         type = OBJ_NULL;
         as.heapVal = val; // Dummy assignment.
     }
+    else if constexpr (std::is_same_v<T, Function*>)
+    {
+        type = OBJ_FUNC;
+        #if !USE_ALLOC
+            val->refCount++;
+        #endif
+        as.funcVal = val;
+    }
     else if constexpr (std::is_same_v<T, String*>)
     {
         type = OBJ_STRING;
@@ -243,6 +264,7 @@ Object::Object(T val)
 #define IS_DEC(obj)         ((obj).type == OBJ_DEC)
 #define IS_BOOL(obj)        ((obj).type == OBJ_BOOL)
 #define IS_NULL(obj)        ((obj).type == OBJ_NULL)
+#define IS_FUNC(obj)        ((obj).type == OBJ_FUNC)
 #define IS_STRING(obj)      ((obj).type == OBJ_STRING)
 #define IS_RANGE(obj)       ((obj).type == OBJ_RANGE)
 
@@ -258,6 +280,7 @@ Object::Object(T val)
 #define AS_INT(obj)         ((obj).as.intVal)
 #define AS_DEC(obj)         ((obj).as.doubleVal)
 #define AS_BOOL(obj)        ((obj).as.boolVal)
+#define AS_FUNC(obj)        (*((obj).as.funcVal))
 #define AS_STRING(obj)      (*((obj).as.stringVal))
 #define AS_RANGE(obj)       (*((obj).as.rangeVal))
 

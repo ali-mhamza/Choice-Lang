@@ -1,5 +1,6 @@
 #include "../include/object.h"
 #include "../include/linear_alloc.h"
+#include "../include/token.h"
 #include <climits> // For CHAR_BIT.
 #include <cstdio> // For stderr.
 #include <cstring>
@@ -7,7 +8,7 @@
 #include <type_traits>
 
 static std::string_view objTypes[] = {
-    "int", "dec", "bool", "null", "bigint", "bigdec",
+    "int", "dec", "bool", "null", "function", "bigint", "bigdec",
     "string", "range", "list", "table", "num", "iterable"
 };
 
@@ -136,6 +137,7 @@ std::string Object::printVal() const
         case OBJ_DEC:       return std::to_string(AS_DEC(*this));
         case OBJ_BOOL:      return (AS_BOOL(*this) ? "true" : "false");
         case OBJ_NULL:      return "null";
+        case OBJ_FUNC:      return "func " + AS_FUNC(*this).name;
         case OBJ_STRING:    return AS_STRING(*this).printVal();
         case OBJ_RANGE:     return AS_RANGE(*this).printVal();
         case OBJ_ITER:
@@ -148,6 +150,8 @@ std::string Object::printVal() const
 
                 return ret;
         }
+        // Void return value.
+        case OBJ_INVALID:   return "INVALID";
         default: UNREACHABLE();
     }
 }
@@ -196,6 +200,9 @@ HeapObj::HeapObj() :
 
 HeapObj::HeapObj(ObjType type) :
     type(type), refCount(0) {}
+
+Function::Function(const std::string& name, const ByteCode& code) :
+    HeapObj(OBJ_FUNC), name(name), code(code) {}
 
 String::String(const std::string& str) :
     HeapObj(OBJ_STRING), str(str) {}
@@ -442,6 +449,12 @@ bool ObjIter::next(Object& var)
 
 
 /* Deallocation functors. */
+
+void FuncDealloc::operator()(void* mem)
+{
+    Function* func = reinterpret_cast<Function*>(mem);
+    func->~Function();
+}
 
 void StringDealloc::operator()(void* mem)
 {
