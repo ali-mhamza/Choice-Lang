@@ -1,11 +1,12 @@
 #pragma once
 #include "common.h"
-#include "object.h"
+#include "opcodes.h"
 #include <fstream>
 #include <vector>
 
-class VM;
 class Disassembler;
+class Object;
+class VM;
 
 class ByteCode
 {
