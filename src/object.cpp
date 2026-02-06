@@ -159,9 +159,9 @@ std::string Object::printVal() const
     }
 }
 
-std::string Object::printType() const
+std::string_view Object::printType() const
 {
-    return std::string(objTypes[type]);
+    return objTypes[type];
 }
 
 template<typename T>

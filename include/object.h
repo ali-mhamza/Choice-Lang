@@ -7,6 +7,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <variant>
 
 enum ObjType
@@ -124,7 +125,7 @@ class Object
         bool operator<(const Object& other) const;
 
         std::string printVal() const;
-        std::string printType() const;
+        std::string_view printType() const;
         void emit(std::ofstream& os) const;
 
         ObjIter* makeIter();
