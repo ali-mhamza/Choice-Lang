@@ -3,8 +3,9 @@
 #include "common.h"
 #include "main_utils.h"
 #include "token.h"
-#include <string_view>
+#include <stack>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class TokCompVarsWrapper;
@@ -24,7 +25,7 @@ class Compiler
         vT::const_iterator it;
         ui8 previousReg;
         ui8 scope; // Our current lexical scope depth.
-        std::vector<std::vector<std::string>> varScopes;
+        std::stack<std::vector<std::string>> varScopes;
         TokCompVarsWrapper* varsWrapper;
         TokCompLoopLabels* labelsWrapper;
         std::vector<ui64> *endJumps, *breakJumps, *continueJumps;

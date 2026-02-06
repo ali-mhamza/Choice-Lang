@@ -34,11 +34,14 @@ class TokCompLoopLabels
 };
 
 Compiler::Compiler() :
-    previousReg(0), scope(0), varScopes(1),
+    previousReg(0), scope(0),
     varsWrapper(new TokCompVarsWrapper),
     labelsWrapper(new TokCompLoopLabels),
     inMatch(false), fall(false), endJumps(nullptr),
-    breakJumps(nullptr), continueJumps(nullptr) {}
+    breakJumps(nullptr), continueJumps(nullptr)
+{
+    varScopes.emplace();
+}
 
 Compiler::~Compiler()
 {
@@ -49,7 +52,7 @@ Compiler::~Compiler()
 void Compiler::defVar(std::string name, ui8 reg)
 {
     varsWrapper->vars[{name, scope}] = reg;
-    varScopes.back().push_back(name);
+    varScopes.top().push_back(name);
 }
 
 void Compiler::defAccess(ui8 reg, bool access)
@@ -77,7 +80,8 @@ bool Compiler::getAccess(ui8 reg)
 
 void Compiler::popScope()
 {
-    for (std::string& var : varScopes.back())
+    auto& scopeVec = varScopes.top();
+    for (std::string& var : scopeVec)
         varsWrapper->vars.remove({var, scope});
 }
 
@@ -396,7 +400,7 @@ void Compiler::forStmt()
 {
     scope++;
     ui8 origVarReg = previousReg;
-    varScopes.emplace_back();
+    varScopes.emplace();
 
     std::vector<ui64> breaks;
     auto prevBreaks = breakJumps;
@@ -423,6 +427,11 @@ void Compiler::forStmt()
 
     breakJumps = prevBreaks;
     continueJumps = prevContinues;
+
+    popScope();
+    varScopes.pop();
+    scope--;
+    previousReg = origVarReg;
 }
 
 ui64 Compiler::matchCaseHelper(const ui8 matchReg, ui64& fallJump,
@@ -566,13 +575,13 @@ void Compiler::breakStmt()
 void Compiler::blockStmt()
 {
     scope++;
-    varScopes.emplace_back();
+    varScopes.emplace();
     ui8 origVarReg = previousReg;
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         declaration();
     matchError(TOK_RIGHT_BRACE, "Expect '}' after block.");
     popScope();
-    varScopes.pop_back();
+    varScopes.pop();
     scope--;
     previousReg = origVarReg;
 }

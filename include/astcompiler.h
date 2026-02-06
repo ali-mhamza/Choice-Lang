@@ -5,6 +5,7 @@
 #include "vartable.h"
 #include "vm.h"
 #include <memory>
+#include <stack>
 #include <vector>
 using namespace AST::Statement;
 using namespace AST::Expression;
@@ -32,7 +33,7 @@ class ASTCompiler
         ByteCode code;
         ui8 previousReg;
         ui8 scope; // Our current lexical scope depth.
-        std::vector<std::vector<std::string>> varScopes;
+        std::stack<std::vector<std::string>> varScopes;
         ASTCompVarsWrapper* varsWrapper;
         ASTCompLoopLabels* labelsWrapper;
         std::vector<ui64> *endJumps, *breakJumps, *continueJumps;

@@ -32,11 +32,14 @@ class ASTCompLoopLabels
 };
 
 ASTCompiler::ASTCompiler() :
-    previousReg(0), scope(0), varScopes(1), // For global scope.
+    previousReg(0), scope(0),
     varsWrapper(new ASTCompVarsWrapper),
     labelsWrapper(new ASTCompLoopLabels),
     endJumps(nullptr), breakJumps(nullptr),
-    continueJumps(nullptr) {}
+    continueJumps(nullptr)
+{
+    varScopes.emplace();
+}
 
 ASTCompiler::~ASTCompiler()
 {
@@ -47,7 +50,7 @@ ASTCompiler::~ASTCompiler()
 inline void ASTCompiler::defVar(std::string name, ui8 reg)
 {
     varsWrapper->vars[{name, scope}] = reg;
-    varScopes.back().push_back(name);
+    varScopes.top().push_back(name);
 }
 
 inline void ASTCompiler::defAccess(ui8 reg, bool access)
@@ -83,7 +86,8 @@ inline bool ASTCompiler::getAccess(ui8 reg)
 
 inline void ASTCompiler::popScope()
 {
-    for (std::string& var : varScopes.back())
+    auto& scopeVec = varScopes.top();
+    for (std::string& var : scopeVec)
         varsWrapper->vars.remove({var, scope});
 }
 
@@ -267,7 +271,7 @@ DEF(ForStmt)
 {
     scope++;
     ui8 origVarReg = previousReg;
-    varScopes.emplace_back();
+    varScopes.emplace();
 
     if (node->label.type != TOK_EOF)
         this->labelsWrapper->labels.add(
@@ -297,7 +301,7 @@ DEF(ForStmt)
     continueJumps = prevContinues;
 
     popScope();
-    varScopes.pop_back();
+    varScopes.pop();
     scope--;
     previousReg = origVarReg;
 }
@@ -422,11 +426,11 @@ DEF(BlockStmt)
 {
     scope++;
     ui8 origVarReg = previousReg;
-    varScopes.emplace_back();
+    varScopes.emplace();
     for (StmtUP& stmt : node->block)
         compileStmt(stmt);
     popScope();
-    varScopes.pop_back();
+    varScopes.pop();
     scope--;
     previousReg = origVarReg;
 }
