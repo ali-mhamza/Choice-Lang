@@ -9,7 +9,7 @@ using namespace AST::Statement;
 using namespace AST::Expression;
 
 Parser::Parser() :
-    inMatch(false), fall(false) {}
+    inMatch(false), inFunc(false), fall(false) {}
 
 void Parser::nextTok()
 {
@@ -78,6 +78,8 @@ StmtUP Parser::declaration()
 {
     if (consumeToks(TOK_MAKE, TOK_FIX))
         return varDecl();
+    else if (consumeTok(TOK_FUNC))
+        return funDecl();
     else
         return statement();
 }
@@ -106,6 +108,31 @@ StmtUP Parser::varDecl()
         std::move(init)));
 }
 
+StmtUP Parser::funDecl()
+{
+    matchError(TOK_IDENTIFIER, "Expect function name.");
+    Token name = previousTok;
+
+    vT params;
+    matchError(TOK_LEFT_PAREN, "Expect '(' after function name.");
+    if (!checkTok(TOK_RIGHT_PAREN))
+    {
+        do {
+            matchError(TOK_IDENTIFIER, "Expect parameter name.");
+            params.emplace_back(previousTok);
+        } while (consumeTok(TOK_COMMA));
+    }
+    matchError(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
+    matchError(TOK_LEFT_BRACE, "Expect '{' before function body.");
+
+    bool prevInFunc = inFunc;
+    inFunc = true;
+    StmtUP body = blockStmt();
+    inFunc = prevInFunc;
+
+    return StmtUP(std::make_unique<FuncDecl>(name, params, body));
+}
+
 StmtUP Parser::statement()
 {   
     if (consumeTok(TOK_IF))
@@ -118,10 +145,12 @@ StmtUP Parser::statement()
         return matchStmt();
     else if (consumeTok(TOK_REPEAT))
         return repeatStmt();
-    else if (consumeTok(TOK_LEFT_BRACE))
-        return blockStmt();
+    else if (consumeTok(TOK_RETURN))
+        return returnStmt();
     else if (consumeTok(TOK_BREAK))
         return breakStmt();
+    else if (consumeTok(TOK_LEFT_BRACE))
+        return blockStmt();
     else if (consumeTok(TOK_CONT))
     {
         matchError(TOK_SEMICOLON, "Expect ';' after 'continue'.");
@@ -294,6 +323,20 @@ StmtUP Parser::repeatStmt()
 
     return std::make_unique<RepeatStmt>(std::move(condition),
         std::move(body));
+}
+
+StmtUP Parser::returnStmt()
+{
+    if (!inFunc)
+        throw CompileError(previousTok,
+            "Cannot use 'return' outside a function.");
+    
+    Token keyword = previousTok;
+    ExprUP expr = nullptr;
+    if (!checkTok(TOK_SEMICOLON))
+        expr = expression();
+    matchError(TOK_SEMICOLON, "Expect ';' after return statement.");
+    return std::make_unique<ReturnStmt>(keyword, std::move(expr));
 }
 
 StmtUP Parser::breakStmt()
