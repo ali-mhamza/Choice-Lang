@@ -120,7 +120,39 @@ DEF(VarDecl)
         node->declType == TOK_MAKE ? accessVar : accessFix);
 }
 
-DEF(FuncDecl) { (void) node; }
+DEF(FuncDecl)
+{
+    ui8* slot = getVarSlot(node->name);
+    if (slot != nullptr)
+    {
+        throw CompileError(node->name, "Object '"
+            + std::string(node->name.text)
+            + "' is already defined in this scope.");
+    }
+
+    ui8 varSlot = previousReg;
+    std::string name = std::string(node->name.text);
+    ASTCompiler miniCompiler;
+    for (Token& param : node->params)
+    {
+        ui8 reg = miniCompiler.previousReg;
+        miniCompiler.defVar(std::string(param.text), reg);
+        miniCompiler.defAccess(reg, accessVar);
+        miniCompiler.reserveReg();
+    }
+    miniCompiler.compileStmt(node->body);
+    miniCompiler.code.addOp(OP_INVALID, 0);
+    miniCompiler.code.addOp(OP_RETURN, 0);
+
+    ByteCode& funcCode = miniCompiler.code;
+    Object func = ALLOC(Function, FuncDealloc, name, funcCode);
+    code.loadRegConst(func, varSlot);
+
+    defVar(name, varSlot);
+    defAccess(varSlot, accessFix); // Temporarily.
+    reserveReg();
+}
+
 DEF(ClassDecl) { (void) node; }
 
 DEF(IfStmt)
@@ -343,7 +375,15 @@ DEF(RepeatStmt)
     code.patchJump(trueJump);
 }
 
-DEF(ReturnStmt) { (void) node; }
+DEF(ReturnStmt)
+{
+    ui8 reg = previousReg;
+    if (node->expr != nullptr)
+        compileExpr(node->expr);
+    else
+        code.addOp(OP_INVALID, reg);
+    code.addOp(OP_RETURN, reg);
+}
 
 DEF(BreakStmt)
 {
@@ -624,20 +664,26 @@ DEF(UnaryExpr)
 DEF(CallExpr)
 {
     // For now only assuming:
-    // [builtin identfier]!(args...)
+    // [identfier][!](args...)
     VarExpr* var = static_cast<VarExpr*>(node->callee.get());
 
-    // Assuming no errors for the time being.
     ui8 location;
     if (node->builtin)
     {
-        Natives::FuncType func = Natives::builtins.find(
-            var->name.text
-        )->second;
-        location = static_cast<ui8>(func);
+        auto find = Natives::builtins.find(var->name.text);
+        if (find == Natives::builtins.end())
+            throw CompileError(var->name, "No builtin '"
+                + std::string(var->name.text) + "' function.");
+        location = static_cast<ui8>(find->second);
     }
     else
-        location = *(getVarSlot(node->callee));
+    {
+        ui8* ptr = getVarSlot(var->name);
+        if (ptr == nullptr)
+            throw CompileError(var->name, "Undefined variable '"
+                + std::string(var->name.text) + "'.");
+        location = *ptr;
+    }
 
     ui8 argsStart = previousReg;
     for (ExprUP& arg : node->args)
@@ -649,7 +695,10 @@ DEF(CallExpr)
 
     // Skip arguments.
     // Our return value replaces the first argument.
-    previousReg -= size - 1;
+    if (size == 0)
+        reserveReg();
+    else
+        previousReg -= size - 1;
 }
 
 DEF(IfExpr)
