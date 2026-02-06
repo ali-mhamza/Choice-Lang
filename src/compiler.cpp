@@ -566,11 +566,13 @@ void Compiler::breakStmt()
 void Compiler::blockStmt()
 {
     scope++;
+    varScopes.emplace_back();
     ui8 origVarReg = previousReg;
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         declaration();
     matchError(TOK_RIGHT_BRACE, "Expect '}' after block.");
     popScope();
+    varScopes.pop_back();
     scope--;
     previousReg = origVarReg;
 }
