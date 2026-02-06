@@ -184,7 +184,7 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	os.write(reinterpret_cast<const char*>(block.data()),
 		block.size());
 
-	// Constant pool.	
+	// Constant pool.
 	for (const Object& constant : pool)
 		constant.emit(os);
 }
