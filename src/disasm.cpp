@@ -25,7 +25,7 @@ void Disassembler::disFunction(const Function& func)
 	Disassembler miniDis(func.code);
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
-	FORMAT_PRINT("===== [end] func {} =====\n", func.name);
+	FORMAT_PRINT("====== [end] func {} ======\n", func.name);
 }
 
 void Disassembler::printOperValue(const Object& oper)
