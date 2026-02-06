@@ -10,7 +10,7 @@
 using namespace AST::Statement;
 using namespace AST::Expression;
 
-#define ALLOW_REDEFS 1
+#define ALLOW_REDEFS 0
 
 // Using PIMPL idiom.
 class ASTCompVarsWrapper;
