@@ -112,9 +112,9 @@ StmtUP Parser::funDecl()
 {
     matchError(TOK_IDENTIFIER, "Expect function name.");
     Token name = previousTok;
+    matchError(TOK_LEFT_PAREN, "Expect '(' after function name.");
 
     vT params;
-    matchError(TOK_LEFT_PAREN, "Expect '(' after function name.");
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
