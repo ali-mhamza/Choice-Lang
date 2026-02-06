@@ -36,10 +36,7 @@ ASTCompiler::ASTCompiler() :
     varsWrapper(new ASTCompVarsWrapper),
     labelsWrapper(new ASTCompLoopLabels),
     endJumps(nullptr), breakJumps(nullptr),
-    continueJumps(nullptr)
-{
-    varScopes.emplace();
-}
+    continueJumps(nullptr) {}
 
 ASTCompiler::~ASTCompiler()
 {
@@ -50,7 +47,7 @@ ASTCompiler::~ASTCompiler()
 inline void ASTCompiler::defVar(std::string name, ui8 reg)
 {
     varsWrapper->vars[{name, scope}] = reg;
-    varScopes.top().push_back(name);
+    if (scope != 0) varScopes.top().push_back(name);
 }
 
 inline void ASTCompiler::defAccess(ui8 reg, bool access)

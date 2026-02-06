@@ -38,10 +38,7 @@ Compiler::Compiler() :
     varsWrapper(new TokCompVarsWrapper),
     labelsWrapper(new TokCompLoopLabels),
     inMatch(false), fall(false), endJumps(nullptr),
-    breakJumps(nullptr), continueJumps(nullptr)
-{
-    varScopes.emplace();
-}
+    breakJumps(nullptr), continueJumps(nullptr) {}
 
 Compiler::~Compiler()
 {
@@ -52,7 +49,7 @@ Compiler::~Compiler()
 void Compiler::defVar(std::string name, ui8 reg)
 {
     varsWrapper->vars[{name, scope}] = reg;
-    varScopes.top().push_back(name);
+    if (scope != 0) varScopes.top().push_back(name);
 }
 
 void Compiler::defAccess(ui8 reg, bool access)
