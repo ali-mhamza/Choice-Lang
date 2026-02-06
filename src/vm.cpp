@@ -9,7 +9,7 @@
 
 VM::VM() :
     ip(nullptr), end(nullptr),
-    registers(std::make_unique<Object[]>(regSize))
+    registers(new Object[regSize])
 {
     #if WATCH_REG
     regSlot = 0;
@@ -18,6 +18,11 @@ VM::VM() :
     #if WATCH_EXEC
     dis = nullptr;
     #endif
+}
+
+VM::~VM()
+{
+    delete[] registers;
 }
 
 inline ui8 VM::readByte()
@@ -58,7 +63,7 @@ inline bool VM::isTruthy(const Object& obj)
     }
 }
 
-inline Object VM::loadOper(const vObj& pool)
+inline Object VM::loadOper()
 {
     switch (ui8 oper = readByte())
     {
@@ -248,6 +253,27 @@ Object VM::unaryOper(Opcode op)
     }
 }
 
+void VM::callFunc(ui8 callee, ui8 start, ui8 argCount)
+{
+    const Object& obj = registers[callee];
+    if (!IS_FUNC(obj))
+        throw TypeMismatch(
+            "Object is not callable.",
+            OBJ_FUNC,
+            obj.type
+        );
+
+    const ByteCode& code = AS_FUNC(obj).code;
+    registers += start;
+    ip = code.block.data();
+    end = ip + code.block.size();
+    pool = code.pool.data();
+
+    #if WATCH_EXEC
+        this->dis = new Disassembler(code);
+    #endif
+}
+
 // Handle regSlot.
 void VM::handleIter(Opcode oper)
 {
@@ -306,7 +332,7 @@ void VM::printRegister()
 
 #endif
 
-void VM::executeOp(Opcode op, const vObj& pool)
+void VM::executeOp(Opcode op)
 {   
     #if COMPUTED_GOTO
         static void* dispatchTable[] = {
@@ -358,7 +384,7 @@ void VM::executeOp(Opcode op, const vObj& pool)
         CASE(OP_LOAD_R):
         {
             ui8 dest = readByte();
-            registers[dest] = loadOper(pool);
+            registers[dest] = loadOper();
             #if WATCH_REG
             regSlot = dest;
             #endif
@@ -413,6 +439,11 @@ void VM::executeOp(Opcode op, const vObj& pool)
         {
             ui8 dest = readByte();
             ui8 src = readByte();
+
+            if ((op == OP_SET_VAR) && !IS_VALID(registers[src]))
+                throw RuntimeError(Token(),
+                    "Type-less value cannot be assigned to a variable.");
+
             registers[dest] = registers[src];
             #if WATCH_REG
             regSlot = (op == OP_GET_VAR ? dest : regSlot);
@@ -483,6 +514,48 @@ void VM::executeOp(Opcode op, const vObj& pool)
             );
             DISPATCH();
         }
+        CASE(OP_CALL_DEF):
+        {
+            ui8 callee = readByte();
+            ui8 start = readByte();
+            ui8 argCount = readByte();
+
+            contexts.emplace(FuncContext::Args{
+                registers, ip, end, pool
+                #if WATCH_EXEC
+                , this->dis
+                #endif
+            });
+
+            callFunc(callee, start, argCount);
+            DISPATCH();
+        }
+        CASE(OP_RETURN):
+        {   
+            ui8 retSlot = readByte();
+            registers[0] = registers[retSlot];
+
+            // Correct regSlot after return.
+
+            FuncContext& context = contexts.top();
+            registers = context.regStart;
+            ip = context.ip;
+            end = context.end;
+            pool = context.pool;
+            #if WATCH_EXEC
+                delete this->dis;
+                this->dis = context.dis;
+            #endif
+
+            contexts.pop();
+            DISPATCH();
+        }
+        CASE(OP_INVALID):
+        {
+            ui8 dest = readByte();
+            registers[dest] = Object();
+            DISPATCH();
+        }
 
         DEFAULT: UNREACHABLE();
     }
@@ -492,7 +565,7 @@ void VM::executeCode(const ByteCode& code)
 {
     ip = code.block.data();
     end = ip + code.block.size();
-    const vObj& pool = code.pool;
+    pool = code.pool.data();
 
     #if WATCH_EXEC
         Disassembler dis(code);
@@ -508,14 +581,14 @@ void VM::executeCode(const ByteCode& code)
                     dis.disassembleOp(*ip);
                 #endif
 
-                executeOp(static_cast<Opcode>(readByte()), pool);
+                executeOp(static_cast<Opcode>(readByte()));
 
                 #if WATCH_REG
                     printRegister();
                 #endif
             }
         #else
-            executeOp(static_cast<Opcode>(0), pool);
+            executeOp(static_cast<Opcode>(0));
         #endif
     }
     catch (TypeMismatch& error)
@@ -528,6 +601,16 @@ void VM::executeCode(const ByteCode& code)
     }
 
     #if WATCH_EXEC
-    this->dis = nullptr;
+        this->dis = nullptr;
     #endif
 }
+
+/* FuncContext logic. */
+
+FuncContext::FuncContext(const Args& args) :
+    regStart(args.regStart), ip(args.ip), end(args.end),
+    pool(args.pool)
+    #if WATCH_EXEC
+    , dis(args.dis)
+    #endif
+    {}
