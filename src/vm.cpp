@@ -58,7 +58,7 @@ inline bool VM::isTruthy(const Object& obj)
         case OBJ_BOOL:      return AS_BOOL(obj);
         case OBJ_NULL:      return false;
         case OBJ_STRING:    return (AS_STRING(obj).str.size() != 0);
-        // Ranges are always truthy.
+        // Functions and ranges are always truthy.
         default:            return true;
     }
 }
