@@ -11,7 +11,7 @@ VarDecl::VarDecl(TokenType declType, const Token& name, ExprUP init) :
     Stmt(S_VAR_DECL),
     declType(declType), name(name), init(std::move(init)) {}
 
-FuncDecl::FuncDecl(const Token& name, const vT& params, StmtVec& body) :
+FuncDecl::FuncDecl(const Token& name, const vT& params, StmtUP& body) :
     Stmt(S_FUNC_DECL),
     name(name), params(params), body(std::move(body)) {}
 

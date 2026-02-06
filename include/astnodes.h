@@ -62,9 +62,9 @@ namespace AST
         {
             Token name;
             vT params;
-            StmtVec body;
+            StmtUP body;
 
-            FuncDecl(const Token& name, const vT& params, StmtVec& body);
+            FuncDecl(const Token& name, const vT& params, StmtUP& body);
         };
 
         struct ClassDecl : public Stmt
