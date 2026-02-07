@@ -180,8 +180,22 @@ void Compiler::varDecl()
     ui8* check = getVarSlot(name);
     if (check != nullptr)
     {
-         throw CompileError(name, "Variable '" + std::string(name.text)
-            + "' is already defined in this scope.");
+        #if ALLOW_REDEFS
+            ui8 varSlot = *check;
+            ui8 reg = previousReg;
+            if (consumeTok(TOK_EQUAL))
+            {
+                expression();
+                code.addOp(OP_SET_VAR, varSlot, reg);
+            }
+            else
+                code.loadReg(varSlot, OP_NULL);
+            matchError(TOK_SEMICOLON, "Expect ';' after variable declaration.");
+            return;
+        #else
+            throw CompileError(name, "Variable '" + std::string(name.text)
+                + "' is already defined in this scope.");
+        #endif
     }
 
     if (consumeTok(TOK_COLON))
@@ -212,17 +226,22 @@ void Compiler::funDecl()
 {
     matchError(TOK_IDENTIFIER, "Expect function name.");
     ui8* slot = getVarSlot(previousTok);
+    bool redefined = false;
     if (slot != nullptr)
     {
-        throw CompileError(previousTok, "Object '"
-            + std::string(previousTok.text)
-            + "' is already defined in this scope.");
+        #if ALLOW_REDEFS
+            redefined = true;
+        #else
+            throw CompileError(node->name, "Object '"
+                + std::string(node->name.text)
+                + "' is already defined in this scope.");
+        #endif
     }
 
     std::string name = std::string(previousTok.text);
     matchError(TOK_LEFT_PAREN, "Expect '(' after function name.");
 
-    ui8 varSlot = previousReg;
+    ui8 varSlot = (redefined ? *slot : previousReg);
     Compiler miniCompiler;
     if (!checkTok(TOK_RIGHT_PAREN))
     {
@@ -251,6 +270,12 @@ void Compiler::funDecl()
 
     ByteCode& funcCode = miniCompiler.code;
     Object func = ALLOC(Function, ObjDealloc<Function>, name, funcCode);
+
+    if (redefined)
+    {
+        code.loadRegConst(func, varSlot);
+        return;
+    }
 
     code.loadRegConst(func, varSlot);
 
