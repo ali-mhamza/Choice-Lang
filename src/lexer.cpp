@@ -164,8 +164,8 @@ void Lexer::makeToken(TokenType type)
 			default: break;
 		}
 	}
-	
-	stream.emplace_back(type, text, value, line, 
+
+	stream.emplace_back(type, text, value, line,
 		column - (current - start));
 }
 
