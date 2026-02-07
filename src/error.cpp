@@ -34,11 +34,11 @@ void CompileError::report()
     FORMAT_PRINT(stderr, "Compile Error");
     if (token.type != TOK_EOF)
     {
-        FORMAT_PRINT(" at '{}' [{}:{}]: {}\n",
+        FORMAT_PRINT(stderr, " at '{}' [{}:{}]: {}\n",
             token.text, token.line, token.position, message);
     }
     else
-        FORMAT_PRINT(" at end: {}\n", message);
+        FORMAT_PRINT(stderr, " at end: {}\n", message);
 }
 
 // RuntimeError.
@@ -52,9 +52,9 @@ void RuntimeError::report()
     FORMAT_PRINT(stderr, "Runtime Error");
     if (token.type != TOK_EOF)
     {
-        FORMAT_PRINT(" at '{}' [{}:{}]: {}\n",
+        FORMAT_PRINT(stderr, " at '{}' [{}:{}]: {}\n",
             token.text, token.line, token.position, message);
     }
     else
-        FORMAT_PRINT(" at end: {}\n", message);
+        FORMAT_PRINT(stderr, " at end: {}\n", message);
 }
