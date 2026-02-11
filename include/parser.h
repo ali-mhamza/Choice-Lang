@@ -1,14 +1,39 @@
 #pragma once
 #include "astnodes.h"
+#include "error.h"
 
 class Parser
 {
+    #undef REPORT_ERROR
+    #define REPORT_SYNTAX(...)                  \
+        do {                                    \
+            hitError = true;                    \
+            if (syntaxError) return nullptr;    \
+            CompileError(__VA_ARGS__).report(); \
+            syntaxError = true;                 \
+            return nullptr;                     \
+        } while (false)
+
+    #define REPORT_SEMANTIC(...)                \
+        do {                                    \
+            hitError = true;                    \
+            if (semanticError) return nullptr;  \
+            CompileError(__VA_ARGS__).report(); \
+            semanticError = true;               \
+            return nullptr;                     \
+        } while (false)
+
+    #define MATCH_TOK(...)                      \
+        if (!matchError(__VA_ARGS__)) return nullptr;
+    
     private:
         StmtVec program;
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
-        bool inMatch, inFunc, fall; // For match-is structures.
+        bool inMatch, inFunc, fall; // For structures.
+        bool syntaxError, semanticError; // We are currently in an error state.
+        bool hitError;
 
         // Utilities.
 
@@ -17,11 +42,11 @@ class Parser
         bool consumeTok(TokenType type);
         template<typename... Type>
         bool consumeToks(Type... toks);
-        void matchError(TokenType type, std::string_view message);
+        bool matchError(TokenType type, std::string_view message);
         bool consumeType();
+        void matchType(std::string_view message = "");
         // Bring the compiler back to a proper state.
         void reset();
-        TokenType matchType(std::string_view message = "");
 
         // Recursive descent parsing functions.
 

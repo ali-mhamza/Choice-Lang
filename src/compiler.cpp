@@ -37,9 +37,10 @@ Compiler::Compiler() :
     previousReg(0), scope(0),
     varsWrapper(new TokCompVarsWrapper),
     labelsWrapper(new TokCompLoopLabels),
-    inMatch(false), inFunc(false), fall(false),
     endJumps(nullptr), breakJumps(nullptr),
-    continueJumps(nullptr) {}
+    continueJumps(nullptr), inMatch(false),
+    inFunc(false), fall(false), syntaxError(false),
+    semanticError(false), hitError(false) {}
 
 Compiler::~Compiler()
 {
@@ -120,11 +121,20 @@ inline bool Compiler::consumeToks(Type... toks)
     return false;
 }
 
-// Basic implementation.
-inline void Compiler::matchError(TokenType type, std::string_view message)
+inline bool Compiler::matchError(TokenType type, std::string_view message)
 {
     if (!consumeTok(type))
-        throw CompileError(currentTok, std::string(message));
+    {
+        hitError = true;
+        if (!semanticError)
+        {
+            CompileError(currentTok, std::string(message)).report();
+            semanticError = true;
+        }
+        return false;
+    }
+
+    return true;
 }
 
 inline bool Compiler::consumeType()
@@ -139,10 +149,35 @@ inline bool Compiler::consumeType()
     return false;
 }
 
+void Compiler::reset()
+{
+    while (!checkTok(TOK_EOF))
+    {
+        if ((previousTok.type == TOK_SEMICOLON)
+            || (previousTok.type == TOK_RIGHT_BRACE))
+                return;
+
+        switch (currentTok.type)
+        {
+            case TOK_IF:        case TOK_ELIF:      case TOK_ELSE:
+            case TOK_WHILE:     case TOK_FOR:       case TOK_REPEAT:
+            case TOK_UNTIL:     case TOK_BREAK:     case TOK_CONT:
+            case TOK_MATCH:     case TOK_IS:        case TOK_FALL:
+            case TOK_END:       case TOK_MAKE:      case TOK_FIX:
+            case TOK_FUNC:      case TOK_RETURN:
+            case TOK_IDENTIFIER:
+            case TOK_LEFT_BRACE: 
+                return;
+            default:
+                nextTok();
+        }
+    }
+}
+
 inline void Compiler::matchType(std::string_view message /* = "" */)
 {
     if (!consumeType())
-        throw CompileError(currentTok, std::string(message));
+        REPORT_SYNTAX(currentTok, std::string(message));
 }
 
 void Compiler::compileDescent(void (Compiler::*func)(),
@@ -160,6 +195,16 @@ void Compiler::compileDescent(void (Compiler::*func)(),
     }
 }
 
+void Compiler::setCompilerData(const CompilerData& data)
+{
+    this->inFunc = data.inFunc;
+    this->syntaxError = data.syntaxError;
+    this->semanticError = data.semanticError;
+    this->it = data.it;
+    this->previousTok = data.previousTok;
+    this->currentTok = data.currentTok;
+}
+
 void Compiler::declaration()
 {
     if (consumeToks(TOK_MAKE, TOK_FIX))
@@ -168,13 +213,22 @@ void Compiler::declaration()
         funDecl();
     else
         statement();
+
+    // Reset here in case we need to reset
+    // while within a block statement.
+    if (syntaxError || semanticError)
+    {
+        reset();
+        syntaxError = false;
+        semanticError = false;
+    }
 }
 
 void Compiler::varDecl()
 {
     TokenType declType = previousTok.type;
     consumeTok(TOK_DEF); // In case it's there.
-    matchError(TOK_IDENTIFIER, "Expect variable name.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect variable name.");
     Token name = previousTok;
 
     ui8* check = getVarSlot(name);
@@ -190,10 +244,10 @@ void Compiler::varDecl()
             }
             else
                 code.loadReg(varSlot, OP_NULL);
-            matchError(TOK_SEMICOLON, "Expect ';' after variable declaration.");
+            MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
             return;
         #else
-            throw CompileError(name, "Variable '" + std::string(name.text)
+            REPORT_SEMANTIC(name, "Variable '" + std::string(name.text)
                 + "' is already defined in this scope.");
         #endif
     }
@@ -205,14 +259,20 @@ void Compiler::varDecl()
     if (consumeTok(TOK_EQUAL))
         expression();
     else if (declType == TOK_FIX)
-        throw CompileError(currentTok,
-            "Initializer required for fixed-value variable.");
+    {
+        if (currentTok.type == TOK_SEMICOLON)
+            REPORT_SEMANTIC(currentTok,
+                "Initializer required for fixed-value variable.");
+        else
+            REPORT_SYNTAX(currentTok,
+                "Expect '=' before initializer for fixed-value variable.");
+    }
     else
     {
         code.loadReg(slot, OP_NULL);
         reserveReg();
     }
-    matchError(TOK_SEMICOLON, "Expect ';' after variable declaration.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
 
     defVar(
         std::string(name.text),
@@ -224,7 +284,7 @@ void Compiler::varDecl()
 
 void Compiler::funDecl()
 {
-    matchError(TOK_IDENTIFIER, "Expect function name.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
     ui8* slot = getVarSlot(previousTok);
     bool redefined = false;
     if (slot != nullptr)
@@ -232,34 +292,32 @@ void Compiler::funDecl()
         #if ALLOW_REDEFS
             redefined = true;
         #else
-            throw CompileError(node->name, "Object '"
-                + std::string(node->name.text)
+            REPORT_SEMANTIC(node->name,
+                "Object '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
         #endif
     }
 
     std::string name = std::string(previousTok.text);
-    matchError(TOK_LEFT_PAREN, "Expect '(' after function name.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after function name.");
 
     ui8 varSlot = (redefined ? *slot : previousReg);
     Compiler miniCompiler;
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
-            matchError(TOK_IDENTIFIER, "Expect parameter name.");
+            MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
             ui8 reg = miniCompiler.previousReg;
             miniCompiler.defVar(std::string(previousTok.text), reg);
             miniCompiler.defAccess(reg, accessVar);
             miniCompiler.reserveReg();
         } while (consumeTok(TOK_COMMA));
     }
-    matchError(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
-    matchError(TOK_LEFT_BRACE, "Expect '{' before function body.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before function body.");
 
-    miniCompiler.inFunc = true;
-    miniCompiler.it = this->it;
-    miniCompiler.currentTok = this->currentTok;
-
+    miniCompiler.setCompilerData({ inFunc, syntaxError, semanticError,
+        it, previousTok, currentTok });
     miniCompiler.blockStmt();
     miniCompiler.code.addOp(OP_VOID, 0);
     miniCompiler.code.addOp(OP_RETURN, 0);
@@ -271,13 +329,8 @@ void Compiler::funDecl()
     ByteCode& funcCode = miniCompiler.code;
     Object func = ALLOC(Function, ObjDealloc<Function>, name, funcCode);
 
-    if (redefined)
-    {
-        code.loadRegConst(func, varSlot);
-        return;
-    }
-
     code.loadRegConst(func, varSlot);
+    if (redefined) return;
 
     defVar(name, varSlot);
     defAccess(varSlot, accessFix); // Temporarily.
@@ -304,26 +357,26 @@ void Compiler::statement()
         blockStmt();
     else if (consumeTok(TOK_CONT))
     {
-        matchError(TOK_SEMICOLON, "Expect ';' after 'continue'.");
+        MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'continue'.");
         this->continueJumps->push_back(code.addJump(OP_JUMP));
     }
     else if (consumeTok(TOK_FALL))
     {
         if (!inMatch)
-            throw CompileError(previousTok, "Invalid instruction 'fallthrough'" \
+            REPORT_SEMANTIC(previousTok, "Invalid instruction 'fallthrough'" \
                 " outside of match-is structure.");
-        matchError(TOK_SEMICOLON, "Expect ';' after 'fallthrough'.");
+        MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'fallthrough'.");
         if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
-            throw CompileError(currentTok,
+            REPORT_SEMANTIC(currentTok,
                 "Cannot have a statement following a 'fallthrough' instruction.");
         fall = true;
     }
     else if (consumeTok(TOK_END))
     {
         if (!inMatch)
-            throw CompileError(previousTok,
+            REPORT_SEMANTIC(previousTok,
                 "Invalid instruction 'end' outside of match-is structure.");
-        matchError(TOK_SEMICOLON, "Expect ';' after 'end'.");
+        MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'end'.");
         this->endJumps->push_back(code.addJump(OP_JUMP));
     }
     else
@@ -332,10 +385,10 @@ void Compiler::statement()
 
 void Compiler::ifStmt()
 {
-    matchError(TOK_LEFT_PAREN, "Expect '(' after 'if'.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'if'.");
     ui8 reg = previousReg;
     expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
     freeReg();
@@ -361,7 +414,7 @@ void Compiler::whileLoopHelper(ui64 loopStart, ui64 falseJump)
     Token label;
     if (consumeTok(TOK_COLON))
     {
-        matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
+        MATCH_TOK(TOK_IDENTIFIER, "Expect loop label after ':'.");
         label = previousTok;
         this->labelsWrapper->labels.add(
             std::string(label.text),
@@ -396,7 +449,7 @@ void Compiler::whileLoopHelper(ui64 loopStart, ui64 falseJump)
 
 void Compiler::whileStmt()
 {
-    matchError(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
     ui8 reg = previousReg;
     ui64 loopStart = code.getLoopStart();
 
@@ -411,7 +464,7 @@ void Compiler::whileStmt()
     expression();
     ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
     freeReg();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     whileLoopHelper(loopStart, falseJump);
 
@@ -433,12 +486,12 @@ void Compiler::forLoopHelper(ui8 varReg, ui8 iterReg)
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
     }
 
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     Token label; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
-        matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
+        MATCH_TOK(TOK_IDENTIFIER, "Expect loop label after ':'.");
         label = previousTok;
         this->labelsWrapper->labels.add(
             std::string(label.text),
@@ -488,16 +541,15 @@ void Compiler::forStmt()
     auto prevContinues = continueJumps;
     continueJumps = &continues;
 
-    matchError(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
-    if (!consumeTok(TOK_IDENTIFIER))
-        throw CompileError(currentTok, "Expect loop variable identifier.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect loop variable identifier.");
     Token var = previousTok;
     ui8 varReg = previousReg;
     defVar(std::string(var.text), varReg);
     defAccess(varReg, accessFix); // For now.
     reserveReg();
 
-    matchError(TOK_IN, "Expect 'in' keyword after loop identifier.");
+    MATCH_TOK(TOK_IN, "Expect 'in' keyword after loop identifier.");
     ui8 iterReg = previousReg;
     expression();
 
@@ -518,14 +570,23 @@ ui64 Compiler::matchCaseHelper(const ui8 matchReg, ui64& fallJump,
     ui64 retJump = 0;
     Token errorToken = currentTok;
     if (!IS_LITERAL(errorToken.type))
-        throw CompileError(errorToken, "Case value must be a literal.");
+    {
+        // Must report manually since function is not void.
+        hitError = true;
+        if (!semanticError)
+        {
+            CompileError(errorToken, "Case value must be a literal.").report();
+            semanticError = true;
+        }
+        return UINT64_MAX;
+    }
 
     ui8 caseReg = previousReg;
     primary(); // Compile the literal.
     code.addOp(OP_EQUAL, caseReg, matchReg, caseReg);
     ui64 falseJump = code.addJump(OP_JUMP_FALSE, caseReg);
     freeReg();
-    matchError(TOK_COLON, "Expect ':' before case body.");
+    if (!matchError(TOK_COLON, "Expect ':' before case body.")) return UINT64_MAX;
 
     if (fallJump != 0) // We skip condition checking during fallthrough.
         code.patchJump(fallJump);
@@ -557,11 +618,11 @@ void Compiler::matchStmt()
     bool prevInMatch = inMatch;
     inMatch = true;
     
-    matchError(TOK_LEFT_PAREN, "Expect '(' before match value.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before match value.");
     ui8 matchReg = previousReg;
     expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after match value.");
-    matchError(TOK_LEFT_BRACE, "Expect '{' before match cases.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after match value.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before match cases.");
 
     int caseCount = 0;
     ui64 fallJump = 0; // Invalid jump offset value.
@@ -574,10 +635,10 @@ void Compiler::matchStmt()
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
         if (caseCount == MATCH_CASES_MAX)
-            throw CompileError(currentTok,
+            REPORT_SEMANTIC(currentTok,
                 "Too many cases in match-is structure.");
         
-        matchError(TOK_IS, "Expect 'is' before case value.");
+        MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
         bool defaultCase = false;
 
         ui64 retJump = 0;
@@ -593,17 +654,19 @@ void Compiler::matchStmt()
         fall = false;
         if (retJump != 0)
             jumps.push_back(retJump);
+        else if (retJump == UINT64_MAX)
+            return;
         if (defaultCase)
         {
             if (consumeTok(TOK_IS))
-                throw CompileError(previousTok,
+                REPORT_SEMANTIC(previousTok,
                     "Cannot have another case after the default case.");
             else
                 break;
         }
     }
 
-    matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
+    MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
     for (ui64 jump : jumps)
         code.patchJump(jump);
     freeReg(); // Remove the match value.
@@ -614,16 +677,16 @@ void Compiler::matchStmt()
 
 void Compiler::repeatStmt()
 {
-    matchError(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
     ui64 loopStart = code.getLoopStart();
     blockStmt(); // Will consume the '}'.
 
-    matchError(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
-    matchError(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
+    MATCH_TOK(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
     ui8 reg = previousReg;
     expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
-    matchError(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
 
     ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
     freeReg();
@@ -634,14 +697,14 @@ void Compiler::repeatStmt()
 void Compiler::returnStmt()
 {
     if (!inFunc)
-        throw CompileError(previousTok,
+        REPORT_SEMANTIC(previousTok,
             "Cannot use 'return' outside a function.");
     ui8 reg = previousReg;
     if (checkTok(TOK_SEMICOLON))
         code.addOp(OP_VOID, reg);
     else
         expression();
-    matchError(TOK_SEMICOLON, "Expect ';' after return statement.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after return statement.");
     code.addOp(OP_RETURN, reg);
 }
 
@@ -655,13 +718,13 @@ void Compiler::breakStmt()
         );
 
         if (vec == nullptr)
-            throw CompileError(label, "Break label is not assigned to any loop.");
+            REPORT_SEMANTIC(label, "Break label is not assigned to any loop.");
         vec->push_back(code.addJump(OP_JUMP));
     }
     else
         this->breakJumps->push_back(code.addJump(OP_JUMP));
 
-    matchError(TOK_SEMICOLON, "Expect ';' after 'break'.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'break'.");
 }
 
 void Compiler::blockStmt()
@@ -671,7 +734,7 @@ void Compiler::blockStmt()
     ui8 origVarReg = previousReg;
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         declaration();
-    matchError(TOK_RIGHT_BRACE, "Expect '}' after block.");
+    MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after block.");
     popScope();
     varScopes.pop();
     scope--;
@@ -681,7 +744,7 @@ void Compiler::blockStmt()
 void Compiler::exprStmt()
 {
     expression();
-    matchError(TOK_SEMICOLON, "Expect ';' after expression.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after expression.");
     freeReg();
 }
 
@@ -732,7 +795,7 @@ void Compiler::assignment()
     if (IS_ASSIGN(secondTok.type))
     {
         if (firstTok.type != TOK_IDENTIFIER)
-            throw CompileError(firstTok, "Invalid assignment target.");
+            REPORT_SEMANTIC(firstTok, "Invalid assignment target.");
         
         nextTok();
         ui8* slot = getVarSlot(previousTok);
@@ -741,7 +804,7 @@ void Compiler::assignment()
             nextTok();
             bool access = getAccess(*slot);
             if (access == accessFix)
-                throw CompileError(
+                REPORT_SEMANTIC(
                     secondTok, "Cannot assign to a fixed-value variable."
                 );
             if (secondTok.type != TOK_EQUAL)
@@ -754,7 +817,7 @@ void Compiler::assignment()
             }
         }
         else
-            throw CompileError(previousTok, "Undefined variable '"
+            REPORT_SEMANTIC(previousTok, "Undefined variable '"
                 + std::string(previousTok.text) + "'.");
     }
     else
@@ -922,13 +985,13 @@ void Compiler::product()
 void Compiler::_crementExpr(TokenType oper, bool prev)
 {
     // Temporarily assuming only regular identifier variables.
-    matchError(TOK_IDENTIFIER, "Invalid increment/decrement target.");
+    MATCH_TOK(TOK_IDENTIFIER, "Invalid increment/decrement target.");
     ui8* slot = getVarSlot(previousTok);
     if (slot != nullptr)
     {
         bool access = getAccess(*slot);
         if (access == accessFix)
-            throw CompileError(
+            REPORT_SEMANTIC(
                 previousTok, "Cannot modify a fixed-value variable."
             );
         else
@@ -946,7 +1009,7 @@ void Compiler::_crementExpr(TokenType oper, bool prev)
         }
     }
     else
-        throw CompileError(previousTok, "Undefined variable '"
+        REPORT_SEMANTIC(previousTok, "Undefined variable '"
             + std::string(previousTok.text) + "'.");
 }
 
@@ -1003,14 +1066,17 @@ void Compiler::call()
         ui8 location;
         if (builtin)
         {
-            Natives::FuncType func = Natives::builtins.find(funcName.text)->second;
-            location = static_cast<ui8>(func);
+            auto find = Natives::builtins.find(funcName.text);
+            if (find == Natives::builtins.end())
+                REPORT_SEMANTIC(funcName, "No builtin '"
+                    + std::string(funcName.text) + "' function.");
+            location = static_cast<ui8>(find->second);
         }
         else
         {
             ui8* ptr = getVarSlot(funcName);
             if (ptr == nullptr)
-                throw CompileError(funcName, "Undefined variable '"
+                REPORT_SEMANTIC(funcName, "Undefined variable '"
                     + std::string(funcName.text) + "'.");
             location = *ptr;
         }
@@ -1024,7 +1090,7 @@ void Compiler::call()
                 argCount++;
             } while (consumeTok(TOK_COMMA));
         }
-        matchError(TOK_RIGHT_PAREN, "Expect ')' following function arguments.");
+        MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' following function arguments.");
 
         code.addOp(builtin ? OP_CALL_NAT : OP_CALL_DEF,
             location, startReg, argCount);
@@ -1055,16 +1121,16 @@ void Compiler::post()
 void Compiler::ifExpr()
 {
     ui8 reg = previousReg;
-    matchError(TOK_LEFT_PAREN, "Expect '(' before condition.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before condition.");
     expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
     ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
     freeReg();
 
-    matchError(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
     ui8 current = previousReg;
     expression();
-    matchError(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
+    MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
     ui64 trueJump = code.addJump(OP_JUMP);
     code.patchJump(falseJump);
 
@@ -1074,12 +1140,12 @@ void Compiler::ifExpr()
         ifExpr();
     else if (consumeTok(TOK_ELSE))
     {
-        matchError(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
+        MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
         expression();
-        matchError(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
+        MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
     }
     else
-        throw CompileError(currentTok,
+        REPORT_SEMANTIC(currentTok,
             "A conditional expression must have a false-case branch.");
 
     code.patchJump(trueJump);
@@ -1132,40 +1198,38 @@ void Compiler::primary()
             reserveReg();
         }
         else
-            throw CompileError(previousTok, "Undefined variable '"
+            REPORT_SEMANTIC(previousTok, "Undefined variable '"
                 + std::string(previousTok.text) + "'.");
     }
 
     else if (consumeTok(TOK_LEFT_PAREN))
     {
         expression();
-        matchError(TOK_RIGHT_PAREN, "Expect closing parenthesis ')'.");
+        MATCH_TOK(TOK_RIGHT_PAREN, "Expect closing parenthesis ')'.");
     }
 
     else if (consumeTok(TOK_IF))
         ifExpr();
     
     else
-        throw CompileError(currentTok, "Invalid token in current position.");
+        REPORT_SYNTAX(currentTok, "Invalid token in current position.");
 }
 
 ByteCode& Compiler::compile(const vT& tokens)
 {
-    currentTok = tokens[0];
+    code.clear(); // In case we want to reuse the compiler.
+    if (tokens.empty()) return code;
+
     it = tokens.begin();
-    code.clear();
+    currentTok = tokens[0];
+    syntaxError = false;
+    semanticError = false;
+    hitError = false;
 
-    try
-    {
-        while (!checkTok(TOK_EOF))
-            declaration();
-    }
-    catch (CompileError& error)
-    {
-        error.report();
-        code.clear();
-    }
+    while (!checkTok(TOK_EOF))
+        declaration();
 
+    if (hitError) code.clear();
     return code;
 }
 

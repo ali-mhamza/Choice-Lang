@@ -22,14 +22,22 @@ class ASTCompiler
 {
     #define DECL(type)  void compile##type(UP(type) node)
     #define DEF(type)   void ASTCompiler::compile##type(UP(type) node)
-    #define COMPILE(type) \
-        do { \
+    #define COMPILE(type)                                   \
+        do {                                                \
             type* ptr = static_cast<type*>(node.release()); \
-            compile##type(UP(type)(ptr)); \
+            compile##type(UP(type)(ptr));                   \
         } while (false)
 
-    #define GET_STR(tok) \
-        normalizeNewlines( \
+    #undef REPORT_ERROR
+    #define REPORT_ERROR(...)                   \
+        do {                                    \
+            CompileError(__VA_ARGS__).report(); \
+            hitError = true;                    \
+            return;                             \
+        } while (false)
+
+    #define GET_STR(tok)                                \
+        normalizeNewlines(                              \
             (tok).text.substr(1, (tok).text.size() - 2) \
         )
 
@@ -41,6 +49,7 @@ class ASTCompiler
         ASTCompVarsWrapper* varsWrapper;
         ASTCompLoopLabels* labelsWrapper;
         std::vector<ui64> *endJumps, *breakJumps, *continueJumps;
+        bool hitError;
 
         // Variables.
 

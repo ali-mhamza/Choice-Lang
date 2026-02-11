@@ -106,8 +106,8 @@ DEF(VarDecl)
             return;
             
         #else
-            throw CompileError(node->name, "Variable '"
-                + std::string(node->name.text)
+            REPORT_ERROR(node->name,
+                "Variable '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
         #endif
     }
@@ -144,8 +144,8 @@ DEF(FuncDecl)
         #if ALLOW_REDEFS
             redefined = true;
         #else
-            throw CompileError(node->name, "Object '"
-                + std::string(node->name.text)
+            REPORT_ERROR(node->name,
+                "Object '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
         #endif
     }
@@ -422,7 +422,7 @@ DEF(BreakStmt)
             std::string(node->label.text)
         );
         if (vec == nullptr)
-            throw CompileError(node->label,
+            REPORT_ERROR(node->label,
                 "Break label is not assigned to any loop.");
         else
             vec->push_back(code.addJump(OP_JUMP));
@@ -494,11 +494,11 @@ DEF(AssignExpr)
     {
         VarExpr* temp = static_cast<VarExpr*>(node->target.release());
         UP(VarExpr) varUP = UP(VarExpr)(temp);
-        throw CompileError(varUP->name, "Undefined variable '"
+        REPORT_ERROR(varUP->name, "Undefined variable '"
             + std::string(varUP->name.text) + "'.");
     }
     else if (getAccess(*ptr) == accessFix)
-        throw CompileError(node->oper,
+        REPORT_ERROR(node->oper,
             "Cannot assign to a fixed-value variable.");
 
     if (node->oper.type != TOK_EQUAL)
@@ -636,7 +636,7 @@ DEF(BinaryExpr)
 void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
 {
     if (node->expr->type != E_VAR_EXPR)
-        throw CompileError(node->oper,
+        REPORT_ERROR(node->oper,
             "Invalid increment/decrement target.");
     ui8* ptr = getVarSlot(node->expr);
     // Temporarily assuming regular variables only.
@@ -644,11 +644,11 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
     {
         VarExpr* temp = static_cast<VarExpr*>(node->expr.release());
         UP(VarExpr) varUP = UP(VarExpr)(temp);
-        throw CompileError(varUP->name, "Undefined variable '"
+        REPORT_ERROR(varUP->name, "Undefined variable '"
             + std::string(varUP->name.text) + "'.");
     }
     else if (getAccess(*ptr) == accessFix)
-        throw CompileError(node->oper,
+        REPORT_ERROR(node->oper,
             "Cannot modify a fixed-value variable.");
 
     if (node->prev) // Load the original value.
@@ -699,7 +699,7 @@ DEF(CallExpr)
     {
         auto find = Natives::builtins.find(var->name.text);
         if (find == Natives::builtins.end())
-            throw CompileError(var->name, "No builtin '"
+            REPORT_ERROR(var->name, "No builtin '"
                 + std::string(var->name.text) + "' function.");
         location = static_cast<ui8>(find->second);
     }
@@ -707,7 +707,7 @@ DEF(CallExpr)
     {
         ui8* ptr = getVarSlot(var->name);
         if (ptr == nullptr)
-            throw CompileError(var->name, "Undefined variable '"
+            REPORT_ERROR(var->name, "Undefined variable '"
                 + std::string(var->name.text) + "'.");
         location = *ptr;
     }
@@ -749,10 +749,8 @@ DEF(VarExpr)
 {
     ui8* ptr = getVarSlot(node->name);
     if (ptr == nullptr)
-    {
-        throw CompileError(node->name, "Undefined variable '"
+        REPORT_ERROR(node->name, "Undefined variable '"
             + std::string(node->name.text) + "'.");
-    }
     code.addOp(OP_GET_VAR, previousReg, *ptr);
     reserveReg();
 }
@@ -849,18 +847,10 @@ void ASTCompiler::compileStmt(StmtUP& node)
 ByteCode& ASTCompiler::compile(StmtVec& program)
 {
     code.clear();
+    for (StmtUP& node : program)
+        compileStmt(node);
 
-    try
-    {
-        for (StmtUP& node : program)
-            compileStmt(node);
-    }
-    catch (CompileError& error)
-    {
-        error.report();
-        code.clear();
-    }
-
+    if (hitError) code.clear();
     return code;
 }
 

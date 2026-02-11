@@ -9,7 +9,9 @@ using namespace AST::Statement;
 using namespace AST::Expression;
 
 Parser::Parser() :
-    inMatch(false), inFunc(false), fall(false) {}
+    inMatch(false), inFunc(false), fall(false),
+    syntaxError(false), semanticError(false),
+    hitError(false) {}
 
 void Parser::nextTok()
 {
@@ -48,11 +50,20 @@ bool Parser::consumeToks(Type... toks)
     return false;
 }
 
-// Basic implementation.
-void Parser::matchError(TokenType type, std::string_view message)
+bool Parser::matchError(TokenType type, std::string_view message)
 {
     if (!consumeTok(type))
-        throw CompileError(currentTok, std::string(message));
+    {
+        hitError = true;
+        if (!semanticError)
+        {
+            CompileError(currentTok, std::string(message)).report();
+            semanticError = true;
+        }
+        return false;
+    }
+
+    return true;
 }
 
 bool Parser::consumeType()
@@ -67,11 +78,43 @@ bool Parser::consumeType()
     return false;
 }
 
-TokenType Parser::matchType(std::string_view message /* = "" */)
+void Parser::reset()
 {
+    while (!checkTok(TOK_EOF))
+    {
+        if ((previousTok.type == TOK_SEMICOLON)
+            || (previousTok.type == TOK_RIGHT_BRACE))
+                return;
+
+        switch (currentTok.type)
+        {
+            case TOK_IF:        case TOK_ELIF:      case TOK_ELSE:
+            case TOK_WHILE:     case TOK_FOR:       case TOK_REPEAT:
+            case TOK_UNTIL:     case TOK_BREAK:     case TOK_CONT:
+            case TOK_MATCH:     case TOK_IS:        case TOK_FALL:
+            case TOK_END:       case TOK_MAKE:      case TOK_FIX:
+            case TOK_FUNC:      case TOK_RETURN:
+            case TOK_IDENTIFIER:
+            case TOK_LEFT_BRACE:
+                return;
+            default:
+                nextTok();
+        }
+    }
+}
+
+void Parser::matchType(std::string_view message /* = "" */)
+{
+    // Must report manually since function is void.
     if (!consumeType())
-        throw CompileError(currentTok, std::string(message));
-    return previousTok.type;
+    {
+        hitError = true;
+        if (!syntaxError)
+        {
+            CompileError(currentTok, std::string(message)).report();
+            syntaxError = true;
+        }
+    }
 }
 
 StmtUP Parser::declaration()
@@ -89,7 +132,7 @@ StmtUP Parser::varDecl()
     TokenType declType = previousTok.type;
     consumeTok(TOK_DEF); // In case it's there.
 
-    matchError(TOK_IDENTIFIER, "Expect variable name.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect variable name.");
     Token name = previousTok;
 
     if (consumeTok(TOK_COLON))
@@ -99,36 +142,46 @@ StmtUP Parser::varDecl()
     if (consumeTok(TOK_EQUAL))
         init = expression();
     else if (declType == TOK_FIX)
-        throw CompileError(currentTok, 
-            "Initializer required for fixed-value variable.");
+    {
+        if (currentTok.type == TOK_SEMICOLON)
+            REPORT_SEMANTIC(currentTok,
+                "Initializer required for fixed-value variable.");
+        else
+            REPORT_SYNTAX(currentTok,
+                "Expect '=' before initializer for fixed-value variable.");
+    }
 
-    matchError(TOK_SEMICOLON, "Expect ';' after variable declaration.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
 
-    return StmtUP(std::make_unique<VarDecl>(declType, name, 
+    return StmtUP(std::make_unique<VarDecl>(declType, name,
         std::move(init)));
 }
 
 StmtUP Parser::funDecl()
 {
-    matchError(TOK_IDENTIFIER, "Expect function name.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
     Token name = previousTok;
-    matchError(TOK_LEFT_PAREN, "Expect '(' after function name.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after function name.");
 
     vT params;
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
-            matchError(TOK_IDENTIFIER, "Expect parameter name.");
+            MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
             params.emplace_back(previousTok);
         } while (consumeTok(TOK_COMMA));
     }
-    matchError(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
-    matchError(TOK_LEFT_BRACE, "Expect '{' before function body.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before function body.");
 
-    bool prevInFunc = inFunc;
-    inFunc = true;
-    StmtUP body = blockStmt();
-    inFunc = prevInFunc;
+    StmtUP body = nullptr;
+    if (previousTok.type == TOK_LEFT_BRACE)
+    {
+        bool prevInFunc = inFunc;
+        inFunc = true;
+        body = blockStmt();
+        inFunc = prevInFunc;
+    }
 
     return StmtUP(std::make_unique<FuncDecl>(name, params, body));
 }
@@ -153,17 +206,17 @@ StmtUP Parser::statement()
         return blockStmt();
     else if (consumeTok(TOK_CONT))
     {
-        matchError(TOK_SEMICOLON, "Expect ';' after 'continue'.");
+        MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'continue'.");
         return std::make_unique<ContinueStmt>();
     }
     else if (consumeTok(TOK_FALL))
     {
         if (!inMatch)
-            throw CompileError(previousTok, "Invalid instruction 'fallthrough'" \
+            REPORT_SEMANTIC(previousTok, "Invalid instruction 'fallthrough'" \
                 " outside of match-is structure.");
-        matchError(TOK_SEMICOLON, "Expect ';' after 'fallthrough'.");
+        MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'fallthrough'.");
         if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
-            throw CompileError(currentTok,
+            REPORT_SEMANTIC(currentTok,
                 "Cannot have a statement following a 'fallthrough' instruction.");
         fall = true;
         return nullptr;
@@ -171,9 +224,9 @@ StmtUP Parser::statement()
     else if (consumeTok(TOK_END))
     {
         if (!inMatch)
-            throw CompileError(previousTok,
+            REPORT_SEMANTIC(previousTok,
                 "Invalid instruction 'end' outside of match-is structure.");
-        matchError(TOK_SEMICOLON, "Expect ';' after 'end'.");
+        MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'end'.");
         return std::make_unique<EndStmt>();
     }
     return exprStmt();
@@ -181,9 +234,9 @@ StmtUP Parser::statement()
 
 StmtUP Parser::ifStmt()
 {
-    matchError(TOK_LEFT_PAREN, "Expect '(' after 'if'.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'if'.");
     ExprUP condition = expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     StmtUP trueBranch = statement();
     StmtUP falseBranch = nullptr;
@@ -200,13 +253,13 @@ StmtUP Parser::ifStmt()
 
 StmtUP Parser::whileStmt()
 {
-    matchError(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
     ExprUP condition = expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
     Token label; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
-        matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
+        MATCH_TOK(TOK_IDENTIFIER, "Expect loop label after ':'.");
         label = previousTok;
     }
     StmtUP body = statement();
@@ -220,22 +273,21 @@ StmtUP Parser::whileStmt()
 
 StmtUP Parser::forStmt()
 {
-    matchError(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
-    if (!consumeTok(TOK_IDENTIFIER))
-        throw CompileError(currentTok, "Expect loop variable identifier.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect loop variable identifier.");
     Token var = previousTok;
-    matchError(TOK_IN, "Expect 'in' keyword after loop identifier.");
+    MATCH_TOK(TOK_IN, "Expect 'in' keyword after loop identifier.");
     ExprUP iter = expression();
 
     ExprUP where = nullptr;
     if (consumeTok(TOK_WHERE))
         where = expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     Token label; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
-        matchError(TOK_IDENTIFIER, "Expect loop label after ':'.");
+        MATCH_TOK(TOK_IDENTIFIER, "Expect loop label after ':'.");
         label = previousTok;
     }
 
@@ -253,21 +305,24 @@ StmtUP Parser::matchStmt()
     bool prevInMatch = inMatch;
     inMatch = true;
     
-    matchError(TOK_LEFT_PAREN, "Expect '(' before match value.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before match value.");
     ExprUP match = expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after match value.");
-    matchError(TOK_LEFT_BRACE, "Expect '{' before match cases.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after match value.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before match cases.");
 
     std::vector<MatchStmt::matchCase> cases;
+
+    if (previousTok.type != TOK_LEFT_BRACE)
+        return std::make_unique<MatchStmt>(std::move(match), cases);
     cases.reserve(MATCH_CASES_MAX);
 
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
         if (static_cast<int>(cases.size()) == MATCH_CASES_MAX)
-            throw CompileError(currentTok,
+            REPORT_SEMANTIC(currentTok,
                 "Too many cases in match-is structure.");
         
-        matchError(TOK_IS, "Expect 'is' before case value.");
+        MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
         ExprUP value;
         bool defaultCase = false;
         
@@ -281,11 +336,11 @@ StmtUP Parser::matchStmt()
             Token errorToken = currentTok;
             value = primary();
             if ((value == nullptr) || (value->type != E_LITERAL_EXPR))
-                throw CompileError(errorToken,
+                REPORT_SEMANTIC(errorToken,
                     "Case value must be a literal.");
         }
 
-        matchError(TOK_COLON, "Expect ':' before case body.");
+        MATCH_TOK(TOK_COLON, "Expect ':' before case body.");
         StmtUP body;
         if (checkTok(TOK_IS) || checkTok(TOK_RIGHT_BRACE))
             body = nullptr;
@@ -293,7 +348,7 @@ StmtUP Parser::matchStmt()
             body = statement();
 
         if (defaultCase && consumeTok(TOK_IS))
-            throw CompileError(previousTok,
+            REPORT_SEMANTIC(previousTok,
                 "Cannot have another case after the default case.");
 
         cases.emplace_back(
@@ -305,7 +360,7 @@ StmtUP Parser::matchStmt()
             break;
     }
 
-    matchError(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
+    MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after match-is structure.");
 
     inMatch = prevInMatch;
     return std::make_unique<MatchStmt>(std::move(match), cases);
@@ -313,13 +368,15 @@ StmtUP Parser::matchStmt()
 
 StmtUP Parser::repeatStmt()
 {
-    matchError(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
+    if (previousTok.type != TOK_LEFT_BRACE) return nullptr;
+
     StmtUP body = blockStmt(); // Will consume the '}'.
-    matchError(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
-    matchError(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
+    MATCH_TOK(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
     ExprUP condition = expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
-    matchError(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
 
     return std::make_unique<RepeatStmt>(std::move(condition),
         std::move(body));
@@ -328,14 +385,14 @@ StmtUP Parser::repeatStmt()
 StmtUP Parser::returnStmt()
 {
     if (!inFunc)
-        throw CompileError(previousTok,
+        REPORT_SEMANTIC(previousTok,
             "Cannot use 'return' outside a function.");
     
     Token keyword = previousTok;
     ExprUP expr = nullptr;
     if (!checkTok(TOK_SEMICOLON))
         expr = expression();
-    matchError(TOK_SEMICOLON, "Expect ';' after return statement.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after return statement.");
     return std::make_unique<ReturnStmt>(keyword, std::move(expr));
 }
 
@@ -346,7 +403,7 @@ StmtUP Parser::breakStmt()
     Token name;
     if (consumeTok(TOK_IDENTIFIER))
         name = previousTok;
-    matchError(TOK_SEMICOLON, "Expect ';' after 'break'.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'break'.");
     return std::make_unique<BreakStmt>(name);
 }
 
@@ -356,14 +413,14 @@ StmtUP Parser::blockStmt()
     block.reserve(10);
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         block.push_back(declaration());
-    matchError(TOK_RIGHT_BRACE, "Expect '}' after block.");
+    MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after block.");
     return std::make_unique<BlockStmt>(block);
 }
 
 StmtUP Parser::exprStmt()
 {
     StmtUP ptr = std::make_unique<ExprStmt>(expression());
-    matchError(TOK_SEMICOLON, "Expect ';' after expression.");
+    MATCH_TOK(TOK_SEMICOLON, "Expect ';' after expression.");
     return ptr;
 }
 
@@ -380,7 +437,7 @@ ExprUP Parser::assignment()
         nextTok();
         Token oper = previousTok;
         if ((target == nullptr) || (target->type != E_VAR_EXPR)) // Temporary.
-            throw CompileError(previousTok, "Invalid assignment target.");
+            REPORT_SEMANTIC(previousTok, "Invalid assignment target.");
         target = std::make_unique<AssignExpr>(std::move(target),
             oper, expression());
     }
@@ -558,7 +615,7 @@ ExprUP Parser::call()
         // Exception: builtin with ! token.
 
         if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
-            throw CompileError(previousTok,
+            REPORT_SEMANTIC(previousTok,
                 "Attempting to call a non-callable object.");
 
         ExprVec args;
@@ -568,7 +625,7 @@ ExprUP Parser::call()
                 args.push_back(expression());
             } while (consumeTok(TOK_COMMA));
         }
-        matchError(TOK_RIGHT_PAREN, "Expect ')' following function arguments.");
+        MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' following function arguments.");
         return std::make_unique<CallExpr>(std::move(expr), args, builtin,
             previousTok);
     }
@@ -583,7 +640,7 @@ ExprUP Parser::post()
     if (consumeToks(TOK_INCR, TOK_DECR))
     {
         if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
-            throw CompileError(previousTok,
+            REPORT_SEMANTIC(previousTok,
                 "Invalid increment/decrement target.");
         do {
             Token oper = previousTok;
@@ -596,25 +653,26 @@ ExprUP Parser::post()
 
 ExprUP Parser::ifExpr()
 {
-    matchError(TOK_LEFT_PAREN, "Expect '(' before condition.");
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before condition.");
     ExprUP condition = expression();
-    matchError(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
-    matchError(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
+    // Possibly return if no brace found?
+    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
     ExprUP trueBranch = expression();
-    matchError(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
+    MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
 
     ExprUP falseBranch = nullptr; // To avoid warnings.
     if (consumeTok(TOK_ELIF))
         falseBranch = ifExpr();
     else if (consumeTok(TOK_ELSE))
     {
-        matchError(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
+        MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
         falseBranch = expression();
-        matchError(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
+        MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
     }
     else
-        throw CompileError(currentTok,
+        REPORT_SEMANTIC(currentTok,
             "A conditional expression must have a false-case branch.");
 
     return ExprUP(std::make_unique<IfExpr>(std::move(condition),
@@ -635,34 +693,40 @@ ExprUP Parser::primary()
     else if (type == TOK_LEFT_PAREN)
     {
         ExprUP expr = expression();
-        matchError(TOK_RIGHT_PAREN, "Expect ')' after grouped expression.");
+        MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after grouped expression.");
         return expr;
     }
 
     else if (type == TOK_IF)
         return ifExpr();
     
-    throw CompileError(previousTok, "Invalid token in current position.");
+    REPORT_SYNTAX(previousTok, "Invalid token in current position.");
+    return nullptr;
 }
 
 StmtVec& Parser::parseToAST(const vT& tokens)
 {
+    program.clear(); // In case we want to reuse the parser.
+    if (tokens.empty()) return program;
+    
     it = tokens.begin();
     currentTok = tokens[0];
-    program.clear(); // In case we want to reuse the parser.
+    syntaxError = false;
+    semanticError = false;
 
-    try
+    while (!checkTok(TOK_EOF))
     {
-        while (!checkTok(TOK_EOF))
-            program.push_back(declaration());
-    }
-    catch (CompileError& error)
-    {
-        error.report();
-        program.clear(); // Temporarily.
-        // reset();
+        program.push_back(declaration());
+        if (syntaxError || semanticError)
+        {
+            reset();
+            syntaxError = semanticError = false;
+        }
     }
 
+    // Do not clear the AST nodes, even if errors occurred.
+    // This allows the AST compiler to report errors on valid
+    // nodes that parsed just fine.
     return program;
 }
 

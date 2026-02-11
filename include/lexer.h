@@ -11,6 +11,14 @@ struct ClassState
 
 class Lexer
 {
+    #undef REPORT_ERROR
+    #define REPORT_ERROR(...)               \
+        do {                                \
+            LexError(__VA_ARGS__).report(); \
+            hitError = true;                \
+            return;                         \
+        } while (false)
+    
     private:
         const char* start;
         const char* current;
@@ -19,6 +27,7 @@ class Lexer
         ui16 line;
         ui8 column;
         ClassState state;
+        bool hitError;
 
         // Utilities.
 

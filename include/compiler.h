@@ -17,23 +17,57 @@ class TokCompLoopLabels;
 
 class Compiler
 {
-    #define GET_STR(tok) \
-        normalizeNewlines( \
+    #define REPORT_SYNTAX(...)                  \
+        do {                                    \
+            hitError = true;                    \
+            if (syntaxError) return;            \
+            CompileError(__VA_ARGS__).report(); \
+            syntaxError = true;                 \
+            return;                             \
+        } while (false)
+
+    #define REPORT_SEMANTIC(...)                \
+        do {                                    \
+            hitError = true;                    \
+            if (semanticError) return;          \
+            CompileError(__VA_ARGS__).report(); \
+            semanticError = true;               \
+            return;                             \
+        } while (false)
+
+    #define MATCH_TOK(...)                      \
+        if (!matchError(__VA_ARGS__)) return;
+
+    #define GET_STR(tok)                                \
+        normalizeNewlines(                              \
             (tok).text.substr(1, (tok).text.size() - 2) \
         )
-    
+
     private:
+        struct CompilerData
+        {
+            bool inFunc;
+            bool syntaxError, semanticError;
+            vT::const_iterator it;
+            Token& previousTok;
+            Token& currentTok;
+        };
+
         ByteCode code;
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
         ui8 previousReg;
         ui8 scope; // Our current lexical scope depth.
+
         std::stack<std::vector<std::string>> varScopes;
         TokCompVarsWrapper* varsWrapper;
         TokCompLoopLabels* labelsWrapper;
         std::vector<ui64> *endJumps, *breakJumps, *continueJumps;
-        bool inMatch, inFunc, fall;
+
+        bool inMatch, inFunc, fall; // For structures.
+        bool syntaxError, semanticError; // We are currently in an error state.
+        bool hitError; // Some error was encountered while compiling.
 
         // For registers.
         // Defined here for increased likelihood of inlining.
@@ -56,7 +90,10 @@ class Compiler
         inline bool consumeTok(TokenType type);
         template<typename... Type>
         inline bool consumeToks(Type... toks);
-        inline void matchError(TokenType type, std::string_view message);
+        // Reports an error and returns false if the token type was
+        // not matched.
+        // Return value *may* be used to return early while parsing.
+        inline bool matchError(TokenType type, std::string_view message);
         inline bool consumeType();
         // Bring the compiler back to a proper state.
         void reset();
@@ -64,6 +101,9 @@ class Compiler
 
         // Condensed compiling function.
         void compileDescent(void (Compiler::*func)(), TokenType tok, Opcode op);
+
+        // To set up function compilers.
+        void setCompilerData(const CompilerData& data);
 
         // Recursive descent parsing functions.
 

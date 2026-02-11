@@ -23,7 +23,7 @@ static std::unordered_map<std::string_view, TokenType> keywords = {
 
 Lexer::Lexer() :
 	start(nullptr), current(nullptr), end(nullptr),
-	line(1), column(1), state({false, 0}) {}
+	line(1), column(1), state({false, 0}), hitError(false) {}
 
 inline void Lexer::setUp(const std::string_view& code)
 {
@@ -34,6 +34,7 @@ inline void Lexer::setUp(const std::string_view& code)
 	line = 1;
 	column = 1;
 	state = {false, 0};
+	hitError = false;
 
 	stream.clear();
 	stream.reserve(code.size() / AVG_TOK_SIZE);
@@ -172,16 +173,19 @@ void Lexer::makeToken(TokenType type)
 void Lexer::rangeToken()
 {
 	if (!isdigit(peekChar()))
-		throw LexError(peekChar(), line, column + 1, // Check column value here.
+		REPORT_ERROR(peekChar(), line, column + 1, // Check column value here.
 			"Expecting range-end value after '..'.");
+
 	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 		advance();
+
 	if (matchSequence('.', 2))
 	{
 		consumeChars(2);
 		if (!isdigit(peekChar()))
-			throw LexError(peekChar(), line, column + 1, // Check column value here.
+			REPORT_ERROR(peekChar(), line, column + 1, // Check column value here.
 				"Expecting skip value after '..'.");
+
 		while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 			advance();
 	}
@@ -217,13 +221,13 @@ void Lexer::stringToken()
 	while ((peekChar() != '"') && !hitEnd())
 	{
 		if (peekChar() == '\n')
-			throw LexError(previousChar(), line, column + 1,
+			REPORT_ERROR(previousChar(), line, column + 1,
 				"Incorrect syntax for multi-line string.");
 		advance();
 	}
 
 	if (hitEnd())
-		throw LexError(EOF, line, 0, "Unterminated string."); // Column is irrelevant.
+		REPORT_ERROR(EOF, line, 0, "Unterminated string."); // Column is irrelevant.
 
 	advance(); // Consume final ".
 	makeToken(TOK_STR_LIT);
@@ -239,7 +243,7 @@ void Lexer::multiStringToken()
 		advance();
 
 	if (hitEnd())
-		throw LexError(EOF, line, 0, // Column is irrelevant.
+		REPORT_ERROR(EOF, line, 0, // Column is irrelevant.
 			"Unterminated multi-line string.");
 
 	advance(); // Consume final `.
@@ -301,8 +305,12 @@ bool Lexer::checkHyperComment()
 		if (matchSequence('#', 3))
 			consumeChars(3);
 		else
-			throw LexError(peekChar(), line, column + 1,
-				"Unterminated nested comment.");
+		{
+			// Must report manually since we return a value below.
+			LexError(peekChar(), line, column + 1,
+				"Unterminated nested comment.").report();
+			hitError = true;
+		}
 		return true;
 	}
 	else
@@ -450,7 +458,7 @@ void Lexer::singleToken()
 			while ((peekChar() != '#') && !hitEnd())
 				advance();
 			if (hitEnd())
-				throw LexError(EOF, line, 0, "Unterminated comment.");
+				REPORT_ERROR(EOF, line, 0, "Unterminated comment.");
 			advance();
 			break;
 		}
@@ -476,7 +484,7 @@ void Lexer::singleToken()
 				identifierToken();
 			else
 				// Column has been incremented, so we subtract 1.
-				throw LexError(c, line, column - 1, "Unrecognized token.");
+				REPORT_ERROR(c, line, column - 1, "Unrecognized token.");
 		}
 	}
 }
@@ -484,16 +492,11 @@ void Lexer::singleToken()
 vT& Lexer::tokenize(std::string_view code)
 {
 	setUp(code);
-	
-	try
-	{
-		while (!hitEnd())
-			singleToken();
-	}
-	catch (LexError& error)
-	{
-		error.report();
-	}
-	stream.emplace_back(); // Default is EOF token.
+	while (!hitEnd())
+		singleToken();
+	if (hitError)
+		stream.clear();
+	else
+		stream.emplace_back(); // Default is EOF token.
 	return stream;
 }
