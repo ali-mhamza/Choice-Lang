@@ -32,6 +32,11 @@ void ByteCode::addLong(ui32 bytes)
 	addByte(bytes & 0xff);
 }
 
+void ByteCode::addOp(Opcode op)
+{
+	addByte(static_cast<ui8>(op));
+}
+
 void ByteCode::loadReg(ui8 reg, ui8 op)
 {
 	addBytes(static_cast<ui8>(OP_LOAD_R), reg, op);

@@ -17,7 +17,7 @@ class ByteCode
 
         void addByte(ui8 byte);
         template<typename... Bytes>
-        void addBytes(Bytes... bytes);
+        inline void addBytes(Bytes... bytes);
         // Using big endian.
         void addShort(ui16 bytes);
         void addLong(ui32 bytes);
@@ -28,8 +28,9 @@ class ByteCode
         ByteCode(const vByte& block);
         ByteCode(const vByte& block, const vObj& pool);
 
+        void addOp(Opcode op);
         template<typename Op, typename... Bytes>
-        void addOp(Op op, Bytes... opers);
+        inline void addOp(Op op, Bytes... opers);
 
         void loadReg(ui8 reg, ui8 op);
         void loadRegConst(Object& constant, ui8 reg);
@@ -52,14 +53,14 @@ class ByteCode
 };
 
 template<typename... Bytes>
-void ByteCode::addBytes(Bytes... bytes)
+inline void ByteCode::addBytes(Bytes... bytes)
 {
     for (ui8 byte : {bytes...})
         addByte(byte);
 }
 
 template<typename Op, typename... Bytes>
-void ByteCode::addOp(Op op, Bytes... opers)
+inline void ByteCode::addOp(Op op, Bytes... opers)
 {
     addByte(static_cast<ui8>(op));
     for (ui8 operand : {opers...})
