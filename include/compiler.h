@@ -98,8 +98,7 @@ class Compiler
 
         // For variables.
 
-        void defVar(std::string name, ui8 reg);
-        void defAccess(ui8 reg, bool access);
+        void defVar(std::string name, ui8 reg, bool access);
         ui8* getVarSlot(const Token& token);
         bool getAccess(ui8 reg);
         void popScope();

@@ -45,15 +45,11 @@ ASTCompiler::~ASTCompiler()
     delete labelsWrapper;
 }
 
-inline void ASTCompiler::defVar(std::string name, ui8 reg)
+inline void ASTCompiler::defVar(std::string name, ui8 reg, bool access)
 {
     varsWrapper->vars[{name, scope}] = reg;
-    if (scope != 0) varScopes.top().push_back(name);
-}
-
-inline void ASTCompiler::defAccess(ui8 reg, bool access)
-{
     varsWrapper->access[reg] = access;
+    if (scope != 0) varScopes.top().push_back(name);
 }
 
 inline ui8* ASTCompiler::getVarSlot(const Token& token)
@@ -128,11 +124,7 @@ DEF(VarDecl)
     // and thus we must take ownership of the string first
     // to avoid invalidating the view.
 
-    defVar(
-        std::string(node->name.text),
-        varSlot
-    );
-    defAccess(varSlot,
+    defVar(std::string(node->name.text), varSlot,
         node->declType == TOK_MAKE ? accessVar : accessFix);
 }
 
@@ -157,8 +149,7 @@ DEF(FuncDecl)
     for (Token& param : node->params)
     {
         ui8 reg = miniCompiler.previousReg;
-        miniCompiler.defVar(std::string(param.text), reg);
-        miniCompiler.defAccess(reg, accessVar);
+        miniCompiler.defVar(std::string(param.text), reg, accessVar);
         miniCompiler.reserveReg();
     }
     miniCompiler.compileStmt(node->body);
@@ -176,8 +167,7 @@ DEF(FuncDecl)
 
     code.loadRegConst(func, varSlot);
 
-    defVar(name, varSlot);
-    defAccess(varSlot, accessFix); // Temporarily.
+    defVar(name, varSlot, accessFix); // Temporarily.
     reserveReg();
 }
 
@@ -318,8 +308,7 @@ DEF(ForStmt)
     continueJumps = &continues;
     
     ui8 varReg = previousReg;
-    defVar(std::string(node->var.text), varReg);
-    defAccess(varReg, accessFix); // For now.
+    defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
 
     ui8 iterReg = previousReg;

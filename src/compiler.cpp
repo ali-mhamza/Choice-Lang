@@ -49,9 +49,10 @@ Compiler::~Compiler()
     delete labelsWrapper;
 }
 
-void Compiler::defVar(std::string name, ui8 reg)
+void Compiler::defVar(std::string name, ui8 reg, bool access)
 {
     varsWrapper->vars[{name, scope}] = reg;
+    varsWrapper->access[reg] = access;
     if (scope != 0) varScopes.top().push_back(name);
 }
 
@@ -278,11 +279,7 @@ void Compiler::varDecl()
     }
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
 
-    defVar(
-        std::string(name.text),
-        slot
-    );
-    defAccess(slot,
+    defVar(std::string(name.text), slot,
         declType == TOK_MAKE ? accessVar : accessFix);
 }
 
@@ -312,8 +309,7 @@ void Compiler::funDecl()
         do {
             MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
             ui8 reg = miniCompiler.previousReg;
-            miniCompiler.defVar(std::string(previousTok.text), reg);
-            miniCompiler.defAccess(reg, accessVar);
+            miniCompiler.defVar(std::string(previousTok.text), reg, accessVar);
             miniCompiler.reserveReg();
         } while (consumeTok(TOK_COMMA));
     }
@@ -336,8 +332,7 @@ void Compiler::funDecl()
     code.loadRegConst(func, varSlot);
     if (redefined) return;
 
-    defVar(name, varSlot);
-    defAccess(varSlot, accessFix); // Temporarily.
+    defVar(name, varSlot, accessFix); // Temporarily.
     reserveReg();
 }
 
@@ -554,8 +549,7 @@ void Compiler::forStmt()
     MATCH_TOK(TOK_IDENTIFIER, "Expect loop variable identifier.");
     Token var = previousTok;
     ui8 varReg = previousReg;
-    defVar(std::string(var.text), varReg);
-    defAccess(varReg, accessFix); // For now.
+    defVar(std::string(var.text), varReg, accessFix); // For now.
     reserveReg();
 
     MATCH_TOK(TOK_IN, "Expect 'in' keyword after loop identifier.");
