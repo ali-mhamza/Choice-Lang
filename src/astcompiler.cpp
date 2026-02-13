@@ -449,8 +449,9 @@ DEF(EndStmt)
 DEF(ExprStmt)
 {
     ui8 reg = previousReg;
+    ExprType type = node->expr->type;
     compileExpr(node->expr);
-    if (inRepl)
+    if (inRepl && (type != E_ASSIGN_EXPR))
         code.addOp(OP_PRINT_VALID, reg);
     freeReg();
 }

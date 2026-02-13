@@ -41,7 +41,7 @@ Compiler::Compiler() :
     continueJumps(nullptr), inMatch(false),
     inFunc(false), fall(false), syntaxError(false),
     semanticError(false), hitError(false),
-    errorCount(0) {}
+    errorCount(0), exprPrint(inRepl) {}
 
 Compiler::~Compiler()
 {
@@ -320,7 +320,7 @@ void Compiler::funDecl()
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before function body.");
 
-    miniCompiler.setCompilerData({ inFunc, syntaxError, semanticError,
+    miniCompiler.setCompilerData({ true, syntaxError, semanticError,
         it, previousTok, currentTok });
     miniCompiler.blockStmt();
     miniCompiler.code.addOp(OP_VOID, 0);
@@ -755,7 +755,7 @@ void Compiler::exprStmt()
 {
     ui8 reg = previousReg;
     expression();
-    if (inRepl)
+    if (exprPrint)
         code.addOp(OP_PRINT_VALID, reg);
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after expression.");
     freeReg();
@@ -807,6 +807,8 @@ void Compiler::assignment()
 
     if (IS_ASSIGN(secondTok.type))
     {
+        exprPrint = false;
+        
         if (firstTok.type != TOK_IDENTIFIER)
             REPORT_SEMANTIC(firstTok, "Invalid assignment target.");
         

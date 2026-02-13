@@ -88,6 +88,7 @@ class Compiler
         bool syntaxError, semanticError; // We are currently in an error state.
         bool hitError; // Some error was encountered while compiling.
         int errorCount;
+        bool exprPrint;
 
         // For registers.
         // Defined here for increased likelihood of inlining.
