@@ -4,6 +4,7 @@
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include "../include/opcodes.h"
+#include "../include/object.h"
 #include <cmath>
 #include <cstring>
 
@@ -136,6 +137,16 @@ inline Object VM::compareOper(Opcode op)
 {
     const Object& a = registers[readByte()];
     const Object& b = registers[readByte()];
+
+    if (((op == OP_GT) || (op == OP_LT))
+        && (!IS_NUM(a) || !IS_NUM(b)))
+    {
+        throw TypeMismatch(
+            "Cannot compare non-numeric values.",
+            OBJ_NUM,
+            IS_NUM(a) ? b.type : a.type
+        );
+    }
     
     switch (op)
     {
@@ -183,14 +194,14 @@ Object VM::bitOper(Opcode op)
 {
     const Object& a = registers[readByte()];
     const Object& b = registers[readByte()];
-    
+
     if (!IS_INT(a) || !IS_INT(b))
         throw TypeMismatch(
             "Cannot apply bitwise operator to non-integer values.",
             OBJ_INT,
             (IS_INT(a) ? b.type : a.type)
         );
-    
+
     ui64 aVal = AS_UINT(a);
     ui64 bVal = AS_UINT(b);
 
@@ -208,7 +219,7 @@ Object VM::bitOper(Opcode op)
 Object VM::unaryOper(Opcode op)
 {
     const Object& obj = registers[readByte()];
-    
+
     switch (op)
     {
         case OP_INCREMENT:
@@ -509,9 +520,9 @@ void VM::executeOp(Opcode op)
             ui8 start = readByte();
             ui8 argCount = readByte();
 
-            registers[start] = Natives::functions[callee](
-                &registers[start], argCount, Token() // Temporarily.
-            );
+            auto func = Natives::functions[callee];
+            Natives::functions[callee](&registers[start], argCount,
+                Token()); // Temporarily.
             DISPATCH();
         }
         CASE(OP_CALL_DEF):
@@ -607,7 +618,7 @@ void VM::executeCode(const ByteCode& code)
 
 /* FuncContext logic. */
 
-FuncContext::FuncContext(const Args& args) :
+VM::FuncContext::FuncContext(const Args& args) :
     regStart(args.regStart), ip(args.ip), end(args.end),
     pool(args.pool)
     #if WATCH_EXEC

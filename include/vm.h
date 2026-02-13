@@ -14,36 +14,36 @@
 
 class Disassembler;
 
-struct FuncContext
-{
-    struct Args
-    {
-        Object* regStart;
-        const ui8* ip;
-        const ui8* end;
-        const Object* pool;
-
-        #if WATCH_EXEC
-        Disassembler* dis;
-        #endif
-    };
-    
-    Object* regStart;
-    const ui8* ip;
-    const ui8* end;
-    const Object* pool;
-
-    #if WATCH_EXEC
-    Disassembler* dis;
-    #endif
-
-    FuncContext() = default;
-    FuncContext(const Args& args);
-};
-
 class VM
-{   
+{
     private:
+        struct FuncContext
+        {
+            struct Args
+            {
+                Object* regStart;
+                const ui8* ip;
+                const ui8* end;
+                const Object* pool;
+
+                #if WATCH_EXEC
+                Disassembler* dis;
+                #endif
+            };
+            
+            Object* regStart;
+            const ui8* ip;
+            const ui8* end;
+            const Object* pool;
+
+            #if WATCH_EXEC
+            Disassembler* dis;
+            #endif
+
+            FuncContext() = default;
+            FuncContext(const Args& args);
+        };
+
         const ui8* ip;
         const ui8* end;
         static constexpr int regSize = 256;
@@ -65,6 +65,7 @@ class VM
         inline ui16 readShort();
         inline ui32 readLong();
         inline bool isTruthy(const Object& obj);
+
         inline Object loadOper();
         inline Object concatStrings(const Object& str1,
             const Object& str2);
