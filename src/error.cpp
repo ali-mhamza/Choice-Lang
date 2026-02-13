@@ -2,11 +2,6 @@
 #include "../include/common.h"
 #include <cstdio> // For stderr.
 
-// Error.
-
-Error::Error(const std::string& message) :
-	message(message) {}
-
 // LexError.
 
 LexError::LexError(char c, ui16 line, ui8 position,
@@ -28,7 +23,7 @@ void LexError::report() const
 
 CompileError::CompileError(const Token& token,
     const std::string& message) :
-	Error(message), token(token) {}
+	token(token), message(message) {}
 
 void CompileError::report() const
 {
@@ -46,7 +41,7 @@ void CompileError::report() const
 
 RuntimeError::RuntimeError(const Token& token,
     const std::string& message) :
-    Error(message), token(token) {}
+    token(token), message(message) {}
 
 void RuntimeError::report() const
 {
