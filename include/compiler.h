@@ -98,10 +98,10 @@ class Compiler
 
         // For variables.
 
-        void defVar(std::string name, ui8 reg, bool access);
-        ui8* getVarSlot(const Token& token);
-        bool getAccess(ui8 reg);
-        void popScope();
+        inline void defVar(std::string name, ui8 reg, bool access);
+        inline ui8* getVarSlot(const Token& token);
+        inline bool getAccess(ui8 reg);
+        inline void popScope();
 
         // Utilities.
 
@@ -123,7 +123,7 @@ class Compiler
         void compileDescent(void (Compiler::*func)(), TokenType tok, Opcode op);
 
         // To set up function compilers.
-        void setCompilerData(const CompilerData& data);
+        inline void setCompilerData(const CompilerData& data);
 
         // Recursive descent parsing functions.
 

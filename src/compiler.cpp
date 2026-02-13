@@ -49,19 +49,14 @@ Compiler::~Compiler()
     delete labelsWrapper;
 }
 
-void Compiler::defVar(std::string name, ui8 reg, bool access)
+inline void Compiler::defVar(std::string name, ui8 reg, bool access)
 {
     varsWrapper->vars[{name, scope}] = reg;
     varsWrapper->access[reg] = access;
     if (scope != 0) varScopes.top().push_back(name);
 }
 
-void Compiler::defAccess(ui8 reg, bool access)
-{
-    varsWrapper->access[reg] = access;
-}
-
-ui8* Compiler::getVarSlot(const Token& token)
+inline ui8* Compiler::getVarSlot(const Token& token)
 {
     for (ui8 i = 0; i <= scope; i++)
     {
@@ -74,12 +69,12 @@ ui8* Compiler::getVarSlot(const Token& token)
     return nullptr;
 }
 
-bool Compiler::getAccess(ui8 reg)
+inline bool Compiler::getAccess(ui8 reg)
 {
     return *(varsWrapper->access.get(reg));
 }
 
-void Compiler::popScope()
+inline void Compiler::popScope()
 {
     auto& scopeVec = varScopes.top();
     for (std::string& var : scopeVec)
@@ -201,7 +196,7 @@ void Compiler::compileDescent(void (Compiler::*func)(),
     }
 }
 
-void Compiler::setCompilerData(const CompilerData& data)
+inline void Compiler::setCompilerData(const CompilerData& data)
 {
     this->inFunc = data.inFunc;
     this->syntaxError = data.syntaxError;
