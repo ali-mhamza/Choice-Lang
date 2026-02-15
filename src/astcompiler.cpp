@@ -108,7 +108,7 @@ DEF(VarDecl)
                 + "' is already defined in this scope.");
         #endif
     }
-    
+
     ui8 varSlot = previousReg;
     if (node->init)
         compileExpr(node->init);
