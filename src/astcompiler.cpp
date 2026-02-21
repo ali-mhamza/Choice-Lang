@@ -298,7 +298,7 @@ DEF(ForStmt)
             node->label.text,
             {}
         );
-    
+
     std::vector<ui64> breaks;
     auto prevBreaks = breakJumps;
     breakJumps = &breaks;
