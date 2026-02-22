@@ -30,7 +30,7 @@ class VM
                 Disassembler* dis;
                 #endif
             };
-            
+
             Object* regStart;
             const ui8* ip;
             const ui8* end;
