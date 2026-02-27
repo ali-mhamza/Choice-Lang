@@ -10,7 +10,7 @@ WARNINGS = -Wall -Wextra \
 			-Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-label \
 			-Wno-error=pedantic -Werror \
 			-MMD -MP
-CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(RELEASE_FLAGS) $(WARNINGS) $(DEFINES)
+CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(WARNINGS) $(DEFINES)
 
 REPL_DIR = dependencies/replxx
 REPL_LIB = $(REPL_DIR)/libreplxx.a
@@ -21,6 +21,8 @@ TYPE = -DTYPE
 OPT = -DOPT
 
 NAME = choice
+RELEASE = choice-release
+DEBUG = choice-debug
 SRC_DIR = src
 OBJ_DIR = build
 
@@ -40,6 +42,16 @@ type: $(NAME)
 
 opt: $(CXXFLAGS) += $(AST) $(OPT)
 opt: $(NAME)
+
+# Assuming only AST version with this Makefile (for now).
+
+debug: CXXFLAGS += $(DEBUG_FLAGS)
+debug: NAME = $(DEBUG)
+debug: ast
+
+release: CXXFLAGS += $(RELEASE_FLAGS)
+release: NAME = $(RELEASE)
+release: ast
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
