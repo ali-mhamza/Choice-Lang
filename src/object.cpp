@@ -251,7 +251,7 @@ bool String::operator==(const String& other) const
 
 bool String::contains(const String& substr) const
 {
-    return (strstr(substr.str.c_str(), this->str.c_str()) != nullptr);
+    return (strstr(this->str.c_str(), substr.str.c_str()) != nullptr);
 }
 
 std::string String::printVal() const
