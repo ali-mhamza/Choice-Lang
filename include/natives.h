@@ -18,6 +18,7 @@ namespace Natives
         FUNC_TYPE,
         FUNC_CLOCK,
         FUNC_RANGE,
+        FUNC_READ,
         NUM_FUNCS
     };
 
@@ -25,6 +26,7 @@ namespace Natives
     void type(iter it, ui8 args, const Token& error);
     void clock(iter it, ui8 args, const Token& error);
     void range(iter it, ui8 args, const Token& error);
+    void read(iter it, ui8 args, const Token& error);
 
     extern const std::function<void(iter, ui8,
         const Token&)> functions[NUM_FUNCS];

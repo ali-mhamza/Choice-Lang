@@ -4,15 +4,16 @@
 #include "../include/linear_alloc.h"
 #include <array>
 #include <chrono>
+#include <iostream>
 
 const std::function<void(Natives::iter, ui8, const Token&)>
 Natives::functions[Natives::NUM_FUNCS] = {
         Natives::print, Natives::type, Natives::clock,
-        Natives::range
+        Natives::range, Natives::read
 };
 
 const std::string_view Natives::funcNames[NUM_FUNCS] = {
-    "print", "type", "clock", "range"
+    "print", "type", "clock", "range", "read"
 };
 
 const std::unordered_map<std::string_view,
@@ -20,7 +21,8 @@ const std::unordered_map<std::string_view,
     {"print", Natives::FUNC_PRINT},
     {"type", Natives::FUNC_TYPE},
     {"clock", Natives::FUNC_CLOCK},
-    {"range", Natives::FUNC_RANGE}
+    {"range", Natives::FUNC_RANGE},
+    {"read", Natives::FUNC_READ}
 };
 
 void Natives::print(Natives::iter it, ui8 args, const Token& error)
@@ -92,4 +94,23 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     if (args == 3)
         limits[2] = AS_INT(*(it + 2));
     *it = Object(ALLOC(Range, ObjDealloc<Range>, limits));
+}
+
+void Natives::read(Natives::iter it, ui8 args, const Token& error)
+{
+    if (args > 1)
+        throw RuntimeError(error,
+            FORMAT_STR("Expect 0 or 1 arguments but found {}.", args)
+        );
+    if (args == 1)
+    {
+        if (!IS_STRING(it[0]))
+            throw RuntimeError(error, "Argument must be a string."); // Temporarily.
+        FORMAT_PRINT("{}", AS_STRING(it[0]).str);
+    }
+
+    std::ios_base::sync_with_stdio(false);
+    std::string input;
+    std::getline(std::cin, input);
+    *it = Object(ALLOC(String, ObjDealloc<String>, input));
 }
