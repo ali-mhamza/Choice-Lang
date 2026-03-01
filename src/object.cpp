@@ -480,8 +480,17 @@ TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
     ObjType actual) :
     message(message), expect(expect), actual(actual) {}
 
+#if defined(DEBUG)
+    #define LENGTH(array) sizeof(array) / sizeof(array[0])
+    #define IS_OBJ(type) \
+        (((type) >= 0) && ((type) < LENGTH(objTypes)))
+#endif
+
 void TypeMismatch::report()
-{    
+{
+    ASSERT(IS_OBJ(expect), "Invalid object type for error reporting");
+    ASSERT(IS_OBJ(actual), "Invalid object type for error reporting");
+    
     FORMAT_PRINT(stderr,
         "Type mismatch: Expected type ({}) but found ({}) instead.\n",
         objTypes[expect], objTypes[actual]
