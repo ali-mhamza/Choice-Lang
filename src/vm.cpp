@@ -623,9 +623,8 @@ void VM::executeOp(Opcode op)
             ui8 start = readByte();
             ui8 argCount = readByte();
 
-            auto func = Natives::functions[callee];
-            Natives::functions[callee](&registers[start], argCount,
-                Token()); // Temporarily.
+            auto& func = Natives::functions[callee];
+            func(&registers[start], argCount, Token()); // Temporarily.
             DISPATCH();
         }
         CASE(OP_CALL_DEF):
