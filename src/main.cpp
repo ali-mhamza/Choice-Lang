@@ -268,7 +268,7 @@ static void repl(ArgvOption option = EXECUTE)
 	std::string line;
 
 	#if EXTERNAL_REPL
-	replxx::Replxx rx;
+		replxx::Replxx rx;
 	#endif
 
 	#if LOAD_REPL_HISTORY
