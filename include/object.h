@@ -223,7 +223,7 @@ Object::Object(T val)
         type = OBJ_BOOL;
         as.boolVal = val;
     }
-    else if constexpr (std::is_same_v<T, nullptr_t>)
+    else if constexpr (std::is_same_v<T, std::nullptr_t>)
     {
         type = OBJ_NULL;
         as.heapVal = val; // Dummy assignment.
