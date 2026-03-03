@@ -1,6 +1,7 @@
 #pragma once
 #include "bytecode.h"
 #include "common.h"
+#include "natives.h"
 #include "opcodes.h"
 #include <array>
 #include <cstdint>
@@ -9,6 +10,7 @@
 #include <string>
 #include <string_view>
 #include <variant>
+using Natives::FuncType;
 
 enum ObjType
 {
@@ -16,6 +18,7 @@ enum ObjType
     OBJ_DEC,
     OBJ_BOOL,
     OBJ_NULL,
+    OBJ_NATIVE,
     OBJ_FUNC,
     OBJ_BIGINT,
     OBJ_BIGDEC,
@@ -104,6 +107,7 @@ class Object
             i64         intVal;
             double      doubleVal;
             bool        boolVal;
+            FuncType    nativeVal;
             Function*   funcVal;
             String*     stringVal;
             Range*      rangeVal;
@@ -228,6 +232,11 @@ Object::Object(T val)
         type = OBJ_NULL;
         as.heapVal = val; // Dummy assignment.
     }
+    else if constexpr (std::is_same_v<T, FuncType>)
+    {
+        type = OBJ_NATIVE;
+        as.nativeVal = val;
+    }
     else if constexpr (std::is_same_v<T, Function*>)
     {
         type = OBJ_FUNC;
@@ -275,11 +284,13 @@ Object::Object(T val)
 #define IS_DEC(obj)         ((obj).type == OBJ_DEC)
 #define IS_BOOL(obj)        ((obj).type == OBJ_BOOL)
 #define IS_NULL(obj)        ((obj).type == OBJ_NULL)
+#define IS_NATIVE(obj)      ((obj).type == OBJ_NATIVE)
 #define IS_FUNC(obj)        ((obj).type == OBJ_FUNC)
+#define IS_CALLABLE(obj)    (IS_NATIVE(obj) || IS_FUNC(obj))
 #define IS_STRING(obj)      ((obj).type == OBJ_STRING)
 #define IS_RANGE(obj)       ((obj).type == OBJ_RANGE)
 
-#define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NULL) && ((obj).type < OBJ_NUM))
+#define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
 #define IS_ITER(obj)        ((obj).type == OBJ_ITER)
 
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
@@ -293,6 +304,7 @@ Object::Object(T val)
 #define AS_INT(obj)         ((obj).as.intVal)
 #define AS_DEC(obj)         ((obj).as.doubleVal)
 #define AS_BOOL(obj)        ((obj).as.boolVal)
+#define AS_NATIVE(obj)      ((obj).as.nativeVal)
 #define AS_FUNC(obj)        (*((obj).as.funcVal))
 #define AS_STRING(obj)      (*((obj).as.stringVal))
 #define AS_RANGE(obj)       (*((obj).as.rangeVal))

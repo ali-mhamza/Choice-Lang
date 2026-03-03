@@ -8,8 +8,8 @@
 #include <type_traits>
 
 static std::string_view objTypes[] = {
-    "int", "dec", "bool", "null", "function", "bigint", "bigdec",
-    "string", "range", "list", "table", "num", "iterable"
+    "int", "dec", "bool", "null", "builtin function", "user function", "bigint",
+    "bigdec", "string", "range", "list", "table", "num", "iterable"
 };
 
 /* Object. */
@@ -111,6 +111,7 @@ bool Object::operator==(const Object& other) const
         case OBJ_DEC:       return AS_DEC(*this) == AS_DEC(other);
         case OBJ_BOOL:      return AS_BOOL(*this) == AS_BOOL(other);
         case OBJ_NULL:      return true;
+        case OBJ_NATIVE:    return AS_NATIVE(*this) == AS_NATIVE(other);
         case OBJ_FUNC:      return AS_FUNC(*this) == AS_FUNC(other);
         case OBJ_STRING:    return AS_STRING(*this) == AS_STRING(other);
         case OBJ_RANGE:     return AS_RANGE(*this) == AS_RANGE(other);
@@ -140,7 +141,9 @@ std::string Object::printVal() const
         case OBJ_DEC:       return std::to_string(AS_DEC(*this));
         case OBJ_BOOL:      return (AS_BOOL(*this) ? "true" : "false");
         case OBJ_NULL:      return "null";
-        case OBJ_FUNC:      return "func " + AS_FUNC(*this).name;
+        case OBJ_NATIVE:
+            return "builtin '" + std::string(Natives::funcNames[AS_NATIVE(*this)]) + "'";
+        case OBJ_FUNC:      return "func '" + AS_FUNC(*this).name + "'";
         case OBJ_STRING:    return AS_STRING(*this).printVal();
         case OBJ_RANGE:     return AS_RANGE(*this).printVal();
         case OBJ_ITER:

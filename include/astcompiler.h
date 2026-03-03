@@ -11,7 +11,7 @@ using namespace AST::Statement;
 using namespace AST::Expression;
 
 #ifndef ALLOW_REDEFS
-    #define ALLOW_REDEFS 0
+    #define ALLOW_REDEFS 1
 #endif
 
 // Using PIMPL idiom.

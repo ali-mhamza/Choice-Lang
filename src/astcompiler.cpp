@@ -32,14 +32,26 @@ class ASTCompLoopLabels
 };
 
 ASTCompiler::ASTCompiler(ASTCompiler* comp) :
-    scopeCompiler(comp), previousReg(0), scope(0),
+    scopeCompiler(comp), scope(0),
     varsWrapper(new ASTCompVarsWrapper),
     labelsWrapper(new ASTCompLoopLabels),
     endJumps(nullptr), breakJumps(nullptr),
     continueJumps(nullptr), hitError(false),
     errorCount(0)
 {
+    previousReg = (comp == nullptr ? Natives::FuncType::NUM_FUNCS : 0);
     depth = (comp == nullptr ? 0 : comp->depth + 1);
+    if (depth == 0) // Global scope compiler.
+    {
+        for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
+        {
+            defVar(
+                std::string(Natives::funcNames[i]),
+                i,
+                accessFix // For now.
+            );
+        }
+    }
 }
 
 ASTCompiler::~ASTCompiler()
@@ -99,7 +111,7 @@ DEF(VarDecl)
     VarInfo pos = getVarInfo(node->name);
     if ((pos.slot != nullptr)
         && (pos.scope == scope)
-        && (pos.depth == 0))
+        && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
             ui8 varSlot = *(pos.slot);
@@ -146,7 +158,7 @@ DEF(FuncDecl)
     bool redefined = false;
     if ((pos.slot != nullptr)
         && (pos.scope == scope)
-        && (pos.depth == 0))
+        && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
             redefined = true;

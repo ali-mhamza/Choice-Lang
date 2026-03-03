@@ -2,14 +2,15 @@
 #include "../include/common.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
+#include "../include/object.h"
 #include <array>
 #include <chrono>
 #include <iostream>
 
-const std::function<void(Natives::iter, ui8, const Token&)>
+const Natives::NativeFunc
 Natives::functions[Natives::NUM_FUNCS] = {
-        Natives::print, Natives::type, Natives::clock,
-        Natives::range, Natives::read
+    Natives::print, Natives::type, Natives::clock,
+    Natives::range, Natives::read
 };
 
 const std::string_view Natives::funcNames[NUM_FUNCS] = {

@@ -18,6 +18,9 @@ VM::VM() :
     ip(nullptr), end(nullptr),
     registers(new Object[regSize]), pool(nullptr)
 {
+    for (size_t i = 0; i < regSize; i++)
+        registers[i] = Object(Natives::FuncType(i));
+    
     #if WATCH_REG
     regSlot = 0;
     #endif
@@ -309,14 +312,7 @@ Object VM::unaryOper(Opcode op, ui8 offset, ui8 oper)
 }
 
 void VM::callFunc(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
-{    
-    if (!IS_FUNC(callee))
-        throw TypeMismatch(
-            "Object is not callable.",
-            OBJ_FUNC,
-            callee.type
-        );
-
+{
     frames.emplace_back(CallFrame::Args{
         registers, ip, end, pool, offset
         #if WATCH_EXEC
@@ -337,6 +333,34 @@ void VM::callFunc(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
     // Objects within a function have a lexical depth
     // 1 higher than that of the function itself.
     pushScope(offset + 1, registers);
+}
+
+void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
+{
+    auto* func = Natives::functions[AS_NATIVE(callee)];
+    (*func)(&registers[start], argCount, Token());
+}
+
+void VM::callObj(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
+{
+    if (!IS_CALLABLE(callee))
+        throw TypeMismatch(
+            "Object is not callable.",
+            OBJ_FUNC,
+            callee.type
+        );
+    
+    switch (callee.type)
+    {
+        case OBJ_NATIVE:
+            callNative(callee, start, argCount);
+            break;
+        case OBJ_FUNC:
+            callFunc(callee, offset, start, argCount);
+            break;
+        default:
+            UNREACHABLE();
+    }
 }
 
 inline void VM::restoreData()
@@ -634,7 +658,7 @@ void VM::executeOp(Opcode op)
             ui8 start = readByte();
             ui8 argCount = readByte();
 
-            callFunc(callee, offset, start, argCount);
+            callObj(callee, offset, start, argCount);
             DISPATCH();
         }
         CASE(OP_RETURN):
