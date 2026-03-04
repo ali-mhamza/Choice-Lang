@@ -13,7 +13,7 @@ Natives::functions[Natives::NUM_FUNCS] = {
     Natives::range, Natives::read
 };
 
-const std::string_view Natives::funcNames[NUM_FUNCS] = {
+const std::string Natives::funcNames[NUM_FUNCS] = {
     "print", "type", "clock", "range", "read"
 };
 

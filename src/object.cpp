@@ -1,11 +1,13 @@
 #include "../include/object.h"
 #include "../include/linear_alloc.h"
+#include "../include/natives.h"
 #include "../include/token.h"
 #include <climits> // For CHAR_BIT.
 #include <cstdio> // For stderr.
 #include <cstring>
 #include <string_view>
 #include <type_traits>
+using Natives::funcNames;
 
 static std::string_view objTypes[] = {
     "int", "dec", "bool", "null", "type", "builtin function",
@@ -144,9 +146,8 @@ std::string Object::printVal() const
         case OBJ_BOOL:      return (AS_(bool, *this) ? "true" : "false");
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
-        case OBJ_NATIVE:
-            return "builtin [" + std::string(Natives::funcNames[AS_(native, *this)]) + "]";
-        case OBJ_FUNC:      return "func [" + AS_(func, *this)->name + "]";
+        case OBJ_NATIVE:    return "builtin (" + funcNames[AS_(native, *this)] + ")";
+        case OBJ_FUNC:      return "func (" + AS_(func, *this)->name + ")";
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
         case OBJ_ITER:
