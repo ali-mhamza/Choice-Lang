@@ -609,7 +609,7 @@ DEF(BitExpr)
         default: UNREACHABLE();
     }
 
-    code.addOp(op, firstOper, secondOper);
+    code.addOp(op, depth, firstOper, secondOper);
     freeReg();
 }
 
@@ -622,7 +622,7 @@ DEF(ShiftExpr)
     compileExpr(node->right);
 
     code.addOp(node->oper == TOK_RIGHT_SHIFT ?
-        OP_SHIFT_R : OP_SHIFT_L, firstOper, secondOper);
+        OP_SHIFT_R : OP_SHIFT_L, depth, firstOper, secondOper);
     freeReg();
 }
 
