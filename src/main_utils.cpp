@@ -221,7 +221,7 @@ ByteCode readCache(std::ifstream& fileIn)
 		int ch = fileIn.get();
 		if (ch == -1) // EOF.
 			eofError();
-		nameLength = static_cast<ui8>(ch); // Check for EOF.
+		nameLength = static_cast<ui8>(ch);
 		fileName.resize(nameLength);
 
 		fileIn.read(reinterpret_cast<char*>(&codeLength), sizeof(ui64));
