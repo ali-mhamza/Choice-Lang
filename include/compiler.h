@@ -63,31 +63,35 @@ class Compiler
         )
 
     private:
-        struct CompilerData
+        struct VarInfo
         {
-            bool inFunc;
-            bool syntaxError, semanticError;
-            vT::const_iterator it;
-            Token& previousTok;
-            Token& currentTok;
+            ui8* slot;
+            ui8 scope; // Block scope depth.
+            ui8 depth; // Function scope depth.
+            bool access;
         };
 
         ByteCode code;
+        Compiler* scopeCompiler;
+
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
         ui8 previousReg;
-        ui8 scope; // Our current lexical scope depth.
+        ui8 scope{0}; // Our current lexical scope depth.
+        ui8 depth; // Our current function scope depth.
 
         std::stack<std::vector<std::string>> varScopes;
         TokCompVarsWrapper* varsWrapper;
         TokCompLoopLabels* labelsWrapper;
-        std::vector<ui64> *endJumps, *breakJumps, *continueJumps;
+        std::vector<ui64>* endJumps{nullptr};
+        std::vector<ui64>* breakJumps{nullptr};
+        std::vector<ui64>* continueJumps{nullptr};
 
-        bool inMatch, inFunc, fall; // For structures.
-        bool syntaxError, semanticError; // We are currently in an error state.
-        bool hitError; // Some error was encountered while compiling.
-        int errorCount;
+        bool inMatch{false}, inFunc{false}, fall{false}; // For structures.
+        bool syntaxError{false}, semanticError{false}; // We are currently in an error state.
+        bool hitError{false}; // Some error was encountered while compiling.
+        int errorCount{0};
         bool exprPrint;
 
         // For registers.
@@ -99,7 +103,7 @@ class Compiler
         // For variables.
 
         inline void defVar(std::string name, ui8 reg, bool access);
-        inline ui8* getVarSlot(const Token& token);
+        inline VarInfo getVarInfo(const Token& token);
         inline bool getAccess(ui8 reg);
         inline void popScope();
 
@@ -123,7 +127,7 @@ class Compiler
         void compileDescent(void (Compiler::*func)(), TokenType tok, Opcode op);
 
         // To set up function compilers.
-        inline void setCompilerData(const CompilerData& data);
+        inline void setCompilerData(Compiler* other);
 
         // Recursive descent parsing functions.
 
@@ -154,7 +158,7 @@ class Compiler
         // Expressions.
 
         void expression();
-        void compoundAssign(TokenType oper, ui8 slot); // Helper.
+        void compoundAssign(TokenType oper, const VarInfo& pos); // Helper.
         void assignment();
         void logicOr();
         void logicAnd();
@@ -178,7 +182,7 @@ class Compiler
         void primary();
     
     public:
-        Compiler();
+        Compiler(Compiler* comp = nullptr);
         ~Compiler();
 
         ByteCode& compile(const vT& tokens);

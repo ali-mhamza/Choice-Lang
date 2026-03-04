@@ -33,15 +33,31 @@ class TokCompLoopLabels
         TokCompLoopLabels() = default;
 };
 
-Compiler::Compiler() :
-    previousReg(0), scope(0),
+Compiler::Compiler(Compiler* comp) :
+    scopeCompiler(comp),
     varsWrapper(new TokCompVarsWrapper),
     labelsWrapper(new TokCompLoopLabels),
-    endJumps(nullptr), breakJumps(nullptr),
-    continueJumps(nullptr), inMatch(false),
-    inFunc(false), fall(false), syntaxError(false),
-    semanticError(false), hitError(false),
-    errorCount(0), exprPrint(inRepl) {}
+    exprPrint(inRepl)
+{
+    if (comp == nullptr)
+    {
+        this->previousReg = Natives::FuncType::NUM_FUNCS;
+        this->depth = 0;
+        for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
+        {
+            this->defVar(
+                std::string(Natives::funcNames[i]),
+                i,
+                accessFix // For now.
+            );
+        }
+    }
+    else
+    {
+        this->previousReg = 0;
+        this->depth = comp->depth + 1;
+    }
+}
 
 Compiler::~Compiler()
 {
@@ -56,17 +72,20 @@ inline void Compiler::defVar(std::string name, ui8 reg, bool access)
     if (scope != 0) varScopes.top().push_back(name);
 }
 
-inline ui8* Compiler::getVarSlot(const Token& token)
+inline Compiler::VarInfo Compiler::getVarInfo(const Token& token)
 {
     for (ui8 i = 0; i <= scope; i++)
     {
         VarEntry entry(token.text, scope - i);
         ui8* slot = varsWrapper->vars.get(entry);
         if (slot != nullptr)
-            return slot;
+            return { slot, static_cast<ui8>(scope - i), depth,
+                getAccess(*slot) };
     }
 
-    return nullptr;
+    if (scopeCompiler == nullptr)
+        return { nullptr, 0, 0 , false };
+    return scopeCompiler->getVarInfo(token);
 }
 
 inline bool Compiler::getAccess(ui8 reg)
@@ -191,19 +210,19 @@ void Compiler::compileDescent(void (Compiler::*func)(),
     {
         ui8 secondOper = previousReg;
         (this->*func)();
-        code.addOp(op, firstOper, firstOper, secondOper);
+        code.addOp(op, depth, firstOper, secondOper);
         freeReg();
     }
 }
 
-inline void Compiler::setCompilerData(const CompilerData& data)
+inline void Compiler::setCompilerData(Compiler* other)
 {
-    this->inFunc = data.inFunc;
-    this->syntaxError = data.syntaxError;
-    this->semanticError = data.semanticError;
-    this->it = data.it;
-    this->previousTok = data.previousTok;
-    this->currentTok = data.currentTok;
+    this->inFunc = other->inFunc;
+    this->syntaxError = other->syntaxError;
+    this->semanticError = other->semanticError;
+    this->it = other->it;
+    this->previousTok = other->previousTok;
+    this->currentTok = other->currentTok;
 }
 
 void Compiler::declaration()
@@ -231,19 +250,22 @@ void Compiler::varDecl()
     MATCH_TOK(TOK_IDENTIFIER, "Expect variable name.");
     Token name = previousTok;
 
-    ui8* check = getVarSlot(name);
-    if (check != nullptr)
+    VarInfo pos = getVarInfo(name);
+    if ((pos.slot != nullptr)
+        && (pos.scope == scope)
+        && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
-            ui8 varSlot = *check;
+            ui8 varSlot = *(pos.slot);
             ui8 reg = previousReg;
             if (consumeTok(TOK_EQUAL))
             {
                 expression();
-                code.addOp(OP_SET_VAR, varSlot, reg);
+                // We only declare in the current function scope.
+                code.addOp(OP_SET_VAR, depth, varSlot, reg);
             }
             else
-                code.loadReg(varSlot, OP_NULL);
+                code.loadReg(varSlot, OP_NULL, depth);
             MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
             return;
         #else
@@ -269,7 +291,7 @@ void Compiler::varDecl()
     }
     else
     {
-        code.loadReg(slot, OP_NULL);
+        code.loadReg(slot, OP_NULL, depth);
         reserveReg();
     }
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
@@ -281,9 +303,11 @@ void Compiler::varDecl()
 void Compiler::funDecl()
 {
     MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
-    ui8* slot = getVarSlot(previousTok);
     bool redefined = false;
-    if (slot != nullptr)
+    VarInfo pos = getVarInfo(previousTok);
+    if ((pos.slot != nullptr)
+        && (pos.scope == scope)
+        && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
             redefined = true;
@@ -297,8 +321,8 @@ void Compiler::funDecl()
     std::string name = std::string(previousTok.text);
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after function name.");
 
-    ui8 varSlot = (redefined ? *slot : previousReg);
-    Compiler miniCompiler;
+    ui8 varSlot = (redefined ? *(pos.slot) : previousReg);
+    Compiler miniCompiler(this);
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
@@ -311,24 +335,25 @@ void Compiler::funDecl()
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before function body.");
 
-    miniCompiler.setCompilerData({ true, syntaxError, semanticError,
-        it, previousTok, currentTok });
+    if (!redefined)
+    {
+        defVar(name, varSlot, accessFix); // Temporarily.
+        reserveReg();
+    }
+
+    inFunc = true;
+    miniCompiler.setCompilerData(this);
     miniCompiler.blockStmt();
     miniCompiler.code.addOp(OP_VOID, 0);
     miniCompiler.code.addOp(OP_RETURN, 0);
 
-    this->it = miniCompiler.it;
-    this->previousTok = miniCompiler.previousTok;
-    this->currentTok = miniCompiler.currentTok;
-
+    this->setCompilerData(&miniCompiler);
+    inFunc = false;
     ByteCode& funcCode = miniCompiler.code;
     Object func = ALLOC(Function, ObjDealloc<Function>, name, funcCode);
 
-    code.loadRegConst(func, varSlot);
-    if (redefined) return;
-
-    defVar(name, varSlot, accessFix); // Temporarily.
-    reserveReg();
+    // We only declare in the current function scope.
+    code.loadRegConst(func, varSlot, depth);
 }
 
 void Compiler::statement()
@@ -582,7 +607,7 @@ ui64 Compiler::matchCaseHelper(const ui8 matchReg, ui64& fallJump,
 
     ui8 caseReg = previousReg;
     primary(); // Compile the literal.
-    code.addOp(OP_EQUAL, caseReg, matchReg, caseReg);
+    code.addOp(OP_EQUAL, caseReg, matchReg);
     ui64 falseJump = code.addJump(OP_JUMP_FALSE, caseReg);
     freeReg();
     if (!matchError(TOK_COLON, "Expect ':' before case body.")) return UINT64_MAX;
@@ -755,7 +780,7 @@ void Compiler::expression()
     assignment();
 }
 
-void Compiler::compoundAssign(TokenType oper, ui8 slot)
+void Compiler::compoundAssign(TokenType oper, const VarInfo& pos)
 {
     ui8 reg = previousReg;
     expression();
@@ -779,8 +804,9 @@ void Compiler::compoundAssign(TokenType oper, ui8 slot)
         default: UNREACHABLE();
     }
 
-    code.addOp(op, slot, slot, reg);
-    code.addOp(OP_GET_VAR, reg, slot);
+    ui8 slot = *(pos.slot);
+    code.addOp(op, pos.depth, slot, reg);
+    code.addOp(OP_GET_VAR, pos.depth, reg, slot);
 }
 
 // For the time being, we just look for direct
@@ -802,22 +828,21 @@ void Compiler::assignment()
             REPORT_SEMANTIC(firstTok, "Invalid assignment target.");
         
         nextTok();
-        ui8* slot = getVarSlot(previousTok);
-        if (slot != nullptr)
+        VarInfo pos = getVarInfo(previousTok);
+        if (pos.slot != nullptr)
         {
             nextTok();
-            bool access = getAccess(*slot);
-            if (access == accessFix)
+            if (pos.access == accessFix)
                 REPORT_SEMANTIC(
                     secondTok, "Cannot assign to a fixed-value variable."
                 );
             if (secondTok.type != TOK_EQUAL)
-                compoundAssign(secondTok.type, *slot);
+                compoundAssign(secondTok.type, pos);
             else
             {
                 ui8 value = previousReg;
                 expression(); // Does not consume the ';'.
-                code.addOp(OP_SET_VAR, *slot, value);
+                code.addOp(OP_SET_VAR, pos.depth, *(pos.slot), value);
             }
         }
         else
@@ -867,9 +892,9 @@ void Compiler::equality()
         ui8 secondOper = previousReg;
         comparison();
 
-        code.addOp(OP_EQUAL, firstOper, firstOper, secondOper);
+        code.addOp(OP_EQUAL, firstOper, secondOper);
         if (oper == TOK_BANG_EQ)
-            code.addOp(OP_NOT, firstOper, firstOper);
+            code.addOp(OP_NOT, firstOper);
         freeReg();
     }
 }
@@ -891,22 +916,22 @@ void Compiler::comparison()
         {
             case TOK_IN:
             case TOK_NOT: // not in
-                code.addOp(OP_IN, firstOper, firstOper, secondOper);
+                code.addOp(OP_IN, firstOper, secondOper);
                 break;
             case TOK_GT:
             case TOK_LT_EQ:
-                code.addOp(OP_GT, firstOper, firstOper, secondOper);
+                code.addOp(OP_GT, firstOper, secondOper);
                 break;
             case TOK_LT:
             case TOK_GT_EQ:
-                code.addOp(OP_LT, firstOper, firstOper, secondOper);
+                code.addOp(OP_LT, firstOper, secondOper);
                 break;
             default: UNREACHABLE();
         }
 
         if ((oper == TOK_NOT) || (oper == TOK_GT_EQ)
             || (oper == TOK_LT_EQ))
-                code.addOp(OP_NOT, firstOper, firstOper);
+                code.addOp(OP_NOT, firstOper);
 
         freeReg();
     }
@@ -938,8 +963,8 @@ void Compiler::shift()
         ui8 secondOper = previousReg;
         sum();
 
-        code.addOp(oper == TOK_RIGHT_SHIFT ? OP_SHIFT_R
-            : OP_SHIFT_L, firstOper, firstOper, secondOper);
+        code.addOp(oper == TOK_RIGHT_SHIFT ? OP_SHIFT_R: OP_SHIFT_L,
+            depth, firstOper, secondOper);
         freeReg();
     }
 }
@@ -956,7 +981,7 @@ void Compiler::sum()
         product();
 
         code.addOp(oper == TOK_PLUS ? OP_ADD : OP_SUB,
-            firstOper, firstOper, secondOper);
+            depth, firstOper, secondOper);
         freeReg();
     }
 }
@@ -980,7 +1005,7 @@ void Compiler::product()
             case TOK_PERCENT:   op = OP_MOD;    break;
             default: UNREACHABLE();
         }
-        code.addOp(op, firstOper, firstOper, secondOper);
+        code.addOp(op, depth, firstOper, secondOper);
 
         freeReg();
     }
@@ -990,25 +1015,25 @@ void Compiler::_crementExpr(TokenType oper, bool prev)
 {
     // Temporarily assuming only regular identifier variables.
     MATCH_TOK(TOK_IDENTIFIER, "Invalid increment/decrement target.");
-    ui8* slot = getVarSlot(previousTok);
-    if (slot != nullptr)
+    VarInfo pos = getVarInfo(previousTok);
+    if (pos.slot != nullptr)
     {
-        bool access = getAccess(*slot);
-        if (access == accessFix)
+        if (pos.access == accessFix)
             REPORT_SEMANTIC(
                 previousTok, "Cannot modify a fixed-value variable."
             );
         else
         {
+            ui8 slot = *(pos.slot);
             if (prev) // Post-increment/decrement operator(s).
             {
                 consumeToks(TOK_INCR, TOK_DECR); // Skip the operator token.
-                code.addOp(OP_GET_VAR, previousReg, *slot);
+                code.addOp(OP_GET_VAR, pos.depth, previousReg, slot);
             }
             code.addOp(oper == TOK_INCR ? OP_INCR : OP_DECR,
-                *slot, *slot);
+                pos.depth, slot);
             if (!prev)
-                code.addOp(OP_GET_VAR, previousReg, *slot);
+                code.addOp(OP_GET_VAR, pos.depth, previousReg, slot);
             reserveReg();
         }
     }
@@ -1037,7 +1062,10 @@ void Compiler::unary()
             default: UNREACHABLE();
         }
 
-        code.addOp(op, firstOper, firstOper);
+        if (op == OP_COMP)
+            code.addOp(op, depth, firstOper);
+        else
+            code.addOp(op, firstOper);
         // We don't free a register since unary
         // operators don't use any extra registers.
         // They apply an operator directly onto a
@@ -1063,11 +1091,16 @@ void Compiler::call()
         consumeTok(TOK_IDENTIFIER);
         Token funcName = previousTok;
         nextTok();
-        bool builtin = (previousTok.type == TOK_BANG ?
-            (matchError(TOK_LEFT_PAREN, "Invalid placement for token '!'."), true)
-            : false);
+        bool builtin = false;
+        if (previousTok.type == TOK_BANG)
+        {
+            MATCH_TOK(TOK_LEFT_PAREN, "Invalid placement for token '!'.");
+            builtin = true;
+        }
 
         ui8 location;
+        ui8 varDepth;
+
         if (builtin)
         {
             auto find = Natives::builtins.find(funcName.text);
@@ -1078,11 +1111,12 @@ void Compiler::call()
         }
         else
         {
-            ui8* ptr = getVarSlot(funcName);
-            if (ptr == nullptr)
+            VarInfo pos = getVarInfo(funcName);
+            if (pos.slot == nullptr)
                 REPORT_SEMANTIC(funcName, "Undefined variable '"
                     + std::string(funcName.text) + "'.");
-            location = *ptr;
+            location = *(pos.slot);
+            varDepth = pos.depth;
         }
 
         ui8 startReg = previousReg;
@@ -1096,8 +1130,10 @@ void Compiler::call()
         }
         MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' following function arguments.");
 
-        code.addOp(builtin ? OP_CALL_NAT : OP_CALL_DEF,
-            location, startReg, argCount);
+        if (builtin)
+            code.addOp(OP_CALL_NAT, location, startReg, argCount);
+        else
+            code.addOp(OP_CALL_DEF, varDepth, location, startReg, argCount);
 
         // Skip arguments.
         // Our return value replaces the first argument.
@@ -1169,36 +1205,36 @@ void Compiler::primary()
                 break;
             default: UNREACHABLE();
         }
-        code.loadRegConst(obj, previousReg);
+        code.loadRegConst(obj, previousReg, depth);
         reserveReg();
     }
 
     else if (consumeTok(TOK_RANGE))
     {
         Object obj = ALLOC(Range, ObjDealloc<Range>, constructRange(previousTok.text));
-        code.loadRegConst(obj, previousReg);
+        code.loadRegConst(obj, previousReg, depth);
         reserveReg();
     }
 
     else if (consumeToks(TOK_TRUE, TOK_FALSE))
     {
         bool value = previousTok.content.b;
-        code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE));
+        code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE), depth);
         reserveReg();
     }
 
     else if (consumeTok(TOK_NULL))
     {
-        code.loadReg(previousReg, OP_NULL);
+        code.loadReg(previousReg, OP_NULL, depth);
         reserveReg();
     }
 
     else if (consumeTok(TOK_IDENTIFIER))
     {
-        ui8* slot = getVarSlot(previousTok);
-        if (slot != nullptr)
+        VarInfo pos = getVarInfo(previousTok);
+        if (pos.slot != nullptr)
         {
-            code.addOp(OP_GET_VAR, previousReg, *slot);
+            code.addOp(OP_GET_VAR, pos.depth, previousReg, *(pos.slot));
             reserveReg();
         }
         else
