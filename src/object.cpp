@@ -145,8 +145,8 @@ std::string Object::printVal() const
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
         case OBJ_NATIVE:
-            return "builtin '" + std::string(Natives::funcNames[AS_(native, *this)]) + "'";
-        case OBJ_FUNC:      return "func '" + AS_(func, *this)->name + "'";
+            return "builtin [" + std::string(Natives::funcNames[AS_(native, *this)]) + "]";
+        case OBJ_FUNC:      return "func [" + AS_(func, *this)->name + "]";
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
         case OBJ_ITER:
