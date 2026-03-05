@@ -31,8 +31,10 @@
 #include <string_view>
 #include <unordered_map>
 
-#define TIME_TOTAL
-// #define TIME_RUN
+#if defined(DEBUG)
+	#define TIME_TOTAL	1
+	#define TIME_RUN	0
+#endif
 
 #if EXTERNAL_REPL
 	#define TRACK_REPL_HISTORY	1
@@ -198,7 +200,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		return;
 
 	using namespace std::chrono;
-	#if defined(TIME_TOTAL) && !defined(TIME_RUN)
+	#if TIME_TOTAL && !TIME_RUN
 		auto begin = steady_clock::now();
 	#endif
 
@@ -223,14 +225,14 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		return;
 	}
 
-	#if defined(TIME_RUN) && !defined(TIME_TOTAL)
+	#if TIME_RUN && !TIME_TOTAL
 		auto begin = steady_clock::now();
 	#endif
 
 	VM vm; // Must persist for the entire execution.
 	vm.executeCode(chunk);
 
-	#if defined(TIME_RUN) || defined(TIME_TOTAL)
+	#if TIME_RUN || TIME_TOTAL
 		auto end = steady_clock::now();
 		auto time = duration_cast<microseconds>(end - begin);
 		FORMAT_PRINT("Time: {:.6f}\n",
