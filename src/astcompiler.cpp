@@ -193,6 +193,7 @@ DEF(FuncDecl)
     miniCompiler.code.addOp(OP_RETURN, 0);
 
     ByteCode& funcCode = miniCompiler.code;
+    this->hitError = miniCompiler.hitError;
     Object func = ALLOC(Function, ObjDealloc<Function>, name, size,
         funcCode);
     // We only declare in the current function scope.
