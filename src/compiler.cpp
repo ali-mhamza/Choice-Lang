@@ -353,8 +353,9 @@ void Compiler::funDecl()
     this->setCompilerData(&miniCompiler);
     inFunc = prevInFunc;
     ByteCode& funcCode = miniCompiler.code;
-    Object func = ALLOC(Function, ObjDealloc<Function>, name, count,
-        funcCode);
+    funcCode.depth = miniCompiler.depth;
+    Object func = ALLOC(Function, ObjDealloc<Function>, name,
+        funcCode, count);
 
     // We only declare in the current function scope.
     code.loadRegConst(func, varSlot, depth);

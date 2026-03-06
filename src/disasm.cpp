@@ -21,12 +21,20 @@ void Disassembler::printOpcode(std::string_view opName)
 
 void Disassembler::disFunction(const Function& func)
 {
-	FORMAT_PRINT("===== [start] func {} =====\n", func.name);
+	if (func.lambda)
+		FORMAT_PRINT("===== [start] <lambda> =====\n");
+	else
+		FORMAT_PRINT("===== [start] func {} =====\n", func.name);
+
 	FORMAT_PRINT("-- locals: {}\n", func.argCount);
 	Disassembler miniDis(func.code);
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
-	FORMAT_PRINT("====== [end] func {} ======\n", func.name);
+
+	if (func.lambda)
+		FORMAT_PRINT("====== [end] <lambda> ======\n");
+	else
+		FORMAT_PRINT("====== [end] func {} ======\n", func.name);
 }
 
 void Disassembler::printOperValue(const Object& oper)
@@ -74,7 +82,7 @@ void Disassembler::doubleOper(ui8 byte)
 	printOpcode(opNames[byte]);
 
 	if (CAN_MODIFY(byte))
-		FORMAT_PRINT("O[{}] R[{}]", *(ip + 1), *(ip + 2));
+		FORMAT_PRINT("D[{}] R[{}]", *(ip + 1), *(ip + 2));
 	else
 		FORMAT_PRINT("R[{}] R[{}]", *(ip + 1), *(ip + 2));
 	FORMAT_PRINT("\n");
@@ -86,7 +94,7 @@ void Disassembler::tripleOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	FORMAT_PRINT("O[{}] ", *(ip + 1));
+	FORMAT_PRINT("D[{}] ", *(ip + 1));
 	ip++;
 
 	for (int i = 0; i < 2; i++)
@@ -99,7 +107,7 @@ void Disassembler::tripleOper(ui8 byte)
 void Disassembler::loadOper()
 {
 	printOpcode("OP_LOAD_R");
-	FORMAT_PRINT("O[{}] R[{}] ", *(ip + 1), *(ip + 2));
+	FORMAT_PRINT("D[{}] R[{}] ", *(ip + 1), *(ip + 2));
 
 	ip += 3;
 	switch (*ip)
@@ -178,7 +186,7 @@ void Disassembler::callOper(ui8 byte)
 		// at runtime, we cannot display any information about the
 		// function besides its expected location when only
 		// disassembling bytecode.
-		FORMAT_PRINT("O[{}] F[{}] ({}) R[{}]\n", offset, callee, count, start);
+		FORMAT_PRINT("D[{}] F[{}] ({}) R[{}]\n", offset, callee, count, start);
 	}
 }
 

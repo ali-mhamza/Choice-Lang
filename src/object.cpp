@@ -146,8 +146,14 @@ std::string Object::printVal() const
         case OBJ_BOOL:      return (AS_(bool, *this) ? "true" : "false");
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
-        case OBJ_NATIVE:    return "builtin (" + funcNames[AS_(native, *this)] + ")";
-        case OBJ_FUNC:      return "func (" + AS_(func, *this)->name + ")";
+        case OBJ_NATIVE:    return "<builtin " + funcNames[AS_(native, *this)] + ">";
+        case OBJ_FUNC:
+        {
+            Function* func = AS_(func, *this);
+            if (func->lambda)
+                return "<lambda>";
+            return "<func " + func->name + ">";
+        }
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
         case OBJ_ITER:
@@ -168,6 +174,8 @@ std::string Object::printVal() const
 
 std::string_view Object::printType() const
 {
+    if (IS_(FUNC, *this) && AS_(func, *this)->lambda)
+        return "lambda";
     return objTypes[type];
 }
 
@@ -212,10 +220,14 @@ HeapObj::HeapObj() :
 HeapObj::HeapObj(ObjType type) :
     type(type), refCount(0) {}
 
-Function::Function(const std::string& name, ui8 argCount,
-    const ByteCode& code) :
-    HeapObj(OBJ_FUNC), name(name), argCount(argCount),
-    code(code) {}
+Function::Function(const ByteCode& code, ui8 argCount) :
+    HeapObj(OBJ_FUNC),
+    name(""), code(code), argCount(argCount), lambda(true) {}
+
+Function::Function(const std::string& name, const ByteCode& code,
+    ui8 argCount) :
+    HeapObj(OBJ_FUNC), name(name), code(code),
+    argCount(argCount), lambda(false) {}
 
 bool Function::operator==(const Function& other) const
 {
@@ -229,6 +241,7 @@ void Function::emit(std::ofstream& os) const
     os.put('\0');
 
     os.put(static_cast<char>(argCount));
+    os.put(static_cast<char>(lambda));
 
     const vByte& block = code.block;
     emitBytes<ui64>(os, OBJ_INVALID, block.size());

@@ -37,6 +37,47 @@ void ByteCode::addOp(Opcode op)
 	addByte(static_cast<ui8>(op));
 }
 
+ui64 ByteCode::addJump(Opcode op, i16 reg)
+{
+	if (reg == -1)
+		addByte(static_cast<ui8>(op));
+	else
+		addBytes(static_cast<ui8>(op), static_cast<ui8>(reg));
+	ui64 offset = block.size();
+	block.push_back(static_cast<ui8>(0));
+	block.push_back(static_cast<ui8>(0));
+	return offset;
+}
+
+void ByteCode::patchJump(ui64 offset)
+{
+	// We've skipped the 2 jump bytes.
+	ui16 diff = static_cast<ui16>(block.size() - offset - 2);
+	if (diff < (1 << 16))
+	{
+		block[offset] = static_cast<ui8>((diff >> 8) & 0xff);
+		block[offset + 1] = static_cast<ui8>(diff & 0xff);
+	}
+	else
+	{
+		// Jump is too big.
+	}
+}
+
+void ByteCode::addLoop(ui64 start)
+{
+	// We jump back the difference from our opcode to the
+	// start, plus 2 more for the decoded offset bytes,
+	// plus another 1 since we are on the instruction
+	// *after* the two bytes by the time we've decoded the
+	// offset.
+
+	ui16 diff = static_cast<ui16>(block.size() - start + 3);	
+	addByte(OP_LOOP);
+	addByte(static_cast<ui8>((diff >> 8) & 0xff));
+	addByte(static_cast<ui8>(diff & 0xff));
+}
+
 void ByteCode::loadReg(ui8 reg, ui8 op, ui8 offset)
 {
 	addBytes(static_cast<ui8>(OP_LOAD_R), offset, reg, op);
@@ -86,47 +127,6 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg, ui8 offset)
 	}
 }
 
-ui64 ByteCode::addJump(Opcode op, i16 reg)
-{
-	if (reg == -1)
-		addByte(static_cast<ui8>(op));
-	else
-		addBytes(static_cast<ui8>(op), static_cast<ui8>(reg));
-	ui64 offset = block.size();
-	block.push_back(static_cast<ui8>(0));
-	block.push_back(static_cast<ui8>(0));
-	return offset;
-}
-
-void ByteCode::patchJump(ui64 offset)
-{
-	// We've skipped the 2 jump bytes.
-	ui16 diff = static_cast<ui16>(block.size() - offset - 2);
-	if (diff < (1 << 16))
-	{
-		block[offset] = static_cast<ui8>((diff >> 8) & 0xff);
-		block[offset + 1] = static_cast<ui8>(diff & 0xff);
-	}
-	else
-	{
-		// Jump is too big.
-	}
-}
-
-void ByteCode::addLoop(ui64 start)
-{
-	// We jump back the difference from our opcode to the
-	// start, plus 2 more for the decoded offset bytes,
-	// plus another 1 since we are on the instruction
-	// *after* the two bytes by the time we've decoded the
-	// offset.
-
-	ui16 diff = static_cast<ui16>(block.size() - start + 3);	
-	addByte(OP_LOOP);
-	addByte(static_cast<ui8>((diff >> 8) & 0xff));
-	addByte(static_cast<ui8>(diff & 0xff));
-}
-
 ui64 ByteCode::countPool() const
 {
 	ui64 count = 0;
@@ -142,8 +142,9 @@ ui64 ByteCode::countPool() const
 				case OBJ_FUNC:
 				{
 					const Function& func = *(AS_(func, obj));
-					// Added type byte (1) and null byte (1) and argCount byte (1).
-					count += 1 + func.name.size() + 1 + 1;
+					// Added type byte (1) and null byte (1)
+					// and argCount byte (1) and lambda Boolean byte (1).
+					count += 1 + func.name.size() + 1 + 1 + 1;
 					// Added code size and pool size values,
 					// as well as the actual sizes of the code and pool.
 					count += 2 * sizeof(ui64) + func.code.codeSize()

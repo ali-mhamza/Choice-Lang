@@ -73,6 +73,7 @@ class Parser
 
         StmtUP declaration();
         StmtUP varDecl();
+        StmtUP funcBodyHelper(bool lambda, vT& params);
         StmtUP funDecl();
         StmtUP classDecl();
 
@@ -108,6 +109,7 @@ class Parser
         ExprUP call();
         ExprUP post(); // Post-increment/decrement.
         ExprUP ifExpr();
+        ExprUP lambda();
         ExprUP primary();
     
     public:

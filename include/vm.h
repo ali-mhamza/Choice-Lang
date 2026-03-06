@@ -96,9 +96,9 @@ class VM
         Object compareOper(Opcode op, ui8 firstOper); // No variables get modified, so no offset.
         Object bitOper(Opcode op, ui8 offset, ui8 firstOper);
         Object unaryOper(Opcode op, ui8 offset, ui8 oper);
-        void callFunc(const Object& callee, ui8 offset, ui8 start, ui8 argCount);
+        void callFunc(const Object& callee, ui8 start, ui8 argCount);
         void callNative(const Object& callee, ui8 start, ui8 argCount);
-        void callObj(const Object& callee, ui8 offset, ui8 start, ui8 argCount);
+        void callObj(const Object& callee, ui8 start, ui8 argCount);
         inline void restoreData();
         void handleIter(Opcode op);
 

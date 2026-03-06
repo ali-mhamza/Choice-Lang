@@ -188,6 +188,7 @@ namespace AST
             E_UNARY_EXPR,
             E_CALL_EXPR,
             E_IF_EXPR,
+            E_LAMBDA_EXPR,
             E_VAR_EXPR,
             E_LITERAL_EXPR
         };
@@ -288,6 +289,14 @@ namespace AST
             ExprUP falseExpr;
 
             IfExpr(ExprUP condition, ExprUP trueExpr, ExprUP falseExpr);
+        };
+
+        struct LambdaExpr : public Expr
+        {
+            vT params;
+            StmtUP body;
+
+            LambdaExpr(const vT& params, StmtUP& body);
         };
 
         struct VarExpr : public Expr

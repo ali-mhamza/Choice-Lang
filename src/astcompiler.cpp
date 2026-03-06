@@ -193,9 +193,10 @@ DEF(FuncDecl)
     miniCompiler.code.addOp(OP_RETURN, 0);
 
     ByteCode& funcCode = miniCompiler.code;
+    funcCode.depth = miniCompiler.depth;
     this->hitError = miniCompiler.hitError;
-    Object func = ALLOC(Function, ObjDealloc<Function>, name, size,
-        funcCode);
+    Object func = ALLOC(Function, ObjDealloc<Function>, name,
+        funcCode, size);
     // We only declare in the current function scope.
     code.loadRegConst(func, varSlot, depth);
 }
@@ -783,6 +784,35 @@ DEF(IfExpr)
     code.patchJump(trueJump);
 }
 
+DEF(LambdaExpr)
+{
+    size_t size = node->params.size();
+    if (size > PARAMETER_MAX)
+    {
+        REPORT_ERROR(node->params[PARAMETER_MAX],
+            "Too many parameters in function.");
+    }
+
+    ASTCompiler miniCompiler(this);
+    for (Token& param : node->params)
+    {
+        ui8 reg = miniCompiler.previousReg;
+        miniCompiler.defVar(std::string(param.text), reg, accessVar);
+        miniCompiler.reserveReg();
+    }
+    miniCompiler.compileStmt(node->body);
+    miniCompiler.code.addOp(OP_VOID, 0);
+    miniCompiler.code.addOp(OP_RETURN, 0);
+
+    ByteCode& funcCode = miniCompiler.code;
+    funcCode.depth = miniCompiler.depth;
+    this->hitError = miniCompiler.hitError;
+    Object func = ALLOC(Function, ObjDealloc<Function>, funcCode,
+        size);
+    code.loadRegConst(func, previousReg, depth);
+    reserveReg();
+}
+
 DEF(VarExpr)
 {
     VarInfo pos = getVarInfo(node->name);
@@ -854,6 +884,7 @@ void ASTCompiler::compileExpr(ExprUP& node)
         case E_UNARY_EXPR:      COMPILE(UnaryExpr);     break;
         case E_CALL_EXPR:       COMPILE(CallExpr);      break;
         case E_IF_EXPR:         COMPILE(IfExpr);        break;
+        case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);    break;
         case E_VAR_EXPR:        COMPILE(VarExpr);       break;
         case E_LITERAL_EXPR:    COMPILE(LiteralExpr);   break;
     }

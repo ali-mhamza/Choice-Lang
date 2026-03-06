@@ -117,6 +117,10 @@ IfExpr::IfExpr(ExprUP condition, ExprUP trueExpr, ExprUP falseExpr) :
     condition(std::move(condition)), trueExpr(std::move(trueExpr)),
     falseExpr(std::move(falseExpr)) {}
 
+LambdaExpr::LambdaExpr(const vT& params, StmtUP& body) :
+    Expr(E_LAMBDA_EXPR),
+    params(params), body(std::move(body)) {}
+
 VarExpr::VarExpr(const Token& name) :
     Expr(E_VAR_EXPR),
     name(name) {}

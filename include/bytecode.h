@@ -21,9 +21,15 @@ class ByteCode
         // Using big endian.
         void addShort(ui16 bytes);
         void addLong(ui32 bytes);
+
         ui64 countPool() const;
 
+        void clearCode();
+        void clearPool();
+
     public:
+        ui8 depth{0};
+
         ByteCode();
         ByteCode(const vByte& block);
         ByteCode(const vByte& block, const vObj& pool);
@@ -32,19 +38,19 @@ class ByteCode
         template<typename Op, typename... Bytes>
         inline void addOp(Op op, Bytes... opers);
 
-        void loadReg(ui8 reg, ui8 op, ui8 offset);
-        void loadRegConst(Object& constant, ui8 reg, ui8 offset);
         // i16 to allow negative values while still
         // fitting all register values.
         ui64 addJump(Opcode op, i16 reg = -1);
         void patchJump(ui64 offset);
-        inline ui64 codeSize() const { return static_cast<ui64>(block.size()); }
+
         inline ui64 getLoopStart() const { return codeSize(); }
         void addLoop(ui64 start);
 
+        void loadReg(ui8 reg, ui8 op, ui8 offset);
+        void loadRegConst(Object& constant, ui8 reg, ui8 offset);
+
+        inline ui64 codeSize() const { return static_cast<ui64>(block.size()); }
         void cacheStream(std::ofstream& os) const;
-        void clearCode();
-        void clearPool();
         void clear();
 
         friend class Disassembler;

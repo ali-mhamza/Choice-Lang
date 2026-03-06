@@ -103,8 +103,24 @@ static Object reconstructFunc(vBit& it, const vBit& end)
 	CHECK_EOF();
 	ui8 argCount = *it;
 
-	return Object(ALLOC(Function, ObjDealloc<Function>, name, argCount,
-		reconstructByteCode(++it, end)));
+	++it;
+	CHECK_EOF();
+	bool lambda = static_cast<bool>(*it);
+
+	if (lambda)
+	{
+		return Object(ALLOC(Function, ObjDealloc<Function>,
+			reconstructByteCode(++it, end),
+			argCount)
+		);
+	}
+	else
+	{
+		return Object(ALLOC(Function, ObjDealloc<Function>, name,
+			reconstructByteCode(++it, end),
+			argCount)
+		);
+	}
 }
 
 static Object reconstructString(vBit& it, const vBit& end)

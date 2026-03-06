@@ -163,27 +163,46 @@ StmtUP Parser::varDecl()
         std::move(init)));
 }
 
-StmtUP Parser::funDecl()
+StmtUP Parser::funcBodyHelper(bool lambda, vT& params)
 {
-    MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
-    Token name = previousTok;
-    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after function name.");
+    if (!lambda)
+        MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after function name.");
 
-    vT params;
-    if (!checkTok(TOK_RIGHT_PAREN))
+    if (!checkTok(lambda ? TOK_BAR : TOK_RIGHT_PAREN))
     {
         do {
             MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
             params.emplace_back(previousTok);
         } while (consumeTok(TOK_COMMA));
     }
-    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
-    MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before function body.");
+
+    if (lambda)
+    {
+        MATCH_TOK(TOK_BAR, "Expect '|' after lambda parameters.");
+    }
+    else
+    {
+        MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' to close function signature.");
+    }
+
+    MATCH_TOK(TOK_LEFT_BRACE,
+        lambda ? "Expect '{' before lambda body." : "Expect '{' before function body.");
 
     bool prevInFunc = inFunc;
     inFunc = true;
     StmtUP body = blockStmt();
     inFunc = prevInFunc;
+
+    return body;
+}
+
+StmtUP Parser::funDecl()
+{
+    MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
+    Token name = previousTok;
+
+    vT params;
+    StmtUP body = funcBodyHelper(false, params);
 
     return StmtUP(std::make_unique<FuncDecl>(name, params, body));
 }
@@ -608,9 +627,13 @@ ExprUP Parser::call()
     ExprUP expr = post();
     if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
     {
-        bool builtin = (previousTok.type == TOK_BANG ?
-           (matchError(TOK_LEFT_PAREN, "Invalid placement for token '!'."), true)
-           : false);
+        bool builtin = false;
+        if (previousTok.type == TOK_BANG)
+        {
+            if (!matchError(TOK_LEFT_PAREN, "Invalid placement for token '!'."))
+                return nullptr;
+            builtin = true;
+        }
         
         // Callee does not need to be an identifier.
         // Just has to evaluate to a callable object.
@@ -681,6 +704,13 @@ ExprUP Parser::ifExpr()
         std::move(trueBranch), std::move(falseBranch)));
 }
 
+ExprUP Parser::lambda()
+{
+    vT params;
+    StmtUP body = funcBodyHelper(true, params);
+    return ExprUP(std::make_unique<LambdaExpr>(params, body));
+}
+
 ExprUP Parser::primary()
 {
     nextTok();
@@ -701,6 +731,9 @@ ExprUP Parser::primary()
 
     else if (type == TOK_IF)
         return ifExpr();
+
+    else if (type == TOK_BAR)
+        return lambda();
     
     REPORT_SYNTAX(previousTok, "Invalid token in current position.");
     return nullptr;

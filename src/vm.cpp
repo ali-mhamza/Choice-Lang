@@ -311,7 +311,7 @@ Object VM::unaryOper(Opcode op, ui8 offset, ui8 oper)
     }
 }
 
-void VM::callFunc(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
+void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 {
     Function* func = AS_(func, callee);
     if (func->argCount != argCount)
@@ -323,14 +323,15 @@ void VM::callFunc(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
         );
     }
 
+    const ByteCode& code = func->code;
     frames.emplace_back(CallFrame::Args{
-        registers, ip, end, pool, offset
+        registers, ip, end, pool,
+        static_cast<ui8>(code.depth - 1)
         #if WATCH_EXEC
         , this->dis
         #endif
     });
 
-    const ByteCode& code = func->code;
     registers += start;
     ip = code.block.data();
     end = ip + code.block.size();
@@ -340,9 +341,7 @@ void VM::callFunc(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
         this->dis = new Disassembler(code);
     #endif
 
-    // Objects within a function have a lexical depth
-    // 1 higher than that of the function itself.
-    pushScope(offset + 1, registers);
+    pushScope(code.depth, registers);
 }
 
 void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
@@ -351,7 +350,7 @@ void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
     (*func)(&registers[start], argCount, Token());
 }
 
-void VM::callObj(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
+void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
 {
     if (!IS_CALLABLE(callee))
         throw TypeMismatch(
@@ -366,7 +365,7 @@ void VM::callObj(const Object& callee, ui8 offset, ui8 start, ui8 argCount)
             callNative(callee, start, argCount);
             break;
         case OBJ_FUNC:
-            callFunc(callee, offset, start, argCount);
+            callFunc(callee, start, argCount);
             break;
         default:
             UNREACHABLE();
@@ -668,7 +667,7 @@ void VM::executeOp(Opcode op)
             ui8 start = readByte();
             ui8 argCount = readByte();
 
-            callObj(callee, offset, start, argCount);
+            callObj(callee, start, argCount);
             DISPATCH();
         }
         CASE(OP_RETURN):
