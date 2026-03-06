@@ -794,7 +794,7 @@ DEF(LambdaExpr)
     if (size > PARAMETER_MAX)
     {
         REPORT_ERROR(node->params[PARAMETER_MAX],
-            "Too many parameters in function.");
+            "Too many parameters in lambda.");
     }
 
     ASTCompiler miniCompiler(this);
