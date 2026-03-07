@@ -58,7 +58,7 @@ class VM
 
         const ui8* ip;
         const ui8* end;
-        static constexpr size_t regSize = 256;
+        static constexpr size_t regSize = 4096;
         Object* registers;
         std::vector<CallFrame> frames;
         Object* depthWindows[MAX_SCOPE_DEPTH];
