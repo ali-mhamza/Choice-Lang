@@ -30,6 +30,6 @@ namespace Natives
     void read(iter it, ui8 args, const Token& error);
 
     extern const NativeFunc functions[NUM_FUNCS];
-    extern const std::string funcNames[NUM_FUNCS];
+    extern const char* funcNames[NUM_FUNCS];
     extern const std::unordered_map<std::string_view, FuncType> builtins;
 }

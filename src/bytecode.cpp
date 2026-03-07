@@ -2,6 +2,7 @@
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include <cmath>
+#include <cstring>
 #include <fstream>
 
 ByteCode::ByteCode() :
@@ -144,7 +145,7 @@ ui64 ByteCode::countPool() const
 					const Function& func = *(AS_(func, obj));
 					// Added type byte (1) and null byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
-					count += 1 + func.name.size() + 1 + 1 + 1;
+					count += 1 + strlen(func.name) + 1 + 1 + 1;
 					// Added code size and pool size values,
 					// as well as the actual sizes of the code and pool.
 					count += 2 * sizeof(ui64) + func.code.codeSize()

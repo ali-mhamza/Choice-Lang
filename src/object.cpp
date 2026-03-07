@@ -146,13 +146,13 @@ std::string Object::printVal() const
         case OBJ_BOOL:      return (AS_(bool, *this) ? "true" : "false");
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
-        case OBJ_NATIVE:    return "<builtin " + funcNames[AS_(native, *this)] + ">";
+        case OBJ_NATIVE:    return FORMAT_STR("<builtin {}>", funcNames[AS_(native, *this)]);
         case OBJ_FUNC:
         {
             Function* func = AS_(func, *this);
             if (func->lambda)
                 return "<lambda>";
-            return "<func " + func->name + ">";
+            return FORMAT_STR("<func {}>", func->name);
         }
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
@@ -226,7 +226,7 @@ Function::Function(const ByteCode& code, ui8 argCount) :
 
 Function::Function(const std::string& name, const ByteCode& code,
     ui8 argCount) :
-    HeapObj(OBJ_FUNC), name(name), code(code),
+    HeapObj(OBJ_FUNC), name(strdup(name.c_str())), code(code),
     argCount(argCount), lambda(false) {}
 
 bool Function::operator==(const Function& other) const
@@ -237,7 +237,7 @@ bool Function::operator==(const Function& other) const
 void Function::emit(std::ofstream& os) const
 {
     os.put(static_cast<char>(type));
-    os.write(name.data(), name.size());
+    os.write(name, strlen(name));
     os.put('\0');
 
     os.put(static_cast<char>(argCount));

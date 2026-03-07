@@ -49,7 +49,7 @@ struct HeapObj
 
 struct Function : public HeapObj
 {
-    std::string name;
+    const char* name;
     ByteCode code;
     ui8 argCount;
     bool lambda;
