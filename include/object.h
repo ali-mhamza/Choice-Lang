@@ -3,6 +3,8 @@
 #include "common.h"
 #include "natives.h"
 #include "opcodes.h"
+#include "../dependencies/personal/array.h"
+#include "../dependencies/personal/linearTable.h"
 #include <array>
 #include <cstdint>
 #include <fstream>
@@ -88,14 +90,16 @@ struct Range : public HeapObj
     void emit(std::ofstream& os) const;
 };
 
+class Object;
+
 struct List : public HeapObj
 {
-
+    Array<Object> array;
 };
 
 struct Table : public HeapObj
 {
-
+    linearTable<Object, Object> table;
 };
 
 struct ObjIter;
