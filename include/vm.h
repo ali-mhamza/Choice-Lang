@@ -5,8 +5,6 @@
 #include "object.h"
 #include "opcodes.h"
 #include "vartable.h"
-#include <memory>
-#include <variant>
 #include <vector>
 
 #if defined(DEBUG)
