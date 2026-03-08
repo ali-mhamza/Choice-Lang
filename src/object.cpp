@@ -119,6 +119,7 @@ bool Object::operator==(const Object& other) const
         case OBJ_FUNC:      return AS_(func, *this) == AS_(func, other);
         case OBJ_STRING:    return AS_(string, *this) == AS_(string, other);
         case OBJ_RANGE:     return AS_(range, *this) == AS_(range, other);
+        case OBJ_LIST:      return AS_(list, *this) == AS_(list, other);
         default: UNREACHABLE();
     }
 }
@@ -156,6 +157,7 @@ std::string Object::printVal() const
         }
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
+        case OBJ_LIST:      return AS_(list, *this)->printVal();
         case OBJ_ITER:
         {
                 const auto& iter = AS_(iter, *this)->iter;
@@ -199,6 +201,7 @@ void Object::emit(std::ofstream& os) const
         case OBJ_FUNC:      AS_(func, *this)->emit(os);                 break;
         case OBJ_STRING:    AS_(string, *this)->emit(os);               break;
         case OBJ_RANGE:     AS_(range, *this)->emit(os);                break;
+        case OBJ_LIST:      AS_(list, *this)->emit(os);                 break;
         default: break;
     }
 }
@@ -222,9 +225,15 @@ Function::Function(const ByteCode& code, ui8 argCount) :
     HeapObj(OBJ_FUNC),
     name(""), code(code), argCount(argCount), lambda(true) {}
 
+#if defined(__GNUC__) || defined(__clang__)
+    #define STRDUP strdup
+#elif defined(_MSC_VER)
+    #define STRDUP _strdup
+#endif
+
 Function::Function(const std::string& name, const ByteCode& code,
     ui8 argCount) :
-    HeapObj(OBJ_FUNC), name(strdup(name.c_str())), code(code),
+    HeapObj(OBJ_FUNC), name(STRDUP(name.c_str())), code(code),
     argCount(argCount), lambda(false) {}
 
 bool Function::operator==(const Function& other) const
@@ -324,6 +333,49 @@ void Range::emit(std::ofstream& os) const
     emitBytes(os, OBJ_INVALID, start);
     emitBytes(os, OBJ_INVALID, stop);
     emitBytes(os, OBJ_INVALID, step);
+}
+
+List::List(ui32 size) :
+    array(size) {}
+
+bool List::operator==(const List& other) const
+{
+    // For now: comparing identity.
+    return (this == &other);
+}
+
+bool List::contains(const Object& obj) const
+{   
+    for (const Object& entry : array)
+    {
+        if (entry == obj)
+            return true;
+    }
+
+    return false;
+}
+
+std::string List::printVal() const
+{
+    std::string ret = "[";
+    size_t size = array.count();
+    for (size_t i = 0; i < size; i++)
+    {
+        ret += array[i].printVal();
+        if (i != size - 1)
+            ret += ", ";
+    }
+
+    ret += "]";
+    return ret;
+}
+
+void List::emit(std::ofstream& os) const
+{
+    os.put(static_cast<char>(type));
+    emitBytes<ui64>(os, OBJ_INVALID, array.count());
+    for (const Object& obj : array)
+        obj.emit(os);
 }
 
 
@@ -455,6 +507,67 @@ bool RangeIter::next(Object& var)
     return true;
 }
 
+ListIter::ListIter() :
+    obj(nullptr) {}
+
+ListIter::ListIter(List* obj) :
+    obj(obj)
+{   
+    #if !USE_ALLOC
+        obj->refCount++;
+    #endif
+}
+
+ListIter::ListIter(ListIter&& other) :
+    obj(other.obj), it(other.it)
+{
+    other.obj = nullptr;
+}
+
+ListIter& ListIter::operator=(ListIter&& other)
+{
+    if (this != &other)
+    {
+        this->obj = other.obj;
+        this->it = other.it;
+
+        other.obj = nullptr;
+    }
+
+    return *this;
+}
+
+ListIter::~ListIter()
+{
+    #if !USE_ALLOC
+        if (obj != nullptr)
+        {
+            ASSERT(obj->refCount != 0, "Zero iterable refcount");
+            obj->refCount--;
+            if (obj->refCount == 0) delete obj;
+        }
+    #endif
+}
+
+bool ListIter::start(Object& var)
+{
+    if (obj->array.count() == 0)
+        return false;
+
+    it = obj->array.begin();
+    var = *it;
+    return true;
+}
+
+bool ListIter::next(Object& var)
+{
+    if (++it == obj->array.end())
+        return false;
+
+    var = *it;
+    return true;
+}
+
 ObjIter::ObjIter(Object& obj)
 {
     switch (obj.type)
@@ -464,10 +577,13 @@ ObjIter::ObjIter(Object& obj)
             // iterator in-place with no intermediate temporary object
             // (otherwise the temporary's destructor will mess with
             // the refcount).
-            iter.emplace<StringIter>(obj.as.stringVal);
+            iter.emplace<StringIter>(AS_(string, obj));
             break;
         case OBJ_RANGE:
-            iter.emplace<RangeIter>(obj.as.rangeVal);
+            iter.emplace<RangeIter>(AS_(range, obj));
+            break;
+        case OBJ_LIST:
+            iter.emplace<ListIter>(AS_(list, obj));
             break;
         default: break;
     }

@@ -684,6 +684,21 @@ ExprUP Parser::lambda()
     return ExprUP(std::make_unique<LambdaExpr>(params, body));
 }
 
+ExprUP Parser::list()
+{
+    ExprVec entries;
+    entries.reserve(LIST_ENTRY_GROUP); // Minimal size to start off with.
+    if (!checkTok(TOK_RIGHT_BRACKET))
+    {
+        do {
+            entries.emplace_back(expression());
+        } while (consumeTok(TOK_COMMA));
+    }
+    MATCH_TOK(TOK_RIGHT_BRACKET, "Expect ']' to conclude list literal.");
+
+    return ExprUP(std::make_unique<ListExpr>(entries));
+}
+
 ExprUP Parser::primary()
 {
     nextTok();
@@ -707,6 +722,9 @@ ExprUP Parser::primary()
 
     else if (type == TOK_BAR)
         return lambda();
+
+    else if (type == TOK_LEFT_BRACKET)
+        return list();
     
     REPORT_SYNTAX(previousTok, "Invalid token in current position.");
     return nullptr;

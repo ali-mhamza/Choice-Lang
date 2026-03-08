@@ -1240,6 +1240,33 @@ void Compiler::lambda()
     reserveReg();
 }
 
+void Compiler::list()
+{
+    ui8 listReg = previousReg;
+    code.addOp(OP_LIST, listReg);
+    reserveReg();
+
+    ui8 count = 0;
+    ui8 startReg = previousReg;
+    auto emitList = [this, listReg, &count, startReg] {
+        code.addOp(OP_EXTEND_LIST, listReg, startReg, count);
+        previousReg = startReg;
+        count = 0;
+    };
+
+    if (!checkTok(TOK_RIGHT_BRACKET))
+    {
+        do {
+            expression();
+            if (++count == LIST_ENTRY_GROUP)
+                emitList();
+        } while (consumeTok(TOK_COMMA));
+    }
+
+    if (count > 0) emitList();
+    MATCH_TOK(TOK_RIGHT_BRACKET, "Expect ']' to conclude list literal.");
+}
+
 void Compiler::primary()
 {    
     if (consumeToks(TOK_NUM, TOK_NUM_DEC, TOK_STR_LIT))
@@ -1302,6 +1329,9 @@ void Compiler::primary()
     
     else if (consumeTok(TOK_BAR))
         lambda();
+
+    else if (consumeTok(TOK_LEFT_BRACKET))
+        list();
     
     else
         REPORT_SYNTAX(currentTok, "Invalid token in current position.");

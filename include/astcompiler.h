@@ -124,6 +124,7 @@ class ASTCompiler
         DECL(CallExpr);
         DECL(IfExpr);
         DECL(LambdaExpr);
+        DECL(ListExpr);
         DECL(VarExpr);
         DECL(LiteralExpr);
 

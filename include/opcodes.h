@@ -58,6 +58,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	// Types.
 
 	OP_LIST,		// Create a list.
+	OP_EXTEND_LIST,	// Extend a list with additional elements.
 	OP_TABLE,		// Create a key-value table.
 
 	// Functions.
@@ -109,7 +110,7 @@ static std::string_view opNames[] = {
 
 	"OP_GET_VAR", "OP_SET_VAR",
 
-	"OP_LIST", "OP_TABLE",
+	"OP_LIST", "OP_EXTEND_LIST", "OP_TABLE",
 
 	"OP_CALL_NAT", "OP_CALL_DEF", "OP_RETURN", "OP_VOID",
 

@@ -817,6 +817,30 @@ DEF(LambdaExpr)
     reserveReg();
 }
 
+DEF(ListExpr)
+{
+    ui8 listReg = previousReg;
+    code.addOp(OP_LIST, listReg);
+    reserveReg();
+
+    ui8 count = 0;
+    ui8 startReg = previousReg;
+    auto emitList = [this, listReg, &count, startReg] {
+        code.addOp(OP_EXTEND_LIST, listReg, startReg, count);
+        previousReg = startReg;
+        count = 0;
+    };
+
+    for (ExprUP& entry : node->entries)
+    {
+        compileExpr(entry);
+        if (++count == LIST_ENTRY_GROUP)
+            emitList();
+    }
+
+    if (count > 0) emitList();
+}
+
 DEF(VarExpr)
 {
     VarInfo pos = getVarInfo(node->name);
@@ -889,6 +913,7 @@ void ASTCompiler::compileExpr(ExprUP& node)
         case E_CALL_EXPR:       COMPILE(CallExpr);      break;
         case E_IF_EXPR:         COMPILE(IfExpr);        break;
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);    break;
+        case E_LIST_EXPR:       COMPILE(ListExpr);      break;
         case E_VAR_EXPR:        COMPILE(VarExpr);       break;
         case E_LITERAL_EXPR:    COMPILE(LiteralExpr);   break;
     }

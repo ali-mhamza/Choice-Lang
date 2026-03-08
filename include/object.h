@@ -95,6 +95,14 @@ class Object;
 struct List : public HeapObj
 {
     Array<Object> array;
+
+    List() = default;
+    List(ui32 size);
+    bool operator==(const List& other) const;
+
+    bool contains(const Object& obj) const;
+    std::string printVal() const;
+    void emit(std::ofstream& os) const;
 };
 
 struct Table : public HeapObj
@@ -120,6 +128,8 @@ class Object
             Function*   funcVal;
             String*     stringVal;
             Range*      rangeVal;
+            List*       listVal;
+            Table*      tableVal;
             HeapObj*    heapVal;
             ObjIter*    iterVal;
         } as;
@@ -179,9 +189,30 @@ struct RangeIter
     bool next(Object& var);
 };
 
+struct ListIter
+{
+    List* obj;
+    Array<Object>::iterator it;
+
+    ListIter();
+    ListIter(List* obj);
+    ListIter(const ListIter&) = delete;
+    ListIter& operator=(const ListIter&) = delete;
+    ListIter(ListIter&& other);
+    ListIter& operator=(ListIter&& other);
+    ~ListIter();
+
+    bool start(Object& var);
+    bool next(Object& var);
+};
+
 struct ObjIter
 {
-    using Iter = std::variant<StringIter, RangeIter>;
+    using Iter = std::variant<
+        StringIter,
+        RangeIter,
+        ListIter
+    >;
 
     Iter iter;
 
@@ -274,6 +305,22 @@ Object::Object(T val)
             val->refCount++;
         #endif
         as.rangeVal = val;
+    }
+    else if constexpr (std::is_same_v<T, List*>)
+    {
+        type = OBJ_LIST;
+        #if !USE_ALLOC
+            val->refCount++;
+        #endif
+        as.listVal = val;
+    }
+    else if constexpr (std::is_same_v<T, Table*>)
+    {
+        type = OBJ_TABLE;
+        #if !USE_ALLOC
+            val->refCount++;
+        #endif
+        as.tableVal = val;
     }
     else if constexpr (std::is_same_v<T, HeapObj*>)
     {

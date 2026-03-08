@@ -121,6 +121,10 @@ LambdaExpr::LambdaExpr(const vT& params, StmtUP& body) :
     Expr(E_LAMBDA_EXPR),
     params(params), body(std::move(body)) {}
 
+ListExpr::ListExpr(ExprVec& entries) :
+    Expr(E_LIST_EXPR),
+    entries(std::move(entries)) {}
+
 VarExpr::VarExpr(const Token& name) :
     Expr(E_VAR_EXPR),
     name(name) {}

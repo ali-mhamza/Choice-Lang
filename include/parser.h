@@ -110,6 +110,7 @@ class Parser
         ExprUP post(); // Post-increment/decrement.
         ExprUP ifExpr();
         ExprUP lambda();
+        ExprUP list();
         ExprUP primary();
     
     public:

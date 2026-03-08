@@ -576,6 +576,25 @@ void VM::executeOp(Opcode op)
             COPY(depthWindows[offset][dest], registers[src]);
             DISPATCH();
         }
+
+        CASE(OP_LIST):
+        {
+            registers[readByte()] = ALLOC(List, ObjDealloc<List>,
+                DEFAULT_LIST_SIZE);
+            DISPATCH();
+        }
+        CASE(OP_EXTEND_LIST):
+        {
+            ui8 listReg = readByte();
+            ui8 startReg = readByte();
+            ui8 count = readByte();
+
+            auto& array = AS_(list, registers[listReg])->array;
+            for (ui8 i = 0; i < count; i++)
+                array.push(registers[startReg + i]);
+            DISPATCH();
+        }
+
         CASE(OP_MAKE_ITER):
         CASE(OP_UPDATE_ITER):
         {

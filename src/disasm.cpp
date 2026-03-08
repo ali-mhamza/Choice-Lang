@@ -209,6 +209,30 @@ void Disassembler::iterOper(ui8 byte)
 	}
 }
 
+void Disassembler::listOper(ui8 byte)
+{
+	printOpcode(opNames[byte]);
+
+	ui8 listReg = restoreByte();
+	ip++;
+
+	if (static_cast<Opcode>(byte) == OP_EXTEND_LIST)
+	{
+		ui8 startReg = restoreByte();
+		ip++;
+
+		ui8 count = restoreByte();
+		ip += 2;
+
+		FORMAT_PRINT("R[{}] R[{}] ({})\n", listReg, startReg, count);
+	}
+	else
+	{
+		FORMAT_PRINT("R[{}]\n", listReg);
+		ip += 1;
+	}
+}
+
 void Disassembler::disassembleOp(ui8 byte)
 {
 	switch (byte)
@@ -238,6 +262,9 @@ void Disassembler::disassembleOp(ui8 byte)
 			break;
 		case OP_LOAD_R:
 			loadOper();
+			break;
+		case OP_LIST:		case OP_EXTEND_LIST:
+			listOper(byte);
 			break;
 		default:
 		{

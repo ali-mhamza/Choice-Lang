@@ -32,6 +32,7 @@ class Disassembler
         void jumpOper(ui8 byte, int sign);
         void callOper(ui8 byte);
         void iterOper(ui8 byte);
+        void listOper(ui8 byte);
     
     public:
         Disassembler(const ByteCode& code);
