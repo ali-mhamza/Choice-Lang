@@ -1098,7 +1098,11 @@ void Compiler::call()
         identifierCall = ((tok.type == TOK_IDENTIFIER)
             && ((next.type == TOK_BANG) || (next.type == TOK_LEFT_PAREN)));
     }
-    post();
+    
+    if (identifierCall)
+        nextTok();
+    else
+        post();
 
     if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
     {
