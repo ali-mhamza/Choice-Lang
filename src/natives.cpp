@@ -30,7 +30,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
 {   
     (void) error;
 
-    for (int i = 0; i < args; i++)
+    for (ui8 i = 0; i < args; i++)
     {
         switch (it[i].type)
         {
