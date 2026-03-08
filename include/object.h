@@ -299,7 +299,7 @@ Object::Object(T val)
 #define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
 #define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
 #define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
-#define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !(IS_(ITER, obj)))
+#define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_(ITER, obj))
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 
 // Conversion macros.
