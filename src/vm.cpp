@@ -18,7 +18,7 @@ VM::VM() :
     ip(nullptr), end(nullptr),
     registers(new Object[regSize]), pool(nullptr)
 {
-    for (size_t i = 0; i < regSize; i++)
+    for (size_t i = 0; i < Natives::NUM_FUNCS; i++)
         registers[i] = Object(Natives::FuncType(i));
     
     #if WATCH_REG

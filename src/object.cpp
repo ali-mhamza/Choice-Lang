@@ -166,8 +166,6 @@ std::string Object::printVal() const
 
                 return ret;
         }
-        // Void return value.
-        case OBJ_INVALID:   return "INVALID";
         default: UNREACHABLE();
     }
 }

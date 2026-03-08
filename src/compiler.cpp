@@ -323,7 +323,7 @@ void Compiler::funDecl()
 
     ui8 varSlot = (redefined ? *(pos.slot) : previousReg);
     Compiler miniCompiler(this);
-    size_t count = 0;
+    ui8 count = 0;
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
@@ -1208,7 +1208,7 @@ void Compiler::ifExpr()
 void Compiler::lambda()
 {
     Compiler miniCompiler(this);
-    size_t count = 0;
+    ui8 count = 0;
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
