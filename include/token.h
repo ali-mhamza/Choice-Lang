@@ -165,10 +165,10 @@ class Token
 		Token(TokenType type, std::string_view text, Value content,
 				ui16 line, ui8 position);
 
-		Token(const Token& other);
-		Token& operator=(const Token& other);
-		Token(Token&& other);
-		Token& operator=(Token&& other);
+		Token(const Token& other) noexcept;
+		Token& operator=(const Token& other) noexcept;
+		Token(Token&& other) noexcept;
+		Token& operator=(Token&& other) noexcept;
 
 		friend class Lexer;
 		friend class TokenPrinter;

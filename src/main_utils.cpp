@@ -196,7 +196,7 @@ vObj reconstructPool(const vByte& poolBytes)
 
 static void handleFileLength(std::ifstream& fileIn, size_t expected)
 {
-	if (fileIn.gcount() < expected)
+	if (static_cast<size_t>(fileIn.gcount()) < expected)
 	{
 		if (fileIn.eof())
 			eofError();

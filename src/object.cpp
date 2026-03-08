@@ -45,7 +45,7 @@ void Object::clean()
     #endif
 }
 
-Object::Object(const Object& other) :
+Object::Object(const Object& other) noexcept :
     type(other.type), as(other.as)
 {
     ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed");
@@ -56,7 +56,7 @@ Object::Object(const Object& other) :
     #endif
 }
 
-Object& Object::operator=(const Object& other)
+Object& Object::operator=(const Object& other) noexcept
 {
     ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed");
     
@@ -392,14 +392,14 @@ StringIter::StringIter(String* obj) :
     #endif
 }
 
-StringIter::StringIter(StringIter&& other) :
+StringIter::StringIter(StringIter&& other) noexcept :
     obj(other.obj), iter(other.iter), begin(other.begin)
 {
     other.obj = other.iter = nullptr;
     other.begin = nullptr; // Must split; pointers are of different types.
 }
 
-StringIter& StringIter::operator=(StringIter&& other)
+StringIter& StringIter::operator=(StringIter&& other) noexcept
 {
     if (this != &other)
     {
@@ -460,13 +460,13 @@ RangeIter::RangeIter(Range* obj) :
     #endif
 }
 
-RangeIter::RangeIter(RangeIter&& other) :
+RangeIter::RangeIter(RangeIter&& other) noexcept :
     obj(other.obj), val(other.val)
 {
     other.obj = nullptr;
 }
 
-RangeIter& RangeIter::operator=(RangeIter&& other)
+RangeIter& RangeIter::operator=(RangeIter&& other) noexcept
 {
     if (this != &other)
     {
@@ -508,23 +508,23 @@ bool RangeIter::next(Object& var)
 }
 
 ListIter::ListIter() :
-    obj(nullptr) {}
+    obj(nullptr), it() {}
 
 ListIter::ListIter(List* obj) :
-    obj(obj)
+    obj(obj), it()
 {   
     #if !USE_ALLOC
         obj->refCount++;
     #endif
 }
 
-ListIter::ListIter(ListIter&& other) :
+ListIter::ListIter(ListIter&& other) noexcept :
     obj(other.obj), it(other.it)
 {
     other.obj = nullptr;
 }
 
-ListIter& ListIter::operator=(ListIter&& other)
+ListIter& ListIter::operator=(ListIter&& other) noexcept
 {
     if (this != &other)
     {

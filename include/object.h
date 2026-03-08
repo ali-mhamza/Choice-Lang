@@ -137,8 +137,8 @@ class Object
         Object();
         template<typename T>
         Object(T val);
-        Object(const Object& other);
-        Object& operator=(const Object& other);
+        Object(const Object& other) noexcept;
+        Object& operator=(const Object& other) noexcept;
         Object(Object&& other) noexcept;
         Object& operator=(Object&& other) noexcept;
         ~Object();
@@ -164,8 +164,8 @@ struct StringIter
     StringIter(String* obj);
     StringIter(const StringIter&) = delete;
     StringIter& operator=(const StringIter&) = delete;
-    StringIter(StringIter&& other);
-    StringIter& operator=(StringIter&& other);
+    StringIter(StringIter&& other) noexcept;
+    StringIter& operator=(StringIter&& other) noexcept;
     ~StringIter();
 
     bool start(Object& var);
@@ -181,8 +181,8 @@ struct RangeIter
     RangeIter(Range* obj);
     RangeIter(const RangeIter&) = delete;
     RangeIter& operator=(const RangeIter&) = delete;
-    RangeIter(RangeIter&& other);
-    RangeIter& operator=(RangeIter&& other);
+    RangeIter(RangeIter&& other) noexcept;
+    RangeIter& operator=(RangeIter&& other) noexcept;
     ~RangeIter();
 
     bool start(Object& var);
@@ -198,8 +198,8 @@ struct ListIter
     ListIter(List* obj);
     ListIter(const ListIter&) = delete;
     ListIter& operator=(const ListIter&) = delete;
-    ListIter(ListIter&& other);
-    ListIter& operator=(ListIter&& other);
+    ListIter(ListIter&& other) noexcept;
+    ListIter& operator=(ListIter&& other) noexcept;
     ~ListIter();
 
     bool start(Object& var);

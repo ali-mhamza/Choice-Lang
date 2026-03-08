@@ -168,7 +168,7 @@ void Lexer::makeToken(TokenType type)
 	}
 
 	stream.emplace_back(type, text, value, line,
-		column - (current - start));
+		column - static_cast<ui8>(current - start));
 }
 
 void Lexer::rangeToken()

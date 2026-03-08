@@ -11,14 +11,14 @@ Token::Token(TokenType type, std::string_view text, Value content,
     text(text), content(content), line(line),
     position(position), type(type) {}
 
-Token::Token(const Token& other) :
+Token::Token(const Token& other) noexcept :
     text(other.text), line(other.line), position(other.position),
     type(other.type)
 {
     this->content.i = other.content.i;
 }
 
-Token& Token::operator=(const Token& other)
+Token& Token::operator=(const Token& other) noexcept
 {
     if (this != &other)
     {
@@ -32,7 +32,7 @@ Token& Token::operator=(const Token& other)
     return *this;
 }
 
-Token::Token(Token&& other) :
+Token::Token(Token&& other) noexcept :
     text(other.text), line(other.line), position(other.position),
     type(other.type)
 {
@@ -40,7 +40,7 @@ Token::Token(Token&& other) :
     other.type = TOK_EOF; // Invalidate the other token.
 }
 
-Token& Token::operator=(Token&& other)
+Token& Token::operator=(Token&& other) noexcept
 {
     if (this != &other)
     {
