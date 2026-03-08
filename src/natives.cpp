@@ -52,7 +52,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     }
     FORMAT_PRINT("\n");
 
-    *it = Object();
+    *it = Object(nullptr);
 }
 
 void Natives::type(Natives::iter it, ui8 args, const Token& error)

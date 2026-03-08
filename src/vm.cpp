@@ -569,10 +569,6 @@ void VM::executeOp(Opcode op)
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            if (!IS_VALID(registers[src]))
-                throw RuntimeError(Token(),
-                    "Type-less value cannot be assigned to a variable.");
-
             COPY(depthWindows[offset][dest], registers[src]);
             DISPATCH();
         }
@@ -661,9 +657,9 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_PRINT_VALID):
         {
-            ui8 out = readByte();
-            const Object& obj = registers[out];
-            if (IS_VALID(obj)) FORMAT_PRINT("{}\n", obj.printVal());
+            const Object& obj = registers[readByte()];
+            if (IS_VALID(obj) && !IS_(NULL, obj))
+                FORMAT_PRINT("{}\n", obj.printVal());
             DISPATCH();
         }
 
@@ -701,7 +697,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             ui8 dest = readByte();
-            registers[dest].type = OBJ_INVALID;
+            registers[dest] = Object(nullptr);
             DISPATCH();
         }
 
