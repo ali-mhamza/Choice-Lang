@@ -727,7 +727,7 @@ void VM::executeCode(const ByteCode& code)
             while (ip < end)
             {
                 #if WATCH_EXEC
-                    dis.disassembleOp(*ip);
+                    this->dis->disassembleOp(*ip);
                 #endif
 
                 executeOp(static_cast<Opcode>(readByte()));
