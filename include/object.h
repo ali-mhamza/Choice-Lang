@@ -6,9 +6,6 @@
 #include "../dependencies/personal/array.h"
 #include "../dependencies/personal/linearTable.h"
 #include <array>
-#include <cstdint>
-#include <fstream>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <variant>
