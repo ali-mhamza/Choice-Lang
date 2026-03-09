@@ -73,7 +73,9 @@ class Parser
 
         StmtUP declaration();
         StmtUP varDecl();
-        StmtUP funcBodyHelper(bool lambda, vT& params);
+        // skipParams: Since || is scanned as a single token, we use
+        // this to indicate that the parser should assume no parameters.
+        StmtUP funcBodyHelper(bool lambda, vT& params, bool skipParams = false);
         StmtUP funDecl();
         StmtUP classDecl();
 
@@ -109,7 +111,7 @@ class Parser
         ExprUP call();
         ExprUP post(); // Post-increment/decrement.
         ExprUP ifExpr();
-        ExprUP lambda();
+        ExprUP lambda(bool skipParams);
         ExprUP list();
         ExprUP primary();
     

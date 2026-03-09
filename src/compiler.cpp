@@ -1211,21 +1211,27 @@ void Compiler::ifExpr()
     code.patchJump(trueJump);
 }
 
-void Compiler::lambda()
+void Compiler::lambda(bool skipParams)
 {
     Compiler miniCompiler(this);
     ui8 count = 0;
-    if (!checkTok(TOK_RIGHT_PAREN))
+
+    if (!skipParams)
     {
-        do {
-            MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
-            if (count == 255)
-                REPORT_SYNTAX(previousTok, "Too many parameters in function.");
-            miniCompiler.defVar(std::string(previousTok.text), count++, accessVar);
-            miniCompiler.reserveReg();
-        } while (consumeTok(TOK_COMMA));
+        if (!checkTok(TOK_BAR))
+        {
+            do {
+                MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
+                if (count == 255)
+                    REPORT_SYNTAX(previousTok, "Too many parameters in function.");
+                miniCompiler.defVar(std::string(previousTok.text), count++, accessVar);
+                miniCompiler.reserveReg();
+            } while (consumeTok(TOK_COMMA));
+        }
+
+        MATCH_TOK(TOK_BAR, "Expect '|' after lambda parameters.");
     }
-    MATCH_TOK(TOK_BAR, "Expect '|' after lambda parameters.");
+
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before lambda body.");
 
     bool prevInFunc = inFunc;
@@ -1333,8 +1339,8 @@ void Compiler::primary()
     else if (consumeTok(TOK_IF))
         ifExpr();
     
-    else if (consumeTok(TOK_BAR))
-        lambda();
+    else if (consumeToks(TOK_BAR, TOK_BAR_BAR))
+        lambda(previousTok.type == TOK_BAR_BAR);
 
     else if (consumeTok(TOK_LEFT_BRACKET))
         list();

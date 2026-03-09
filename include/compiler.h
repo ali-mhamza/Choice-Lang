@@ -179,7 +179,9 @@ class Compiler
         void call();
         void post(); // Post-increment/decrement.
         void ifExpr();
-        void lambda();
+        // skipParams: Since || is scanned as a single token, we use
+        // this to indicate that the parser should assume no parameters.
+        void lambda(bool skipParams);
         void list();
         void primary();
     
