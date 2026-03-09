@@ -193,7 +193,7 @@ namespace AST
             E_VAR_EXPR,
             E_LITERAL_EXPR
         };
-        
+
         struct Expr
         {
             ExprType type;
