@@ -14,6 +14,8 @@
 #include <variant>
 using Natives::FuncType;
 
+/* Type enum. */
+
 enum ObjType
 {
     OBJ_INT,
@@ -36,6 +38,168 @@ enum ObjType
     OBJ_ITER,
     OBJ_INVALID,
 };
+
+
+/* Type check and validation macros. */
+
+#define IS_(TYPE, obj)      ((obj).type == OBJ_##TYPE)
+#define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_(FUNC, obj))
+#define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
+#define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
+#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
+#define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_(ITER, obj))
+#define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
+
+
+/* Conversion macros. */
+
+#define AS_(TYPE, obj)      ((obj).as.TYPE##Val)
+#define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
+#define AS_NUM(obj)         (IS_(INT, obj) ? AS_(int, obj) : AS_(dec, obj))
+#define AS_UINT(obj)        (static_cast<ui64>(AS_(int, obj)))
+
+
+/* Forward declarations. */
+
+struct Function;
+struct String;
+struct Range;
+struct List;
+struct Table;
+struct HeapObj;
+struct ObjIter;
+
+
+/* Main object class. */
+
+class Object
+{
+    private:
+        void clean();
+
+    public:
+        ObjType type;
+        union Value {
+            i64         intVal;
+            double      decVal;
+            bool        boolVal;
+            ObjType     typeVal;
+            FuncType    nativeVal;
+            Function*   funcVal;
+            String*     stringVal;
+            Range*      rangeVal;
+            List*       listVal;
+            Table*      tableVal;
+            HeapObj*    heapVal;
+            ObjIter*    iterVal;
+        } as;
+
+        Object();
+        template<typename T>
+        Object(T val);
+        Object(const Object& other) noexcept;
+        Object& operator=(const Object& other) noexcept;
+        Object(Object&& other) noexcept;
+        Object& operator=(Object&& other) noexcept;
+        ~Object();
+
+        bool operator==(const Object& other) const;
+        bool operator>(const Object& other) const;
+        bool operator<(const Object& other) const;
+
+        std::string printVal() const;
+        std::string_view printType() const;
+        void emit(std::ofstream& os) const;
+
+        ObjIter* makeIter();
+};
+
+template<typename T>
+Object::Object(T val)
+{
+    #if !USE_ALLOC
+        #define INCREMENT_REF() val->refCount++;
+    #else
+        #define INCREMENT_REF()
+    #endif
+
+    if constexpr (std::is_same_v<T, i64>)
+    {
+        type = OBJ_INT;
+        as.intVal = val;
+    }
+    else if constexpr (std::is_same_v<T, double>)
+    {
+        type = OBJ_DEC;
+        as.decVal = val;
+    }
+    else if constexpr (std::is_same_v<T, bool>)
+    {
+        type = OBJ_BOOL;
+        as.boolVal = val;
+    }
+    else if constexpr (std::is_same_v<T, std::nullptr_t>)
+    {
+        type = OBJ_NULL;
+        as.heapVal = val; // Dummy assignment.
+    }
+    else if constexpr (std::is_same_v<T, ObjType>)
+    {
+        type = OBJ_TYPE;
+        as.typeVal = val;
+    }
+    else if constexpr (std::is_same_v<T, FuncType>)
+    {
+        type = OBJ_NATIVE;
+        as.nativeVal = val;
+    }
+    else if constexpr (std::is_same_v<T, Function*>)
+    {
+        type = OBJ_FUNC;
+        INCREMENT_REF();
+        as.funcVal = val;
+    }
+    else if constexpr (std::is_same_v<T, String*>)
+    {
+        type = OBJ_STRING;
+        INCREMENT_REF();
+        as.stringVal = val;
+    }
+    else if constexpr (std::is_same_v<T, Range*>)
+    {
+        type = OBJ_RANGE;
+        INCREMENT_REF();
+        as.rangeVal = val;
+    }
+    else if constexpr (std::is_same_v<T, List*>)
+    {
+        type = OBJ_LIST;
+        INCREMENT_REF();
+        as.listVal = val;
+    }
+    else if constexpr (std::is_same_v<T, Table*>)
+    {
+        type = OBJ_TABLE;
+        INCREMENT_REF();
+        as.tableVal = val;
+    }
+    else if constexpr (std::is_same_v<T, HeapObj*>)
+    {
+        type = val->type;
+        INCREMENT_REF();
+        as.heapVal = val;
+    }
+    else if constexpr (std::is_same_v<T, ObjIter*>)
+    {
+        type = OBJ_ITER;
+        // Iterators should never be copied, so we
+        // don't use a refcount.
+        as.iterVal = val;
+    }
+}
+
+
+/* Heap-allocated object structs. */
 
 struct HeapObj
 {
@@ -110,49 +274,8 @@ struct Table : public HeapObj
     linearTable<Object, Object> table;
 };
 
-struct ObjIter;
 
-class Object
-{
-    private:
-        void clean();
-
-    public:
-        ObjType type;
-        union Value {
-            i64         intVal;
-            double      decVal;
-            bool        boolVal;
-            ObjType     typeVal;
-            FuncType    nativeVal;
-            Function*   funcVal;
-            String*     stringVal;
-            Range*      rangeVal;
-            List*       listVal;
-            Table*      tableVal;
-            HeapObj*    heapVal;
-            ObjIter*    iterVal;
-        } as;
-
-        Object();
-        template<typename T>
-        Object(T val);
-        Object(const Object& other) noexcept;
-        Object& operator=(const Object& other) noexcept;
-        Object(Object&& other) noexcept;
-        Object& operator=(Object&& other) noexcept;
-        ~Object();
-
-        bool operator==(const Object& other) const;
-        bool operator>(const Object& other) const;
-        bool operator<(const Object& other) const;
-
-        std::string printVal() const;
-        std::string_view printType() const;
-        void emit(std::ofstream& os) const;
-
-        ObjIter* makeIter();
-};
+/* Object iterator structs. */
 
 struct StringIter
 {
@@ -224,7 +347,8 @@ struct ObjIter
     bool next(Object& var);
 };
 
-// Deallocation functor.
+
+/* Deallocation functor. */
 
 template<typename ObjT>
 struct ObjDealloc
@@ -236,7 +360,8 @@ struct ObjDealloc
     }
 };
 
-// General type mismatch error class.
+
+/* General type mismatch error class. */
 
 struct TypeMismatch
 {    
@@ -248,110 +373,3 @@ struct TypeMismatch
         ObjType actual);
     void report();
 };
-
-template<typename T>
-Object::Object(T val)
-{
-    if constexpr (std::is_same_v<T, i64>)
-    {
-        type = OBJ_INT;
-        as.intVal = val;
-    }
-    else if constexpr (std::is_same_v<T, double>)
-    {
-        type = OBJ_DEC;
-        as.decVal = val;
-    }
-    else if constexpr (std::is_same_v<T, bool>)
-    {
-        type = OBJ_BOOL;
-        as.boolVal = val;
-    }
-    else if constexpr (std::is_same_v<T, std::nullptr_t>)
-    {
-        type = OBJ_NULL;
-        as.heapVal = val; // Dummy assignment.
-    }
-    else if constexpr (std::is_same_v<T, ObjType>)
-    {
-        type = OBJ_TYPE;
-        as.typeVal = val;
-    }
-    else if constexpr (std::is_same_v<T, FuncType>)
-    {
-        type = OBJ_NATIVE;
-        as.nativeVal = val;
-    }
-    else if constexpr (std::is_same_v<T, Function*>)
-    {
-        type = OBJ_FUNC;
-        #if !USE_ALLOC
-            val->refCount++;
-        #endif
-        as.funcVal = val;
-    }
-    else if constexpr (std::is_same_v<T, String*>)
-    {
-        type = OBJ_STRING;
-        #if !USE_ALLOC
-            val->refCount++;
-        #endif
-        as.stringVal = val;
-    }
-    else if constexpr (std::is_same_v<T, Range*>)
-    {
-        type = OBJ_RANGE;
-        #if !USE_ALLOC
-            val->refCount++;
-        #endif
-        as.rangeVal = val;
-    }
-    else if constexpr (std::is_same_v<T, List*>)
-    {
-        type = OBJ_LIST;
-        #if !USE_ALLOC
-            val->refCount++;
-        #endif
-        as.listVal = val;
-    }
-    else if constexpr (std::is_same_v<T, Table*>)
-    {
-        type = OBJ_TABLE;
-        #if !USE_ALLOC
-            val->refCount++;
-        #endif
-        as.tableVal = val;
-    }
-    else if constexpr (std::is_same_v<T, HeapObj*>)
-    {
-        type = val->type;
-        #if !USE_ALLOC
-            val->refCount++;
-        #endif
-        as.heapVal = val;
-    }
-    else if constexpr (std::is_same_v<T, ObjIter*>)
-    {
-        type = OBJ_ITER;
-        // Iterators should never be copied, so we
-        // don't use a refcount.
-        as.iterVal = val;
-    }
-}
-
-// Type check and validation macros.
-
-#define IS_(TYPE, obj)      ((obj).type == OBJ_##TYPE)
-#define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_(FUNC, obj))
-#define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
-#define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
-#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
-#define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_(ITER, obj))
-#define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
-
-// Conversion macros.
-
-#define AS_(TYPE, obj)      ((obj).as.TYPE##Val)
-#define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
-#define AS_NUM(obj)         (IS_(INT, obj) ? AS_(int, obj) : AS_(dec, obj))
-#define AS_UINT(obj)        (static_cast<ui64>(AS_(int, obj)))
