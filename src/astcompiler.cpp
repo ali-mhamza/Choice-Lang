@@ -826,7 +826,7 @@ DEF(ListExpr)
     ui8 count = 0;
     ui8 startReg = previousReg;
     auto emitList = [this, listReg, &count, startReg] {
-        code.addOp(OP_EXTEND_LIST, listReg, startReg, count);
+        code.addOp(OP_EXT_LIST, listReg, startReg, count);
         previousReg = startReg;
         count = 0;
     };

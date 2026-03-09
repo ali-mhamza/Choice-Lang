@@ -579,7 +579,7 @@ void VM::executeOp(Opcode op)
                 DEFAULT_LIST_SIZE);
             DISPATCH();
         }
-        CASE(OP_EXTEND_LIST):
+        CASE(OP_EXT_LIST):
         {
             ui8 listReg = readByte();
             ui8 startReg = readByte();

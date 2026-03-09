@@ -216,7 +216,7 @@ void Disassembler::listOper(ui8 byte)
 	ui8 listReg = restoreByte();
 	ip++;
 
-	if (static_cast<Opcode>(byte) == OP_EXTEND_LIST)
+	if (static_cast<Opcode>(byte) == OP_EXT_LIST)
 	{
 		ui8 startReg = restoreByte();
 		ip++;
@@ -263,7 +263,7 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_LOAD_R:
 			loadOper();
 			break;
-		case OP_LIST:		case OP_EXTEND_LIST:
+		case OP_LIST:		case OP_EXT_LIST:
 			listOper(byte);
 			break;
 		default:
