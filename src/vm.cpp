@@ -712,8 +712,9 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_VOID):
         {
-            ui8 dest = readByte();
-            registers[dest] = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
+            // To avoid reallocating the return value each time.
+            static auto ret = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
+            registers[readByte()] = ret;
             DISPATCH();
         }
 

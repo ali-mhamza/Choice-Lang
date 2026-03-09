@@ -29,6 +29,8 @@ const std::unordered_map<std::string_view,
 void Natives::print(Natives::iter it, ui8 args, const Token& error)
 {
     (void) error;
+    // To avoid reallocating the return value each time.
+    static auto ret = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
 
     for (ui8 i = 0; i < args; i++)
     {
@@ -52,7 +54,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     }
     FORMAT_PRINT("\n");
 
-    *it = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
+    *it = ret;
 }
 
 void Natives::type(Natives::iter it, ui8 args, const Token& error)
