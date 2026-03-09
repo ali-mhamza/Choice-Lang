@@ -113,7 +113,7 @@ DEF(VarDecl)
         #if ALLOW_REDEFS
             ui8 varSlot = *(pos.slot);
             ui8 reg = previousReg;
-            if (node->init)
+            if (node->init != nullptr)
             {
                 compileExpr(node->init);
                 // We only declare in the current function scope.
@@ -131,7 +131,7 @@ DEF(VarDecl)
     }
 
     ui8 varSlot = previousReg;
-    if (node->init)
+    if (node->init != nullptr)
         compileExpr(node->init);
     else
     {
@@ -247,12 +247,10 @@ DEF(WhileStmt)
 
     for (ui64 jump : continues)
         code.patchJump(jump);
-
     code.addLoop(loopStart);
-    code.patchJump(falseJump);
 
-    if (node->elseClause != nullptr)
-        compileStmt(node->elseClause);
+    code.patchJump(falseJump);
+    compileStmt(node->elseClause); // Will do nothing if elseClause == nullptr.
 
     for (ui64 jump : breaks)
         code.patchJump(jump);
@@ -300,8 +298,8 @@ void ASTCompiler::forLoopHelper(UP(ForStmt)& node, ui8 varReg, ui8 iterReg)
     );
 
     code.patchJump(failJump);
-    if (node->elseClause != nullptr)
-        compileStmt(node->elseClause);
+    compileStmt(node->elseClause); // Will do nothing if elseClause == nullptr.
+
     for (ui64 jump : *breakJumps)
         code.patchJump(jump);
     if (node->label.type != TOK_EOF)
@@ -371,6 +369,7 @@ void ASTCompiler::matchCaseHelper(MatchStmt::matchCase& checkCase,
         code.patchJump(emptyJump);
         emptyJump = 0;
     }
+
     // We check here since compileStmt will call .release()
     // on the unique_ptr body field, which will make it a
     // nullptr regardless.
@@ -467,6 +466,8 @@ DEF(EndStmt)
 
 DEF(ExprStmt)
 {
+    if (node->expr == nullptr) return;
+    
     ui8 reg = previousReg;
     ExprType type = node->expr->type;
     compileExpr(node->expr);
@@ -523,10 +524,9 @@ DEF(AssignExpr)
     // Temporarily assuming regular variables only.
     if (pos.slot == nullptr)
     {
-        VarExpr* temp = static_cast<VarExpr*>(node->target.release());
-        UP(VarExpr) varUP = UP(VarExpr)(temp);
-        REPORT_ERROR(varUP->name, "Undefined variable '"
-            + std::string(varUP->name.text) + "'.");
+        VarExpr* temp = static_cast<VarExpr*>(node->target.get());
+        REPORT_ERROR(temp->name, "Undefined variable '"
+            + std::string(temp->name.text) + "'.");
     }
     else if (pos.access == accessFix)
         REPORT_ERROR(node->oper,
@@ -668,14 +668,13 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
     if (node->expr->type != E_VAR_EXPR)
         REPORT_ERROR(node->oper,
             "Invalid increment/decrement target.");
+
     VarInfo pos = getVarInfo(node->expr);
-    // Temporarily assuming regular variables only.
     if (pos.slot == nullptr)
     {
-        VarExpr* temp = static_cast<VarExpr*>(node->expr.release());
-        UP(VarExpr) varUP = UP(VarExpr)(temp);
-        REPORT_ERROR(varUP->name, "Undefined variable '"
-            + std::string(varUP->name.text) + "'.");
+        VarExpr* temp = static_cast<VarExpr*>(node->expr.get());
+        REPORT_ERROR(temp->name, "Undefined variable '"
+            + std::string(temp->name.text) + "'.");
     }
     else if (pos.access == accessFix)
         REPORT_ERROR(node->oper,
@@ -725,6 +724,7 @@ DEF(UnaryExpr)
 
 DEF(CallExpr)
 {
+    if (node->callee == nullptr) return;
     ui8 location, depth;
 
     if (node->builtin)
