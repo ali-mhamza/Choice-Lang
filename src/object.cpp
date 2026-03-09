@@ -106,12 +106,12 @@ Object::~Object()
 
 bool Object::operator==(const Object& other) const
 {
+    if (IS_NUM(*this) && IS_NUM(other))
+        return double(AS_NUM(*this)) == double(AS_NUM(other));
     if (this->type != other.type) return false;
 
     switch (this->type)
     {
-        case OBJ_INT:       return AS_(int, *this) == AS_(int, other);
-        case OBJ_DEC:       return AS_(dec, *this) == AS_(dec, other);
         case OBJ_BOOL:      return AS_(bool, *this) == AS_(bool, other);
         case OBJ_NULL:      return true;
         case OBJ_TYPE:      return AS_(type, *this) == AS_(type, other);
