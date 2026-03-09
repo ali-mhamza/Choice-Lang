@@ -732,7 +732,7 @@ void Compiler::returnStmt()
     if (checkTok(TOK_SEMICOLON))
         code.addOp(OP_VOID, reg);
     else
-        expression();
+        reg = tuple();
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after return statement.");
     code.addOp(OP_RETURN, reg);
 }
@@ -780,6 +780,38 @@ void Compiler::exprStmt()
     exprPrint = prevPrint;
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after expression.");
     freeReg();
+}
+
+ui8 Compiler::tuple()
+{
+    constexpr int TUPLE_GROUP = 5;
+
+    ui8 tupleReg = previousReg;
+    code.addOp(OP_TUPLE, tupleReg);
+    reserveReg();
+
+    ui8 count = 0;
+    ui8 startReg = previousReg;
+    bool tupleFormed = false;
+
+    auto emitTuple = [this, tupleReg, &count, startReg] {
+        code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
+        previousReg = startReg;
+        count = 0;
+    };
+
+    do {
+        ui8 entryReg = previousReg;
+        expression();
+        if (!tupleFormed && !checkTok(TOK_COMMA))
+            return entryReg;
+        if (++count == TUPLE_GROUP)
+            emitTuple();
+        tupleFormed = true;
+    } while (consumeTok(TOK_COMMA));
+
+    if (count > 0) emitTuple();
+    return tupleReg;
 }
 
 void Compiler::expression()

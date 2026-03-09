@@ -112,6 +112,7 @@ class ASTCompiler
 
         // Expressions.
 
+        DECL(TupleExpr);
         void compoundAssign(UP(AssignExpr)& node, const VarInfo& pos); // Helper.
         DECL(AssignExpr);
         DECL(LogicExpr);

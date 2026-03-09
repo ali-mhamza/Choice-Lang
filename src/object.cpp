@@ -12,7 +12,7 @@ using Natives::funcNames;
 static std::string_view objTypes[] = {
     "int", "dec", "bool", "null", "type", "builtin function",
     "user function", "bigint", "bigdec", "string", "range",
-    "list", "table", "num", "iterable"
+    "list", "tuple", "table", "num", "iterable"
 };
 
 /* Object. */
@@ -120,6 +120,7 @@ bool Object::operator==(const Object& other) const
         case OBJ_STRING:    return AS_(string, *this) == AS_(string, other);
         case OBJ_RANGE:     return AS_(range, *this) == AS_(range, other);
         case OBJ_LIST:      return AS_(list, *this) == AS_(list, other);
+        // TODO: Tuples shouldn't be comparable.
         default: UNREACHABLE();
     }
 }
@@ -158,6 +159,7 @@ std::string Object::printVal() const
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
         case OBJ_LIST:      return AS_(list, *this)->printVal();
+        case OBJ_TUPLE:     return AS_(tuple, *this)->printVal();
         case OBJ_ITER:
         {
                 const auto& iter = AS_(iter, *this)->iter;
@@ -201,7 +203,6 @@ void Object::emit(std::ofstream& os) const
         case OBJ_FUNC:      AS_(func, *this)->emit(os);                 break;
         case OBJ_STRING:    AS_(string, *this)->emit(os);               break;
         case OBJ_RANGE:     AS_(range, *this)->emit(os);                break;
-        case OBJ_LIST:      AS_(list, *this)->emit(os);                 break;
         default: break;
     }
 }
@@ -370,12 +371,22 @@ std::string List::printVal() const
     return ret;
 }
 
-void List::emit(std::ofstream& os) const
+Tuple::Tuple(ui32 size) :
+    entries(size) {}
+
+std::string Tuple::printVal() const
 {
-    os.put(static_cast<char>(type));
-    emitBytes<ui64>(os, OBJ_INVALID, array.count());
-    for (const Object& obj : array)
-        obj.emit(os);
+    std::string ret = "(";
+    size_t size = entries.count();
+    for (size_t i = 0; i < size; i++)
+    {
+        ret += entries[i].printVal();
+        if (i != size - 1)
+            ret += ", ";
+    }
+
+    ret += ")";
+    return ret;
 }
 
 

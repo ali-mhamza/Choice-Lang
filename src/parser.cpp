@@ -397,11 +397,11 @@ StmtUP Parser::returnStmt()
     if (!inFunc)
         REPORT_SEMANTIC(previousTok,
             "Cannot use 'return' outside a function.");
-    
+
     Token keyword = previousTok;
     ExprUP expr = nullptr;
     if (!checkTok(TOK_SEMICOLON))
-        expr = expression();
+        expr = tuple();
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after return statement.");
     return std::make_unique<ReturnStmt>(keyword, expr);
 }
@@ -432,6 +432,24 @@ StmtUP Parser::exprStmt()
     StmtUP ptr = std::make_unique<ExprStmt>(expression());
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after expression.");
     return ptr;
+}
+
+ExprUP Parser::tuple()
+{
+    ExprVec entries;
+    ExprUP entry = expression();
+
+    if (consumeTok(TOK_COMMA))
+    {
+        entries.emplace_back(std::move(entry));
+        do {
+            entries.emplace_back(expression());
+        } while (consumeTok(TOK_COMMA));
+    }
+    else
+        return entry;
+
+    return std::make_unique<TupleExpr>(entries);
 }
 
 ExprUP Parser::expression()

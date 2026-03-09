@@ -27,6 +27,7 @@ enum ObjType
     OBJ_STRING,
     OBJ_RANGE,
     OBJ_LIST,
+    OBJ_TUPLE,
     OBJ_TABLE,
     // OBJ_NUM only used with TypeMismatch (below).
     // Not to be stored in any Object.
@@ -43,6 +44,7 @@ enum ObjType
 #define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_(FUNC, obj))
 #define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
 #define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
+// Tuple included?
 #define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_(ITER, obj))
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
@@ -62,6 +64,7 @@ struct Function;
 struct String;
 struct Range;
 struct List;
+struct Tuple;
 struct Table;
 struct HeapObj;
 struct ObjIter;
@@ -86,6 +89,7 @@ class Object
             String*     stringVal;
             Range*      rangeVal;
             List*       listVal;
+            Tuple*      tupleVal;
             Table*      tableVal;
             HeapObj*    heapVal;
             ObjIter*    iterVal;
@@ -173,6 +177,12 @@ Object::Object(T val)
         type = OBJ_LIST;
         INCREMENT_REF();
         as.listVal = val;
+    }
+    else if constexpr (std::is_same_v<T, Tuple*>)
+    {
+        type = OBJ_TUPLE;
+        INCREMENT_REF();
+        as.tupleVal = val;
     }
     else if constexpr (std::is_same_v<T, Table*>)
     {
@@ -263,7 +273,16 @@ struct List : public HeapObj
 
     bool contains(const Object& obj) const;
     std::string printVal() const;
-    void emit(std::ofstream& os) const;
+};
+
+struct Tuple : public HeapObj
+{
+    Array<Object> entries;
+
+    Tuple() = default;
+    Tuple(ui32 size);
+
+    std::string printVal() const;
 };
 
 struct Table : public HeapObj

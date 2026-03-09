@@ -591,6 +591,22 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        CASE(OP_TUPLE):
+        {
+            registers[readByte()] = ALLOC(Tuple, ObjDealloc<Tuple>);
+            DISPATCH();
+        }
+        CASE(OP_EXT_TUPLE):
+        {
+            ui8 tupleReg = readByte();
+            ui8 startReg = readByte();
+            ui8 count = readByte();
+            auto& entries = AS_(tuple, registers[tupleReg])->entries;
+            for (ui8 i = 0; i < count; i++)
+                entries.push(registers[startReg + i]);
+            DISPATCH();
+        }
+
         CASE(OP_MAKE_ITER):
         CASE(OP_UPDATE_ITER):
         {
@@ -658,7 +674,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_PRINT_VALID):
         {
             const Object& obj = registers[readByte()];
-            if (IS_VALID(obj) && !IS_(NULL, obj))
+            if (IS_VALID(obj) && !IS_(TUPLE, obj))
                 FORMAT_PRINT("{}\n", obj.printVal());
             DISPATCH();
         }
@@ -697,7 +713,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             ui8 dest = readByte();
-            registers[dest] = Object(nullptr);
+            registers[dest] = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
             DISPATCH();
         }
 

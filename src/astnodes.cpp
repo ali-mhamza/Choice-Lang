@@ -78,6 +78,10 @@ BlockStmt::BlockStmt(StmtVec& block) :
 Expr::Expr(ExprType type) :
     type(type) {}
 
+TupleExpr::TupleExpr(ExprVec& entries) :
+    Expr(E_TUPLE_EXPR),
+    entries(std::move(entries)) {}
+
 AssignExpr::AssignExpr(ExprUP& target, const Token& oper, ExprUP value) :
     Expr(E_ASSIGN_EXPR),
     target(std::move(target)), oper(oper), value(std::move(value)) {}

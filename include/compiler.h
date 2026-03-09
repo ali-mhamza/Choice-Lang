@@ -157,6 +157,7 @@ class Compiler
 
         // Expressions.
 
+        ui8 tuple();
         void expression();
         void compoundAssign(TokenType oper, const VarInfo& pos); // Helper.
         void assignment();

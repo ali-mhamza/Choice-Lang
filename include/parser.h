@@ -94,6 +94,7 @@ class Parser
 
         // Expressions.
 
+        ExprUP tuple();
         ExprUP expression();
         ExprUP assignment();
         ExprUP logicOr();

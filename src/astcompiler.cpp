@@ -489,6 +489,32 @@ DEF(BlockStmt)
     previousReg = origVarReg;
 }
 
+DEF(TupleExpr)
+{
+    constexpr int TUPLE_GROUP = 5;
+    
+    ui8 tupleReg = previousReg;
+    code.addOp(OP_TUPLE, tupleReg);
+    reserveReg();
+
+    ui8 count = 0;
+    ui8 startReg = previousReg;
+    auto emitTuple = [this, tupleReg, &count, startReg] {
+        code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
+        previousReg = startReg;
+        count = 0;
+    };
+
+    for (ExprUP& entry : node->entries)
+    {
+        compileExpr(entry);
+        if (++count == TUPLE_GROUP)
+            emitTuple();
+    }
+
+    if (count > 0) emitTuple();
+}
+
 void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos)
 {
     ui8 reg = previousReg;
@@ -903,6 +929,7 @@ void ASTCompiler::compileExpr(ExprUP& node)
     
     switch (node->type)
     {
+        case E_TUPLE_EXPR:      COMPILE(TupleExpr);     break;
         case E_ASSIGN_EXPR:     COMPILE(AssignExpr);    break;
         case E_LOGIC_EXPR:      COMPILE(LogicExpr);     break;
         case E_COMPARE_EXPR:    COMPILE(CompareExpr);   break;
