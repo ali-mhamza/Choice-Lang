@@ -12,7 +12,7 @@ using Natives::funcNames;
 static std::string_view objTypes[] = {
     "int", "dec", "bool", "null", "type", "builtin function",
     "user function", "bigint", "bigdec", "string", "range",
-    "list", "tuple", "table", "num", "iterable"
+    "list", "table", "tuple", "num", "iterable"
 };
 
 /* Object. */
