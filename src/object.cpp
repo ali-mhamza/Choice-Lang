@@ -59,11 +59,11 @@ Object::Object(const Object& other) noexcept :
 Object& Object::operator=(const Object& other) noexcept
 {
     ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed");
-    
+
     if (this != &other)
     {
         clean();
-        
+
         this->type = other.type;
         this->as = other.as;
 
