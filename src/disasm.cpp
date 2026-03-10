@@ -209,14 +209,15 @@ void Disassembler::iterOper(ui8 byte)
 	}
 }
 
-void Disassembler::listOper(ui8 byte)
+void Disassembler::collectionOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	ui8 listReg = restoreByte();
+	ui8 reg = restoreByte();
 	ip++;
 
-	if (static_cast<Opcode>(byte) == OP_EXT_LIST)
+	if ((static_cast<Opcode>(byte) == OP_EXT_LIST)
+		|| (static_cast<Opcode>(byte) == OP_EXT_TUPLE))
 	{
 		ui8 startReg = restoreByte();
 		ip++;
@@ -224,11 +225,11 @@ void Disassembler::listOper(ui8 byte)
 		ui8 count = restoreByte();
 		ip += 2;
 
-		FORMAT_PRINT("R[{}] R[{}] ({})\n", listReg, startReg, count);
+		FORMAT_PRINT("R[{}] R[{}] ({})\n", reg, startReg, count);
 	}
 	else
 	{
-		FORMAT_PRINT("R[{}]\n", listReg);
+		FORMAT_PRINT("R[{}]\n", reg);
 		ip += 1;
 	}
 }
@@ -263,8 +264,8 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_LOAD_R:
 			loadOper();
 			break;
-		case OP_LIST:		case OP_EXT_LIST:
-			listOper(byte);
+		case OP_LIST:		case OP_EXT_LIST:		case OP_TUPLE:		case OP_EXT_TUPLE:
+			collectionOper(byte);
 			break;
 		default:
 		{

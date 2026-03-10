@@ -114,7 +114,9 @@ static std::string_view opNames[] = {
 
 	"OP_GET_VAR", "OP_SET_VAR",
 
-	"OP_LIST", "OP_EXT_LIST", "OP_TABLE",
+	"OP_LIST", "OP_EXT_LIST",
+	"OP_TUPLE", "OP_EXT_TUPLE",
+	"OP_TABLE",
 
 	"OP_CALL_NAT", "OP_CALL_DEF", "OP_RETURN", "OP_VOID",
 
