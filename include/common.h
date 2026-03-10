@@ -6,6 +6,30 @@
 
 /* Macros. */
 
+// Compiler and OS.
+
+#if defined(__GNUC__)
+	#define COMPILER "g++"
+#elif defined(__clang__)
+	#define COMPILER "Clang"
+#elif defined(_MSC_VER)
+	#define COMPILER "MSVC"
+#elif defined(__APPLE_CC__)
+	#define COMPILER "Apple Clang"
+#else
+	#define COMPILER "unknown compiler"
+#endif
+
+#if defined(__linux__)
+	#define LOCAL_OS "Linux"
+#elif defined(_WIN32) || defined(_WIN64)
+	#define LOCAL_OS "Windows"
+#elif defined(__APPLE__) || defined(__MACH__)
+	#define LOCAL_OS "Apple"
+#else
+	#define LOCAL_OS "unknown OS"
+#endif
+
 // Version number.
 
 #define VERSION_MAJOR   0

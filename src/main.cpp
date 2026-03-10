@@ -240,6 +240,18 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#endif
 }
 
+static void printReplIntro()
+{
+	#ifndef COMMIT_TIME_STAMP
+		#define COMMIT_TIME_STAMP "last modification time not available"
+	#endif
+
+	FORMAT_PRINT("Choice {}.{}.{} ", VERSION_MAJOR, VERSION_MINOR,
+		VERSION_PATCH);
+	FORMAT_PRINT("({}).\n", COMMIT_TIME_STAMP);
+	FORMAT_PRINT("Built on: [{}][{}].\n", COMPILER, LOCAL_OS);
+}
+
 static std::string& buildLine(std::string& line)
 {
 	while (ends_with(line, "\\"))
@@ -282,6 +294,7 @@ static void repl(ArgvOption option = EXECUTE)
 
 	VM vm; // Must persist for the entire execution.
 
+	printReplIntro();
 	while (true)
 	{
 		#if EXTERNAL_REPL

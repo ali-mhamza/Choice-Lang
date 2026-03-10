@@ -10,6 +10,10 @@ WARNINGS = -Wall -Wextra \
 			-Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-label \
 			-Wno-error=pedantic -Werror \
 			-MMD -MP
+
+COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci)
+DEFINES += -D 'COMMIT_TIME_STAMP="$(COMMIT_TIME_STAMP)"'
+
 CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(WARNINGS) $(DEFINES)
 
 REPL_DIR = dependencies/replxx
