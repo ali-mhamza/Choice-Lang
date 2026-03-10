@@ -787,27 +787,39 @@ ui8 Compiler::tuple()
     constexpr int TUPLE_GROUP = 5;
 
     ui8 tupleReg = previousReg;
-    code.addOp(OP_TUPLE, tupleReg);
     reserveReg();
 
     ui8 count = 0;
     ui8 startReg = previousReg;
-    bool tupleFormed = false;
-
     auto emitTuple = [this, tupleReg, &count, startReg] {
         code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
         previousReg = startReg;
         count = 0;
     };
 
+    // Since we preserved a register for the tuple above, any
+    // evaluated value from the below expression will go in
+    // the register right after.
+    // Thus, even though the instruction to compile this expression
+    // and to create the tuple to possibly hold it are in "reverse"
+    // order, the actual values in the registers are in the appropriate
+    // order (tuple first, followed by its entries), which allows us to
+    // "scoop" up values linearly to store in the tuple.
+    // This approach also allows us to avoid uselessly constructing an
+    // empty tuple early in the case that it's not actually needed.
+
+    ui8 entryReg = previousReg;
+    expression();
+    if (!consumeTok(TOK_COMMA))
+        return entryReg;
+
+    code.addOp(OP_TUPLE, tupleReg);
+    count++;
+
     do {
-        ui8 entryReg = previousReg;
         expression();
-        if (!tupleFormed && !checkTok(TOK_COMMA))
-            return entryReg;
         if (++count == TUPLE_GROUP)
             emitTuple();
-        tupleFormed = true;
     } while (consumeTok(TOK_COMMA));
 
     if (count > 0) emitTuple();
