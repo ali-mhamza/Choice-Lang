@@ -260,8 +260,6 @@ struct Range : public HeapObj
     void emit(std::ofstream& os) const;
 };
 
-class Object;
-
 struct List : public HeapObj
 {
     Array<Object> array;
