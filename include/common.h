@@ -74,7 +74,7 @@
 				break;													\
 			else														\
 			{															\
-				FORMAT_PRINT("ASSERTION FAILED [{}: {}, {}]: {}.\n",	\
+				FORMAT_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",		\
 					(__FILE__), (__func__), (__LINE__), msg);			\
 				exit(EXIT_FAILURE);										\
 			}															\
@@ -94,7 +94,7 @@
 				break;													\
 			else														\
 			{															\
-				FORMAT_PRINT("ASSERTION FAILED [{}: {}, {}]: {}.\n",    \
+				FORMAT_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",		\
 					(__FILE__), (__func__), (__LINE__), msg);			\
 				free(arena);                                            \
 				exit(EXIT_FAILURE);										\
@@ -108,7 +108,7 @@
 
 #if defined(DEBUG)
 	#define UNREACHABLE() ASSERT(false, 		\
-		"This point should not be reachable")
+		"This point should not be reachable.")
 #elif defined(NDEBUG)
 	#if defined(__cpp_lib_unreachable) // Check for C++23 support.
 		#include <utility>

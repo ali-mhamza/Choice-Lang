@@ -479,7 +479,7 @@ void VM::executeOp(Opcode op)
                     return;                                                         \
                 op = static_cast<Opcode>(readByte());                               \
                 ASSERT(IS_VALID_OP(op),                                             \
-                    FORMAT_STR("Invalid opcode {}", static_cast<ui8>(op)));         \
+                    FORMAT_STR("Invalid opcode {}.", static_cast<ui8>(op)));        \
                 DEBUG_OP(op);                                                       \
                 DISPATCH_OP(op);                                                    \
             } while (false)

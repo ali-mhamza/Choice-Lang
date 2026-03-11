@@ -29,9 +29,9 @@ void Object::clean()
         if (IS_HEAP_OBJ(*this))
         {
             HeapObj* temp = AS_HEAP_PTR(*this);
-            ASSERT(temp != nullptr, "NULL object pointer");
+            ASSERT(temp != nullptr, "NULL object pointer.");
 
-            ASSERT(temp->refCount != 0, "Zero object refcount");
+            ASSERT(temp->refCount != 0, "Zero object refcount.");
 
             temp->refCount--;
             if (temp->refCount == 0) delete temp;
@@ -39,7 +39,7 @@ void Object::clean()
         else if (IS_(ITER, *this))
         {
             ObjIter* iter = AS_(iter, *this);
-            ASSERT(iter != nullptr, "NULL iterator pointer");
+            ASSERT(iter != nullptr, "NULL iterator pointer.");
             delete iter; // We never copy iterators, so no refcount.
         }
     #endif
@@ -48,7 +48,7 @@ void Object::clean()
 Object::Object(const Object& other) noexcept :
     type(other.type), as(other.as)
 {
-    ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed");
+    ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
 
     #if !USE_ALLOC
         if (IS_HEAP_OBJ(*this))
@@ -58,7 +58,7 @@ Object::Object(const Object& other) noexcept :
 
 Object& Object::operator=(const Object& other) noexcept
 {
-    ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed");
+    ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
 
     if (this != &other)
     {
@@ -430,7 +430,7 @@ StringIter::~StringIter()
     #if !USE_ALLOC
         if (obj != nullptr)
         {
-            ASSERT(obj->refCount != 0, "Zero iterable refcount");
+            ASSERT(obj->refCount != 0, "Zero iterable refcount.");
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
@@ -495,7 +495,7 @@ RangeIter::~RangeIter()
     #if !USE_ALLOC
         if (obj != nullptr)
         {
-            ASSERT(obj->refCount != 0, "Zero iterable refcount");
+            ASSERT(obj->refCount != 0, "Zero iterable refcount.");
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
@@ -553,7 +553,7 @@ ListIter::~ListIter()
     #if !USE_ALLOC
         if (obj != nullptr)
         {
-            ASSERT(obj->refCount != 0, "Zero iterable refcount");
+            ASSERT(obj->refCount != 0, "Zero iterable refcount.");
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
@@ -634,8 +634,8 @@ TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
 
 void TypeMismatch::report()
 {
-    ASSERT(IS_OBJ(expect), "Invalid object type for error reporting");
-    ASSERT(IS_OBJ(actual), "Invalid object type for error reporting");
+    ASSERT(IS_OBJ(expect) && IS_OBJ(actual),
+        "Invalid object type for error reporting.");
     
     FORMAT_PRINT(stderr,
         "Type mismatch: Expected type ({}) but found ({}) instead.\n",
