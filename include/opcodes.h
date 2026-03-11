@@ -93,7 +93,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	TOTAL_OPS
 };
 
-#define IS_VALID_OP(op)	(((op) >= 0) && ((op) < TOTAL_OPS))
+#define IS_VALID_OP(op)	(((op) >= OP_NEG_TWO) && ((op) < TOTAL_OPS))
 /*	Opcodes that can directly modify variables,
 *	and thus have a necessary offset argument. */
 #define CAN_MODIFY(op) \
