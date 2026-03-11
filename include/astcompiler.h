@@ -90,6 +90,8 @@ class ASTCompiler
         // Declarations.
 
         DECL(VarDecl);
+        void funcBodyHelper(const vT& params, StmtUP& body, ui8 funcReg,
+            const std::string& name);
         DECL(FuncDecl);
         DECL(ClassDecl);
 

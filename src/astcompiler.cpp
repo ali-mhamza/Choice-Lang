@@ -141,6 +141,44 @@ DEF(VarDecl)
         node->declType == TOK_MAKE ? accessVar : accessFix);
 }
 
+void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
+    ui8 funcReg, const std::string& name)
+{
+    ASTCompiler miniCompiler(this);
+    for (const Token& param : params)
+    {
+        ui8 reg = miniCompiler.previousReg;
+        miniCompiler.defVar(std::string(param.text), reg, accessVar);
+        miniCompiler.reserveReg();
+    }
+    miniCompiler.compileStmt(body);
+    miniCompiler.code.addOp(OP_VOID, 0);
+    miniCompiler.code.addOp(OP_RETURN, 0);
+
+    ByteCode& funcCode = miniCompiler.code;
+    funcCode.depth = miniCompiler.depth;
+    this->hitError = miniCompiler.hitError;
+
+    Object func;
+    if (name.empty()) // Compiling a lambda.
+        func = ALLOC(Function, ObjDealloc<Function>, funcCode, params.size());
+    else
+    {
+        func = ALLOC(Function, ObjDealloc<Function>, name,
+            funcCode, params.size());
+    }
+    // We only declare in the current function scope.
+    code.loadRegConst(func, funcReg, depth);
+
+    for (const auto& info : captures)
+    {
+        if (info.local)
+            code.addOp(OP_CAPTURE_VAL, funcReg, info.slot);
+        else
+            code.addOp(OP_CAPTURE_CELL, funcReg, info.depth, info.slot);
+    }
+}
+
 DEF(FuncDecl)
 {
     VarInfo pos = getVarInfo(node->name);
@@ -158,8 +196,7 @@ DEF(FuncDecl)
         #endif
     }
 
-    size_t size = node->params.size();
-    if (size > PARAMETER_MAX)
+    if (node->params.size() > PARAMETER_MAX)
     {
         REPORT_ERROR(node->params[PARAMETER_MAX],
             "Too many parameters in function.");
@@ -173,24 +210,7 @@ DEF(FuncDecl)
         reserveReg();
     }
 
-    ASTCompiler miniCompiler(this);
-    for (Token& param : node->params)
-    {
-        ui8 reg = miniCompiler.previousReg;
-        miniCompiler.defVar(std::string(param.text), reg, accessVar);
-        miniCompiler.reserveReg();
-    }
-    miniCompiler.compileStmt(node->body);
-    miniCompiler.code.addOp(OP_VOID, 0);
-    miniCompiler.code.addOp(OP_RETURN, 0);
-
-    ByteCode& funcCode = miniCompiler.code;
-    funcCode.depth = miniCompiler.depth;
-    this->hitError = miniCompiler.hitError;
-    Object func = ALLOC(Function, ObjDealloc<Function>, name,
-        funcCode, size);
-    // We only declare in the current function scope.
-    code.loadRegConst(func, varSlot, depth);
+    funcBodyHelper(node->params, node->body, varSlot, name);
 }
 
 DEF(ClassDecl) { (void) node; }
@@ -809,30 +829,14 @@ DEF(IfExpr)
 
 DEF(LambdaExpr)
 {
-    size_t size = node->params.size();
-    if (size > PARAMETER_MAX)
+    if (node->params.size() > PARAMETER_MAX)
     {
         REPORT_ERROR(node->params[PARAMETER_MAX],
             "Too many parameters in lambda.");
     }
 
-    ASTCompiler miniCompiler(this);
-    for (Token& param : node->params)
-    {
-        ui8 reg = miniCompiler.previousReg;
-        miniCompiler.defVar(std::string(param.text), reg, accessVar);
-        miniCompiler.reserveReg();
-    }
-    miniCompiler.compileStmt(node->body);
-    miniCompiler.code.addOp(OP_VOID, 0);
-    miniCompiler.code.addOp(OP_RETURN, 0);
-
-    ByteCode& funcCode = miniCompiler.code;
-    funcCode.depth = miniCompiler.depth;
-    this->hitError = miniCompiler.hitError;
-    Object func = ALLOC(Function, ObjDealloc<Function>, funcCode,
-        size);
-    code.loadRegConst(func, previousReg, depth);
+    funcBodyHelper(node->params, node->body, previousReg, 
+        std::string());
     reserveReg();
 }
 
