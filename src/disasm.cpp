@@ -15,7 +15,8 @@ void Disassembler::printOpcode(std::string_view opName)
 	#if PRINT_FULL_OFFSET
 		FORMAT_PRINT("{:0>4} {:<15} ", ip - start, opName);
 	#else
-		FORMAT_PRINT("{:>4} {:<15} ", ip - start, opName); // Prints leading spaces, not zeros.
+		// Prints leading spaces, not zeros.
+		FORMAT_PRINT("{:>4} {:<15} ", ip - start, opName);
 	#endif
 }
 
