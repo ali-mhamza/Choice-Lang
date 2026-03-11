@@ -311,8 +311,8 @@ void Compiler::funDecl()
         if (inRepl && (depth == 0))
             redefined = true;
         else
-            REPORT_SEMANTIC(node->name,
-                "Object '" + std::string(node->name.text)
+            REPORT_SEMANTIC(previousTok,
+                "Object '" + std::string(previousTok.text)
                 + "' is already defined in this scope.");
     }
 
