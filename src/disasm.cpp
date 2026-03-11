@@ -47,13 +47,13 @@ void Disassembler::printOperValue(const Object& oper)
 
 ui8 Disassembler::restoreByte()
 {
-	return *(ip + 1);
+	return ip[1];
 }
 
 ui16 Disassembler::restoreShort()
 {
 	ui16 value = static_cast<ui16>(
-		(*(ip + 1) << 8) | *(ip + 2)
+		(ip[1] << 8) | (ip[2])
 	);
 
 	return value;
@@ -62,8 +62,8 @@ ui16 Disassembler::restoreShort()
 ui32 Disassembler::restoreLong()
 {
 	ui32 value = static_cast<ui32>(
-		(*(ip + 1) << 24) | (*(ip + 2) << 16)
-		| (*(ip + 3) << 8) | *(ip + 4)
+		(ip[1] << 24) | (ip[2] << 16)
+		| (ip[3] << 8) | ip[4]
 	);
 
 	return value;
@@ -72,7 +72,7 @@ ui32 Disassembler::restoreLong()
 void Disassembler::singleOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
-	FORMAT_PRINT("R[{}]\n", *(ip + 1));
+	FORMAT_PRINT("R[{}]\n", ip[1]);
 	
 	ip += 2;
 }
@@ -82,9 +82,9 @@ void Disassembler::doubleOper(ui8 byte)
 	printOpcode(opNames[byte]);
 
 	if (CAN_MODIFY(byte))
-		FORMAT_PRINT("D[{}] R[{}]\n", *(ip + 1), *(ip + 2));
+		FORMAT_PRINT("D[{}] R[{}]\n", ip[1], ip[2]);
 	else
-		FORMAT_PRINT("R[{}] R[{}]\n", *(ip + 1), *(ip + 2));
+		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip [2]);
 
 	ip += 3;
 }
@@ -93,20 +93,14 @@ void Disassembler::tripleOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	FORMAT_PRINT("D[{}] ", *(ip + 1));
-	ip++;
-
-	for (int i = 0; i < 2; i++)
-		FORMAT_PRINT("R[{}] ", *(ip + i + 1));
-	FORMAT_PRINT("\n");
-	
-	ip += 3;
+	FORMAT_PRINT("D[{}] R[{}] R[{}]\n", ip[1], ip[2], ip[3]);
+	ip += 4;
 }
 
 void Disassembler::loadOper()
 {
 	printOpcode("OP_LOAD_R");
-	FORMAT_PRINT("D[{}] R[{}] ", *(ip + 1), *(ip + 2));
+	FORMAT_PRINT("D[{}] R[{}] ", ip[1], ip[2]);
 
 	ip += 3;
 	switch (*ip)
@@ -137,7 +131,7 @@ void Disassembler::loadOper()
 		}
 		default: // Direct constant loading instruction.
 			FORMAT_PRINT("{}\n", opNames[*ip]);
-			ip += 1;
+			ip++;
 	}
 }
 
@@ -195,7 +189,7 @@ void Disassembler::iterOper(ui8 byte)
 	
 	if (static_cast<Opcode>(byte) == OP_MAKE_ITER)
 	{
-		FORMAT_PRINT("R[{}] R[{}]\n", *(ip + 1), *(ip + 2));
+		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
 		ip += 3;
 	}
 	else if (static_cast<Opcode>(byte) == OP_UPDATE_ITER)
@@ -203,7 +197,7 @@ void Disassembler::iterOper(ui8 byte)
 		ip += 2;
 		ui16 jump = restoreShort();
 		ip += 3;
-		FORMAT_PRINT("R[{}] R[{}] -> {}\n", *(ip - 4), *(ip -3),
+		FORMAT_PRINT("R[{}] R[{}] -> {}\n", ip[-4], ip[-3],
 			ip - start - jump);
 	}
 }
