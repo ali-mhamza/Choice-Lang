@@ -754,7 +754,7 @@ DEF(CallExpr)
     ui8 location, depth;
 
     if (node->builtin)
-    {   
+    {
         VarExpr* var = static_cast<VarExpr*>(node->callee.get());
         auto find = Natives::builtins.find(var->name.text);
         if (find == Natives::builtins.end())
