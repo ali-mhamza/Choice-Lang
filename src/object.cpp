@@ -224,7 +224,7 @@ HeapObj::HeapObj(ObjType type) :
 
 Function::Function(const ByteCode& code, ui8 argCount) :
     HeapObj(OBJ_FUNC),
-    name(""), code(code), argCount(argCount), lambda(true) {}
+    name(nullptr), code(code), argCount(argCount), lambda(true) {}
 
 #if defined(__GNUC__) || defined(__clang__)
     #define STRDUP strdup
@@ -236,6 +236,11 @@ Function::Function(const std::string& name, const ByteCode& code,
     ui8 argCount) :
     HeapObj(OBJ_FUNC), name(STRDUP(name.c_str())), code(code),
     argCount(argCount), lambda(false) {}
+
+Function::~Function()
+{   
+    free(name);
+}
 
 bool Function::operator==(const Function& other) const
 {

@@ -219,7 +219,7 @@ struct HeapObj
 
 struct Function : public HeapObj
 {
-    const char* name;
+    char* name;
     ByteCode code;
     ui8 argCount;
     bool lambda;
@@ -227,6 +227,8 @@ struct Function : public HeapObj
     Function() = default;
     Function(const ByteCode& code, ui8 argCount);
     Function(const std::string& name, const ByteCode& code, ui8 argCount);
+    ~Function();
+
     bool operator==(const Function& other) const;
 
     void emit(std::ofstream& os) const;
