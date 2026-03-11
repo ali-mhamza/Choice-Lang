@@ -88,14 +88,6 @@ inline ASTCompiler::VarInfo ASTCompiler::getVarInfo(const Token& token)
     return scopeCompiler->getVarInfo(token);
 }
 
-inline ASTCompiler::VarInfo ASTCompiler::getVarInfo(ExprUP& node)
-{
-    VarExpr* var = static_cast<VarExpr*>(node.release());
-    VarInfo position = getVarInfo(var->name);
-    node.reset(var);
-    return position;
-}
-
 inline void ASTCompiler::popScope()
 {
     auto& scopeVec = varScopes.top();
@@ -546,11 +538,12 @@ void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos)
 
 DEF(AssignExpr)
 {
-    VarInfo pos = getVarInfo(node->target);
     // Temporarily assuming regular variables only.
+    VarExpr* temp = static_cast<VarExpr*>(node->target.get());
+    VarInfo pos = getVarInfo(temp->name);
+
     if (pos.slot == nullptr)
     {
-        VarExpr* temp = static_cast<VarExpr*>(node->target.get());
         REPORT_ERROR(temp->name, "Undefined variable '"
             + std::string(temp->name.text) + "'.");
     }
@@ -695,10 +688,10 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
         REPORT_ERROR(node->oper,
             "Invalid increment/decrement target.");
 
-    VarInfo pos = getVarInfo(node->expr);
+    VarExpr* temp = static_cast<VarExpr*>(node->expr.get());
+    VarInfo pos = getVarInfo(temp->name);
     if (pos.slot == nullptr)
     {
-        VarExpr* temp = static_cast<VarExpr*>(node->expr.get());
         REPORT_ERROR(temp->name, "Undefined variable '"
             + std::string(temp->name.text) + "'.");
     }
