@@ -98,8 +98,7 @@ inline void ASTCompiler::popScope()
 DEF(VarDecl)
 {
     VarInfo pos = getVarInfo(node->name);
-    if ((pos.slot != nullptr)
-        && (pos.scope == scope)
+    if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
@@ -183,8 +182,7 @@ DEF(FuncDecl)
 {
     VarInfo pos = getVarInfo(node->name);
     bool redefined = false;
-    if ((pos.slot != nullptr)
-        && (pos.scope == scope)
+    if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
         #if ALLOW_REDEFS

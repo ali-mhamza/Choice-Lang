@@ -251,8 +251,7 @@ void Compiler::varDecl()
     Token name = previousTok;
 
     VarInfo pos = getVarInfo(name);
-    if ((pos.slot != nullptr)
-        && (pos.scope == scope)
+    if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
@@ -305,8 +304,7 @@ void Compiler::funDecl()
     MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
     bool redefined = false;
     VarInfo pos = getVarInfo(previousTok);
-    if ((pos.slot != nullptr)
-        && (pos.scope == scope)
+    if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
         #if ALLOW_REDEFS
