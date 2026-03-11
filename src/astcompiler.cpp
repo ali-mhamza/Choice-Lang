@@ -291,6 +291,7 @@ void ASTCompiler::forLoopHelper(UP(ForStmt)& node, ui8 varReg, ui8 iterReg)
         ui8 whereReg = previousReg;
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
+        freeReg();
     }
 
     compileStmt(node->body);
@@ -444,6 +445,7 @@ DEF(ReturnStmt)
     else
         code.addOp(OP_VOID, reg);
     code.addOp(OP_RETURN, reg);
+    freeReg();
 }
 
 DEF(BreakStmt)
