@@ -101,7 +101,8 @@ DEF(VarDecl)
     if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
-        #if ALLOW_REDEFS
+        if (inRepl && (depth == 0))
+        {
             ui8 varSlot = *(pos.slot);
             ui8 reg = previousReg;
             if (node->init != nullptr)
@@ -113,12 +114,11 @@ DEF(VarDecl)
             else
                 code.loadReg(varSlot, OP_NULL, depth);
             return;
-            
-        #else
+        }
+        else
             REPORT_ERROR(node->name,
                 "Variable '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
-        #endif
     }
 
     ui8 varSlot = previousReg;
@@ -185,13 +185,12 @@ DEF(FuncDecl)
     if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
-        #if ALLOW_REDEFS
+        if (inRepl && (depth == 0))
             redefined = true;
-        #else
+        else
             REPORT_ERROR(node->name,
                 "Object '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
-        #endif
     }
 
     if (node->params.size() > PARAMETER_MAX)

@@ -8,10 +8,6 @@
 #include <string_view>
 #include <vector>
 
-#ifndef ALLOW_REDEFS
-    #define ALLOW_REDEFS 1
-#endif
-
 class TokCompVarsWrapper;
 class TokCompLoopLabels;
 

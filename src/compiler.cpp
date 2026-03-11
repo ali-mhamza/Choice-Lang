@@ -254,7 +254,8 @@ void Compiler::varDecl()
     if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
-        #if ALLOW_REDEFS
+        if (inRepl && (depth == 0))
+        {
             ui8 varSlot = *(pos.slot);
             ui8 reg = previousReg;
             if (consumeTok(TOK_EQUAL))
@@ -267,10 +268,10 @@ void Compiler::varDecl()
                 code.loadReg(varSlot, OP_NULL, depth);
             MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
             return;
-        #else
+        }
+        else
             REPORT_SEMANTIC(name, "Variable '" + std::string(name.text)
                 + "' is already defined in this scope.");
-        #endif
     }
 
     if (consumeTok(TOK_COLON))
@@ -307,13 +308,12 @@ void Compiler::funDecl()
     if ((pos.slot != nullptr) && (pos.scope == scope)
         && (pos.depth == depth))
     {
-        #if ALLOW_REDEFS
+        if (inRepl && (depth == 0))
             redefined = true;
-        #else
+        else
             REPORT_SEMANTIC(node->name,
                 "Object '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
-        #endif
     }
 
     std::string name = std::string(previousTok.text);
