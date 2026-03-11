@@ -82,10 +82,9 @@ void Disassembler::doubleOper(ui8 byte)
 	printOpcode(opNames[byte]);
 
 	if (CAN_MODIFY(byte))
-		FORMAT_PRINT("D[{}] R[{}]", *(ip + 1), *(ip + 2));
+		FORMAT_PRINT("D[{}] R[{}]\n", *(ip + 1), *(ip + 2));
 	else
-		FORMAT_PRINT("R[{}] R[{}]", *(ip + 1), *(ip + 2));
-	FORMAT_PRINT("\n");
+		FORMAT_PRINT("R[{}] R[{}]\n", *(ip + 1), *(ip + 2));
 
 	ip += 3;
 }
