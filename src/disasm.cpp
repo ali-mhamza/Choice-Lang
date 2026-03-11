@@ -23,19 +23,21 @@ void Disassembler::printOpcode(std::string_view opName)
 void Disassembler::disFunction(const Function& func)
 {
 	if (func.lambda)
-		FORMAT_PRINT("===== [start] <lambda> =====\n");
+		FORMAT_PRINT("\n===== [start] <lambda> =====\n\n");
 	else
-		FORMAT_PRINT("===== [start] func {} =====\n", func.name);
+		FORMAT_PRINT("\n===== [start] func {} =====\n\n", func.name);
 
-	FORMAT_PRINT("-- locals: {}\n", func.argCount);
+	FORMAT_PRINT("(args: {}, ", func.argCount);
+	FORMAT_PRINT("constants: {})", func.code.pool.size());
+	FORMAT_PRINT("\n\n");
 	Disassembler miniDis(func.code);
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
 
 	if (func.lambda)
-		FORMAT_PRINT("====== [end] <lambda> ======\n");
+		FORMAT_PRINT("\n====== [end] <lambda> ======\n\n");
 	else
-		FORMAT_PRINT("====== [end] func {} ======\n", func.name);
+		FORMAT_PRINT("\n====== [end] func {} ======\n\n", func.name);
 }
 
 void Disassembler::printOperValue(const Object& oper)
