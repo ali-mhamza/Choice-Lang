@@ -757,7 +757,7 @@ DEF(UnaryExpr)
     Opcode op;
     switch (node->oper.type)
     {
-        case TOK_MINUS: op = OP_NEG;     break;
+        case TOK_MINUS: op = OP_NEG;        break;
         case TOK_BANG:
         case TOK_NOT:   op = OP_NOT;        break;
         case TOK_TILDE: op = OP_COMP;       break;
