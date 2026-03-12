@@ -12,7 +12,7 @@ WARNINGS = -Wall -Wextra \
 			-MMD -MP
 
 COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci)
-DEFINES += -D 'COMMIT_TIME_STAMP="$(COMMIT_TIME_STAMP)"'
+DEFINES += -D 'COMMIT_TIME_STAMP="last modified: $(COMMIT_TIME_STAMP)"'
 
 CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(WARNINGS) $(DEFINES)
 
