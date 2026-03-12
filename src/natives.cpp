@@ -54,7 +54,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     }
     FORMAT_PRINT("\n");
 
-    *it = ret;
+    it[-1] = ret;
 }
 
 void Natives::type(Natives::iter it, ui8 args, const Token& error)
@@ -64,7 +64,7 @@ void Natives::type(Natives::iter it, ui8 args, const Token& error)
             FORMAT_STR("Expected 1 argument but found {}.", args)
         );
 
-    *it = Object(it->type);
+    it[-1] = Object(it->type);
 }
 
 void Natives::clock(Natives::iter it, ui8 args, const Token& error)
@@ -81,7 +81,7 @@ void Natives::clock(Natives::iter it, ui8 args, const Token& error)
 
     auto time = clock::now();
     auto ret = duration_cast<nanoseconds>(time - start);
-    *it = Object(i64(ret.count()));
+    it[-1] = Object(i64(ret.count()));
 }
 
 void Natives::range(Natives::iter it, ui8 args, const Token& error)
@@ -96,7 +96,7 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     std::array<i64, 3> limits = {AS_(int, it[0]), AS_(int, it[1]), 1};
     if (args == 3)
         limits[2] = AS_(int, it[2]);
-    *it = Object(ALLOC(Range, ObjDealloc<Range>, limits));
+    it[-1] = Object(ALLOC(Range, ObjDealloc<Range>, limits));
 }
 
 void Natives::read(Natives::iter it, ui8 args, const Token& error)
@@ -115,5 +115,5 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
     std::ios_base::sync_with_stdio(false);
     std::string input;
     std::getline(std::cin, input);
-    *it = Object(ALLOC(String, ObjDealloc<String>, input));
+    it[-1] = Object(ALLOC(String, ObjDealloc<String>, input));
 }

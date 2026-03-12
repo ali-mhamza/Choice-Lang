@@ -33,6 +33,7 @@ class Disassembler
         void callOper(ui8 byte);
         void iterOper(ui8 byte);
         void collectionOper(ui8 byte);
+        void captureOper(ui8 byte);
     
     public:
         Disassembler(const ByteCode& code);

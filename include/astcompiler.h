@@ -6,6 +6,7 @@
 #include "vm.h"
 #include <memory>
 #include <stack>
+#include <unordered_map>
 #include <vector>
 using namespace AST::Statement;
 using namespace AST::Expression;
@@ -54,6 +55,13 @@ class ASTCompiler
             bool access;
         };
 
+        struct CellInfo
+        {
+            ui8 depth;
+            ui8 slot;
+            bool captured;
+        };
+
         ByteCode code;
         ASTCompiler* scopeCompiler;
 
@@ -64,9 +72,14 @@ class ASTCompiler
         std::stack<std::vector<std::string>> varScopes;
         ASTCompVarsWrapper* varsWrapper;
         ASTCompLoopLabels* labelsWrapper;
+
+        std::vector<CellInfo> captures;
+        std::unordered_map<std::string, ui8> captureNames;
+
         std::vector<ui64>* endJumps{nullptr};
         std::vector<ui64>* breakJumps{nullptr};
         std::vector<ui64>* continueJumps{nullptr};
+
         bool hitError{false};
 
         // Variables.
@@ -74,7 +87,7 @@ class ASTCompiler
         inline void defVar(std::string name, ui8 reg, bool access);
         inline bool getAccess(ui8 reg);
         inline VarInfo getVarInfo(const Token& token);
-        inline VarInfo getVarInfo(ExprUP& node);
+        inline CellInfo getCell(const std::string& name, const VarInfo& info);
         inline void popScope();
 
         // Registers.

@@ -108,6 +108,8 @@ inline void VM::clearScopes(bool keepGlobal)
         frames.resize(1);
     else
         frames.clear();
+
+    // Should we also somehow clear scopeUndo?
 }
 
 inline Object VM::loadOper()
@@ -283,7 +285,7 @@ Object VM::unaryOper(Opcode op, ui8 offset, ui8 oper)
             else
                 return AS_(dec, obj) + double(op == OP_INCR ? 1 : -1);
         }
-        case OP_NEGATE:
+        case OP_NEG:
         {
             if (!IS_NUM(obj))
                 throw TypeMismatch(
@@ -664,7 +666,7 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
-        CASE(OP_NEGATE):    CASE(OP_NOT):
+        CASE(OP_NEG):    CASE(OP_NOT):
         {
             ui8 dest = readByte();
             registers[dest] = unaryOper(op, 0, dest);
@@ -701,10 +703,11 @@ void VM::executeOp(Opcode op)
             callObj(callee, start, argCount);
             DISPATCH();
         }
+
         CASE(OP_RETURN):
-        {   
+        {
             ui8 retSlot = readByte();
-            COPY(registers[0], registers[retSlot]);
+            COPY(registers[-1], registers[retSlot]);
 
             // Correct regSlot after return.
             restoreData();
@@ -718,7 +721,30 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
-        DEFAULT: UNREACHABLE();
+        CASE(OP_CAPTURE_VAL):
+        {
+            ip += 3;
+            DISPATCH();
+        }
+        CASE(OP_CAPTURE_CELL):
+        {
+            ip += 3;
+            DISPATCH();
+        }
+        CASE(OP_EXIT_SCOPE):
+        {
+            DISPATCH();
+        }
+
+        DEFAULT:
+        {
+            #if defined(DEBUG)
+                ASSERT(false, FORMAT_STR("Opcode {} should not be reachable.", 
+                    static_cast<ui8>(op)));
+            #elif defined(NDEBUG)
+                UNREACHABLE();
+            #endif
+        }
     }
 }
 

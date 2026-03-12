@@ -230,6 +230,16 @@ void Disassembler::collectionOper(ui8 byte)
 	}
 }
 
+void Disassembler::captureOper(ui8 byte)
+{
+	printOpcode(opNames[byte]);
+	ui8 funcReg = restoreByte();
+	ip++;
+
+	FORMAT_PRINT("R[{}] D[{}] C[{}]\n", funcReg, ip[1], ip[2]);
+	ip += 3;
+}
+
 void Disassembler::disassembleOp(ui8 byte)
 {
 	switch (byte)
@@ -253,7 +263,7 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_CALL_NAT:	case OP_CALL_DEF:
 			callOper(byte);
 			break;
-		case OP_NEGATE:			case OP_NOT:		case OP_RETURN:		case OP_VOID:
+		case OP_NEG:		case OP_NOT:		case OP_RETURN:		case OP_VOID:
 		case OP_PRINT_VALID:
 			singleOper(byte);
 			break;
@@ -263,6 +273,19 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_LIST:		case OP_EXT_LIST:		case OP_TUPLE:		case OP_EXT_TUPLE:
 			collectionOper(byte);
 			break;
+		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
+			captureOper(byte);
+			break;
+		case OP_EXIT_SCOPE:
+		{
+			#if PRINT_FULL_OFFSET
+				FORMAT_PRINT("{:0>4} {}\n", ip - start, opNames[byte]);
+			#else
+				FORMAT_PRINT("{:>4} {}\n", ip - start, opNames[byte]);
+			#endif
+			ip++;
+			break;
+		}
 		default:
 		{
 			FORMAT_PRINT("{:0>4} UNKNOWN OPCODE {}\n",

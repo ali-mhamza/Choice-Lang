@@ -217,10 +217,18 @@ struct HeapObj
     virtual ~HeapObj() = default;
 };
 
+struct Cell
+{
+    Object* location;
+    Object obj;
+    Cell* next;
+};
+
 struct Function : public HeapObj
 {
     char* name;
     ByteCode code;
+    Array<Cell*> cells;
     ui8 argCount;
     bool lambda;
 

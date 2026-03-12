@@ -88,6 +88,18 @@ inline ASTCompiler::VarInfo ASTCompiler::getVarInfo(const Token& token)
     return scopeCompiler->getVarInfo(token);
 }
 
+inline ASTCompiler::CellInfo ASTCompiler::getCell(const std::string& name,
+    const VarInfo& info)
+{
+    auto it = captureNames.find(name);
+    if (it != captureNames.end())
+        return { this->depth, it->second, true };
+
+    if (scopeCompiler == nullptr)
+        return { info.depth, *(info.slot), false };
+    return scopeCompiler->getCell(name, info);
+}
+
 inline void ASTCompiler::popScope()
 {
     auto& scopeVec = varScopes.top();
@@ -169,12 +181,13 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg, depth);
 
-    for (const auto& info : captures)
+    for (const auto& info : miniCompiler.captures)
     {
-        if (info.local)
-            code.addOp(OP_CAPTURE_VAL, funcReg, info.slot);
-        else
-            code.addOp(OP_CAPTURE_CELL, funcReg, info.depth, info.slot);
+        if (info.depth != 0) // We don't capture globals.
+        {
+            code.addOp((info.captured ? OP_CAPTURE_CELL : OP_CAPTURE_VAL),
+                funcReg, info.depth, info.slot);
+        }
     }
 }
 
@@ -498,6 +511,7 @@ DEF(BlockStmt)
     varScopes.pop();
     scope--;
     previousReg = origVarReg;
+    code.addOp(OP_EXIT_SCOPE);
 }
 
 DEF(TupleExpr)
@@ -743,7 +757,7 @@ DEF(UnaryExpr)
     Opcode op;
     switch (node->oper.type)
     {
-        case TOK_MINUS: op = OP_NEGATE;     break;
+        case TOK_MINUS: op = OP_NEG;     break;
         case TOK_BANG:
         case TOK_NOT:   op = OP_NOT;        break;
         case TOK_TILDE: op = OP_COMP;       break;
@@ -773,22 +787,13 @@ DEF(CallExpr)
             REPORT_ERROR(var->name, "No builtin '"
                 + std::string(var->name.text) + "' function.");
         location = static_cast<ui8>(find->second);
-    }
-    else if (node->callee->type == E_VAR_EXPR)
-    {
-        VarExpr* var = static_cast<VarExpr*>(node->callee.get());
-        VarInfo pos = getVarInfo(var->name);
-        if (pos.slot == nullptr)
-            REPORT_ERROR(var->name, "Undefined variable '"
-                + std::string(var->name.text) + "'.");
-        location = *(pos.slot);
-        depth = pos.depth;
+        reserveReg(); // Reserve a register in place of the function object.
     }
     else
     {
         location = previousReg;
         depth = this->depth;
-        compileExpr(node->callee);
+        compileExpr(node->callee); // Will reserve a register.
     }
 
     ui8 argsStart = previousReg;
@@ -801,12 +806,11 @@ DEF(CallExpr)
     else
         code.addOp(OP_CALL_DEF, depth, location, argsStart, size);
 
-    // Skip arguments.
-    // Our return value replaces the first argument.
-    if (size == 0)
-        reserveReg();
-    else
-        previousReg -= size - 1;
+    // For user-defined functions, the return value replaces the
+    // function object.
+    // For built-ins, we place the return value in the empty register
+    // reserved above.
+    previousReg -= size;
 }
 
 DEF(IfExpr)
@@ -869,6 +873,14 @@ DEF(VarExpr)
     if (pos.slot == nullptr)
         REPORT_ERROR(node->name, "Undefined variable '"
             + std::string(node->name.text) + "'.");
+
+    if ((pos.depth < depth) && (depth > 1))
+    {
+        std::string name{node->name.text};
+        captureNames[name] = static_cast<ui8>(captures.size());
+        captures.push_back(scopeCompiler->getCell(name, pos));
+    }
+
     code.addOp(OP_GET_VAR, pos.depth, previousReg, *(pos.slot));
     reserveReg();
 }
