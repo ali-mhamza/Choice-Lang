@@ -30,7 +30,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
 {
     (void) error;
     // To avoid reallocating the return value each time.
-    static auto ret = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
+    static auto ret = Object(ALLOC(Tuple));
 
     for (ui8 i = 0; i < args; i++)
     {
@@ -96,7 +96,7 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     std::array<i64, 3> limits = {AS_(int, it[0]), AS_(int, it[1]), 1};
     if (args == 3)
         limits[2] = AS_(int, it[2]);
-    it[-1] = Object(ALLOC(Range, ObjDealloc<Range>, limits));
+    it[-1] = Object(ALLOC(Range, limits));
 }
 
 void Natives::read(Natives::iter it, ui8 args, const Token& error)
@@ -115,5 +115,5 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
     std::ios_base::sync_with_stdio(false);
     std::string input;
     std::getline(std::cin, input);
-    it[-1] = Object(ALLOC(String, ObjDealloc<String>, input));
+    it[-1] = Object(ALLOC(String, input));
 }

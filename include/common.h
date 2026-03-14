@@ -86,7 +86,7 @@
 // Allocation approach and assertions.
 
 #if USE_ALLOC
-	#define ALLOC(type, dealloc, ...) allocator.alloc<type, dealloc>(__VA_ARGS__)
+	#define ALLOC(type, ...) allocator.alloc<type, CustomDealloc<type>>(__VA_ARGS__)
 
 	#define ASSERT_MEM(expr, msg, arena)								\
 		do {															\
@@ -101,7 +101,7 @@
 			}															\
 		} while (false)
 #else
-	#define ALLOC(type, dealloc, ...) new type(__VA_ARGS__)
+	#define ALLOC(type, ...) new type(__VA_ARGS__)
 #endif
 
 // Unreachable points.

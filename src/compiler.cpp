@@ -352,8 +352,7 @@ void Compiler::funDecl()
     inFunc = prevInFunc;
     ByteCode& funcCode = miniCompiler.code;
     funcCode.depth = miniCompiler.depth;
-    Object func = ALLOC(Function, ObjDealloc<Function>, name,
-        funcCode, count);
+    Object func = ALLOC(Function, name, funcCode, count);
 
     // We only declare in the current function scope.
     code.loadRegConst(func, varSlot, depth);
@@ -1287,7 +1286,7 @@ void Compiler::lambda(bool skipParams)
     inFunc = prevInFunc;
     ByteCode& funcCode = miniCompiler.code;
     funcCode.depth = miniCompiler.depth;
-    Object func = ALLOC(Function, ObjDealloc<Function>, funcCode, count);
+    Object func = ALLOC(Function, funcCode, count);
 
     // We only declare in the current function scope.
     code.loadRegConst(func, previousReg, depth);
@@ -1331,7 +1330,7 @@ void Compiler::primary()
             case TOK_NUM:       obj = previousTok.content.i;    break;
             case TOK_NUM_DEC:   obj = previousTok.content.d;    break;
             case TOK_STR_LIT:
-                obj = ALLOC(String, ObjDealloc<String>, GET_STR(previousTok));
+                obj = ALLOC(String, GET_STR(previousTok));
                 break;
             default: UNREACHABLE();
         }
@@ -1341,7 +1340,7 @@ void Compiler::primary()
 
     else if (consumeTok(TOK_RANGE))
     {
-        Object obj = ALLOC(Range, ObjDealloc<Range>, constructRange(previousTok.text));
+        Object obj = ALLOC(Range, constructRange(previousTok.text));
         code.loadRegConst(obj, previousReg, depth);
         reserveReg();
     }

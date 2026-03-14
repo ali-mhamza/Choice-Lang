@@ -210,7 +210,7 @@ void Object::emit(std::ofstream& os) const
 ObjIter* Object::makeIter()
 {
     if (!IS_ITERABLE(*this)) return nullptr;
-    return ALLOC(ObjIter, ObjDealloc<ObjIter>, *this);
+    return ALLOC(ObjIter, *this);
 }
 
 
@@ -450,7 +450,7 @@ StringIter::~StringIter()
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
-    iter = ALLOC(String, ObjDealloc<String>, begin, 1);
+    iter = ALLOC(String, begin, 1);
     #if !USE_ALLOC
         iter->refCount++;
     #endif

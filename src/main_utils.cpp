@@ -109,14 +109,13 @@ static Object reconstructFunc(vBit& it, const vBit& end)
 
 	if (lambda)
 	{
-		return Object(ALLOC(Function, ObjDealloc<Function>,
-			reconstructByteCode(++it, end),
+		return Object(ALLOC(Function, reconstructByteCode(++it, end),
 			argCount)
 		);
 	}
 	else
 	{
-		return Object(ALLOC(Function, ObjDealloc<Function>, name,
+		return Object(ALLOC(Function, name,
 			reconstructByteCode(++it, end),
 			argCount)
 		);
@@ -134,7 +133,7 @@ static Object reconstructString(vBit& it, const vBit& end)
 		CHECK_EOF();
 	}
 
-	return Object(ALLOC(String, ObjDealloc<String>, str));
+	return Object(ALLOC(String, str));
 }
 
 static Object reconstructRange(vBit& it, const vBit& end)
@@ -152,7 +151,7 @@ static Object reconstructRange(vBit& it, const vBit& end)
 	}
 
 	it--;
-	return Object(ALLOC(Range, ObjDealloc<Range>, array));
+	return Object(ALLOC(Range, array));
 }
 
 vObj reconstructPool(const vByte& poolBytes)

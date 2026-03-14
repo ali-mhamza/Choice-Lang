@@ -132,7 +132,7 @@ inline Object VM::loadOper()
 inline Object VM::concatStrings(const Object& str1, const Object& str2)
 {
     std::string concat = AS_(string, str1)->str + AS_(string, str2)->str;
-    return ALLOC(String, ObjDealloc<String>, concat);
+    return ALLOC(String, concat);
 }
 
 Object VM::arithOper(Opcode oper, ui8 offset, ui8 firstOper)
@@ -577,8 +577,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_LIST):
         {
-            registers[readByte()] = ALLOC(List, ObjDealloc<List>,
-                DEFAULT_LIST_SIZE);
+            registers[readByte()] = ALLOC(List, DEFAULT_LIST_SIZE);
             DISPATCH();
         }
         CASE(OP_EXT_LIST):
@@ -595,7 +594,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_TUPLE):
         {
-            registers[readByte()] = ALLOC(Tuple, ObjDealloc<Tuple>);
+            registers[readByte()] = ALLOC(Tuple);
             DISPATCH();
         }
         CASE(OP_EXT_TUPLE):
@@ -716,7 +715,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             // To avoid reallocating the return value each time.
-            static auto ret = Object(ALLOC(Tuple, ObjDealloc<Tuple>));
+            static auto ret = Object(ALLOC(Tuple));
             registers[readByte()] = ret;
             DISPATCH();
         }

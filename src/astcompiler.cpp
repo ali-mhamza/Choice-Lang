@@ -172,12 +172,9 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
 
     Object func;
     if (name.empty()) // Compiling a lambda.
-        func = ALLOC(Function, ObjDealloc<Function>, funcCode, params.size());
+        func = ALLOC(Function, funcCode, params.size());
     else
-    {
-        func = ALLOC(Function, ObjDealloc<Function>, name,
-            funcCode, params.size());
-    }
+        func = ALLOC(Function, name, funcCode, params.size());
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg, depth);
 
@@ -905,15 +902,15 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj = ALLOC(String, ObjDealloc<String>, GET_STR(tok));
-        code.loadRegConst(obj, previousReg, depth);
+        Object obj = ALLOC(String, GET_STR(tok));
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RANGE)
     {
-        Object obj = ALLOC(Range, ObjDealloc<Range>, constructRange(tok.text));
-        code.loadRegConst(obj, previousReg, depth);
+        Object obj = ALLOC(Range, constructRange(tok.text));
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
