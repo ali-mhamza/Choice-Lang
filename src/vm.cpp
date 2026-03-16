@@ -5,25 +5,43 @@
 #include "../include/natives.h"
 #include "../include/opcodes.h"
 #include "../include/object.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
 #if COPY_INLINE
-    #define COPY(a, b) copyObject(a, b)
+    #define COPY(a, b) copyObject((a), (b))
 #else
-    #define COPY(a, b) a = b
+    #define COPY(a, b) (a) = (b)
 #endif
 
+#if WATCH_REG
+    #define SET_REGSLOT(slot)   \
+        do {                    \
+            regSlot = slot;     \
+        } while (false)
+    
+    #undef MAX
+    #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+    
+    #define SET_REGSLOT_MAX(a, b)   \
+        do {                        \
+            regSlot = MAX(a, b);    \
+        } while (false)
+#else
+    #define SET_REGSLOT(slot)
+    #define SET_REGSLOT_MAX(a, b)
+#endif
+
+#undef MAX
+#define MAX(a, b) (a > b ? a : b)
+
 VM::VM() :
-    ip(nullptr), end(nullptr),
-    registers(new Object[regSize]), pool(nullptr)
+    registers(new Object[regSize])
 {
     for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
         registers[i] = Object(Natives::FuncType(i));
-    
-    #if WATCH_REG
-    regSlot = 0;
-    #endif
+    SET_REGSLOT(Natives::NUM_FUNCS);
 
     #if WATCH_EXEC
     dis = nullptr;
@@ -73,6 +91,45 @@ inline bool VM::isTruthy(const Object& obj)
     }
 }
 
+inline Cell* VM::captureValue(ui8 depth, ui8 slot)
+{
+    Object* addr = depthRecords[depth].window + slot;
+    for (auto it = activeCells.rbegin(); it != activeCells.rend(); it++)
+    {
+        Cell* cell = *it;
+        if (cell->location < addr)
+            break;
+        if (cell->location == addr)
+            return cell;
+    }
+
+    Cell* cell = ALLOC(Cell, addr);
+    // Insert the cell in sorted order.
+    auto it = std::lower_bound(activeCells.begin(),
+        activeCells.end(),
+        cell,
+        [](Cell* c1, Cell* c2) -> bool {
+            return c1->location < c2->location;
+        }
+    );
+    activeCells.insert(it, cell);
+    return cell;
+}
+
+inline void VM::closeCells()
+{
+    // Close all cells that were declared *in this scope*.
+    // Do not clear or close ALL cells.
+    while (!activeCells.empty())
+    {
+        Cell* cell = activeCells.back();
+        if (cell->location < registers)
+            break;
+        cell->close();
+        activeCells.pop_back();
+    }
+}
+
 #if COPY_INLINE
     inline void VM::copyObject(Object& dest, const Object& src)
     {
@@ -87,16 +144,16 @@ inline bool VM::isTruthy(const Object& obj)
     }
 #endif
 
-inline void VM::pushScope(ui8 depth, Object* window)
+inline void VM::pushScope(ui8 depth, Object* window, Cell** cells)
 {
-    scopeUndo.push_back({depth, depthWindows[depth]});
-    depthWindows[depth] = window;
+    scopeUndo.push_back({depth, depthRecords[depth]});
+    depthRecords[depth] = { window, cells };
 }
 
 inline void VM::popScope()
 {
     const auto& scope = scopeUndo.back();
-    depthWindows[scope.offset] = scope.window;
+    depthRecords[scope.offset] = scope.record;
     scopeUndo.pop_back();
 }
 
@@ -109,7 +166,7 @@ inline void VM::clearScopes(bool keepGlobal)
     else
         frames.clear();
 
-    // Should we also somehow clear scopeUndo?
+    scopeUndo.clear();
 }
 
 inline Object VM::loadOper()
@@ -135,9 +192,9 @@ inline Object VM::concatStrings(const Object& str1, const Object& str2)
     return ALLOC(String, concat);
 }
 
-Object VM::arithOper(Opcode oper, ui8 offset, ui8 firstOper)
+Object VM::arithOper(Opcode oper, ui8 firstOper)
 {
-    const Object& a = depthWindows[offset][firstOper];
+    const Object& a = registers[firstOper];
     const Object& b = registers[readByte()];
 
     if (IS_(INT, a) && IS_(INT, b))
@@ -238,9 +295,9 @@ static inline i64 fromUnsigned(ui64 num)
     return i;
 }
 
-Object VM::bitOper(Opcode op, ui8 offset, ui8 firstOper)
+Object VM::bitOper(Opcode op, ui8 firstOper)
 {
-    const Object& a = depthWindows[offset][firstOper];
+    const Object& a = registers[firstOper];
     const Object& b = registers[readByte()];
 
     if (!IS_(INT, a) || !IS_(INT, b))
@@ -264,10 +321,9 @@ Object VM::bitOper(Opcode op, ui8 offset, ui8 firstOper)
     }
 }
 
-Object VM::unaryOper(Opcode op, ui8 offset, ui8 oper)
+Object VM::unaryOper(Opcode op, ui8 oper)
 {
-    const Object& obj =
-        (op == OP_COMP ? depthWindows[offset][oper] : registers[oper]);
+    const Object& obj = registers[oper];
 
     switch (op)
     {
@@ -327,13 +383,14 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 
     const ByteCode& code = func->code;
     frames.emplace_back(CallFrame::Args{
-        registers, ip, end, pool,
+        currentFunc, registers, ip,
         static_cast<ui8>(code.depth - 1)
         #if WATCH_EXEC
         , this->dis
         #endif
     });
 
+    currentFunc = func;
     registers += start;
     ip = code.block.data();
     end = ip + code.block.size();
@@ -343,7 +400,8 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
         this->dis = new Disassembler(code);
     #endif
 
-    pushScope(code.depth, registers);
+    Cell** cells = (func->cells.empty() ? nullptr : &(func->cells[0]));
+    pushScope(code.depth, registers, cells);
 }
 
 void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
@@ -360,7 +418,7 @@ void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
             OBJ_FUNC,
             callee.type
         );
-    
+
     switch (callee.type)
     {
         case OBJ_NATIVE:
@@ -377,10 +435,11 @@ void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
 inline void VM::restoreData()
 {
     CallFrame& frame = frames.back();
+    currentFunc = frame.function;
     registers = frame.regStart;
     ip = frame.ip;
-    end = frame.end;
-    pool = frame.pool;
+    end = &(currentFunc->code.block.back()) + 1;
+    pool = &(currentFunc->code.pool.front());
     #if WATCH_EXEC
         delete this->dis;
         this->dis = frame.dis;
@@ -501,14 +560,20 @@ void VM::executeOp(Opcode op)
     {
         CASE(OP_LOAD_R):
         {
-            ui8 offset = readByte();
             ui8 dest = readByte();
-            depthWindows[offset][dest] = loadOper();
-            #if WATCH_REG
-            regSlot = dest; // Fix.
-            #endif
+            registers[dest] = loadOper();
+            SET_REGSLOT(dest);
             DISPATCH();
         }
+        CASE(OP_MOVE_R):
+        {
+            ui8 dest = readByte();
+            ui8 src = readByte();
+            registers[dest] = std::move(registers[src]);
+            SET_REGSLOT_MAX(dest, src);
+            DISPATCH();
+        }
+
         CASE(OP_LOOP):
         {
             ui16 jump = readShort();
@@ -553,31 +618,58 @@ void VM::executeOp(Opcode op)
             }
             DISPATCH();
         }
-        CASE(OP_GET_VAR):
+
+        CASE(OP_GET_GLOBAL):
         {
-            ui8 offset = readByte();
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            COPY(registers[dest], depthWindows[offset][src]);
-            #if WATCH_REG
-            regSlot = dest; // Fix.
-            #endif
+            COPY(registers[dest], depthRecords[0].window[src]);
+            SET_REGSLOT(dest);
             DISPATCH();
         }
-        CASE(OP_SET_VAR):
+        CASE(OP_SET_GLOBAL):
         {
-            ui8 offset = readByte();
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            COPY(depthWindows[offset][dest], registers[src]);
+            COPY(depthRecords[0].window[dest], registers[src]);
+            DISPATCH();
+        }
+
+        CASE(OP_GET_CELL):
+        {
+            ui8 dest = readByte();
+            ui8 src = readByte();
+
+            COPY(registers[dest], *(currentFunc->cells[src]->location));
+            SET_REGSLOT(dest);
+            DISPATCH();
+        }
+        CASE(OP_SET_CELL):
+        {
+            ui8 dest = readByte();
+            ui8 src = readByte();
+
+            COPY(*(currentFunc->cells[dest]->location), registers[src]);
+            DISPATCH();
+        }
+
+        CASE(OP_GET_LOCAL):
+        CASE(OP_SET_LOCAL):
+        {
+            ui8 dest = readByte();
+            ui8 src = readByte();
+
+            COPY(registers[dest], registers[src]);
+            SET_REGSLOT_MAX(dest, src);
             DISPATCH();
         }
 
         CASE(OP_LIST):
         {
             registers[readByte()] = ALLOC(List, DEFAULT_LIST_SIZE);
+            SET_REGSLOT(*(ip - 1));
             DISPATCH();
         }
         CASE(OP_EXT_LIST):
@@ -595,6 +687,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_TUPLE):
         {
             registers[readByte()] = ALLOC(Tuple);
+            SET_REGSLOT(*(ip - 1));
             DISPATCH();
         }
         CASE(OP_EXT_TUPLE):
@@ -620,12 +713,9 @@ void VM::executeOp(Opcode op)
         CASE(OP_ADD):   CASE(OP_SUB):   CASE(OP_MULT):
         CASE(OP_DIV):   CASE(OP_MOD):   CASE(OP_POWER):
         {
-            ui8 offset = readByte();
             ui8 dest = readByte();
-            depthWindows[offset][dest] = arithOper(op, offset, dest);
-            #if WATCH_REG
-            regSlot--; // Fix.
-            #endif
+            registers[dest] = arithOper(op, dest);
+            SET_REGSLOT(regSlot - 1);
             DISPATCH();
         }
 
@@ -635,9 +725,7 @@ void VM::executeOp(Opcode op)
         {
             ui8 dest = readByte();
             registers[dest] = compareOper(op, dest);
-            #if WATCH_REG
-            regSlot--;
-            #endif
+            SET_REGSLOT(regSlot - 1);
             DISPATCH();
         }
 
@@ -646,29 +734,19 @@ void VM::executeOp(Opcode op)
         CASE(OP_AND):       CASE(OP_OR):        CASE(OP_XOR):
         CASE(OP_SHIFT_L):   CASE(OP_SHIFT_R):
         {
-            ui8 offset = readByte();
             ui8 dest = readByte();
-            depthWindows[offset][dest] = bitOper(op, offset, dest);
-            #if WATCH_REG
-            regSlot--; // Fix.
-            #endif
+            registers[dest] = bitOper(op, dest);
+            SET_REGSLOT(regSlot - 1);
             DISPATCH();
         }
 
         // Unary operators.
 
-        CASE(OP_INCR):      CASE(OP_DECR):      CASE(OP_COMP):
-        {
-            ui8 offset = readByte();
-            ui8 dest = readByte();
-            depthWindows[offset][dest] = unaryOper(op, offset, dest);
-            DISPATCH();
-        }
-
-        CASE(OP_NEG):    CASE(OP_NOT):
+        CASE(OP_INCR):      CASE(OP_DECR):      CASE(OP_NOT):
+        CASE(OP_NEG):       CASE(OP_COMP):
         {
             ui8 dest = readByte();
-            registers[dest] = unaryOper(op, 0, dest);
+            registers[dest] = unaryOper(op, dest);
             DISPATCH();
         }
 
@@ -688,18 +766,25 @@ void VM::executeOp(Opcode op)
             ui8 start = readByte();
             ui8 argCount = readByte();
 
+            #if WATCH_REG
+                ui8 currentSlot = regSlot;
+            #endif
+            SET_REGSLOT(start);
+
             auto& func = Natives::functions[callee];
             func(&registers[start], argCount, Token()); // Temporarily.
+
+            SET_REGSLOT(currentSlot);
             DISPATCH();
         }
         CASE(OP_CALL_DEF):
         {
-            ui8 offset = readByte();
-            const Object& callee = depthWindows[offset][readByte()];
+            const Object& callee = registers[readByte()];
             ui8 start = readByte();
             ui8 argCount = readByte();
 
             callObj(callee, start, argCount);
+            SET_REGSLOT(0);
             DISPATCH();
         }
 
@@ -710,6 +795,7 @@ void VM::executeOp(Opcode op)
 
             // Correct regSlot after return.
             restoreData();
+            closeCells();
             DISPATCH();
         }
         CASE(OP_VOID):
@@ -722,16 +808,25 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_CAPTURE_VAL):
         {
-            ip += 3;
+            auto* func = AS_(func, registers[readByte()]);
+            ui8 depth = readByte();
+            ui8 slot = readByte();
+
+            func->cells.push(captureValue(depth, slot));
             DISPATCH();
         }
         CASE(OP_CAPTURE_CELL):
         {
-            ip += 3;
+            auto* func = AS_(func, registers[readByte()]);
+            ui8 depth = readByte();
+            ui8 index = readByte();
+
+            func->cells.push(depthRecords[depth].cells[index]);
             DISPATCH();
         }
         CASE(OP_EXIT_SCOPE):
         {
+            closeCells();
             DISPATCH();
         }
 
@@ -747,21 +842,24 @@ void VM::executeOp(Opcode op)
     }
 }
 
-void VM::executeCode(const ByteCode& code)
+void VM::executeCode(Function* script)
 {
-    ip = code.block.data();
-    end = ip + code.block.size();
-    pool = code.pool.data();
+    currentFunc = script;
+    ip = script->code.block.data();
+    end = ip + script->code.block.size();
+    pool = script->code.pool.data();
 
     #if WATCH_EXEC
-        Disassembler dis(code);
+        Disassembler dis(script->code);
         this->dis = &dis;
     #endif
 
     frames.reserve(CALL_FRAMES_DEFAULT);
+    depthRecords.reserve(MAX_SCOPE_DEPTH);
     scopeUndo.reserve(MAX_SCOPE_DEPTH);
+    activeCells.reserve(CODE_MAX);
 
-    depthWindows[0] = registers;
+    depthRecords[0] = {registers, nullptr};
 
     try
     {
@@ -803,8 +901,8 @@ void VM::executeCode(const ByteCode& code)
 /* FuncContext logic. */
 
 VM::CallFrame::CallFrame(const Args& args) :
-    regStart(args.regStart), ip(args.ip), end(args.end),
-    pool(args.pool), offset(args.offset)
+    function(args.function), regStart(args.regStart),
+    ip(args.ip), offset(args.offset)
     #if WATCH_EXEC
     , dis(args.dis)
     #endif

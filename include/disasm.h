@@ -27,7 +27,6 @@ class Disassembler
 
         void singleOper(ui8 byte);
         void doubleOper(ui8 byte);
-        void tripleOper(ui8 byte);
         void loadOper();
         void jumpOper(ui8 byte, int sign);
         void callOper(ui8 byte);

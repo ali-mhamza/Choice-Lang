@@ -23,10 +23,9 @@ class VM
         {
             struct Args
             {
+                Function* function;
                 Object* regStart;
                 const ui8* ip;
-                const ui8* end;
-                const Object* pool;
                 ui8 offset;
 
                 #if WATCH_EXEC
@@ -34,10 +33,9 @@ class VM
                 #endif
             };
 
+            Function* function;
             Object* regStart;
             const ui8* ip;
-            const ui8* end;
-            const Object* pool;
             ui8 offset;
 
             #if WATCH_EXEC
@@ -48,20 +46,29 @@ class VM
             CallFrame(const Args& args);
         };
 
+        struct DepthRecord
+        {
+            Object* window;
+            Cell** cells;
+        };
+
         struct ScopeUndo
         {
             ui8 offset;
-            Object* window;
+            DepthRecord record;
         };
 
-        const ui8* ip;
-        const ui8* end;
+        Function* currentFunc{nullptr};
+        const ui8* ip{nullptr};
+        const ui8* end{nullptr};
         static constexpr size_t regSize = 4096;
         Object* registers;
+        const Object* pool{nullptr};
+
         std::vector<CallFrame> frames;
-        Object* depthWindows[MAX_SCOPE_DEPTH];
+        std::vector<DepthRecord> depthRecords;
         std::vector<ScopeUndo> scopeUndo;
-        const Object* pool;
+        std::vector<Cell*> activeCells;
 
         #if WATCH_REG
         ui8 regSlot;
@@ -76,12 +83,15 @@ class VM
         inline ui8 readByte();
         inline ui16 readShort();
         inline ui32 readLong();
+
         inline bool isTruthy(const Object& obj);
+        inline Cell* captureValue(ui8 depth, ui8 slot);
+        inline void closeCells();
         #if COPY_INLINE
             inline void copyObject(Object& dest, const Object& src);
         #endif
 
-        inline void pushScope(ui8 depth, Object* window);
+        inline void pushScope(ui8 depth, Object* window, Cell** cells);
         inline void popScope();
         // keepGlobal: Do not clear the global scope
         // (when an error is hit, unwind to the global scope).
@@ -90,10 +100,10 @@ class VM
         inline Object loadOper();
         inline Object concatStrings(const Object& str1,
             const Object& str2);
-        Object arithOper(Opcode op, ui8 offset, ui8 firstOper);
+        Object arithOper(Opcode op, ui8 firstOper);
         Object compareOper(Opcode op, ui8 firstOper); // No variables get modified, so no offset.
-        Object bitOper(Opcode op, ui8 offset, ui8 firstOper);
-        Object unaryOper(Opcode op, ui8 offset, ui8 oper);
+        Object bitOper(Opcode op, ui8 firstOper);
+        Object unaryOper(Opcode op, ui8 oper);
         void callFunc(const Object& callee, ui8 start, ui8 argCount);
         void callNative(const Object& callee, ui8 start, ui8 argCount);
         void callObj(const Object& callee, ui8 start, ui8 argCount);
@@ -110,5 +120,5 @@ class VM
         VM();
         ~VM();
 
-        void executeCode(const ByteCode& code);
+        void executeCode(Function* script);
 };

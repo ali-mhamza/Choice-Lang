@@ -5,7 +5,7 @@
 
 enum Opcode : ui8 // Each opcode is a single byte.
 {
-	// Basic values.
+	/* Basic values. */
 
 	OP_NEG_TWO,			// -2
 	OP_NEG_ONE,			// -1
@@ -16,7 +16,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_FALSE,			// false
 	OP_NULL,			// null
 	
-	// Arithmetic.
+	/* Arithmetic. */
 
 	OP_ADD,				// Add two values.
 	OP_SUB,				// Subtract two values.
@@ -28,20 +28,20 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_INCR,			// Increment a value.
 	OP_DECR,			// Decrement a value.
 
-	// Comparison.
+	/* Comparison. */
 
 	OP_EQUAL,			// Check for equality.
 	OP_GT,				// Check if greater than.
 	OP_LT,				// Check if less than.
 	OP_IN,				// Check if a value or object is contained within an iterable object.
 
-	// Boolean operators.
+	/* Boolean operators. */
 
 	OP_NOT,				// Invert a Boolean value.
 	// && and || are implemented as control flow.
 	// They don't get their own opcodes.
 
-	// Bit-wise operators.
+	/* Bit-wise operators. */
 
     OP_AND,				// OP_AND two numeric values by bits.
     OP_OR,				// OP_OR two numeric values by bits.
@@ -50,12 +50,18 @@ enum Opcode : ui8 // Each opcode is a single byte.
     OP_SHIFT_R,			// Shift a value's bits to the right.
     OP_SHIFT_L,			// Shift a value's bits to the left.
 
-	// Variables.
+	/* Variables. */
 
-	OP_GET_VAR,			// Retrieve/load a variable.
-	OP_SET_VAR,			// Assign to a variable.
+	OP_GET_GLOBAL,		// Retrieve/load a global variable.
+	OP_SET_GLOBAL,		// Assign to a global variable.
 
-	// Types.
+	OP_GET_CELL,		// Retrieve/load a captured variable.
+	OP_SET_CELL,		// Assign to a captured variable.
+
+	OP_GET_LOCAL,		// Retrieve/load a local variable.
+	OP_SET_LOCAL,		// Assign to a local variable.
+
+	/* Types. */
 
 	OP_LIST,			// Create a list.
 	OP_EXT_LIST,		// Extend a list with additional elements.
@@ -65,7 +71,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_TUPLE,			// Create a tuple.
 	OP_EXT_TUPLE,		// Extend a tuple with additional elements.
 
-	// Functions.
+	/* Functions. */
 
 	OP_CALL_NAT,		// Call a native/built-in function.
 	OP_CALL_DEF,		// Call a user-defined function.
@@ -75,12 +81,12 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_CAPTURE_CELL,	// Capture a cell from a surrounding scope.
 	OP_EXIT_SCOPE,		// Mark that a scope is being exited (for internal use).
 
-	// Loop specifics.
+	/* Loop specifics. */
 
 	OP_MAKE_ITER,		// Generate an iterator over an object.
 	OP_UPDATE_ITER,		// Increment an iterator over an object and loop.
 
-	// Internal opcodes.
+	/* Internal opcodes. */
 
 	OP_JUMP,			// Jump forward through the byte-code (unconditional).
 	OP_JUMP_TRUE,		// Jump only if previous condition evaluated to true.
@@ -91,17 +97,12 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_LONG_OPER,		// Operand is four bytes.
 
 	OP_LOAD_R,			// Load a constant into a register.
-	OP_MOVE_R,			// Store a register's value in another register.
+	OP_MOVE_R,			// Move a register's value into another register.
 	OP_PRINT_VALID,		// Print the result of an expression, except calls to void (non-returning) functions.
 	TOTAL_OPS
 };
 
 #define IS_VALID_OP(op)	(((op) >= OP_NEG_TWO) && ((op) < TOTAL_OPS))
-/*	Opcodes that can directly modify variables,
-*	and thus have a necessary offset argument. */
-#define CAN_MODIFY(op) \
-	(((op) >= OP_ADD) && ((op) <= OP_DECR)) \
-	|| (((op) <= OP_AND) && ((op) >= OP_SHIFT_L))
 
 static std::string_view opNames[] = {
 	"OP_NEG_TWO", "OP_NEG_ONE", "OP_ZERO", "OP_ONE",
@@ -115,7 +116,9 @@ static std::string_view opNames[] = {
 	"OP_AND", "OP_OR", "OP_COMP", "OP_XOR",
     "OP_SHIFT_R", "OP_SHIFT_L",
 
-	"OP_GET_VAR", "OP_SET_VAR",
+	"OP_GET_GLOBAL", "OP_SET_GLOBAL",
+	"OP_GET_CELL", "OP_SET_CELL",
+	"OP_GET_LOCAL", "OP_SET_LOCAL",
 
 	"OP_LIST", "OP_EXT_LIST",
 	"OP_TABLE",

@@ -222,6 +222,15 @@ HeapObj::HeapObj() :
 HeapObj::HeapObj(ObjType type) :
     type(type), refCount(0) {}
 
+Cell::Cell(Object* location) :
+    location(location) {}
+
+void Cell::close()
+{
+    obj = *location;
+    location = &obj;
+}
+
 Function::Function(const ByteCode& code, ui8 argCount) :
     HeapObj(OBJ_FUNC),
     name(nullptr), code(code), argCount(argCount), lambda(true) {}

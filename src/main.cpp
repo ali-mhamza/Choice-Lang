@@ -10,6 +10,7 @@
 #include "../include/gen_alloc.h"
 #include "../include/lexer.h"
 #include "../include/main_utils.h"
+#include "../include/object.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 
@@ -93,7 +94,7 @@ static inline vT& runLexer(std::string_view source)
 	return lexer.tokenize(source);
 }
 
-static ByteCode& runCompiler(const vT& tokens)
+static Function* runCompiler(const vT& tokens)
 {
 	#ifdef COMP_AST
 		static Parser parser;
@@ -113,6 +114,7 @@ static ByteCode& runCompiler(const vT& tokens)
 		compiler.errorCount = parser.errorCount;
 		return compiler.compile(program);
 	#else
+		// Fix return value.
 		static Compiler compiler;
 		return compiler.compile(tokens);
 	#endif
@@ -151,7 +153,7 @@ static bool cacheOptimize(ArgvOption option)
 			if (option == EXECUTE)
 			{
 				VM vm;
-				vm.executeCode(chunk);
+				vm.executeCode(ALLOC(Function, chunk, 0));
 				return true;
 			}
 		}
@@ -212,16 +214,16 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		return;
 	}
 
-	ByteCode& chunk = runCompiler(tokens);
+	Function* script = runCompiler(tokens);
 
 	if (option == EMIT_BYTECODE)
 	{
-		optionShowBytes(chunk);
+		optionShowBytes(script->code);
 		return;
 	}
 	if (option == CACHE_BYTECODE)
 	{
-		optionCacheBytes(chunk, fileName);
+		optionCacheBytes(script->code, fileName);
 		return;
 	}
 
@@ -230,7 +232,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#endif
 
 	VM vm; // Must persist for the entire execution.
-	vm.executeCode(chunk);
+	vm.executeCode(script);
 
 	#if TIME_RUN || TIME_TOTAL
 		auto end = steady_clock::now();
@@ -316,11 +318,11 @@ static void repl(ArgvOption option = EXECUTE)
 				optionShowTokens(tokens);
 			else
 			{
-				ByteCode& chunk = runCompiler(tokens);
+				Function* script = runCompiler(tokens);
 				if (option == EMIT_BYTECODE)
-					optionShowBytes(chunk);
+					optionShowBytes(script->code);
 				else
-					vm.executeCode(chunk);
+					vm.executeCode(script);
 			}
 		}
 		else

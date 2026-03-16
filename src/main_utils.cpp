@@ -308,7 +308,7 @@ void optionLoad(const char* fileName)
 
 	ByteCode chunk = readCache(program);
 	VM vm;
-	vm.executeCode(chunk);
+	vm.executeCode(ALLOC(Function, chunk, 0));
 }
 
 void optionDis(const char* fileName)

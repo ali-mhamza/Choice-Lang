@@ -14,6 +14,9 @@
 constexpr bool accessFix = false;
 constexpr bool accessVar = true;
 
+constexpr bool getVar = true;
+constexpr bool setVar = false;
+
 class ASTCompVarsWrapper
 {
     public:
@@ -55,6 +58,26 @@ ASTCompiler::~ASTCompiler()
 {
     delete varsWrapper;
     delete labelsWrapper;
+}
+
+inline void ASTCompiler::addVariableOp(bool type, const VarInfo& info,
+    ui8 dest, ui8 src)
+{
+    if (info.depth == 0)
+    {
+        code.addOp((type == getVar ? OP_GET_GLOBAL : OP_SET_GLOBAL),
+            dest, src);
+    }
+    else if (info.depth == depth)
+    {
+        code.addOp((type == getVar ? OP_GET_LOCAL : OP_SET_LOCAL),
+            dest, src);
+    }
+    else
+    {
+        code.addOp((type == getVar ? OP_GET_CELL : OP_SET_CELL),
+            dest, src);
+    }
 }
 
 inline void ASTCompiler::defVar(std::string name, ui8 reg, bool access)
@@ -100,6 +123,22 @@ inline ASTCompiler::CellInfo ASTCompiler::getCell(const std::string& name,
     return scopeCompiler->getCell(name, info);
 }
 
+inline bool ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
+{
+    // No captures for global or local variables.
+    if ((info.depth == 0) || (info.depth == depth))
+        return false;
+
+    std::string name{token.text};
+    auto it = captureNames.find(name);
+    if (it != captureNames.end()) // Already captured -> don't capture again.
+        return false;
+
+    captureNames[name] = static_cast<ui8>(captures.size());
+    captures.push_back(scopeCompiler->getCell(name, info));
+    return true;
+}
+
 inline void ASTCompiler::popScope()
 {
     auto& scopeVec = varScopes.top();
@@ -120,11 +159,10 @@ DEF(VarDecl)
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
-                // We only declare in the current function scope.
-                code.addOp(OP_SET_VAR, depth, varSlot, reg);
+                addVariableOp(setVar, pos, varSlot, reg); // Always a local variable.
             }
             else
-                code.loadReg(varSlot, OP_NULL, depth);
+                code.loadReg(varSlot, OP_NULL);
             return;
         }
         else
@@ -138,7 +176,7 @@ DEF(VarDecl)
         compileExpr(node->init);
     else
     {
-        code.loadReg(varSlot, OP_NULL, depth);
+        code.loadReg(varSlot, OP_NULL);
         reserveReg();
     }
 
@@ -176,15 +214,14 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
     else
         func = ALLOC(Function, name, funcCode, params.size());
     // We only declare in the current function scope.
-    code.loadRegConst(func, funcReg, depth);
+    code.loadRegConst(func, funcReg);
 
     for (const auto& info : miniCompiler.captures)
     {
-        if (info.depth != 0) // We don't capture globals.
-        {
-            code.addOp((info.captured ? OP_CAPTURE_CELL : OP_CAPTURE_VAL),
-                funcReg, info.depth, info.slot);
-        }
+        // Capture object in register [slot] from depth [depth],
+        // or reuse the cell at index [slot] from depth [depth].
+        code.addOp((info.captured ? OP_CAPTURE_CELL : OP_CAPTURE_VAL),
+            funcReg, info.depth, info.slot);
     }
 }
 
@@ -202,6 +239,9 @@ DEF(FuncDecl)
                 "Object '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
     }
+
+    if (depth + 1 == MAX_SCOPE_DEPTH)
+        REPORT_ERROR(node->name, "Maximum function scope depth reached.");
 
     if (node->params.size() > PARAMETER_MAX)
     {
@@ -500,14 +540,14 @@ DEF(ExprStmt)
 DEF(BlockStmt)
 {
     scope++;
-    ui8 origVarReg = previousReg;
+    ui8 origReg = previousReg;
     varScopes.emplace();
     for (StmtUP& stmt : node->block)
         compileStmt(stmt);
     popScope();
     varScopes.pop();
     scope--;
-    previousReg = origVarReg;
+    previousReg = origReg;
     code.addOp(OP_EXIT_SCOPE);
 }
 
@@ -537,9 +577,15 @@ DEF(TupleExpr)
     if (count > 0) emitTuple();
 }
 
-void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos)
+void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos,
+    bool cellUsed)
 {
-    ui8 reg = previousReg;
+    ui8 slot = (cellUsed ? (captures.size() - 1) : *(pos.slot));
+    ui8 varReg = previousReg;
+    addVariableOp(getVar, pos, varReg, slot);
+    reserveReg();
+
+    ui8 valueReg = previousReg;
     compileExpr(node->value);
 
     Opcode op;
@@ -561,9 +607,9 @@ void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos)
         default: UNREACHABLE();
     }
 
-    ui8 slot = *(pos.slot);
-    code.addOp(op, pos.depth, slot, reg);
-    code.addOp(OP_GET_VAR, pos.depth, reg, slot);
+    code.addOp(op, varReg, valueReg);
+    addVariableOp(setVar, pos, slot, varReg);
+    freeReg(); // Free the temporary register used for the RHS value.
 }
 
 DEF(AssignExpr)
@@ -581,15 +627,18 @@ DEF(AssignExpr)
         REPORT_ERROR(node->oper,
             "Cannot assign to a fixed-value variable.");
 
+    bool cellUsed = captureVariable(temp->name, pos);
     if (node->oper.type != TOK_EQUAL)
     {
-        compoundAssign(node, pos);
+        compoundAssign(node, pos, cellUsed);
         return;
     }
 
     ui8 reg = previousReg;
     compileExpr(node->value);
-    code.addOp(OP_SET_VAR, pos.depth, *(pos.slot), reg);
+    addVariableOp(setVar, pos,
+        (cellUsed ? (captures.size() - 1) : *(pos.slot)), reg
+    );
 }
 
 DEF(LogicExpr)
@@ -668,7 +717,7 @@ DEF(BitExpr)
         default: UNREACHABLE();
     }
 
-    code.addOp(op, depth, firstOper, secondOper);
+    code.addOp(op, firstOper, secondOper);
     freeReg();
 }
 
@@ -681,7 +730,7 @@ DEF(ShiftExpr)
     compileExpr(node->right);
 
     code.addOp(node->oper == TOK_RIGHT_SHIFT ?
-        OP_SHIFT_R : OP_SHIFT_L, depth, firstOper, secondOper);
+        OP_SHIFT_R : OP_SHIFT_L, firstOper, secondOper);
     freeReg();
 }
 
@@ -705,7 +754,7 @@ DEF(BinaryExpr)
         default: UNREACHABLE();
     }
 
-    code.addOp(op, depth, firstOper, secondOper);
+    code.addOp(op, firstOper, secondOper);
     freeReg();
 }
 
@@ -729,15 +778,35 @@ void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
         REPORT_ERROR(node->oper,
             "Cannot modify a fixed-value variable.");
 
-    ui8 slot = *(pos.slot);
-    if (node->prev) // Load the original value.
-        code.addOp(OP_GET_VAR, pos.depth, previousReg, slot);
-    code.addOp(node->oper.type == TOK_INCR ? OP_INCR : OP_DECR,
-        pos.depth, slot);
-    if (!node->prev) // Load the new value.
-        code.addOp(OP_GET_VAR, pos.depth, previousReg, slot);
+    // We copy the variable into two temporary register slots:
+    // [x][.][.][.][...] -> [...][x][x]
+    // We then increment/decrement the second register:
+    // [x][x + 1/x - 1]
+    // We then store the new value in the variable's location:
+    // [x + 1/x - 1][.][.][...] -> [...][x][x + 1/x - 1]
+    // For post-increment, we move the value in the second
+    // register into the first one:
+    // [x + 1/x - 1][x + 1/x - 1]
+    // For pre-increment, we do nothing (previous value is in
+    // the correct location).
+    // In both cases, the result ends up in the first register,
+    // which is the only reserved register.
 
-    reserveReg();
+    bool cellUsed = captureVariable(temp->name, pos);
+    ui8 slot = (cellUsed ? (captures.size() - 1) : *(pos.slot));
+    addVariableOp(getVar, pos, previousReg, slot);
+    reserveReg(); // Will increment previousReg.
+
+    addVariableOp(getVar, pos, previousReg, slot);
+    code.addOp((node->oper.type == TOK_INCR ?
+        OP_INCR : OP_DECR), previousReg);
+    addVariableOp(setVar, pos, slot, previousReg);
+
+    if (!node->prev)
+    {
+        code.addOp(OP_MOVE_R, static_cast<ui8>(previousReg - 1),
+            previousReg);
+    }
 }
 
 DEF(UnaryExpr)
@@ -761,10 +830,7 @@ DEF(UnaryExpr)
         default: UNREACHABLE();
     }
 
-    if (op == OP_COMP) // OP_COMP requires a depth argument.
-        code.addOp(op, depth, firstOper);
-    else
-        code.addOp(op, firstOper);
+    code.addOp(op, firstOper);
     // We don't free a register since unary
     // operators don't use any extra registers.
     // They apply an operator directly onto a
@@ -774,8 +840,8 @@ DEF(UnaryExpr)
 DEF(CallExpr)
 {
     if (node->callee == nullptr) return;
-    ui8 location, depth;
 
+    ui8 location;
     if (node->builtin)
     {
         VarExpr* var = static_cast<VarExpr*>(node->callee.get());
@@ -789,7 +855,6 @@ DEF(CallExpr)
     else
     {
         location = previousReg;
-        depth = this->depth;
         compileExpr(node->callee); // Will reserve a register.
     }
 
@@ -798,10 +863,8 @@ DEF(CallExpr)
         compileExpr(arg);
 
     ui8 size = static_cast<ui8>(node->args.size());
-    if (node->builtin)
-        code.addOp(OP_CALL_NAT, location, argsStart, size);
-    else
-        code.addOp(OP_CALL_DEF, depth, location, argsStart, size);
+    code.addOp((node->builtin ? OP_CALL_NAT : OP_CALL_DEF),
+        location, argsStart, size);
 
     // For user-defined functions, the return value replaces the
     // function object.
@@ -871,14 +934,10 @@ DEF(VarExpr)
         REPORT_ERROR(node->name, "Undefined variable '"
             + std::string(node->name.text) + "'.");
 
-    if ((pos.depth < depth) && (depth > 1))
-    {
-        std::string name{node->name.text};
-        captureNames[name] = static_cast<ui8>(captures.size());
-        captures.push_back(scopeCompiler->getCell(name, pos));
-    }
-
-    code.addOp(OP_GET_VAR, pos.depth, previousReg, *(pos.slot));
+    bool cellUsed = captureVariable(node->name, pos);
+    addVariableOp(getVar, pos, previousReg,
+        (cellUsed ? (captures.size() - 1) : *(pos.slot))
+    );
     reserveReg();
 }
 
@@ -889,14 +948,14 @@ DEF(LiteralExpr)
     if (tok.type == TOK_NUM)
     {
         Object obj = tok.content.i;
-        code.loadRegConst(obj, previousReg, depth);
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_NUM_DEC)
     {
         Object obj = tok.content.d;
-        code.loadRegConst(obj, previousReg, depth);
+        code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
@@ -917,13 +976,13 @@ DEF(LiteralExpr)
     else if ((tok.type == TOK_TRUE) || (tok.type == TOK_FALSE))
     {
         bool value = tok.content.b;
-        code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE), depth);
+        code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE));
         reserveReg();
     }
 
     else if (tok.type == TOK_NULL)
     {
-        code.loadReg(previousReg, OP_NULL, depth);
+        code.loadReg(previousReg, OP_NULL);
         reserveReg();
     }
 }
@@ -974,7 +1033,7 @@ void ASTCompiler::compileStmt(StmtUP& node)
     }
 }
 
-ByteCode& ASTCompiler::compile(StmtVec& program)
+Function* ASTCompiler::compile(StmtVec& program)
 {
     code.clear();
     hitError = false;
@@ -984,7 +1043,7 @@ ByteCode& ASTCompiler::compile(StmtVec& program)
         compileStmt(node);
 
     if (hitError) code.clear();
-    return code;
+    return ALLOC(Function, code, 0);
 }
 
 #endif

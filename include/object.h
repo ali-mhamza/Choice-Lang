@@ -221,7 +221,10 @@ struct Cell
 {
     Object* location;
     Object obj;
-    Cell* next;
+
+    Cell() = default;
+    Cell(Object* location);
+    void close();
 };
 
 struct Function : public HeapObj
@@ -374,7 +377,7 @@ struct ObjIter
 /* Deallocation functor. */
 
 template<typename ObjT>
-struct ObjDealloc
+struct CustomDealloc
 {
     void operator()(void* mem)
     {

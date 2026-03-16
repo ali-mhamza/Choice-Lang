@@ -46,8 +46,8 @@ class ByteCode
         inline ui64 getLoopStart() const { return codeSize(); }
         void addLoop(ui64 start);
 
-        void loadReg(ui8 reg, ui8 op, ui8 offset);
-        void loadRegConst(Object& constant, ui8 reg, ui8 offset);
+        void loadReg(ui8 reg, ui8 op);
+        void loadRegConst(Object& constant, ui8 reg);
 
         inline ui64 codeSize() const { return static_cast<ui64>(block.size()); }
         void cacheStream(std::ofstream& os) const;

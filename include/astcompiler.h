@@ -2,6 +2,7 @@
 #include "astnodes.h"
 #include "bytecode.h"
 #include "main_utils.h"
+#include "object.h"
 #include "vartable.h"
 #include "vm.h"
 #include <memory>
@@ -84,10 +85,14 @@ class ASTCompiler
 
         // Variables.
 
+        inline void addVariableOp(bool type, const VarInfo& info, ui8 dest,
+            ui8 src);
         inline void defVar(std::string name, ui8 reg, bool access);
         inline bool getAccess(ui8 reg);
         inline VarInfo getVarInfo(const Token& token);
         inline CellInfo getCell(const std::string& name, const VarInfo& info);
+        // Returns true if a new capture has been made.
+        inline bool captureVariable(const Token& token, const VarInfo& info);
         inline void popScope();
 
         // Registers.
@@ -124,7 +129,9 @@ class ASTCompiler
         // Expressions.
 
         DECL(TupleExpr);
-        void compoundAssign(UP(AssignExpr)& node, const VarInfo& pos); // Helper.
+        // Helper.
+        void compoundAssign(UP(AssignExpr)& node, const VarInfo& pos,
+            bool cellUsed);
         DECL(AssignExpr);
         DECL(LogicExpr);
         DECL(CompareExpr);
@@ -149,5 +156,5 @@ class ASTCompiler
         ASTCompiler(ASTCompiler* comp = nullptr);
         ~ASTCompiler();
 
-        ByteCode& compile(StmtVec& program);
+        Function* compile(StmtVec& program);
 };

@@ -79,16 +79,16 @@ void ByteCode::addLoop(ui64 start)
 	addByte(static_cast<ui8>(diff & 0xff));
 }
 
-void ByteCode::loadReg(ui8 reg, ui8 op, ui8 offset)
+void ByteCode::loadReg(ui8 reg, ui8 op)
 {
-	addBytes(static_cast<ui8>(OP_LOAD_R), offset, reg, op);
+	addBytes(static_cast<ui8>(OP_LOAD_R), reg, op);
 }
 
 #define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
 
-void ByteCode::loadRegConst(Object& constant, ui8 reg, ui8 offset)
+void ByteCode::loadRegConst(Object& constant, ui8 reg)
 {
-	addBytes(static_cast<ui8>(OP_LOAD_R), offset, reg); // Destination first.
+	addBytes(static_cast<ui8>(OP_LOAD_R), reg); // Destination first.
 
 	if (IS_(INT, constant))
 	{

@@ -44,7 +44,9 @@ void Disassembler::printOperValue(const Object& oper)
 {
 	FORMAT_PRINT("'{}' {}\n",
 		oper.printVal(), oper.printType());
-	if (IS_(FUNC, oper) && !inVM)
+	// We only disassemble functions when requested, and not
+	// with concurrent disassembler output during VM execution.
+	if (DIS_FUNCTION_OBJS && IS_(FUNC, oper) && !inVM)
 		disFunction(*(AS_(func, oper)));
 }
 
@@ -84,28 +86,23 @@ void Disassembler::doubleOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	if (CAN_MODIFY(byte))
-		FORMAT_PRINT("D[{}] R[{}]\n", ip[1], ip[2]);
+	Opcode op = static_cast<Opcode>(byte);
+	if (op == OP_GET_CELL)
+		FORMAT_PRINT("R[{}] C[{}]\n", ip[1], ip[2]);
+	else if (op == OP_SET_CELL)
+		FORMAT_PRINT("C[{}] R[{}]\n", ip[1], ip[2]);
 	else
-		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip [2]);
+		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
 
 	ip += 3;
-}
-
-void Disassembler::tripleOper(ui8 byte)
-{
-	printOpcode(opNames[byte]);
-
-	FORMAT_PRINT("D[{}] R[{}] R[{}]\n", ip[1], ip[2], ip[3]);
-	ip += 4;
 }
 
 void Disassembler::loadOper()
 {
 	printOpcode("OP_LOAD_R");
-	FORMAT_PRINT("D[{}] R[{}] ", ip[1], ip[2]);
+	FORMAT_PRINT("R[{}] ", ip[1]);
 
-	ip += 3;
+	ip += 2;
 	switch (*ip)
 	{
 		case OP_BYTE_OPER:
@@ -155,13 +152,6 @@ void Disassembler::jumpOper(ui8 byte, int sign)
 void Disassembler::callOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
-
-	ui8 offset = 0;
-	if (byte == OP_CALL_DEF)
-	{
-		offset = restoreByte();
-		ip++;
-	}
 	ui8 callee = restoreByte();
 	ip++;
 	ui8 start = restoreByte();
@@ -182,7 +172,7 @@ void Disassembler::callOper(ui8 byte)
 		// at runtime, we cannot display any information about the
 		// function besides its expected location when only
 		// disassembling bytecode.
-		FORMAT_PRINT("D[{}] F[{}] ({}) R[{}]\n", offset, callee, count, start);
+		FORMAT_PRINT("F[{}] ({}) R[{}]\n", callee, count, start);
 	}
 }
 
@@ -236,7 +226,10 @@ void Disassembler::captureOper(ui8 byte)
 	ui8 funcReg = restoreByte();
 	ip++;
 
-	FORMAT_PRINT("R[{}] D[{}] C[{}]\n", funcReg, ip[1], ip[2]);
+	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
+		FORMAT_PRINT("F[{}] D[{}] R[{}]\n", funcReg, ip[1], ip[2]);
+	else
+		FORMAT_PRINT("F[{}] D[{}] C[{}]\n", funcReg, ip[1], ip[2]);
 	ip += 3;
 }
 
@@ -244,14 +237,12 @@ void Disassembler::disassembleOp(ui8 byte)
 {
 	switch (byte)
 	{
-		case OP_ADD:		case OP_SUB:		case OP_MULT:			case OP_DIV:
-		case OP_MOD:		case OP_POWER:		case OP_AND:			case OP_OR:
-		case OP_XOR:		case OP_SHIFT_R:	case OP_SHIFT_L:		case OP_GET_VAR:
-		case OP_SET_VAR:
-			tripleOper(byte);
-			break;
-		case OP_EQUAL:		case OP_GT:			case OP_LT:			case OP_IN:
-		case OP_INCR:		case OP_DECR:		case OP_COMP:		case OP_MOVE_R:
+		case OP_ADD:		case OP_SUB:		case OP_MULT:		case OP_DIV:
+		case OP_MOD:		case OP_POWER:		case OP_AND:		case OP_OR:
+		case OP_XOR:		case OP_SHIFT_R:	case OP_SHIFT_L:	case OP_GET_GLOBAL:
+		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
+		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
+		case OP_IN:			case OP_INCR:		case OP_DECR:		case OP_MOVE_R:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
@@ -263,8 +254,8 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_CALL_NAT:	case OP_CALL_DEF:
 			callOper(byte);
 			break;
-		case OP_NEG:		case OP_NOT:		case OP_RETURN:		case OP_VOID:
-		case OP_PRINT_VALID:
+		case OP_NEG:		case OP_NOT:			case OP_COMP:		case OP_RETURN:
+		case OP_VOID:		case OP_PRINT_VALID:
 			singleOper(byte);
 			break;
 		case OP_LOAD_R:
