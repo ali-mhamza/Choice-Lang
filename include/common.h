@@ -143,7 +143,7 @@ using vByte 	= std::vector<ui8>;
 using vObj  	= std::vector<Object>;
 using vBit		= vByte::const_iterator;
 
-// Global variables.
+/* Global variables. */
 
 // Whether we're running an externally loaded
 // program or not.
