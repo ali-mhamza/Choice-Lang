@@ -42,10 +42,6 @@ VM::VM() :
     for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
         registers[i] = Object(Natives::FuncType(i));
     SET_REGSLOT(Natives::NUM_FUNCS);
-
-    #if WATCH_EXEC
-    dis = nullptr;
-    #endif
 }
 
 VM::~VM()

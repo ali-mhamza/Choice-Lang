@@ -75,7 +75,7 @@ class VM
         #endif
 
         #if WATCH_EXEC
-        Disassembler* dis;
+        Disassembler* dis{nullptr};
         #endif
 
         // Utilities.

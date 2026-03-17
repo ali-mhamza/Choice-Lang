@@ -179,7 +179,7 @@ void Disassembler::callOper(ui8 byte)
 void Disassembler::iterOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
-	
+
 	if (static_cast<Opcode>(byte) == OP_MAKE_ITER)
 	{
 		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
