@@ -158,13 +158,13 @@ std::string Object::printVal() const
         case OBJ_TUPLE:     return AS_(tuple, *this)->printVal();
         case OBJ_ITER:
         {
-                const auto& iter = AS_(iter, *this)->iter;
-                std::string ret;
-                std::visit([&ret](auto&& iter) {
-                    ret = "->" + iter.obj->printVal();
-                }, iter);
+            const auto& iter = AS_(iter, *this)->iter;
+            std::string ret;
+            std::visit([&ret](auto&& iter) {
+                ret = "->" + iter.obj->printVal();
+            }, iter);
 
-                return ret;
+            return ret;
         }
         default: UNREACHABLE();
     }
