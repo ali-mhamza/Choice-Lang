@@ -9,18 +9,19 @@
 
 const Natives::NativeFunc
 Natives::functions[Natives::NUM_FUNCS] = {
-    Natives::print, Natives::type, Natives::clock,
-    Natives::range, Natives::read
+    Natives::print, Natives::type, Natives::len,
+    Natives::clock, Natives::range, Natives::read
 };
 
 const char* Natives::funcNames[NUM_FUNCS] = {
-    "print", "type", "clock", "range", "read"
+    "print", "type", "len", "clock", "range", "read"
 };
 
 const std::unordered_map<std::string_view,
     Natives::FuncType> Natives::builtins = {
     {"print", Natives::FUNC_PRINT},
     {"type", Natives::FUNC_TYPE},
+    {"len", Natives::FUNC_LEN},
     {"clock", Natives::FUNC_CLOCK},
     {"range", Natives::FUNC_RANGE},
     {"read", Natives::FUNC_READ}
@@ -65,6 +66,49 @@ void Natives::type(Natives::iter it, ui8 args, const Token& error)
         );
 
     it[-1] = Object(it->type);
+}
+
+void Natives::len(Natives::iter it, ui8 args, const Token& error)
+{
+    if (args != 1)
+        throw RuntimeError(error,
+            FORMAT_STR("Expected 1 argument but found {}.", args)
+        );
+
+    const Object& obj = *it;
+    if (!IS_ITERABLE(obj))
+        throw RuntimeError(error, "Argument provided is not iterable.");
+
+    i64 len = 0;
+    switch (obj.type)
+    {
+        case OBJ_STRING:
+            len = AS_(string, obj)->str.size();
+            break;
+        case OBJ_RANGE:
+        {
+            auto* range = AS_(range, obj);
+            if (range->step == 1)
+                len = range->stop - range->start + 1;
+            else
+            {
+                i64 temp = range->start;
+                while (temp <= range->stop)
+                {
+                    len++;
+                    temp += range->step;
+                }
+            }
+            break;
+        }
+        case OBJ_LIST:
+            len = AS_(list, obj)->array.count();
+            break;
+        default:
+            UNREACHABLE();
+    }
+
+    it[-1] = Object(len);
 }
 
 void Natives::clock(Natives::iter it, ui8 args, const Token& error)
