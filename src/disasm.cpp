@@ -46,7 +46,7 @@ void Disassembler::printOperValue(const Object& oper)
 		oper.printVal(), oper.printType());
 	// We only disassemble functions when requested, and not
 	// with concurrent disassembler output during VM execution.
-	if (DIS_FUNCTION_OBJS && IS_(FUNC, oper) && !inVM)
+	if (DIS_FUNCTION_OBJS && IS_FUNC(oper) && !inVM)
 		disFunction(*(AS_(func, oper)));
 }
 

@@ -11,7 +11,7 @@ using Natives::funcNames;
 
 static std::string_view objTypes[] = {
     "int", "dec", "bool", "null", "type", "builtin function",
-    "user function", "bigint", "bigdec", "string", "range",
+    "user function", "lambda", "bigint", "bigdec", "string", "range",
     "list", "table", "tuple", "num", "iterable"
 };
 
@@ -116,7 +116,8 @@ bool Object::operator==(const Object& other) const
         case OBJ_NULL:      return true;
         case OBJ_TYPE:      return AS_(type, *this) == AS_(type, other);
         case OBJ_NATIVE:    return AS_(native, *this) == AS_(native, other);
-        case OBJ_FUNC:      return AS_(func, *this) == AS_(func, other);
+        case OBJ_FUNC:
+        case OBJ_LAMBDA:    return AS_(func, *this) == AS_(func, other);
         case OBJ_STRING:    return AS_(string, *this) == AS_(string, other);
         case OBJ_RANGE:     return AS_(range, *this) == AS_(range, other);
         case OBJ_LIST:      return AS_(list, *this) == AS_(list, other);
@@ -149,13 +150,8 @@ std::string Object::printVal() const
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
         case OBJ_NATIVE:    return FORMAT_STR("<builtin {}>", funcNames[AS_(native, *this)]);
-        case OBJ_FUNC:
-        {
-            Function* func = AS_(func, *this);
-            if (func->lambda)
-                return "<lambda>";
-            return FORMAT_STR("<func {}>", func->name);
-        }
+        case OBJ_FUNC:      return FORMAT_STR("<func {}>", AS_(func, *this)->name);
+        case OBJ_LAMBDA:    return "<lambda>";
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
         case OBJ_LIST:      return AS_(list, *this)->printVal();
@@ -176,8 +172,6 @@ std::string Object::printVal() const
 
 std::string_view Object::printType() const
 {
-    if (IS_(FUNC, *this) && AS_(func, *this)->lambda)
-        return "lambda";
     return objTypes[type];
 }
 
@@ -200,7 +194,8 @@ void Object::emit(std::ofstream& os) const
     {
         case OBJ_INT:       emitBytes(os, OBJ_INT, AS_(int, *this));    break;
         case OBJ_DEC:       emitBytes(os, OBJ_DEC, AS_(dec, *this));    break;
-        case OBJ_FUNC:      AS_(func, *this)->emit(os);                 break;
+        case OBJ_FUNC:
+        case OBJ_LAMBDA:    AS_(func, *this)->emit(os);                 break;
         case OBJ_STRING:    AS_(string, *this)->emit(os);               break;
         case OBJ_RANGE:     AS_(range, *this)->emit(os);                break;
         default: break;
@@ -232,7 +227,7 @@ void Cell::close()
 }
 
 Function::Function(const ByteCode& code, ui8 argCount) :
-    HeapObj(OBJ_FUNC),
+    HeapObj(OBJ_LAMBDA),
     name(nullptr), code(code), argCount(argCount), lambda(true) {}
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -259,7 +254,7 @@ bool Function::operator==(const Function& other) const
 void Function::emit(std::ofstream& os) const
 {
     os.put(static_cast<char>(type));
-    os.write(name, strlen(name));
+    if (name != nullptr) os.write(name, strlen(name));
     os.put('\0');
 
     os.put(static_cast<char>(argCount));

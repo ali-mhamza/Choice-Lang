@@ -22,6 +22,7 @@ enum ObjType
     OBJ_TYPE,
     OBJ_NATIVE,
     OBJ_FUNC,
+    OBJ_LAMBDA,
     OBJ_BIGINT,
     OBJ_BIGDEC,
     OBJ_STRING,
@@ -41,7 +42,8 @@ enum ObjType
 /* Type check and validation macros. */
 
 #define IS_(TYPE, obj)      ((obj).type == OBJ_##TYPE)
-#define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_(FUNC, obj))
+#define IS_FUNC(obj)        (((obj).type == OBJ_FUNC) || ((obj).type == OBJ_LAMBDA))
+#define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_FUNC(obj))
 #define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
 #define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
 #define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
@@ -153,54 +155,18 @@ Object::Object(T val)
         type = OBJ_NATIVE;
         as.nativeVal = val;
     }
-    else if constexpr (std::is_same_v<T, Function*>)
-    {
-        type = OBJ_FUNC;
-        INCREMENT_REF();
-        as.funcVal = val;
-    }
-    else if constexpr (std::is_same_v<T, String*>)
-    {
-        type = OBJ_STRING;
-        INCREMENT_REF();
-        as.stringVal = val;
-    }
-    else if constexpr (std::is_same_v<T, Range*>)
-    {
-        type = OBJ_RANGE;
-        INCREMENT_REF();
-        as.rangeVal = val;
-    }
-    else if constexpr (std::is_same_v<T, List*>)
-    {
-        type = OBJ_LIST;
-        INCREMENT_REF();
-        as.listVal = val;
-    }
-    else if constexpr (std::is_same_v<T, Table*>)
-    {
-        type = OBJ_TABLE;
-        INCREMENT_REF();
-        as.tableVal = val;
-    }
-    else if constexpr (std::is_same_v<T, Tuple*>)
-    {
-        type = OBJ_TUPLE;
-        INCREMENT_REF();
-        as.tupleVal = val;
-    }
-    else if constexpr (std::is_same_v<T, HeapObj*>)
-    {
-        type = val->type;
-        INCREMENT_REF();
-        as.heapVal = val;
-    }
     else if constexpr (std::is_same_v<T, ObjIter*>)
     {
         type = OBJ_ITER;
         // Iterators should never be copied, so we
         // don't use a refcount.
         as.iterVal = val;
+    }
+    else
+    {
+        type = val->type;
+        INCREMENT_REF();
+        as.heapVal = val;
     }
 }
 
