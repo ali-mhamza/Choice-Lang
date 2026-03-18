@@ -238,8 +238,9 @@ Function::Function(const ByteCode& code, ui8 argCount) :
 
 Function::Function(const std::string& name, const ByteCode& code,
     ui8 argCount) :
-    HeapObj(OBJ_FUNC), name(STRDUP(name.c_str())), code(code),
-    argCount(argCount), lambda(false) {}
+    HeapObj(OBJ_FUNC),
+    name(STRDUP(name.c_str())), code(code), argCount(argCount),
+    lambda(false) {}
 
 Function::~Function()
 {   
@@ -273,10 +274,12 @@ void Function::emit(std::ofstream& os) const
 }
 
 String::String(const std::string& str) :
-    HeapObj(OBJ_STRING), str(str) {}
+    HeapObj(OBJ_STRING),
+    str(str) {}
 
 String::String(const std::string_view& view) :
-    HeapObj(OBJ_STRING), str(view) {}
+    HeapObj(OBJ_STRING),
+    str(view) {}
 
 String::String(const char* str, size_t len) :
     HeapObj(OBJ_STRING)
@@ -308,8 +311,8 @@ void String::emit(std::ofstream& os) const
 }
 
 Range::Range(const std::array<i64, 3>& limits) :
-    HeapObj(OBJ_RANGE), start(limits[0]), stop(limits[1]),
-    step(limits[2]) {}
+    HeapObj(OBJ_RANGE),
+    start(limits[0]), stop(limits[1]), step(limits[2]) {}
 
 bool Range::operator==(const Range& other) const
 {
@@ -346,6 +349,7 @@ void Range::emit(std::ofstream& os) const
 }
 
 List::List(ui32 size) :
+    HeapObj(OBJ_LIST),
     array(size) {}
 
 bool List::operator==(const List& other) const
@@ -380,7 +384,11 @@ std::string List::printVal() const
     return ret;
 }
 
+Tuple::Tuple() :
+    HeapObj(OBJ_TUPLE) {}
+
 Tuple::Tuple(ui32 size) :
+    HeapObj(OBJ_TUPLE),
     entries(size) {}
 
 std::string Tuple::printVal() const

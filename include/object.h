@@ -201,7 +201,6 @@ struct Function : public HeapObj
     ui8 argCount;
     bool lambda;
 
-    Function() = default;
     Function(const ByteCode& code, ui8 argCount);
     Function(const std::string& name, const ByteCode& code, ui8 argCount);
     ~Function();
@@ -243,7 +242,6 @@ struct List : public HeapObj
 {
     Array<Object> array;
 
-    List() = default;
     List(ui32 size);
     bool operator==(const List& other) const;
 
@@ -260,7 +258,7 @@ struct Tuple : public HeapObj
 {
     Array<Object> entries;
 
-    Tuple() = default;
+    Tuple();
     Tuple(ui32 size);
 
     std::string printVal() const;
