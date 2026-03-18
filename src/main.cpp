@@ -153,7 +153,9 @@ static bool cacheOptimize(ArgvOption option)
 			if (option == EXECUTE)
 			{
 				VM vm;
-				vm.executeCode(ALLOC(Function, chunk, 0));
+				Function* script = ALLOC(Function, chunk, 0);
+				vm.executeCode(script);
+				delete script;
 				return true;
 			}
 		}
@@ -240,6 +242,8 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		FORMAT_PRINT("Time: {:.6f}\n",
 			static_cast<long double>(time.count()) / 1000000);
 	#endif
+
+	delete script;
 }
 
 static void printReplIntro()
@@ -323,6 +327,7 @@ static void repl(ArgvOption option = EXECUTE)
 					optionShowBytes(script->code);
 				else
 					vm.executeCode(script);
+				delete script;
 			}
 		}
 		else
