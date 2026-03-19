@@ -24,7 +24,8 @@ extras/
 build/
 sources/
 VS Solution/
-dependencies/
 
 # Executable.
+*.o
+*.a
 choice*
