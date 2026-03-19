@@ -13,9 +13,19 @@ DEFINES += $(ALLOCATOR)
 DEBUG_FLAGS = -g -O0 -D DEBUG
 RELEASE_FLAGS = -O2 -D NDEBUG
 WARNINGS = -Wall -Wextra \
-			-Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-label \
-			-Wno-error=pedantic -Werror \
+			-Wno-unused-parameter -Wno-sign-compare -Wno-unused-label -Wno-error=pedantic \
+			-Werror \
 			-MMD -MP
+GNU_WARNINGS = -Wno-maybe-uninitialized
+CLANG_WARNINGS = -Wno-uninitialized
+
+ifeq ($(CXX), g++)
+	WARNINGS += $(GNU_WARNINGS)
+else
+	ifeq ($(CXX), clang++)
+		WARNINGS += $(CLANG_WARNINGS)
+	endif
+endif
 
 # Prints out date and time (without time zone) of last commit.
 COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci | awk '{printf "%s %s\n", $$1, $$2}')
