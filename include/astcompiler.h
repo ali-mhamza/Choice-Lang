@@ -1,8 +1,8 @@
 #pragma once
 #include "astnodes.h"
 #include "bytecode.h"
-#include "main_utils.h"
 #include "object.h"
+#include "utils.h"
 #include "vartable.h"
 #include "vm.h"
 #include <memory>

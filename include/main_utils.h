@@ -26,4 +26,3 @@ void optionLoad(const char* fileName);
 void optionDis(const char* fileName);
 void optionCacheBytes(const ByteCode& chunk, const char* fileName);
 bool fileNameCheck(std::string_view fileName);
-std::string normalizeNewlines(const std::string_view& sv);

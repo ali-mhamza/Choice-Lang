@@ -1,8 +1,8 @@
 #pragma once
 #include "bytecode.h"
 #include "common.h"
-#include "main_utils.h"
 #include "token.h"
+#include "utils.h"
 #include <stack>
 #include <string>
 #include <string_view>
