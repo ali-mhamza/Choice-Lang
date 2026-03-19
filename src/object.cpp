@@ -2,7 +2,7 @@
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include "../include/token.h"
-#include <climits> // For CHAR_BIT.
+#include <climits> // For CHAR_BIT, SIZE_MAX.
 #include <cstdio> // For stderr.
 #include <cstring>
 #include <string_view>
@@ -284,7 +284,7 @@ String::String(const std::string_view& view) :
 String::String(const char* str, size_t len) :
     HeapObj(OBJ_STRING)
 {
-    if (len == -1) len = strlen(str);
+    len = (len == SIZE_MAX ? strlen(str) : len);
     this->str = std::string(str, len);
 }
 
@@ -472,6 +472,8 @@ bool StringIter::start(Object& var)
 
 bool StringIter::next(Object& var)
 {
+    (void) var; // We can manipulate the content directly.    
+
     begin++;
     if ((iter->str[0] = *begin) == '\0') return false;
     return true;
