@@ -1,17 +1,24 @@
 CXX = g++
-INCLUDES = -Idependencies/personal \
+INCLUDES =	-Idependencies/personal \
 			-Idependencies/fmt \
 			-Idependencies/replxx -Idependencies/replxx/include
 CXX_STANDARD = -std=c++17
-DEFINES = -D FMT_HEADER_ONLY -D USE_ALLOC=0 # -D LINEAR_ALLOC
-DEBUG_FLAGS = -g -O0 -DDEBUG
-RELEASE_FLAGS = -O2 -DNDEBUG
+
+# fmt: Compile as header-only library.
+# replxx: Compile and link as static library (no DLL).
+DEFINES = -D FMT_HEADER_ONLY -D REPLXX_STATIC
+ALLOCATOR = -D USE_ALLOC=0 -D 'ALLOC_SIZE=MiB(10)' -D LINEAR_ALLOC
+DEFINES += $(ALLOCATOR)
+
+DEBUG_FLAGS = -g -O0 -D DEBUG
+RELEASE_FLAGS = -O2 -D NDEBUG
 WARNINGS = -Wall -Wextra \
 			-Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-label \
 			-Wno-error=pedantic -Werror \
 			-MMD -MP
 
-COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci)
+# Prints out date and time (without time zone) of last commit.
+COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci | awk '{printf "%s %s\n", $$1, $$2}')
 DEFINES += -D 'COMMIT_TIME_STAMP="last modified: $(COMMIT_TIME_STAMP)"'
 
 CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(WARNINGS) $(DEFINES)
@@ -20,9 +27,9 @@ REPL_DIR = dependencies/replxx
 REPL_LIB = $(REPL_DIR)/libreplxx.a
 LIBS = -L$(REPL_DIR) -lreplxx
 
-AST = -DCOMP_AST
-TYPE = -DTYPE
-OPT = -DOPT
+AST = -D COMP_AST
+TYPE = -D TYPE
+OPT = -D OPT
 
 NAME = choice
 RELEASE = choice-release
