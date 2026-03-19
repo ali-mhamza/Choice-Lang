@@ -51,6 +51,8 @@ static inline void eofError()
 template<typename Size>
 static Size reconstructBytes(vBit& it, const vBit& end)
 {
+	(void) end; // In case we don't use it.	
+
 	ui64 value = 0;
 	size_t size = sizeof(Size);
 	for (size_t i = 0; i < size; i++)
@@ -124,6 +126,8 @@ static Object reconstructFunc(vBit& it, const vBit& end)
 
 static Object reconstructString(vBit& it, const vBit& end)
 {
+	(void) end; // In case we don't use it.
+
 	CHECK_EOF();
 	std::string str;
 	while (static_cast<char>(*it) != '\0')
