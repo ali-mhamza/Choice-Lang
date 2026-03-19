@@ -312,7 +312,7 @@ bool Lexer::checkHyperComment()
 			if (errorCount < COMPILE_ERROR_MAX)
 			{
 				LexError(peekChar(), line, column + 1,
-				"Unterminated nested comment.").report();
+					"Unterminated nested comment.").report();
 			}
 			else if (errorCount == COMPILE_ERROR_MAX)
 				FORMAT_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
