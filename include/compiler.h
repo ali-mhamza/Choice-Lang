@@ -22,7 +22,7 @@ class Compiler
                 return;                                                 \
             else if (errorCount == COMPILE_ERROR_MAX)                   \
             {                                                           \
-                FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
                 errorCount++;                                           \
                 return;                                                 \
             }                                                           \
@@ -40,7 +40,7 @@ class Compiler
                 return;                                                 \
             else if (errorCount == COMPILE_ERROR_MAX)                   \
             {                                                           \
-                FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
                 errorCount++;                                           \
                 return;                                                 \
             }                                                           \

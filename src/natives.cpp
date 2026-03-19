@@ -31,29 +31,29 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
 {
     (void) error;
     // To avoid reallocating the return value each time.
-    static auto ret = Object(ALLOC(Tuple));
+    static auto ret = Object(CH_ALLOC(Tuple));
 
     for (ui8 i = 0; i < args; i++)
     {
         switch (it[i].type)
         {
             // Fast path printing.
-            case OBJ_INT:   FORMAT_PRINT("{}", AS_(int, it[i]));        break;
-            case OBJ_DEC:   FORMAT_PRINT("{:.6f}", AS_(dec, it[i]));    break;
-            case OBJ_BOOL:  FORMAT_PRINT("{}", AS_(bool, it[i]));       break;
-            case OBJ_NULL:  FORMAT_PRINT("null");                       break;
+            case OBJ_INT:   CH_PRINT("{}", AS_(int, it[i]));        break;
+            case OBJ_DEC:   CH_PRINT("{:.6f}", AS_(dec, it[i]));    break;
+            case OBJ_BOOL:  CH_PRINT("{}", AS_(bool, it[i]));       break;
+            case OBJ_NULL:  CH_PRINT("null");                       break;
             case OBJ_STRING:
             {
-                FORMAT_PRINT("{}", AS_(string, it[i])->str);
+                CH_PRINT("{}", AS_(string, it[i])->str);
                 break;
             }
             // Slower alternative.
-            default: FORMAT_PRINT("{}", it[i].printVal());
+            default: CH_PRINT("{}", it[i].printVal());
         }
         if (i != args - 1)
-            FORMAT_PRINT(" ");
+            CH_PRINT(" ");
     }
-    FORMAT_PRINT("\n");
+    CH_PRINT("\n");
 
     it[-1] = ret;
 }
@@ -62,7 +62,7 @@ void Natives::type(Natives::iter it, ui8 args, const Token& error)
 {
     if (args != 1)
         throw RuntimeError(error,
-            FORMAT_STR("Expected 1 argument but found {}.", args)
+            CH_STR("Expected 1 argument but found {}.", args)
         );
 
     it[-1] = Object(it->type);
@@ -72,7 +72,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
 {
     if (args != 1)
         throw RuntimeError(error,
-            FORMAT_STR("Expected 1 argument but found {}.", args)
+            CH_STR("Expected 1 argument but found {}.", args)
         );
 
     const Object& obj = *it;
@@ -105,7 +105,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
             len = AS_(list, obj)->array.count();
             break;
         default:
-            UNREACHABLE();
+            CH_UNREACHABLE();
     }
 
     it[-1] = Object(len);
@@ -115,7 +115,7 @@ void Natives::clock(Natives::iter it, ui8 args, const Token& error)
 {   
     if (args != 0)
         throw RuntimeError(error,
-            FORMAT_STR("Expected 0 arguments but found {}.", args)
+            CH_STR("Expected 0 arguments but found {}.", args)
         );
 
     using clock = std::chrono::steady_clock;
@@ -132,7 +132,7 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
 {
     if ((args != 2) && (args != 3))
         throw RuntimeError(error,
-            FORMAT_STR("Expect 2 or 3 arguments but found {}.", args)
+            CH_STR("Expect 2 or 3 arguments but found {}.", args)
         );
     if (!IS_(INT, it[0]) || !IS_(INT, it[1]) || ((args == 3) && !IS_(INT, it[2])))
         throw RuntimeError(error, "Arguments must be integers.");
@@ -140,24 +140,24 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     std::array<i64, 3> limits = {AS_(int, it[0]), AS_(int, it[1]), 1};
     if (args == 3)
         limits[2] = AS_(int, it[2]);
-    it[-1] = Object(ALLOC(Range, limits));
+    it[-1] = Object(CH_ALLOC(Range, limits));
 }
 
 void Natives::read(Natives::iter it, ui8 args, const Token& error)
 {
     if (args > 1)
         throw RuntimeError(error,
-            FORMAT_STR("Expect 0 or 1 arguments but found {}.", args)
+            CH_STR("Expect 0 or 1 arguments but found {}.", args)
         );
     if (args == 1)
     {
         if (!IS_(STRING, it[0]))
             throw RuntimeError(error, "Argument must be a string."); // Temporarily.
-        FORMAT_PRINT("{}", AS_(string, it[0])->str);
+        CH_PRINT("{}", AS_(string, it[0])->str);
     }
 
     std::ios_base::sync_with_stdio(false);
     std::string input;
     std::getline(std::cin, input);
-    it[-1] = Object(ALLOC(String, input));
+    it[-1] = Object(CH_ALLOC(String, input));
 }

@@ -25,7 +25,7 @@ std::string readFile(const char* fileName)
 	std::ifstream file(fileName);
 	if (file.fail())
 	{
-		FORMAT_PRINT(stderr, "Failed to open file.\n");
+		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
 	
@@ -38,13 +38,13 @@ std::string readFile(const char* fileName)
 		return fileString;
 	}
 
-	FORMAT_PRINT(stderr, "File is closed.\n");
+	CH_PRINT(stderr, "File is closed.\n");
 	exit(66);
 }
 
 static inline void eofError()
 {
-	FORMAT_PRINT(stderr, "Reached end of file prematurely.\n");
+	CH_PRINT(stderr, "Reached end of file prematurely.\n");
 	exit(65);
 }
 
@@ -109,13 +109,13 @@ static Object reconstructFunc(vBit& it, const vBit& end)
 
 	if (lambda)
 	{
-		return Object(ALLOC(Function, reconstructByteCode(++it, end),
+		return Object(CH_ALLOC(Function, reconstructByteCode(++it, end),
 			argCount)
 		);
 	}
 	else
 	{
-		return Object(ALLOC(Function, name,
+		return Object(CH_ALLOC(Function, name,
 			reconstructByteCode(++it, end),
 			argCount)
 		);
@@ -133,7 +133,7 @@ static Object reconstructString(vBit& it, const vBit& end)
 		CHECK_EOF();
 	}
 
-	return Object(ALLOC(String, str));
+	return Object(CH_ALLOC(String, str));
 }
 
 static Object reconstructRange(vBit& it, const vBit& end)
@@ -151,7 +151,7 @@ static Object reconstructRange(vBit& it, const vBit& end)
 	}
 
 	it--;
-	return Object(ALLOC(Range, array));
+	return Object(CH_ALLOC(Range, array));
 }
 
 vObj reconstructPool(const vByte& poolBytes)
@@ -182,7 +182,7 @@ vObj reconstructPool(const vByte& poolBytes)
 			{
 				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
-					FORMAT_PRINT(stderr, "Error: byte is {}.\n",
+					CH_PRINT(stderr, "Error: byte is {}.\n",
 						static_cast<int>(type));
 					exit(65);
 				}
@@ -201,7 +201,7 @@ static void handleFileLength(std::ifstream& fileIn, size_t expected)
 			eofError();
 		else if (fileIn.fail())
 		{
-			FORMAT_PRINT(stderr, "Encountered internal I/O error.\n");
+			CH_PRINT(stderr, "Encountered internal I/O error.\n");
 			exit(74);
 		}
 	}
@@ -214,7 +214,7 @@ static void readMagic(std::ifstream& fileIn)
 	handleFileLength(fileIn, sizeof(magic));
 	if (strncmp(magic, "choice", 6) != 0)
 	{
-		FORMAT_PRINT(stderr, "Improper magic flag for bytecode file.\n");
+		CH_PRINT(stderr, "Improper magic flag for bytecode file.\n");
 		exit(65);
 	}
 }
@@ -265,7 +265,7 @@ ByteCode readCache(std::ifstream& fileIn)
 		return ByteCode(codeBytes, reconstructPool(poolBytes));
 	}
 
-	FORMAT_PRINT(stderr, "File is closed.\n");
+	CH_PRINT(stderr, "File is closed.\n");
 	exit(66);
 }
 
@@ -293,7 +293,7 @@ void optionLoad(const char* fileName)
 {	
 	if (!ends_with(fileName, ".bch"))
 	{
-		FORMAT_PRINT(stderr, "Invalid bytecode file.\n");
+		CH_PRINT(stderr, "Invalid bytecode file.\n");
 		exit(65);
 	}
 
@@ -302,20 +302,20 @@ void optionLoad(const char* fileName)
 	std::ifstream program(fileName, std::ios::binary);
 	if (program.fail())
 	{
-		FORMAT_PRINT(stderr, "Failed to open file.\n");
+		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
 
 	ByteCode chunk = readCache(program);
 	VM vm;
-	vm.executeCode(ALLOC(Function, chunk, 0));
+	vm.executeCode(CH_ALLOC(Function, chunk, 0));
 }
 
 void optionDis(const char* fileName)
 {
 	if (!ends_with(fileName, ".bch"))
 	{
-		FORMAT_PRINT(stderr, "Invalid bytecode file.\n");
+		CH_PRINT(stderr, "Invalid bytecode file.\n");
 		exit(65);
 	}
 
@@ -324,7 +324,7 @@ void optionDis(const char* fileName)
 	std::ifstream program(fileName, std::ios::binary);
 	if (program.fail())
 	{
-		FORMAT_PRINT(stderr, "Failed to open file.\n");
+		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
 

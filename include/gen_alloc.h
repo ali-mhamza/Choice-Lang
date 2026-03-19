@@ -1,4 +1,4 @@
-#if USE_ALLOC
+#if CH_USE_ALLOC
 
 #pragma once
 #include <cstddef>

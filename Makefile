@@ -7,8 +7,8 @@ CXX_STANDARD = -std=c++17
 # fmt: Compile as header-only library.
 # replxx: Compile and link as static library (no DLL).
 DEFINES = -D FMT_HEADER_ONLY -D REPLXX_STATIC
-ALLOCATOR = -D USE_ALLOC=0 -D 'ALLOC_SIZE=MiB(10)' -D LINEAR_ALLOC
-DEFINES += $(ALLOCATOR)
+CH_ALLOCATOR = -D CH_USE_ALLOC=0 -D 'CH_ALLOC_SIZE=MiB(10)' -D CH_LINEAR_ALLOC
+DEFINES += $(CH_ALLOCATOR)
 
 DEBUG_FLAGS = -g -O0 -D DEBUG
 RELEASE_FLAGS = -O2 -D NDEBUG
@@ -16,7 +16,7 @@ WARNINGS = -Wall -Wextra -Werror
 
 # Prints out date and time (without time zone) of last commit.
 COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci | awk '{printf "%s %s\n", $$1, $$2}')
-DEFINES += -D 'COMMIT_TIME_STAMP="last modified: $(COMMIT_TIME_STAMP)"'
+DEFINES += -D 'CH_COMMIT_TIME_STAMP="last modified: $(COMMIT_TIME_STAMP)"'
 
 CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(WARNINGS) $(DEFINES) -MMD -MP
 

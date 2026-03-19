@@ -1,4 +1,4 @@
-#if USE_ALLOC && defined(LINEAR_ALLOC)
+#if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 
 #pragma once
 #include "array.h"
@@ -41,7 +41,7 @@ ObjT* LinearAlloc::alloc(Args&&... args) noexcept
     ObjT* obj = static_cast<ObjT*>(
         alignMem(AS_VOID(AS_BYTES(arena) + used), alignof(ObjT))
     );
-    ASSERT_MEM(
+    CH_ASSERT_MEM(
         (AS_BYTES(obj) < AS_BYTES(start) + cap),
         "Ran out of memory",
         start

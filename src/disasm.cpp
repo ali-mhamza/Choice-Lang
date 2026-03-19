@@ -13,36 +13,36 @@ Disassembler::Disassembler(const ByteCode& code) :
 void Disassembler::printOpcode(std::string_view opName)
 {
 	#if PRINT_FULL_OFFSET
-		FORMAT_PRINT("{:0>4} {:<15} ", ip - start, opName);
+		CH_PRINT("{:0>4} {:<15} ", ip - start, opName);
 	#else
 		// Prints leading spaces, not zeros.
-		FORMAT_PRINT("{:>4} {:<15} ", ip - start, opName);
+		CH_PRINT("{:>4} {:<15} ", ip - start, opName);
 	#endif
 }
 
 void Disassembler::disFunction(const Function& func)
 {
 	if (func.lambda)
-		FORMAT_PRINT("\n===== [start] <lambda> =====\n\n");
+		CH_PRINT("\n===== [start] <lambda> =====\n\n");
 	else
-		FORMAT_PRINT("\n===== [start] func {} =====\n\n", func.name);
+		CH_PRINT("\n===== [start] func {} =====\n\n", func.name);
 
-	FORMAT_PRINT("(args: {}, ", func.argCount);
-	FORMAT_PRINT("constants: {})", func.code.pool.size());
-	FORMAT_PRINT("\n\n");
+	CH_PRINT("(args: {}, ", func.argCount);
+	CH_PRINT("constants: {})", func.code.pool.size());
+	CH_PRINT("\n\n");
 	Disassembler miniDis(func.code);
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
 
 	if (func.lambda)
-		FORMAT_PRINT("\n====== [end] <lambda> ======\n\n");
+		CH_PRINT("\n====== [end] <lambda> ======\n\n");
 	else
-		FORMAT_PRINT("\n====== [end] func {} ======\n\n", func.name);
+		CH_PRINT("\n====== [end] func {} ======\n\n", func.name);
 }
 
 void Disassembler::printOperValue(const Object& oper)
 {
-	FORMAT_PRINT("'{}' {}\n",
+	CH_PRINT("'{}' {}\n",
 		oper.printVal(), oper.printType());
 	// We only disassemble functions when requested, and not
 	// with concurrent disassembler output during VM execution.
@@ -77,7 +77,7 @@ ui32 Disassembler::restoreLong()
 void Disassembler::singleOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
-	FORMAT_PRINT("R[{}]\n", ip[1]);
+	CH_PRINT("R[{}]\n", ip[1]);
 	
 	ip += 2;
 }
@@ -88,11 +88,11 @@ void Disassembler::doubleOper(ui8 byte)
 
 	Opcode op = static_cast<Opcode>(byte);
 	if (op == OP_GET_CELL)
-		FORMAT_PRINT("R[{}] C[{}]\n", ip[1], ip[2]);
+		CH_PRINT("R[{}] C[{}]\n", ip[1], ip[2]);
 	else if (op == OP_SET_CELL)
-		FORMAT_PRINT("C[{}] R[{}]\n", ip[1], ip[2]);
+		CH_PRINT("C[{}] R[{}]\n", ip[1], ip[2]);
 	else
-		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
+		CH_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
 
 	ip += 3;
 }
@@ -100,7 +100,7 @@ void Disassembler::doubleOper(ui8 byte)
 void Disassembler::loadOper()
 {
 	printOpcode("OP_LOAD_R");
-	FORMAT_PRINT("R[{}] ", ip[1]);
+	CH_PRINT("R[{}] ", ip[1]);
 
 	ip += 2;
 	switch (*ip)
@@ -108,7 +108,7 @@ void Disassembler::loadOper()
 		case OP_BYTE_OPER:
 		{
 			ui8 operand = restoreByte();
-			FORMAT_PRINT("C[{}] ", operand);
+			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 2;
 			break;
@@ -116,7 +116,7 @@ void Disassembler::loadOper()
 		case OP_SHORT_OPER:
 		{
 			ui16 operand = restoreShort();
-			FORMAT_PRINT("C[{}] ", operand);
+			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 3;
 			break;
@@ -124,13 +124,13 @@ void Disassembler::loadOper()
 		case OP_LONG_OPER:
 		{
 			ui32 operand = restoreLong();
-			FORMAT_PRINT("C[{}] ", operand);
+			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 5;
 			break;
 		}
 		default: // Direct constant loading instruction.
-			FORMAT_PRINT("{}\n", opNames[*ip]);
+			CH_PRINT("{}\n", opNames[*ip]);
 			ip++;
 	}
 }
@@ -142,11 +142,11 @@ void Disassembler::jumpOper(ui8 byte, int sign)
 	{
 		ui8 reg = restoreByte();
 		ip++;
-		FORMAT_PRINT("R[{}] ", reg);
+		CH_PRINT("R[{}] ", reg);
 	}
 	ui16 jump = restoreShort();
 	ip += 3;
-	FORMAT_PRINT("-> {}\n", ip - start + (sign * jump));
+	CH_PRINT("-> {}\n", ip - start + (sign * jump));
 }
 
 void Disassembler::callOper(ui8 byte)
@@ -162,7 +162,7 @@ void Disassembler::callOper(ui8 byte)
 	if (byte == OP_CALL_NAT)
 	{
 		std::string_view func = Natives::funcNames[callee];
-		FORMAT_PRINT("'{}' ({}) R[{}]\n", func, count, start);
+		CH_PRINT("'{}' ({}) R[{}]\n", func, count, start);
 	}
 	else
 	{
@@ -172,7 +172,7 @@ void Disassembler::callOper(ui8 byte)
 		// at runtime, we cannot display any information about the
 		// function besides its expected location when only
 		// disassembling bytecode.
-		FORMAT_PRINT("F[{}] ({}) R[{}]\n", callee, count, start);
+		CH_PRINT("F[{}] ({}) R[{}]\n", callee, count, start);
 	}
 }
 
@@ -182,7 +182,7 @@ void Disassembler::iterOper(ui8 byte)
 
 	if (static_cast<Opcode>(byte) == OP_MAKE_ITER)
 	{
-		FORMAT_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
+		CH_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
 		ip += 3;
 	}
 	else if (static_cast<Opcode>(byte) == OP_UPDATE_ITER)
@@ -190,7 +190,7 @@ void Disassembler::iterOper(ui8 byte)
 		ip += 2;
 		ui16 jump = restoreShort();
 		ip += 3;
-		FORMAT_PRINT("R[{}] R[{}] -> {}\n", ip[-4], ip[-3],
+		CH_PRINT("R[{}] R[{}] -> {}\n", ip[-4], ip[-3],
 			ip - start - jump);
 	}
 }
@@ -211,11 +211,11 @@ void Disassembler::collectionOper(ui8 byte)
 		ui8 count = restoreByte();
 		ip += 2;
 
-		FORMAT_PRINT("R[{}] R[{}] ({})\n", reg, startReg, count);
+		CH_PRINT("R[{}] R[{}] ({})\n", reg, startReg, count);
 	}
 	else
 	{
-		FORMAT_PRINT("R[{}]\n", reg);
+		CH_PRINT("R[{}]\n", reg);
 		ip += 1;
 	}
 }
@@ -227,9 +227,9 @@ void Disassembler::captureOper(ui8 byte)
 	ip++;
 
 	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
-		FORMAT_PRINT("F[{}] D[{}] R[{}]\n", funcReg, ip[1], ip[2]);
+		CH_PRINT("F[{}] D[{}] R[{}]\n", funcReg, ip[1], ip[2]);
 	else
-		FORMAT_PRINT("F[{}] D[{}] C[{}]\n", funcReg, ip[1], ip[2]);
+		CH_PRINT("F[{}] D[{}] C[{}]\n", funcReg, ip[1], ip[2]);
 	ip += 3;
 }
 
@@ -270,16 +270,16 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_EXIT_SCOPE:
 		{
 			#if PRINT_FULL_OFFSET
-				FORMAT_PRINT("{:0>4} {}\n", ip - start, opNames[byte]);
+				CH_PRINT("{:0>4} {}\n", ip - start, opNames[byte]);
 			#else
-				FORMAT_PRINT("{:>4} {}\n", ip - start, opNames[byte]);
+				CH_PRINT("{:>4} {}\n", ip - start, opNames[byte]);
 			#endif
 			ip++;
 			break;
 		}
 		default:
 		{
-			FORMAT_PRINT("{:0>4} UNKNOWN OPCODE {}\n",
+			CH_PRINT("{:0>4} UNKNOWN OPCODE {}\n",
 				ip - start, byte);
 			ip++;
 			break;
@@ -294,8 +294,8 @@ void Disassembler::disassembleCode()
 	if (topLevel)
 	{
 		if ((file != "") && (ip < end)) // ip < end -> We have some bytecode to print.
-			FORMAT_PRINT("=== CODE [{}] ===\n", file);
-		FORMAT_PRINT("Bytes: {}\n", code.block.size());
+			CH_PRINT("=== CODE [{}] ===\n", file);
+		CH_PRINT("Bytes: {}\n", code.block.size());
 	}
 	int opers = 0;
 	while (ip < end)
@@ -304,5 +304,5 @@ void Disassembler::disassembleCode()
 		opers++;
 	}
 	if (topLevel)
-		FORMAT_PRINT("Instructions: {}\n", opers);
+		CH_PRINT("Instructions: {}\n", opers);
 }

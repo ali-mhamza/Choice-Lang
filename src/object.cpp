@@ -25,13 +25,13 @@ Object::Object() :
 
 void Object::clean()
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         if (IS_HEAP_OBJ(*this))
         {
             HeapObj* temp = AS_HEAP_PTR(*this);
-            ASSERT(temp != nullptr, "NULL object pointer.");
+            CH_ASSERT(temp != nullptr, "NULL object pointer.");
 
-            ASSERT(temp->refCount != 0, "Zero object refcount.");
+            CH_ASSERT(temp->refCount != 0, "Zero object refcount.");
 
             temp->refCount--;
             if (temp->refCount == 0) delete temp;
@@ -39,7 +39,7 @@ void Object::clean()
         else if (IS_(ITER, *this))
         {
             ObjIter* iter = AS_(iter, *this);
-            ASSERT(iter != nullptr, "NULL iterator pointer.");
+            CH_ASSERT(iter != nullptr, "NULL iterator pointer.");
             delete iter; // We never copy iterators, so no refcount.
         }
     #endif
@@ -48,9 +48,9 @@ void Object::clean()
 Object::Object(const Object& other) noexcept :
     type(other.type), as(other.as)
 {
-    ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
+    CH_ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
 
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         if (IS_HEAP_OBJ(*this))
             AS_HEAP_PTR(*this)->refCount++;
     #endif
@@ -58,7 +58,7 @@ Object::Object(const Object& other) noexcept :
 
 Object& Object::operator=(const Object& other) noexcept
 {
-    ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
+    CH_ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
 
     if (this != &other)
     {
@@ -67,7 +67,7 @@ Object& Object::operator=(const Object& other) noexcept
         this->type = other.type;
         this->as = other.as;
 
-        #if !USE_ALLOC
+        #if !CH_USE_ALLOC
             if (IS_HEAP_OBJ(*this))
                 AS_HEAP_PTR(*this)->refCount++;
         #endif
@@ -122,20 +122,20 @@ bool Object::operator==(const Object& other) const
         case OBJ_RANGE:     return AS_(range, *this) == AS_(range, other);
         case OBJ_LIST:      return AS_(list, *this) == AS_(list, other);
         // TODO: Tuples shouldn't be comparable.
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 }
 
 bool Object::operator>(const Object& other) const
 {
-    ASSERT(IS_NUM(*this) && IS_NUM(other),
+    CH_ASSERT(IS_NUM(*this) && IS_NUM(other),
         "Invalid operand types passed to operator.");
     return AS_NUM(*this) > AS_NUM(other);
 }
 
 bool Object::operator<(const Object& other) const
 {
-    ASSERT(IS_NUM(*this) && IS_NUM(other),
+    CH_ASSERT(IS_NUM(*this) && IS_NUM(other),
         "Invalid operand types passed to operator.");
     return AS_NUM(*this) < AS_NUM(other);
 }
@@ -149,8 +149,8 @@ std::string Object::printVal() const
         case OBJ_BOOL:      return (AS_(bool, *this) ? "true" : "false");
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
-        case OBJ_NATIVE:    return FORMAT_STR("<builtin {}>", funcNames[AS_(native, *this)]);
-        case OBJ_FUNC:      return FORMAT_STR("<func {}>", AS_(func, *this)->name);
+        case OBJ_NATIVE:    return CH_STR("<builtin {}>", funcNames[AS_(native, *this)]);
+        case OBJ_FUNC:      return CH_STR("<func {}>", AS_(func, *this)->name);
         case OBJ_LAMBDA:    return "<lambda>";
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
@@ -166,7 +166,7 @@ std::string Object::printVal() const
 
             return ret;
         }
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 }
 
@@ -205,7 +205,7 @@ void Object::emit(std::ofstream& os) const
 ObjIter* Object::makeIter()
 {
     if (!IS_ITERABLE(*this)) return nullptr;
-    return ALLOC(ObjIter, *this);
+    return CH_ALLOC(ObjIter, *this);
 }
 
 
@@ -334,9 +334,9 @@ bool Range::contains(const i64 num) const
 
 std::string Range::printVal() const
 {
-    auto retStr = FORMAT_STR("{}..{}", start, stop);
+    auto retStr = CH_STR("{}..{}", start, stop);
     if (step != 1)
-        retStr += FORMAT_STR("..{}", step);
+        retStr += CH_STR("..{}", step);
     return retStr;
 }
 
@@ -415,7 +415,7 @@ StringIter::StringIter() :
 StringIter::StringIter(String* obj) :
     obj(obj), iter(nullptr), begin(obj->str.c_str())
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         obj->refCount++;
     #endif
 }
@@ -444,10 +444,10 @@ StringIter& StringIter::operator=(StringIter&& other) noexcept
 
 StringIter::~StringIter()
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         if (obj != nullptr)
         {
-            ASSERT(obj->refCount != 0, "Zero iterable refcount.");
+            CH_ASSERT(obj->refCount != 0, "Zero iterable refcount.");
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
@@ -462,8 +462,8 @@ StringIter::~StringIter()
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
-    iter = ALLOC(String, begin, 1);
-    #if !USE_ALLOC
+    iter = CH_ALLOC(String, begin, 1);
+    #if !CH_USE_ALLOC
         iter->refCount++;
     #endif
     var = Object(iter);
@@ -485,7 +485,7 @@ RangeIter::RangeIter() :
 RangeIter::RangeIter(Range* obj) :
     obj(obj), val(obj->start)
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         obj->refCount++;
     #endif
 }
@@ -511,10 +511,10 @@ RangeIter& RangeIter::operator=(RangeIter&& other) noexcept
 
 RangeIter::~RangeIter()
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         if (obj != nullptr)
         {
-            ASSERT(obj->refCount != 0, "Zero iterable refcount.");
+            CH_ASSERT(obj->refCount != 0, "Zero iterable refcount.");
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
@@ -543,7 +543,7 @@ ListIter::ListIter() :
 ListIter::ListIter(List* obj) :
     obj(obj), it()
 {   
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         obj->refCount++;
     #endif
 }
@@ -569,10 +569,10 @@ ListIter& ListIter::operator=(ListIter&& other) noexcept
 
 ListIter::~ListIter()
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         if (obj != nullptr)
         {
-            ASSERT(obj->refCount != 0, "Zero iterable refcount.");
+            CH_ASSERT(obj->refCount != 0, "Zero iterable refcount.");
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
@@ -653,12 +653,12 @@ TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
 
 void TypeMismatch::report()
 {
-    ASSERT(IS_OBJ(expect) && IS_OBJ(actual),
+    CH_ASSERT(IS_OBJ(expect) && IS_OBJ(actual),
         "Invalid object type for error reporting.");
     
-    FORMAT_PRINT(stderr,
+    CH_PRINT(stderr,
         "Type mismatch: Expected type ({}) but found ({}) instead.\n",
         objTypes[expect], objTypes[actual]
     );
-    FORMAT_PRINT(stderr, "{:>15}{}\n", "", message);
+    CH_PRINT(stderr, "{:>15}{}\n", "", message);
 }

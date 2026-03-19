@@ -12,10 +12,10 @@ LexError::LexError(char c, ui16 line, ui8 position,
 void LexError::report() const
 {
     if (errorChar == (char) EOF)
-        FORMAT_PRINT(stderr, "Scan error at line end [{}]: {}\n",
+        CH_PRINT(stderr, "Scan error at line end [{}]: {}\n",
             line, message);
     else
-        FORMAT_PRINT(stderr, "Scan error at '{:c}' [{}:{}]: {}\n",
+        CH_PRINT(stderr, "Scan error at '{:c}' [{}:{}]: {}\n",
             errorChar, line, position, message);
 }
 
@@ -27,14 +27,14 @@ CompileError::CompileError(const Token& token,
 
 void CompileError::report() const
 {
-    FORMAT_PRINT(stderr, "Compile error");
+    CH_PRINT(stderr, "Compile error");
     if (token.type != TOK_EOF)
     {
-        FORMAT_PRINT(stderr, " at '{}' [{}:{}]: {}\n",
+        CH_PRINT(stderr, " at '{}' [{}:{}]: {}\n",
             token.text, token.line, token.position, message);
     }
     else
-        FORMAT_PRINT(stderr, " at end: {}\n", message);
+        CH_PRINT(stderr, " at end: {}\n", message);
 }
 
 // RuntimeError.
@@ -45,12 +45,12 @@ RuntimeError::RuntimeError(const Token& token,
 
 void RuntimeError::report() const
 {
-    FORMAT_PRINT(stderr, "Runtime error");
+    CH_PRINT(stderr, "Runtime error");
     if (token.type != TOK_EOF)
     {
-        FORMAT_PRINT(stderr, " at '{}' [{}:{}]: {}\n",
+        CH_PRINT(stderr, " at '{}' [{}:{}]: {}\n",
             token.text, token.line, token.position, message);
     }
     else
-        FORMAT_PRINT(stderr, " at end: {}\n", message);
+        CH_PRINT(stderr, " at end: {}\n", message);
 }

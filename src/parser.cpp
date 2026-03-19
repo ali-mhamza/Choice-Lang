@@ -61,7 +61,7 @@ bool Parser::matchError(TokenType type, std::string_view message)
             semanticError = true;
         }
         else if (errorCount == COMPILE_ERROR_MAX)
-            FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
         errorCount++;
         return false;
     }
@@ -118,7 +118,7 @@ void Parser::matchType(std::string_view message /* = "" */)
             syntaxError = true;
         }
         else if (errorCount == COMPILE_ERROR_MAX)
-            FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
         errorCount++;
     }
 }

@@ -48,9 +48,9 @@ std::string file = "";
 bool external = false;
 bool inRepl = false;
 
-#if USE_ALLOC && defined(LINEAR_ALLOC)
+#if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 	#include "../include/linear_alloc.h"
-	LinearAlloc allocator(ALLOC_SIZE);
+	LinearAlloc allocator(CH_ALLOC_SIZE);
 #endif
 
 enum ArgvOption
@@ -153,7 +153,7 @@ static bool cacheOptimize(ArgvOption option)
 			if (option == EXECUTE)
 			{
 				VM vm;
-				Function* script = ALLOC(Function, chunk, 0);
+				Function* script = CH_ALLOC(Function, chunk, 0);
 				vm.executeCode(script);
 				delete script;
 				return true;
@@ -162,7 +162,7 @@ static bool cacheOptimize(ArgvOption option)
 	}
 	else
 	{
-		FORMAT_PRINT(stderr, "Failed to open file.\n");
+		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
 
@@ -173,7 +173,7 @@ static bool prelimChecks(const char* fileName, ArgvOption option)
 {
 	if (!fileNameCheck(fileName))
 	{
-		FORMAT_PRINT(stderr, "Invalid Choice file.\n");
+		CH_PRINT(stderr, "Invalid Choice file.\n");
 		exit(65);
 	}
 
@@ -239,7 +239,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#if TIME_RUN || TIME_TOTAL
 		auto end = steady_clock::now();
 		auto time = duration_cast<microseconds>(end - begin);
-		FORMAT_PRINT("Time: {:.6f}\n",
+		CH_PRINT("Time: {:.6f}\n",
 			static_cast<long double>(time.count()) / 1000000);
 	#endif
 
@@ -248,14 +248,14 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 
 static void printReplIntro()
 {
-	#ifndef COMMIT_TIME_STAMP
-		#define COMMIT_TIME_STAMP "last modification time not available"
+	#ifndef CH_COMMIT_TIME_STAMP
+		#define CH_COMMIT_TIME_STAMP "last modification time not available"
 	#endif
 
-	FORMAT_PRINT("Choice {}.{}.{} ", VERSION_MAJOR, VERSION_MINOR,
-		VERSION_PATCH);
-	FORMAT_PRINT("({}).\n", COMMIT_TIME_STAMP);
-	FORMAT_PRINT("Built on: [{}][{}].\n", COMPILER, LOCAL_OS);
+	CH_PRINT("Choice {}.{}.{} ", CH_VERSION_MAJOR, CH_VERSION_MINOR,
+		CH_VERSION_PATCH);
+	CH_PRINT("({}).\n", CH_COMMIT_TIME_STAMP);
+	CH_PRINT("Built on: [{}][{}].\n", CH_COMPILER, CH_LOCAL_OS);
 }
 
 static std::string& buildLine(std::string& line)
@@ -264,7 +264,7 @@ static std::string& buildLine(std::string& line)
 	{
 		line[line.size() - 1] = '\n';
 		std::string temp;
-		FORMAT_PRINT("... ");
+		CH_PRINT("... ");
 		std::getline(std::cin, temp);
 		line += temp;
 	}
@@ -280,7 +280,7 @@ static void repl(ArgvOption option = EXECUTE)
 	if (option == CACHE_BYTECODE || option == LOAD_PROGRAM ||
 		option == DIS_PROGRAM)
 	{
-		FORMAT_PRINT(stderr, "Invalid command-line option for REPL mode.\n");
+		CH_PRINT(stderr, "Invalid command-line option for REPL mode.\n");
 		exit(64);
 	}
 	
@@ -306,7 +306,7 @@ static void repl(ArgvOption option = EXECUTE)
 		#if EXTERNAL_REPL
 			line = rx.input(">>> ");
 		#else
-			FORMAT_PRINT(">>> ");
+			CH_PRINT(">>> ");
 			std::getline(std::cin, line);
 		#endif
 		buildLine(line);
@@ -348,7 +348,7 @@ int main(int argc, const char* argv[])
 			runFile(argv[2], it->second);
 		else
 		{
-			FORMAT_PRINT(stderr, "Invalid command-line option.\n");
+			CH_PRINT(stderr, "Invalid command-line option.\n");
 			exit(64);
 		}
 	}

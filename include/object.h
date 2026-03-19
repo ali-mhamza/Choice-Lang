@@ -119,7 +119,7 @@ class Object
 template<typename T>
 Object::Object(T val)
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         #define INCREMENT_REF() val->refCount++;
     #else
         #define INCREMENT_REF()
@@ -168,6 +168,8 @@ Object::Object(T val)
         INCREMENT_REF();
         as.heapVal = val;
     }
+
+    #undef INCREMENT_REF
 }
 
 

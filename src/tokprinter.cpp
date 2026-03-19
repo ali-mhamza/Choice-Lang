@@ -39,20 +39,20 @@ void TokenPrinter::printValue(const Token& token)
 {
     switch (token.type)
     {
-        case TOK_NUM:       FORMAT_PRINT("{}", token.content.i);    break;
-        case TOK_NUM_DEC:   FORMAT_PRINT("{}", token.content.d);    break;
+        case TOK_NUM:       CH_PRINT("{}", token.content.i);    break;
+        case TOK_NUM_DEC:   CH_PRINT("{}", token.content.d);    break;
         case TOK_RANGE:
-            FORMAT_PRINT("{}", removeDigitSeps(token.text));
+            CH_PRINT("{}", removeDigitSeps(token.text));
             break;
         case TOK_STR_LIT:
-            FORMAT_PRINT("{}", formatMultiLineString(
+            CH_PRINT("{}", formatMultiLineString(
                 token.text.substr(1, token.text.size() - 2)
             ));
             break;
-        case TOK_TRUE:      FORMAT_PRINT("true");                   break;
-        case TOK_FALSE:     FORMAT_PRINT("false");                  break;
-        case TOK_NULL:      FORMAT_PRINT("{}", token.content.s);    break;
-        default: UNREACHABLE();
+        case TOK_TRUE:      CH_PRINT("true");                   break;
+        case TOK_FALSE:     CH_PRINT("false");                  break;
+        case TOK_NULL:      CH_PRINT("{}", token.content.s);    break;
+        default: CH_UNREACHABLE();
     }
 }
 
@@ -96,28 +96,28 @@ static const char* typeStrings[] = {
 
 void TokenPrinter::printToken(const Token& token)
 {
-    FORMAT_PRINT("{:<20}", typeStrings[token.type]);
+    CH_PRINT("{:<20}", typeStrings[token.type]);
     if (token.type != TOK_EOF)
     {
-        std::string format = FORMAT_STR("({}:{})",
+        std::string format = CH_STR("({}:{})",
             token.line, token.position);
-        FORMAT_PRINT("{:<10}", format);
+        CH_PRINT("{:<10}", format);
 
         if (token.type != TOK_STR_LIT)
-            FORMAT_PRINT("'{}' ", token.text);
+            CH_PRINT("'{}' ", token.text);
         else
-            FORMAT_PRINT("'{}' ", formatMultiLineString(token.text));
+            CH_PRINT("'{}' ", formatMultiLineString(token.text));
 
         if (IS_LITERAL(token.type))
             printValue(token);
     }
     
-    FORMAT_PRINT("\n");
+    CH_PRINT("\n");
 }
 
 void TokenPrinter::printTokens()
 {
     for (const Token& token : tokens)
         printToken(token);
-    FORMAT_PRINT("TOK COUNT: {}\n", tokens.size());
+    CH_PRINT("TOK COUNT: {}\n", tokens.size());
 }

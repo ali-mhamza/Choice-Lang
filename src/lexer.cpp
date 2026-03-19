@@ -315,7 +315,7 @@ bool Lexer::checkHyperComment()
 					"Unterminated nested comment.").report();
 			}
 			else if (errorCount == COMPILE_ERROR_MAX)
-				FORMAT_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
+				CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
 			errorCount++;
 		}
 		return true;
@@ -477,7 +477,7 @@ void Lexer::singleToken()
 				makeToken(TOK_UNDER_UNDER);
 				break;
 			}
-			FALLTHROUGH();
+			CH_FALLTHROUGH();
 			// No break since we interpret it
 			// as the first character in an
 			// identifier instead.

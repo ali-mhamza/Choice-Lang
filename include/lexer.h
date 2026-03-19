@@ -18,7 +18,7 @@ class Lexer
             if (errorCount > LEX_ERROR_MAX) return;                 \
             else if (errorCount == LEX_ERROR_MAX)                   \
             {                                                       \
-                FORMAT_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");  \
+                CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");  \
                 errorCount++;                                       \
                 return;                                             \
             }                                                       \

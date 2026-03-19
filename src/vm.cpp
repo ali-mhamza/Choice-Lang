@@ -99,7 +99,7 @@ inline Cell* VM::captureValue(ui8 depth, ui8 slot)
             return cell;
     }
 
-    Cell* cell = ALLOC(Cell, addr);
+    Cell* cell = CH_ALLOC(Cell, addr);
     // Insert the cell in sorted order.
     auto it = std::lower_bound(activeCells.begin(),
         activeCells.end(),
@@ -178,14 +178,14 @@ inline Object VM::loadOper()
         case OP_BYTE_OPER:  return pool[readByte()];
         case OP_SHORT_OPER: return pool[readShort()];
         case OP_LONG_OPER:  return pool[readLong()];
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 }
 
 inline Object VM::concatStrings(const Object& str1, const Object& str2)
 {
     std::string concat = AS_(string, str1)->str + AS_(string, str2)->str;
-    return ALLOC(String, concat);
+    return CH_ALLOC(String, concat);
 }
 
 Object VM::arithOper(Opcode oper, ui8 firstOper)
@@ -205,7 +205,7 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
             case OP_DIV:    return (double) aVal / bVal;
             case OP_MOD:    return aVal % bVal;
             case OP_POWER:  return i64(pow(aVal, bVal));
-            default: UNREACHABLE();
+            default: CH_UNREACHABLE();
         }
     }
     else if (IS_NUM(a) && IS_NUM(b))
@@ -221,7 +221,7 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
             case OP_POWER:  return pow(aVal, bVal);
             // Cannot do modulus for non-integers.
             // Maybe raise an error?
-            default: UNREACHABLE();
+            default: CH_UNREACHABLE();
         }
     }
     else if (IS_(STRING, a) && IS_(STRING, b) && (oper == OP_ADD))
@@ -280,7 +280,7 @@ Object VM::compareOper(Opcode op, ui8 firstOper)
                     a.type
                 );
         }
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 }
 
@@ -313,7 +313,7 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
         case OP_XOR:        return fromUnsigned(aVal ^ bVal);
         case OP_SHIFT_L:    return fromUnsigned(aVal << bVal);
         case OP_SHIFT_R:    return fromUnsigned(aVal >> bVal);
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 }
 
@@ -361,7 +361,7 @@ Object VM::unaryOper(Opcode op, ui8 oper)
                 );
             return i64(~AS_UINT(obj));
         }
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 }
 
@@ -372,7 +372,7 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
     {
         throw RuntimeError(
             Token(),
-            FORMAT_STR("Expected {} argument{} but found {}.",
+            CH_STR("Expected {} argument{} but found {}.",
             func->argCount, (func->argCount == 1 ? "" : "s"), argCount)
         );
     }
@@ -424,7 +424,7 @@ void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
             callFunc(callee, start, argCount);
             break;
         default:
-            UNREACHABLE();
+            CH_UNREACHABLE();
     }
 }
 
@@ -496,16 +496,16 @@ void VM::printRegister()
     {
         if (!IS_VALID(registers[i]))
             break;
-        FORMAT_PRINT("[{}]", registers[i].printVal());
+        CH_PRINT("[{}]", registers[i].printVal());
     }
-    if (i != 0) FORMAT_PRINT("\n");
+    if (i != 0) CH_PRINT("\n");
 }
 
 #endif
 
 void VM::executeOp(Opcode op)
 {
-    #if COMPUTED_GOTO
+    #if CH_COMPUTED_GOTO
         static void* dispatchTable[] = {
             #define LABEL_ENABLE(op)    &&CASE_##op
             #define LABEL_DISABLE(op)   &&CASE_NO_REACH
@@ -535,8 +535,8 @@ void VM::executeOp(Opcode op)
                 if (ip >= end)                                                      \
                     return;                                                         \
                 op = static_cast<Opcode>(readByte());                               \
-                ASSERT(IS_VALID_OP(op),                                             \
-                    FORMAT_STR("Invalid opcode {}.", static_cast<ui8>(op)));        \
+                CH_ASSERT(IS_VALID_OP(op),                                             \
+                    CH_STR("Invalid opcode {}.", static_cast<ui8>(op)));        \
                 DEBUG_OP(op);                                                       \
                 DISPATCH_OP(op);                                                    \
             } while (false)
@@ -544,7 +544,7 @@ void VM::executeOp(Opcode op)
         #define CASE(op)    CASE_##op
         #define DEFAULT     CASE_NO_REACH
 
-    #else // if !COMPUTED_GOTO
+    #else // if !CH_COMPUTED_GOTO
         #define SWITCH(op)  switch (op)
         #define CASE(op)    case op
         #define DISPATCH()  break
@@ -664,7 +664,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_LIST):
         {
-            registers[readByte()] = ALLOC(List, DEFAULT_LIST_SIZE);
+            registers[readByte()] = CH_ALLOC(List, DEFAULT_LIST_SIZE);
             SET_REGSLOT(*(ip - 1));
             DISPATCH();
         }
@@ -682,7 +682,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_TUPLE):
         {
-            registers[readByte()] = ALLOC(Tuple);
+            registers[readByte()] = CH_ALLOC(Tuple);
             SET_REGSLOT(*(ip - 1));
             DISPATCH();
         }
@@ -750,7 +750,7 @@ void VM::executeOp(Opcode op)
         {
             const Object& obj = registers[readByte()];
             if (IS_VALID(obj) && !IS_(TUPLE, obj))
-                FORMAT_PRINT("{}\n", obj.printVal());
+                CH_PRINT("{}\n", obj.printVal());
             DISPATCH();
         }
 
@@ -797,7 +797,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             // To avoid reallocating the return value each time.
-            static auto ret = Object(ALLOC(Tuple));
+            static auto ret = Object(CH_ALLOC(Tuple));
             registers[readByte()] = ret;
             DISPATCH();
         }
@@ -829,10 +829,10 @@ void VM::executeOp(Opcode op)
         DEFAULT:
         {
             #if defined(DEBUG)
-                ASSERT(false, FORMAT_STR("Opcode {} should not be reachable.", 
+                CH_ASSERT(false, CH_STR("Opcode {} should not be reachable.", 
                     static_cast<ui8>(op)));
             #elif defined(NDEBUG)
-                UNREACHABLE();
+                CH_UNREACHABLE();
             #endif
         }
     }
@@ -859,7 +859,7 @@ void VM::executeCode(Function* script)
 
     try
     {
-        #if !COMPUTED_GOTO
+        #if !CH_COMPUTED_GOTO
             while (ip < end)
             {
                 #if WATCH_EXEC

@@ -160,7 +160,8 @@ ui64 ByteCode::countPool() const
 					// Added type byte (1) and three i64 (3 * 8) values.
 					count += 1 + 3 * 8;
 					break;
-				default: UNREACHABLE();
+				default:
+					CH_UNREACHABLE();
 			}
 		}
 	}
@@ -174,9 +175,9 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	os.write("choice", 6);
 
 	// Version number.
-	os.put(static_cast<char>(VERSION_MAJOR));
-	os.put(static_cast<char>(VERSION_MINOR));
-	os.put(static_cast<char>(VERSION_PATCH));
+	os.put(static_cast<char>(CH_VERSION_MAJOR));
+	os.put(static_cast<char>(CH_VERSION_MINOR));
+	os.put(static_cast<char>(CH_VERSION_PATCH));
 
 	// File name length.
 	os.put(static_cast<char>(file.size()));

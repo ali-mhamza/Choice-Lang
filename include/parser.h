@@ -14,7 +14,7 @@ class Parser
                 return nullptr;                                         \
             if (errorCount == COMPILE_ERROR_MAX)                        \
             {                                                           \
-                FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
                 errorCount++;                                           \
                 return nullptr;                                         \
             }                                                           \
@@ -32,7 +32,7 @@ class Parser
                 return nullptr;                                         \
             if (errorCount == COMPILE_ERROR_MAX)                        \
             {                                                           \
-                FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
                 errorCount++;                                           \
                 return nullptr;                                         \
             }                                                           \
