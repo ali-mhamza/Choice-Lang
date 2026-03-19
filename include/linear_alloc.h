@@ -1,4 +1,4 @@
-#ifdef LINEAR_ALLOC
+#if USE_ALLOC && defined(LINEAR_ALLOC)
 
 #pragma once
 #include "array.h"

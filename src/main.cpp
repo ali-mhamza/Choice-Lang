@@ -48,9 +48,9 @@ std::string file = "";
 bool external = false;
 bool inRepl = false;
 
-#ifdef LINEAR_ALLOC
+#if USE_ALLOC && defined(LINEAR_ALLOC)
 	#include "../include/linear_alloc.h"
-	LinearAlloc allocator(MiB(10));
+	LinearAlloc allocator(ALLOC_SIZE);
 #endif
 
 enum ArgvOption

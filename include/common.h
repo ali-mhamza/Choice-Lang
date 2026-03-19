@@ -86,6 +86,10 @@
 // Allocation approach and assertions.
 
 #if USE_ALLOC
+	#if !defined(ALLOC_SIZE)
+		#define ALLOC_SIZE MiB(10)
+	#endif
+
 	#define ALLOC(type, ...) allocator.alloc<type, CustomDealloc<type>>(__VA_ARGS__)
 
 	#define ASSERT_MEM(expr, msg, arena)								\
@@ -151,7 +155,7 @@ extern bool external;
 extern bool inRepl;
 extern std::string file;
 
-#ifdef LINEAR_ALLOC
+#if USE_ALLOC && defined(LINEAR_ALLOC)
 	class LinearAlloc;
 	extern LinearAlloc allocator;
 #endif
