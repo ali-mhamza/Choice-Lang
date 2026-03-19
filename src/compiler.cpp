@@ -149,7 +149,7 @@ inline bool Compiler::matchError(TokenType type, std::string_view message)
             errorCount++;
         }
         else if (errorCount == COMPILE_ERROR_MAX)
-            FORMAT_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
         errorCount++;
         return false;
     }
@@ -352,7 +352,7 @@ void Compiler::funDecl()
     inFunc = prevInFunc;
     ByteCode& funcCode = miniCompiler.code;
     funcCode.depth = miniCompiler.depth;
-    Object func = ALLOC(Function, name, funcCode, count);
+    Object func = CH_ALLOC(Function, name, funcCode, count);
 
     // We only declare in the current function scope.
     code.loadRegConst(func, varSlot, depth);
@@ -849,7 +849,7 @@ void Compiler::compoundAssign(TokenType oper, const VarInfo& pos)
         case TOK_TILDE_EQ:      op = OP_COMP;           break;
         case TOK_LSHIFT_EQ:     op = OP_SHIFT_L;        break;
         case TOK_RSHIFT_EQ:     op = OP_SHIFT_R;        break;
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 
     ui8 slot = *(pos.slot);
@@ -974,7 +974,7 @@ void Compiler::comparison()
             case TOK_GT_EQ:
                 code.addOp(OP_LT, firstOper, secondOper);
                 break;
-            default: UNREACHABLE();
+            default: CH_UNREACHABLE();
         }
 
         if ((oper == TOK_NOT) || (oper == TOK_GT_EQ)
@@ -1051,7 +1051,7 @@ void Compiler::product()
             case TOK_STAR:      op = OP_MULT;   break;
             case TOK_SLASH:     op = OP_DIV;    break;
             case TOK_PERCENT:   op = OP_MOD;    break;
-            default: UNREACHABLE();
+            default: CH_UNREACHABLE();
         }
         code.addOp(op, depth, firstOper, secondOper);
 
@@ -1103,11 +1103,11 @@ void Compiler::unary()
         Opcode op;
         switch (oper)
         {
-            case TOK_MINUS: op = OP_NEGATE;     break;
+            case TOK_MINUS: op = OP_NEG;        break;
             case TOK_BANG:
             case TOK_NOT:   op = OP_NOT;        break;
             case TOK_TILDE: op = OP_COMP;       break;
-            default: UNREACHABLE();
+            default: CH_UNREACHABLE();
         }
 
         if (op == OP_COMP)
@@ -1286,7 +1286,7 @@ void Compiler::lambda(bool skipParams)
     inFunc = prevInFunc;
     ByteCode& funcCode = miniCompiler.code;
     funcCode.depth = miniCompiler.depth;
-    Object func = ALLOC(Function, funcCode, count);
+    Object func = CH_ALLOC(Function, funcCode, count);
 
     // We only declare in the current function scope.
     code.loadRegConst(func, previousReg, depth);
@@ -1330,9 +1330,9 @@ void Compiler::primary()
             case TOK_NUM:       obj = previousTok.content.i;    break;
             case TOK_NUM_DEC:   obj = previousTok.content.d;    break;
             case TOK_STR_LIT:
-                obj = ALLOC(String, GET_STR(previousTok));
+                obj = CH_ALLOC(String, GET_STR(previousTok));
                 break;
-            default: UNREACHABLE();
+            default: CH_UNREACHABLE();
         }
         code.loadRegConst(obj, previousReg, depth);
         reserveReg();
@@ -1340,7 +1340,7 @@ void Compiler::primary()
 
     else if (consumeTok(TOK_RANGE))
     {
-        Object obj = ALLOC(Range, constructRange(previousTok.text));
+        Object obj = CH_ALLOC(Range, constructRange(previousTok.text));
         code.loadRegConst(obj, previousReg, depth);
         reserveReg();
     }

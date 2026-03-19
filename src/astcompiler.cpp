@@ -90,7 +90,7 @@ inline void ASTCompiler::defVar(std::string name, ui8 reg, bool access)
 inline bool ASTCompiler::getAccess(ui8 reg)
 {
     bool* ret = varsWrapper->access.get(reg);
-    ASSERT(ret != nullptr,
+    CH_ASSERT(ret != nullptr,
         "Variable registered with no access field.");
     return *ret;
 }
@@ -210,9 +210,9 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
 
     Object func;
     if (name.empty()) // Compiling a lambda.
-        func = ALLOC(Function, funcCode, params.size());
+        func = CH_ALLOC(Function, funcCode, params.size());
     else
-        func = ALLOC(Function, name, funcCode, params.size());
+        func = CH_ALLOC(Function, name, funcCode, params.size());
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
 
@@ -517,11 +517,13 @@ DEF(BreakStmt)
 
 DEF(ContinueStmt)
 {
+    (void) node;
     this->continueJumps->push_back(code.addJump(OP_JUMP));
 }
 
 DEF(EndStmt)
 {
+    (void) node;
     this->endJumps->push_back(code.addJump(OP_JUMP));
 }
 
@@ -604,7 +606,7 @@ void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos,
         case TOK_TILDE_EQ:      op = OP_COMP;           break;
         case TOK_LSHIFT_EQ:     op = OP_SHIFT_L;        break;
         case TOK_RSHIFT_EQ:     op = OP_SHIFT_R;        break;
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 
     code.addOp(op, varReg, valueReg);
@@ -690,7 +692,7 @@ DEF(CompareExpr)
         case TOK_GT_EQ:
             op = OP_LT;
             break;
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 
     code.addOp(op, firstOper, secondOper);
@@ -714,7 +716,7 @@ DEF(BitExpr)
         case TOK_AMP:       op = OP_AND;    break;
         case TOK_BAR:       op = OP_OR;     break;
         case TOK_UARROW:    op = OP_XOR;    break;
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 
     code.addOp(op, firstOper, secondOper);
@@ -751,7 +753,7 @@ DEF(BinaryExpr)
         case TOK_SLASH:     op = OP_DIV;    break;
         case TOK_PERCENT:   op = OP_MOD;    break;
         case TOK_STAR_STAR: op = OP_POWER;  break;
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 
     code.addOp(op, firstOper, secondOper);
@@ -827,7 +829,7 @@ DEF(UnaryExpr)
         case TOK_BANG:
         case TOK_NOT:   op = OP_NOT;        break;
         case TOK_TILDE: op = OP_COMP;       break;
-        default: UNREACHABLE();
+        default: CH_UNREACHABLE();
     }
 
     code.addOp(op, firstOper);
@@ -961,14 +963,14 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj = ALLOC(String, GET_STR(tok));
+        Object obj = CH_ALLOC(String, GET_STR(tok));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RANGE)
     {
-        Object obj = ALLOC(Range, constructRange(tok.text));
+        Object obj = CH_ALLOC(Range, constructRange(tok.text));
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
@@ -1043,7 +1045,7 @@ Function* ASTCompiler::compile(StmtVec& program)
         compileStmt(node);
 
     if (hitError) code.clear();
-    return ALLOC(Function, code, 0);
+    return CH_ALLOC(Function, code, 0);
 }
 
 #endif
