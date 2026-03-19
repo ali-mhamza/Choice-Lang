@@ -53,7 +53,7 @@ ui64 ByteCode::addJump(Opcode op, i16 reg)
 void ByteCode::patchJump(ui64 offset)
 {
 	// We've skipped the 2 jump bytes.
-	ui16 diff = static_cast<ui16>(block.size() - offset - 2);
+	ui64 diff = block.size() - offset - 2;
 	if (diff < (1 << 16))
 	{
 		block[offset] = static_cast<ui8>((diff >> 8) & 0xff);
