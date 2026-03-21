@@ -159,7 +159,7 @@ StmtUP Parser::varDecl()
 
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
 
-    return StmtUP(std::make_unique<VarDecl>(declType, name, init));
+    return std::make_unique<VarDecl>(declType, name, init);
 }
 
 StmtUP Parser::funcBodyHelper(bool lambda, vT& params, bool skipParams)
@@ -206,7 +206,7 @@ StmtUP Parser::funDecl()
     vT params;
     StmtUP body = funcBodyHelper(false, params);
 
-    return StmtUP(std::make_unique<FuncDecl>(name, params, body));
+    return std::make_unique<FuncDecl>(name, params, body);
 }
 
 StmtUP Parser::statement()
@@ -600,7 +600,7 @@ ExprUP Parser::unary()
         TOK_BANG, TOK_NOT, TOK_TILDE))
     {
         Token oper = previousTok;
-        return ExprUP(std::make_unique<UnaryExpr>(oper, unary(), false));
+        return std::make_unique<UnaryExpr>(oper, unary(), false);
     }
 
     return exponent();
@@ -694,15 +694,14 @@ ExprUP Parser::ifExpr()
         REPORT_SEMANTIC(currentTok,
             "A conditional expression must have a false-case branch.");
 
-    return ExprUP(std::make_unique<IfExpr>(condition, trueBranch,
-        falseBranch));
+    return std::make_unique<IfExpr>(condition, trueBranch, falseBranch);
 }
 
 ExprUP Parser::lambda(bool skipParams)
 {
     vT params;
     StmtUP body = funcBodyHelper(true, params, skipParams);
-    return ExprUP(std::make_unique<LambdaExpr>(params, body));
+    return std::make_unique<LambdaExpr>(params, body);
 }
 
 ExprUP Parser::list()
@@ -717,7 +716,7 @@ ExprUP Parser::list()
     }
     MATCH_TOK(TOK_RIGHT_BRACKET, "Expect ']' to conclude list literal.");
 
-    return ExprUP(std::make_unique<ListExpr>(entries));
+    return std::make_unique<ListExpr>(entries);
 }
 
 ExprUP Parser::primary()
@@ -726,10 +725,10 @@ ExprUP Parser::primary()
     TokenType type = previousTok.type;
 
     if (IS_LITERAL(type))
-        return ExprUP(std::make_unique<LiteralExpr>(previousTok));
+        return std::make_unique<LiteralExpr>(previousTok);
     
     else if (type == TOK_IDENTIFIER)
-        return ExprUP(std::make_unique<VarExpr>(previousTok));
+        return std::make_unique<VarExpr>(previousTok);
     
     else if (type == TOK_LEFT_PAREN)
     {

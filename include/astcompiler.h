@@ -18,12 +18,12 @@ class ASTCompLoopLabels;
 
 class ASTCompiler
 {
-    #define DECL(type)  void compile##type(UP(type) node)
-    #define DEF(type)   void ASTCompiler::compile##type(UP(type) node)
+    #define DECL(type)  void compile##type(std::unique_ptr<type> node)
+    #define DEF(type)   void ASTCompiler::compile##type(std::unique_ptr<type> node)
     #define COMPILE(type)                                   \
         do {                                                \
             type* ptr = static_cast<type*>(node.release()); \
-            compile##type(UP(type)(ptr));                   \
+            compile##type(std::unique_ptr<type>(ptr));      \
         } while (false)
 
     #undef REPORT_ERROR
@@ -113,7 +113,8 @@ class ASTCompiler
 
         DECL(IfStmt);
         DECL(WhileStmt);
-        void forLoopHelper(UP(ForStmt)& node, ui8 varReg, ui8 iterReg);
+        void forLoopHelper(std::unique_ptr<ForStmt>& node, ui8 varReg,
+            ui8 iterReg);
         DECL(ForStmt);
         void matchCaseHelper(MatchStmt::matchCase& checkCase, const ui8 matchReg,
             ui64& fallJump, ui64& emptyJump);
@@ -130,15 +131,15 @@ class ASTCompiler
 
         DECL(TupleExpr);
         // Helper.
-        void compoundAssign(UP(AssignExpr)& node, const VarInfo& pos,
-            bool cellUsed);
+        void compoundAssign(std::unique_ptr<AssignExpr>& node,
+            const VarInfo& info, bool cellUsed);
         DECL(AssignExpr);
         DECL(LogicExpr);
         DECL(CompareExpr);
         DECL(BitExpr);
         DECL(ShiftExpr);
         DECL(BinaryExpr);
-        void _crementExpr(UP(UnaryExpr)& node); // Helper.
+        void _crementExpr(std::unique_ptr<UnaryExpr>& node); // Helper.
         DECL(UnaryExpr);
         DECL(CallExpr);
         DECL(IfExpr);

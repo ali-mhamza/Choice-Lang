@@ -39,18 +39,11 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     varsWrapper(new ASTCompVarsWrapper),
     labelsWrapper(new ASTCompLoopLabels)
 {
-    previousReg = (comp == nullptr ? Natives::FuncType::NUM_FUNCS : 0);
     depth = (comp == nullptr ? 0 : comp->depth + 1);
     if (depth == 0) // Global scope compiler.
     {
-        for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
-        {
-            defVar(
-                std::string(Natives::funcNames[i]),
-                i,
-                accessFix // For now.
-            );
-        }
+        for (auto func : Natives::funcNames)
+            defVar(func, previousReg++, accessFix); // For now.
     }
 }
 
@@ -329,7 +322,8 @@ DEF(WhileStmt)
     continueJumps = prevContinues;
 }
 
-void ASTCompiler::forLoopHelper(UP(ForStmt)& node, ui8 varReg, ui8 iterReg)
+void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
+    ui8 varReg, ui8 iterReg)
 {
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
     ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
@@ -579,8 +573,8 @@ DEF(TupleExpr)
     if (count > 0) emitTuple();
 }
 
-void ASTCompiler::compoundAssign(UP(AssignExpr)& node, const VarInfo& pos,
-    bool cellUsed)
+void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
+    const VarInfo& info, bool cellUsed)
 {
     ui8 slot = (cellUsed ? (captures.size() - 1) : *(pos.slot));
     ui8 varReg = previousReg;
@@ -763,7 +757,7 @@ DEF(BinaryExpr)
 // Temporarily only dealing with simple identifier
 // variables; will need to extend later.
 
-void ASTCompiler::_crementExpr(UP(UnaryExpr)& node)
+void ASTCompiler::_crementExpr(std::unique_ptr<UnaryExpr>& node)
 {
     if (node->expr->type != E_VAR_EXPR)
         REPORT_ERROR(node->oper,

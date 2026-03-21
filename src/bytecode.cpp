@@ -45,8 +45,8 @@ ui64 ByteCode::addJump(Opcode op, i16 reg)
 	else
 		addBytes(static_cast<ui8>(op), static_cast<ui8>(reg));
 	ui64 offset = block.size();
-	block.push_back(static_cast<ui8>(0));
-	block.push_back(static_cast<ui8>(0));
+	block.emplace_back();
+	block.emplace_back();
 	return offset;
 }
 

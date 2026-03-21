@@ -10,14 +10,10 @@ namespace AST
     namespace Expression { struct Expr; }
 }
 
-using StmtUP        = std::unique_ptr<AST::Statement::Stmt>;
-using ExprUP        = std::unique_ptr<AST::Expression::Expr>;
-using StmtVec       = std::vector<StmtUP>;
-using ExprVec       = std::vector<ExprUP>;
-
-#define StmtUP(ptr) static_cast<StmtUP>(ptr)
-#define ExprUP(ptr) static_cast<ExprUP>(ptr)
-#define UP(type)    std::unique_ptr<type>
+using StmtUP    = std::unique_ptr<AST::Statement::Stmt>;
+using ExprUP    = std::unique_ptr<AST::Expression::Expr>;
+using StmtVec   = std::vector<StmtUP>;
+using ExprVec   = std::vector<ExprUP>;
 
 namespace AST
 {   
