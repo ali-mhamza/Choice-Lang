@@ -98,7 +98,7 @@
 				break;													\
 			else														\
 			{															\
-				CH_PRINT("CH_ASSERTION FAILED [{}: {}, {}]: {}\n",		\
+				CH_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",			\
 					(__FILE__), (__func__), (__LINE__), msg);			\
 				free(arena);                                            \
 				exit(EXIT_FAILURE);										\
