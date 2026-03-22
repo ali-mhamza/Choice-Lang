@@ -155,7 +155,11 @@ static bool cacheOptimize(ArgvOption option)
 				VM vm;
 				Function* script = CH_ALLOC(Function, chunk, 0);
 				vm.executeCode(script);
-				delete script;
+
+				#if !CH_USE_ALLOC
+					delete script;
+				#endif
+
 				return true;
 			}
 		}
@@ -243,7 +247,10 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 			static_cast<long double>(time.count()) / 1000000);
 	#endif
 
-	delete script;
+	#if !CH_USE_ALLOC
+		delete script;
+	#endif
+
 }
 
 static void printReplIntro()
@@ -327,7 +334,11 @@ static void repl(ArgvOption option = EXECUTE)
 					optionShowBytes(script->code);
 				else
 					vm.executeCode(script);
-				delete script;
+
+				#if !CH_USE_ALLOC
+					delete script;
+				#endif
+
 			}
 		}
 		else

@@ -187,7 +187,7 @@ vObj reconstructPool(const vByte& poolBytes)
 				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
 					CH_PRINT(stderr, "Error: byte is {}.\n",
-						static_cast<int>(type));
+						static_cast<ui8>(type));
 					exit(65);
 				}
 			}
@@ -275,14 +275,12 @@ ByteCode readCache(std::ifstream& fileIn)
 
 void optionShowTokens(const vT& tokens)
 {
-	TokenPrinter printer(tokens);
-	printer.printTokens();
+	TokenPrinter(tokens).printTokens();
 }
 
 void optionShowBytes(const ByteCode& chunk)
 {
-	Disassembler dis(chunk);
-	dis.disassembleCode();
+	Disassembler(chunk).disassembleCode();
 }
 
 void optionCacheBytes(const ByteCode& chunk, const char* fileName)
@@ -311,8 +309,12 @@ void optionLoad(const char* fileName)
 	}
 
 	ByteCode chunk = readCache(program);
-	VM vm;
-	vm.executeCode(CH_ALLOC(Function, chunk, 0));
+	Function* script = CH_ALLOC(Function, chunk, 0);
+	VM().executeCode(script);
+
+	#if !CH_USE_ALLOC
+		delete script;
+	#endif
 }
 
 void optionDis(const char* fileName)
@@ -333,8 +335,7 @@ void optionDis(const char* fileName)
 	}
 
 	ByteCode chunk = readCache(program);
-	Disassembler dis(chunk);
-	dis.disassembleCode();
+	Disassembler(chunk).disassembleCode();
 }
 
 bool fileNameCheck(std::string_view fileName)
