@@ -421,6 +421,7 @@ void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
             callNative(callee, start, argCount);
             break;
         case OBJ_FUNC:
+        case OBJ_LAMBDA:
             callFunc(callee, start, argCount);
             break;
         default:
