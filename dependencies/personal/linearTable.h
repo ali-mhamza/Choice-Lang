@@ -231,7 +231,7 @@ KVHTEMP
 Value* linearTable<Key, Value, HashFunc>::get(const Key& key)
 {
     if (count == 0) return nullptr;
-    
+
     EKV& entry = findSlot(key, nullptr);
     if (entry.state != VALID)
         return nullptr;
