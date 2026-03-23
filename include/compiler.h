@@ -73,7 +73,7 @@ class Compiler
         Token previousTok;
         Token currentTok;
         vT::const_iterator it;
-        ui8 previousReg;
+        ui8 previousReg{0};
         ui8 scope{0}; // Our current lexical scope depth.
         ui8 depth; // Our current function scope depth.
 

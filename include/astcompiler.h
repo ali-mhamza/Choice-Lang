@@ -67,7 +67,7 @@ class ASTCompiler
         ByteCode code;
         ASTCompiler* scopeCompiler;
 
-        ui8 previousReg;
+        ui8 previousReg{0};
         ui8 scope{0}; // Our current block scope depth.
         ui8 scopeStart; // To mark the initial register for a new scope (to pop to on exit).
         ui8 depth; // Our current function scope depth.
