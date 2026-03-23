@@ -186,6 +186,7 @@ namespace AST
             E_CALL_EXPR,
             E_IF_EXPR,
             E_LAMBDA_EXPR,
+            E_COMPREHEN_EXPR,
             E_LIST_EXPR,
             E_VAR_EXPR,
             E_LITERAL_EXPR
@@ -298,6 +299,17 @@ namespace AST
             StmtUP body;
 
             LambdaExpr(const vT& params, StmtUP& body);
+        };
+
+        struct ComprehensionExpr : public Expr
+        {
+            Token var;
+            ExprUP iter; // Must be an iterable.
+            ExprUP where;
+            ExprUP expr;
+
+            ComprehensionExpr(const Token& var, ExprUP& iter,
+                ExprUP& where, ExprUP& expr);
         };
 
         struct ListExpr : public Expr

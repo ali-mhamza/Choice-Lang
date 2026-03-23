@@ -125,6 +125,12 @@ LambdaExpr::LambdaExpr(const vT& params, StmtUP& body) :
     Expr(E_LAMBDA_EXPR),
     params(params), body(std::move(body)) {}
 
+ComprehensionExpr::ComprehensionExpr(const Token& token, ExprUP& iter,
+    ExprUP& where, ExprUP& expr) :
+    Expr(E_COMPREHEN_EXPR),
+    var(token), iter(std::move(iter)), where(std::move(where)),
+    expr(std::move(expr)) {}
+
 ListExpr::ListExpr(ExprVec& entries) :
     Expr(E_LIST_EXPR),
     entries(std::move(entries)) {}

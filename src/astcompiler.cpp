@@ -899,6 +899,50 @@ DEF(LambdaExpr)
     reserveReg();
 }
 
+DEF(ComprehensionExpr)
+{
+    ui8 listReg = previousReg;
+    code.addOp(OP_LIST, listReg);
+    reserveReg();
+
+    pushScope();
+    ui8 varReg = previousReg;
+    defVar(std::string(node->var.text), varReg, accessFix); // For now.
+    reserveReg();
+
+    ui8 iterReg = previousReg;
+    compileExpr(node->iter);
+
+    code.addOp(OP_MAKE_ITER, varReg, iterReg);
+    ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
+
+    ui64 loopStart = code.getLoopStart();
+    ui64 whereJump = 0;
+    if (node->where != nullptr)
+    {
+        ui8 whereReg = previousReg;
+        compileExpr(node->where);
+        whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
+        freeReg();
+    }
+
+    ui8 result = previousReg;
+    compileExpr(node->expr);
+    code.addOp(OP_EXT_LIST, listReg, result, ui8(1));
+
+    if (whereJump != 0)
+        code.patchJump(whereJump);
+
+    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart + 5);
+    code.addOp(OP_UPDATE_ITER, varReg, iterReg,
+        static_cast<ui8>((diff >> 8) & 0xff),
+        static_cast<ui8>(diff & 0xff)
+    );
+
+    code.patchJump(failJump);
+    popScope();
+}
+
 DEF(ListExpr)
 {
     ui8 listReg = previousReg;
@@ -989,20 +1033,21 @@ void ASTCompiler::compileExpr(ExprUP& node)
     
     switch (node->type)
     {
-        case E_TUPLE_EXPR:      COMPILE(TupleExpr);     break;
-        case E_ASSIGN_EXPR:     COMPILE(AssignExpr);    break;
-        case E_LOGIC_EXPR:      COMPILE(LogicExpr);     break;
-        case E_COMPARE_EXPR:    COMPILE(CompareExpr);   break;
-        case E_BIT_EXPR:        COMPILE(BitExpr);       break;
-        case E_SHIFT_EXPR:      COMPILE(ShiftExpr);     break;
-        case E_BINARY_EXPR:     COMPILE(BinaryExpr);    break;
-        case E_UNARY_EXPR:      COMPILE(UnaryExpr);     break;
-        case E_CALL_EXPR:       COMPILE(CallExpr);      break;
-        case E_IF_EXPR:         COMPILE(IfExpr);        break;
-        case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);    break;
-        case E_LIST_EXPR:       COMPILE(ListExpr);      break;
-        case E_VAR_EXPR:        COMPILE(VarExpr);       break;
-        case E_LITERAL_EXPR:    COMPILE(LiteralExpr);   break;
+        case E_TUPLE_EXPR:      COMPILE(TupleExpr);         break;
+        case E_ASSIGN_EXPR:     COMPILE(AssignExpr);        break;
+        case E_LOGIC_EXPR:      COMPILE(LogicExpr);         break;
+        case E_COMPARE_EXPR:    COMPILE(CompareExpr);       break;
+        case E_BIT_EXPR:        COMPILE(BitExpr);           break;
+        case E_SHIFT_EXPR:      COMPILE(ShiftExpr);         break;
+        case E_BINARY_EXPR:     COMPILE(BinaryExpr);        break;
+        case E_UNARY_EXPR:      COMPILE(UnaryExpr);         break;
+        case E_CALL_EXPR:       COMPILE(CallExpr);          break;
+        case E_IF_EXPR:         COMPILE(IfExpr);            break;
+        case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
+        case E_COMPREHEN_EXPR:  COMPILE(ComprehensionExpr); break;
+        case E_LIST_EXPR:       COMPILE(ListExpr);          break;
+        case E_VAR_EXPR:        COMPILE(VarExpr);           break;
+        case E_LITERAL_EXPR:    COMPILE(LiteralExpr);       break;
     }
 }
 

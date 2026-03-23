@@ -704,12 +704,35 @@ ExprUP Parser::lambda(bool skipParams)
     return std::make_unique<LambdaExpr>(params, body);
 }
 
+ExprUP Parser::comprehension()
+{
+    MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
+    MATCH_TOK(TOK_IDENTIFIER, "Expect loop variable identifier.");
+    Token var = previousTok;
+    MATCH_TOK(TOK_IN, "Expect 'in' keyword after loop identifier.");
+    ExprUP iter = expression();
+
+    ExprUP where = nullptr;
+    if (consumeTok(TOK_WHERE))
+        where = expression();
+    MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
+
+    MATCH_TOK(TOK_COLON, "Expect ':' before comprehension expression.");
+    ExprUP expr = expression();
+    MATCH_TOK(TOK_RIGHT_BRACKET, "Expect ']' to conclude list comprehension.");
+
+    return std::make_unique<ComprehensionExpr>(var, iter, where, expr);
+}
+
 ExprUP Parser::list()
 {
     ExprVec entries;
     entries.reserve(LIST_ENTRY_GROUP); // Minimal size to start off with.
     if (!checkTok(TOK_RIGHT_BRACKET))
     {
+        if (consumeTok(TOK_FOR))
+            return comprehension();
+        
         do {
             entries.emplace_back(expression());
         } while (consumeTok(TOK_COMMA));
