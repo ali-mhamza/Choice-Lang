@@ -272,7 +272,6 @@ struct Tuple : public HeapObj
 struct StringIter
 {
     String* obj;
-    String* iter;
     const char* begin;
 
     StringIter();

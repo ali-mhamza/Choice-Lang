@@ -410,10 +410,10 @@ std::string Tuple::printVal() const
 /* Object iterator struct types. */
 
 StringIter::StringIter() :
-    obj(nullptr), iter(nullptr), begin(nullptr) {}
+    obj(nullptr), begin(nullptr) {}
 
 StringIter::StringIter(String* obj) :
-    obj(obj), iter(nullptr), begin(obj->str.c_str())
+    obj(obj), begin(obj->str.c_str())
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -421,9 +421,9 @@ StringIter::StringIter(String* obj) :
 }
 
 StringIter::StringIter(StringIter&& other) noexcept :
-    obj(other.obj), iter(other.iter), begin(other.begin)
+    obj(other.obj), begin(other.begin)
 {
-    other.obj = other.iter = nullptr;
+    other.obj = nullptr;
     other.begin = nullptr; // Must split; pointers are of different types.
 }
 
@@ -432,10 +432,9 @@ StringIter& StringIter::operator=(StringIter&& other) noexcept
     if (this != &other)
     {
         this->obj = other.obj;
-        this->iter = other.iter;
         this->begin = other.begin;
 
-        other.obj = other.iter = nullptr;
+        other.obj = nullptr;
         other.begin = nullptr;
     }
 
@@ -457,17 +456,16 @@ StringIter::~StringIter()
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
-    iter = CH_ALLOC(String, begin, 1);
-    var = Object(iter);
+    var = Object(CH_ALLOC(String, begin, 1));
     return true;
 }
 
 bool StringIter::next(Object& var)
 {
-    (void) var; // We can manipulate the content directly.    
-
     begin++;
-    if ((iter->str[0] = *begin) == '\0') return false;
+    if (*begin == '\0')
+        return false;
+    var = Object(CH_ALLOC(String, begin, 1));
     return true;
 }
 
