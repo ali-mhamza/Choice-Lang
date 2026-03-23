@@ -39,23 +39,11 @@ Compiler::Compiler(Compiler* comp) :
     labelsWrapper(new TokCompLoopLabels),
     exprPrint(inRepl)
 {
-    if (comp == nullptr)
+    depth = (comp == nullptr ? 0 : comp->depth + 1);
+    if (depth == 0) // Global scope compiler.
     {
-        this->previousReg = Natives::FuncType::NUM_FUNCS;
-        this->depth = 0;
-        for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
-        {
-            this->defVar(
-                std::string(Natives::funcNames[i]),
-                i,
-                accessFix // For now.
-            );
-        }
-    }
-    else
-    {
-        this->previousReg = 0;
-        this->depth = comp->depth + 1;
+        for (auto func : Natives::funcNames)
+            defVar(func, previousReg++, accessFix); // For now.
     }
 }
 
