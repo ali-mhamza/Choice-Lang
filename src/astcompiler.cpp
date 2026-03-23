@@ -132,11 +132,22 @@ inline bool ASTCompiler::captureVariable(const Token& token, const VarInfo& info
     return true;
 }
 
+inline void ASTCompiler::pushScope()
+{
+    scope++;
+    scopeStart = previousReg;
+    varScopes.emplace();
+}
+
 inline void ASTCompiler::popScope()
 {
     auto& scopeVec = varScopes.top();
     for (std::string& var : scopeVec)
         varsWrapper->vars.remove({var, scope});
+
+    varScopes.pop();
+    scope--;
+    previousReg = scopeStart;
 }
 
 DEF(VarDecl)
@@ -370,9 +381,7 @@ void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
 
 DEF(ForStmt)
 {
-    scope++;
-    ui8 origVarReg = previousReg;
-    varScopes.emplace();
+    pushScope();
 
     if (node->label.type != TOK_EOF)
         this->labelsWrapper->labels.add(
@@ -401,9 +410,6 @@ DEF(ForStmt)
     continueJumps = prevContinues;
 
     popScope();
-    varScopes.pop();
-    scope--;
-    previousReg = origVarReg;
 }
 
 void ASTCompiler::matchCaseHelper(MatchStmt::matchCase& checkCase,
@@ -534,15 +540,10 @@ DEF(ExprStmt)
 
 DEF(BlockStmt)
 {
-    scope++;
-    ui8 origReg = previousReg;
-    varScopes.emplace();
+    pushScope();
     for (StmtUP& stmt : node->block)
         compileStmt(stmt);
     popScope();
-    varScopes.pop();
-    scope--;
-    previousReg = origReg;
     code.addOp(OP_EXIT_SCOPE);
 }
 

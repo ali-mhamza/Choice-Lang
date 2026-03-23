@@ -69,6 +69,7 @@ class ASTCompiler
 
         ui8 previousReg;
         ui8 scope{0}; // Our current block scope depth.
+        ui8 scopeStart; // To mark the initial register for a new scope (to pop to on exit).
         ui8 depth; // Our current function scope depth.
 
         std::stack<std::vector<std::string>> varScopes;
@@ -94,6 +95,7 @@ class ASTCompiler
         inline CellInfo getCell(const std::string& name, const VarInfo& info);
         // Returns true if a new capture has been made.
         inline bool captureVariable(const Token& token, const VarInfo& info);
+        inline void pushScope();
         inline void popScope();
 
         // Registers.
