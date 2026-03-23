@@ -82,7 +82,10 @@ inline bool VM::isTruthy(const Object& obj)
         case OBJ_BOOL:      return AS_(bool, obj);
         case OBJ_NULL:      return false;
         case OBJ_STRING:    return (AS_(string, obj)->str.size() != 0);
-        // Functions and ranges are always truthy.
+        case OBJ_LIST:      return (AS_(list, obj)->array.count() != 0);
+        case OBJ_TABLE:     return (AS_(table, obj)->table.size() != 0);
+        case OBJ_TUPLE:     return (AS_(tuple, obj)->entries.count() != 0);
+        // Rest are always truthy.
         default:            return true;
     }
 }
