@@ -6,20 +6,25 @@
 #include <array>
 #include <chrono>
 #include <iostream>
+#include <string>
+#include <vector>
 
 const Natives::NativeFunc
 Natives::functions[Natives::NUM_FUNCS] = {
-    Natives::print, Natives::type, Natives::len,
-    Natives::clock, Natives::range, Natives::read
+    Natives::print, Natives::format, Natives::type,
+    Natives::len, Natives::clock, Natives::range,
+    Natives::read
 };
 
 const char* Natives::funcNames[NUM_FUNCS] = {
-    "print", "type", "len", "clock", "range", "read"
+    "print", "format", "type", "len", "clock",
+    "range", "read"
 };
 
 const std::unordered_map<std::string_view,
     Natives::FuncType> Natives::builtins = {
     {"print", Natives::FUNC_PRINT},
+    {"format", Natives::FUNC_FORMAT},
     {"type", Natives::FUNC_TYPE},
     {"len", Natives::FUNC_LEN},
     {"clock", Natives::FUNC_CLOCK},
@@ -56,6 +61,45 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     CH_PRINT("\n");
 
     it[-1] = ret;
+}
+
+void Natives::format(Natives::iter it, ui8 args, const Token& error)
+{
+    if (args == 0)
+        throw RuntimeError(error, "String argument not provided.");
+    else if (!IS_(STRING, it[0]))
+        throw RuntimeError(error, "First argument must be a string.");
+
+    const std::string& str = AS_(string, it[0])->str;
+    std::string newStr;
+    if (args == 1)
+        newStr = str;
+    else
+    {
+        newStr.reserve(str.size() + args - 1);
+
+        using sizeT = std::string::size_type;
+        sizeT pos = 0;
+        sizeT start = pos;
+        ui8 count = 0;
+        while ((pos = str.find("{}", pos)) != std::string::npos)
+        {
+            // Append the last segment before the {}.
+            newStr.append(str, start, pos - start);
+            pos += 2; // Skip the {}.
+            start = pos; // Mark our new start.
+
+            if (++count > static_cast<ui8>(args - 1))
+                throw RuntimeError(error, "Too few format arguments.");
+
+            newStr += it[count].printVal();
+        }
+
+        if (count < static_cast<ui8>(args - 1))
+            throw RuntimeError(error, "Too many format arguments.");
+    }
+
+    it[-1] = Object(CH_ALLOC(String, newStr));
 }
 
 void Natives::type(Natives::iter it, ui8 args, const Token& error)

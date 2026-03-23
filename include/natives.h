@@ -16,6 +16,7 @@ namespace Natives
     enum FuncType
     {
         FUNC_PRINT,
+        FUNC_FORMAT,
         FUNC_TYPE,
         FUNC_LEN,
         FUNC_CLOCK,
@@ -25,6 +26,7 @@ namespace Natives
     };
 
     void print(iter it, ui8 args, const Token& error);
+    void format(iter it, ui8 args, const Token& error);
     void type(iter it, ui8 args, const Token& error);
     void len(iter it, ui8 args, const Token& error);
     void clock(iter it, ui8 args, const Token& error);
