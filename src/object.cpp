@@ -451,11 +451,6 @@ StringIter::~StringIter()
             obj->refCount--;
             if (obj->refCount == 0) delete obj;
         }
-        if (iter != nullptr)
-        {
-            iter->refCount--;
-            if (iter->refCount == 0) delete iter;
-        }
     #endif
 }
 
@@ -463,9 +458,6 @@ bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
     iter = CH_ALLOC(String, begin, 1);
-    #if !CH_USE_ALLOC
-        iter->refCount++;
-    #endif
     var = Object(iter);
     return true;
 }
