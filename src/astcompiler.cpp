@@ -95,12 +95,12 @@ inline ASTCompiler::VarInfo ASTCompiler::getVarInfo(const Token& token)
         VarEntry entry(token.text, scope - i);
         ui8* slot = varsWrapper->vars.get(entry);
         if (slot != nullptr)
-            return { slot, static_cast<ui8>(scope - i), depth,
+            return { true, *slot, static_cast<ui8>(scope - i), depth,
                 getAccess(*slot) };
     }
 
     if (scopeCompiler == nullptr)
-        return { nullptr, 0, 0 , false };
+        return { false };
     return scopeCompiler->getVarInfo(token);
 }
 
@@ -112,7 +112,7 @@ inline ASTCompiler::CellInfo ASTCompiler::getCell(const std::string& name,
         return { this->depth, it->second, true };
 
     if (scopeCompiler == nullptr)
-        return { info.depth, *(info.slot), false };
+        return { info.depth, info.slot, false };
     return scopeCompiler->getCell(name, info);
 }
 
@@ -141,21 +141,20 @@ inline void ASTCompiler::popScope()
 
 DEF(VarDecl)
 {
-    VarInfo pos = getVarInfo(node->name);
-    if ((pos.slot != nullptr) && (pos.scope == scope)
-        && (pos.depth == depth))
+    VarInfo info = getVarInfo(node->name);
+    if (info.found && (info.scope == scope)
+        && (info.depth == depth))
     {
         if (inRepl && (depth == 0))
         {
-            ui8 varSlot = *(pos.slot);
             ui8 reg = previousReg;
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
-                addVariableOp(setVar, pos, varSlot, reg); // Always a local variable.
+                addVariableOp(setVar, info, info.slot, reg); // Always a local variable.
             }
             else
-                code.loadReg(varSlot, OP_NULL);
+                code.loadReg(info.slot, OP_NULL);
             return;
         }
         else
@@ -220,10 +219,10 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
 
 DEF(FuncDecl)
 {
-    VarInfo pos = getVarInfo(node->name);
+    VarInfo info = getVarInfo(node->name);
     bool redefined = false;
-    if ((pos.slot != nullptr) && (pos.scope == scope)
-        && (pos.depth == depth))
+    if (info.found && (info.scope == scope)
+        && (info.depth == depth))
     {
         if (inRepl && (depth == 0))
             redefined = true;
@@ -242,7 +241,7 @@ DEF(FuncDecl)
             "Too many parameters in function.");
     }
 
-    ui8 varSlot = (redefined ? *(pos.slot) : previousReg);
+    ui8 varSlot = (redefined ? info.slot : previousReg);
     std::string name = std::string(node->name.text);
     if (!redefined)
     {
@@ -576,9 +575,9 @@ DEF(TupleExpr)
 void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
     const VarInfo& info, bool cellUsed)
 {
-    ui8 slot = (cellUsed ? (captures.size() - 1) : *(pos.slot));
+    ui8 slot = (cellUsed ? (captures.size() - 1) : info.slot);
     ui8 varReg = previousReg;
-    addVariableOp(getVar, pos, varReg, slot);
+    addVariableOp(getVar, info, varReg, slot);
     reserveReg();
 
     ui8 valueReg = previousReg;
@@ -604,7 +603,7 @@ void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
     }
 
     code.addOp(op, varReg, valueReg);
-    addVariableOp(setVar, pos, slot, varReg);
+    addVariableOp(setVar, info, slot, varReg);
     freeReg(); // Free the temporary register used for the RHS value.
 }
 
@@ -612,28 +611,28 @@ DEF(AssignExpr)
 {
     // Temporarily assuming regular variables only.
     VarExpr* temp = static_cast<VarExpr*>(node->target.get());
-    VarInfo pos = getVarInfo(temp->name);
+    VarInfo info = getVarInfo(temp->name);
 
-    if (pos.slot == nullptr)
+    if (!info.found)
     {
         REPORT_ERROR(temp->name, "Undefined variable '"
             + std::string(temp->name.text) + "'.");
     }
-    else if (pos.access == accessFix)
+    else if (info.access == accessFix)
         REPORT_ERROR(node->oper,
             "Cannot assign to a fixed-value variable.");
 
-    bool cellUsed = captureVariable(temp->name, pos);
+    bool cellUsed = captureVariable(temp->name, info);
     if (node->oper.type != TOK_EQUAL)
     {
-        compoundAssign(node, pos, cellUsed);
+        compoundAssign(node, info, cellUsed);
         return;
     }
 
     ui8 reg = previousReg;
     compileExpr(node->value);
-    addVariableOp(setVar, pos,
-        (cellUsed ? (captures.size() - 1) : *(pos.slot)), reg
+    addVariableOp(setVar, info,
+        (cellUsed ? (captures.size() - 1) : info.slot), reg
     );
 }
 
@@ -764,13 +763,13 @@ void ASTCompiler::_crementExpr(std::unique_ptr<UnaryExpr>& node)
             "Invalid increment/decrement target.");
 
     VarExpr* temp = static_cast<VarExpr*>(node->expr.get());
-    VarInfo pos = getVarInfo(temp->name);
-    if (pos.slot == nullptr)
+    VarInfo info = getVarInfo(temp->name);
+    if (!info.found)
     {
         REPORT_ERROR(temp->name, "Undefined variable '"
             + std::string(temp->name.text) + "'.");
     }
-    else if (pos.access == accessFix)
+    else if (info.access == accessFix)
         REPORT_ERROR(node->oper,
             "Cannot modify a fixed-value variable.");
 
@@ -788,15 +787,15 @@ void ASTCompiler::_crementExpr(std::unique_ptr<UnaryExpr>& node)
     // In both cases, the result ends up in the first register,
     // which is the only reserved register.
 
-    bool cellUsed = captureVariable(temp->name, pos);
-    ui8 slot = (cellUsed ? (captures.size() - 1) : *(pos.slot));
-    addVariableOp(getVar, pos, previousReg, slot);
-    reserveReg(); // Will increment previousReg.
+    bool cellUsed = captureVariable(temp->name, info);
+    ui8 slot = (cellUsed ? (captures.size() - 1) : info.slot);
+    addVariableOp(getVar, info, previousReg, slot);
+    reserveReg();
 
-    addVariableOp(getVar, pos, previousReg, slot);
+    addVariableOp(getVar, info, previousReg, slot);
     code.addOp((node->oper.type == TOK_INCR ?
         OP_INCR : OP_DECR), previousReg);
-    addVariableOp(setVar, pos, slot, previousReg);
+    addVariableOp(setVar, info, slot, previousReg);
 
     if (!node->prev)
     {
@@ -925,14 +924,14 @@ DEF(ListExpr)
 
 DEF(VarExpr)
 {
-    VarInfo pos = getVarInfo(node->name);
-    if (pos.slot == nullptr)
+    VarInfo info = getVarInfo(node->name);
+    if (!info.found)
         REPORT_ERROR(node->name, "Undefined variable '"
             + std::string(node->name.text) + "'.");
 
-    bool cellUsed = captureVariable(node->name, pos);
-    addVariableOp(getVar, pos, previousReg,
-        (cellUsed ? (captures.size() - 1) : *(pos.slot))
+    bool cellUsed = captureVariable(node->name, info);
+    addVariableOp(getVar, info, previousReg,
+        (cellUsed ? (captures.size() - 1) : info.slot)
     );
     reserveReg();
 }

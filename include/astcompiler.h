@@ -50,10 +50,11 @@ class ASTCompiler
     private:
         struct VarInfo
         {
-            ui8* slot;
-            ui8 scope; // Block scope depth.
-            ui8 depth; // Function scope depth.
-            bool access;
+            bool found;
+            ui8 slot{0};
+            ui8 scope{0}; // Block scope depth.
+            ui8 depth{0}; // Function scope depth.
+            bool access{false};
         };
 
         struct CellInfo
