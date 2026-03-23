@@ -48,12 +48,20 @@
 	#define CH_PRINT	std::print
 	#define CH_STR		std::format
 #else
+	#define CH_USE_FMT_LIB
+
 	#ifndef FMT_HEADER_ONLY
 		#define FMT_HEADER_ONLY
 	#endif
-	#include "format.h" // From libfmt.
+	#include "args.h"
+	#include "format.h"
+
 	#define CH_PRINT	fmt::print
 	#define CH_STR		fmt::format
+
+	using fmt_store = fmt::dynamic_format_arg_store<
+		fmt::format_context
+	>;
 #endif
 
 // Goto usage.

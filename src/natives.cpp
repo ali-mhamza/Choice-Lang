@@ -5,6 +5,7 @@
 #include "../include/object.h"
 #include <array>
 #include <chrono>
+#include <stdexcept>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -63,6 +64,54 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     it[-1] = ret;
 }
 
+#if !defined(CH_USE_FMT_LIB)
+    // Work in progress.
+    static std::string defaultFormat(Natives::iter it, ui8 args,
+        const Token& error)
+    {
+        using sizeT = std::string::size_type;
+        const std::string& str = AS_(string, it[0])->str;
+        sizeT size = str.size();
+        ui8 count = 0;
+
+        std::string newStr;
+        if (size != 0)
+        {
+            newStr.reserve(str.size() + args - 1);
+
+            sizeT pos = 0;
+            sizeT start = pos;
+            while ((pos = str.find("{}", pos)) != std::string::npos)
+            {
+                if ((pos > 0) && (pos < size - 2)
+                    && (str[pos - 1] == '{') && (str[pos + 2] == '}'))
+                {
+                    newStr.append(str, start, pos - start - 1);
+                    newStr += "{}";
+                    pos += 3;
+                }
+                else
+                {
+                    newStr.append(str, start, pos - start);
+                    if (++count > static_cast<ui8>(args - 1))
+                        throw RuntimeError(error, "Too few format arguments.");
+
+                    newStr += it[count].printVal();
+                    pos += 2;
+                }
+
+                start = pos; // Mark our new start.
+            }
+        }
+
+        if (count < static_cast<ui8>(args - 1))
+            throw RuntimeError(error, "Too many format arguments.");
+        if (newStr.empty()) newStr = str;
+
+        return newStr;
+    }
+#endif
+
 void Natives::format(Natives::iter it, ui8 args, const Token& error)
 {
     if (args == 0)
@@ -70,36 +119,30 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
     else if (!IS_(STRING, it[0]))
         throw RuntimeError(error, "First argument must be a string.");
 
-    const std::string& str = AS_(string, it[0])->str;
-    std::string newStr;
-    if (args == 1)
-        newStr = str;
-    else
-    {
-        newStr.reserve(str.size() + args - 1);
+    std::string result;
 
-        using sizeT = std::string::size_type;
-        sizeT pos = 0;
-        sizeT start = pos;
-        ui8 count = 0;
-        while ((pos = str.find("{}", pos)) != std::string::npos)
+    #if defined(CH_USE_FMT_LIB)
+        fmt_store store;
+        for (ui8 i = 1; i < args; i++)
+            store.push_back(it[i].printVal());
+
+        const std::string& str = AS_(string, it[0])->str;
+        try
         {
-            // Append the last segment before the {}.
-            newStr.append(str, start, pos - start);
-            pos += 2; // Skip the {}.
-            start = pos; // Mark our new start.
-
-            if (++count > static_cast<ui8>(args - 1))
-                throw RuntimeError(error, "Too few format arguments.");
-
-            newStr += it[count].printVal();
+            result = fmt::vformat(str, store);
+        }
+        catch (std::runtime_error&) // Formatting error (too few arguments).
+        {
+            throw RuntimeError(error, "Too few format arguments.");
         }
 
-        if (count < static_cast<ui8>(args - 1))
-            throw RuntimeError(error, "Too many format arguments.");
-    }
+        // TODO (possibly): detect if user passed too *many* arguments.
+        // fmt does not throw any error in that case.
+    #else
+        result = defaultFormat(it, args, error);
+    #endif
 
-    it[-1] = Object(CH_ALLOC(String, newStr));
+    it[-1] = Object(CH_ALLOC(String, result));
 }
 
 void Natives::type(Natives::iter it, ui8 args, const Token& error)
