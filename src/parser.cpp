@@ -338,7 +338,7 @@ StmtUP Parser::matchStmt()
         MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
         ExprUP value;
         bool defaultCase = false;
-        
+
         if (consumeTok(TOK_QMARK))
         {
             value = nullptr;
