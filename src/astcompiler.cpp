@@ -399,7 +399,7 @@ DEF(ForStmt)
     std::vector<ui64> continues;
     auto prevContinues = continueJumps;
     continueJumps = &continues;
-    
+
     ui8 varReg = previousReg;
     defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
