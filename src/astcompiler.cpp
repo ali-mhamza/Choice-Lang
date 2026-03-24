@@ -221,6 +221,9 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
     for (const Token& param : params)
     {
         ui8 reg = miniCompiler.previousReg;
+        auto info = miniCompiler.getVarInfo(param);
+        if (info.found)
+            REPORT_ERROR(param, "Parameter with the same name already in use.");
         miniCompiler.defVar(std::string(param.text), reg, accessVar);
         miniCompiler.reserveReg();
     }
