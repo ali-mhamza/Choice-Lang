@@ -18,6 +18,7 @@
 #include <string_view>
 #include <vector>
 
+static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");
 using vBit = vByte::const_iterator;
 
 std::string readFile(const char* fileName)
