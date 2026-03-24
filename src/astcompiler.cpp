@@ -29,7 +29,8 @@ class ASTCompVarsWrapper
 class ASTCompLoopLabels
 {
     public:
-        linearTable<std::string_view, std::vector<ui64>> labels;
+        linearTable<std::string_view, std::vector<ui64>> breaklabels;
+        linearTable<std::string_view, std::vector<ui64>> continueLabels;
 
         ASTCompLoopLabels() = default;
 };
@@ -148,6 +149,26 @@ inline void ASTCompiler::popScope()
     varScopes.pop();
     scope--;
     previousReg = scopeStart;
+}
+
+void ASTCompiler::patchLoopLabelJumps(const Token& label,
+    bool patchBreaks)
+{
+    if (label.type == TOK_EOF) return;
+
+    if (patchBreaks)
+    {
+        auto* vec = this->labelsWrapper->breaklabels.get(label.text);
+        for (ui64 jump : *vec)
+            code.patchJump(jump);
+        this->labelsWrapper->breaklabels.remove(label.text);
+    }
+    else
+    {
+        auto* vec = this->labelsWrapper->continueLabels.get(label.text);
+        for (ui64 jump : *vec)
+            code.patchJump(jump);
+    }
 }
 
 DEF(VarDecl)
@@ -289,10 +310,10 @@ DEF(WhileStmt)
     ui8 reg = previousReg;
     ui64 loopStart = code.getLoopStart();
     if (node->label.type != TOK_EOF)
-        this->labelsWrapper->labels.add(
-            node->label.text, // Will persist at least as long as compilation takes.
-            {}
-        );
+    {
+        this->labelsWrapper->breaklabels.add(node->label.text, {});
+        this->labelsWrapper->continueLabels.add(node->label.text, {});
+    }
 
     std::vector<ui64> breaks;
     auto prevBreaks = breakJumps;
@@ -309,6 +330,7 @@ DEF(WhileStmt)
 
     for (ui64 jump : continues)
         code.patchJump(jump);
+    patchLoopLabelJumps(node->label, false);
     code.addLoop(loopStart);
 
     code.patchJump(falseJump);
@@ -316,17 +338,7 @@ DEF(WhileStmt)
 
     for (ui64 jump : breaks)
         code.patchJump(jump);
-    if (node->label.type != TOK_EOF)
-    {
-        auto* vec = this->labelsWrapper->labels.get(
-            node->label.text
-        );
-        for (ui64 jump : *vec)
-            code.patchJump(jump);
-        this->labelsWrapper->labels.remove(
-            node->label.text
-        );
-    }
+    patchLoopLabelJumps(node->label, true);
 
     breakJumps = prevBreaks;
     continueJumps = prevContinues;
@@ -354,6 +366,7 @@ void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
         code.patchJump(whereJump);
     for (ui64 jump : *continueJumps)
         code.patchJump(jump);
+    patchLoopLabelJumps(node->label, false);
 
     ui16 diff = static_cast<ui16>(code.codeSize() - loopStart + 5);
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
@@ -366,17 +379,7 @@ void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
 
     for (ui64 jump : *breakJumps)
         code.patchJump(jump);
-    if (node->label.type != TOK_EOF)
-    {
-        auto* vec = this->labelsWrapper->labels.get(
-            node->label.text
-        );
-        for (ui64 jump : *vec)
-            code.patchJump(jump);
-        this->labelsWrapper->labels.remove(
-            node->label.text
-        );
-    }
+    patchLoopLabelJumps(node->label, true);
 }
 
 DEF(ForStmt)
@@ -384,10 +387,10 @@ DEF(ForStmt)
     pushScope();
 
     if (node->label.type != TOK_EOF)
-        this->labelsWrapper->labels.add(
-            node->label.text,
-            {}
-        );
+    {
+        this->labelsWrapper->breaklabels.add(node->label.text, {});
+        this->labelsWrapper->continueLabels.add(node->label.text, {});
+    }
 
     std::vector<ui64> breaks;
     auto prevBreaks = breakJumps;
@@ -503,9 +506,7 @@ DEF(BreakStmt)
         this->breakJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec = this->labelsWrapper->labels.get(
-            node->label.text
-        );
+        auto* vec = this->labelsWrapper->breaklabels.get(node->label.text);
         if (vec == nullptr)
             REPORT_ERROR(node->label,
                 "Break label is not assigned to any loop.");
@@ -516,8 +517,17 @@ DEF(BreakStmt)
 
 DEF(ContinueStmt)
 {
-    (void) node;
-    this->continueJumps->push_back(code.addJump(OP_JUMP));
+    if (node->label.type == TOK_EOF)
+        this->continueJumps->push_back(code.addJump(OP_JUMP));
+    else
+    {
+        auto* vec = this->labelsWrapper->continueLabels.get(node->label.text);
+        if (vec == nullptr)
+            REPORT_ERROR(node->label,
+                "Continue label is not assigned to any loop.");
+        else
+            vec->push_back(code.addJump(OP_JUMP));
+    }
 }
 
 DEF(EndStmt)

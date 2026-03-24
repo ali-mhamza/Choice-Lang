@@ -148,7 +148,9 @@ namespace AST
 
         struct ContinueStmt : public Stmt
         {
-            ContinueStmt();
+            Token label;
+
+            ContinueStmt(const Token& label);
         };
 
         struct EndStmt : public Stmt

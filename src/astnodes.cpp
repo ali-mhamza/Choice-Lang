@@ -59,8 +59,9 @@ BreakStmt::BreakStmt(const Token& label) :
     Stmt(S_BREAK_STMT),
     label(label) {}
 
-ContinueStmt::ContinueStmt() :
-    Stmt (S_CONT_STMT) {}
+ContinueStmt::ContinueStmt(const Token& label) :
+    Stmt (S_CONT_STMT),
+    label(label) {}
 
 EndStmt::EndStmt() :
     Stmt(S_END_STMT) {}

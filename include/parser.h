@@ -89,6 +89,7 @@ class Parser
         StmtUP repeatStmt();
         StmtUP returnStmt();
         StmtUP breakStmt();
+        StmtUP continueStmt();
         StmtUP blockStmt();
         StmtUP exprStmt();
 

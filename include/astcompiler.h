@@ -104,6 +104,12 @@ class ASTCompiler
         inline void freeReg() { previousReg--; }
         inline void reserveReg() { previousReg++; }
 
+        // General helpers.
+
+        // patchBreaks: True if we are to patch 'break' jumps.
+        // False otherwise.
+        void patchLoopLabelJumps(const Token& label, bool patchBreaks);
+
         // Declarations.
 
         DECL(VarDecl);
