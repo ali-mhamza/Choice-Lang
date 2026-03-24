@@ -3,7 +3,7 @@
 /* General */
 
 // Maximum value we can encode with a single byte.
-constexpr inline int CODE_MAX = 1 << 8;
+constexpr inline int CODE_MAX = (1 << 8) - 1;
 
 /* Lexer */
 
@@ -16,8 +16,10 @@ constexpr inline int LEX_ERROR_MAX = 10;
 
 /* Compiler */
 
+// Maximum number of bytes we can jump across in the bytecode.
+constexpr inline int BYTE_JUMP_MAX = (1 << 16) - 1;
 // Maximum number of parameters for a function or lambda.
-constexpr inline int PARAMETER_MAX = 256;
+constexpr inline int PARAMETER_MAX = CODE_MAX;
 // Maximum number of cases in a match-is structure.
 constexpr inline int MATCH_CASES_MAX = 100;
 // Default list size upon initialization.
@@ -30,9 +32,9 @@ constexpr inline int COMPILE_ERROR_MAX = 10;
 /* VM */
 
 // Maximum level of nested function scopes.
-constexpr inline int MAX_SCOPE_DEPTH = 256;
+constexpr inline int MAX_SCOPE_DEPTH = CODE_MAX;
 // Used to estimate space to reserve early in call-stack.
-constexpr inline int CALL_FRAMES_DEFAULT = 256;
+constexpr inline int CALL_FRAMES_DEFAULT = 10;
 
 /* Disassembler */
 
