@@ -5,6 +5,7 @@
 #include "../include/object.h"
 #include <array>
 #include <chrono>
+#include <cstdio> // For fflush.
 #include <stdexcept>
 #include <iostream>
 #include <string>
@@ -12,19 +13,20 @@
 
 const Natives::NativeFunc
 Natives::functions[Natives::NUM_FUNCS] = {
-    Natives::print, Natives::format, Natives::type,
-    Natives::len, Natives::clock, Natives::range,
-    Natives::read
+    Natives::print, Natives::println, Natives::format,
+    Natives::type, Natives::len, Natives::clock,
+    Natives::range, Natives::read
 };
 
 const char* Natives::funcNames[NUM_FUNCS] = {
-    "print", "format", "type", "len", "clock",
-    "range", "read"
+    "print", "println", "format", "type", "len",
+    "clock", "range", "read"
 };
 
 const std::unordered_map<std::string_view,
     Natives::FuncType> Natives::builtins = {
     {"print", Natives::FUNC_PRINT},
+    {"println", Natives::FUNC_PRINTLN},
     {"format", Natives::FUNC_FORMAT},
     {"type", Natives::FUNC_TYPE},
     {"len", Natives::FUNC_LEN},
@@ -59,9 +61,19 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
         if (i != args - 1)
             CH_PRINT(" ");
     }
-    CH_PRINT("\n");
+
+    if (inRepl)
+        CH_PRINT("\n");
+    else
+        fflush(stdout);
 
     it[-1] = ret;
+}
+
+void Natives::println(Natives::iter it, ui8 args, const Token& error)
+{
+    print(it, args, error);
+    if (!inRepl) CH_PRINT("\n");
 }
 
 #if !defined(CH_USE_FMT_LIB)
