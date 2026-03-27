@@ -253,6 +253,7 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
         if (!IS_(STRING, it[0]))
             throw RuntimeError(error, "Argument must be a string."); // Temporarily.
         CH_PRINT("{}", AS_(string, it[0])->str);
+        fflush(stdout);
     }
 
     std::ios_base::sync_with_stdio(false);
