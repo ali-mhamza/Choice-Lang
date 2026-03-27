@@ -38,8 +38,6 @@ const std::unordered_map<std::string_view,
 void Natives::print(Natives::iter it, ui8 args, const Token& error)
 {
     (void) error;
-    // To avoid reallocating the return value each time.
-    static auto ret = Object(CH_ALLOC(Tuple));
 
     for (ui8 i = 0; i < args; i++)
     {
@@ -67,6 +65,8 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     else
         fflush(stdout);
 
+    // To avoid reallocating the return value each time.
+    static auto ret = Object(CH_ALLOC(Tuple));
     it[-1] = ret;
 }
 
