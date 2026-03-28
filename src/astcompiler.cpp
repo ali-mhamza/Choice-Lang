@@ -151,8 +151,7 @@ inline void ASTCompiler::popScope()
     previousReg = scopeStart;
 }
 
-void ASTCompiler::patchLoopLabelJumps(const Token& label,
-    bool patchBreaks)
+void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 {
     if (label.type == TOK_EOF) return;
 
@@ -418,7 +417,7 @@ DEF(ForStmt)
     popScope();
 }
 
-void ASTCompiler::matchCaseHelper(MatchStmt::matchCase& checkCase,
+void ASTCompiler::matchCaseHelper(MatchStmt::MatchCase& checkCase,
     const ui8 matchReg, ui64& fallJump, ui64& emptyJump)
 {
     ui8 caseReg = previousReg;
@@ -465,7 +464,7 @@ DEF(MatchStmt)
     ui64 fallJump = 0; // Invalid jump offset value.
     ui64 emptyJump = 0;
 
-    for (MatchStmt::matchCase& checkCase : node->cases)
+    for (MatchStmt::MatchCase& checkCase : node->cases)
     {
         if (checkCase.value != nullptr)
             matchCaseHelper(checkCase, matchReg, fallJump, emptyJump);

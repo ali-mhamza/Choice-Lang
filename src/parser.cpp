@@ -321,7 +321,7 @@ StmtUP Parser::matchStmt()
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after match value.");
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before match cases.");
 
-    std::vector<MatchStmt::matchCase> cases;
+    std::vector<MatchStmt::MatchCase> cases;
     cases.reserve(MATCH_CASES_MAX);
 
     bool prevInMatch = inMatch;

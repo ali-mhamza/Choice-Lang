@@ -38,12 +38,12 @@ ForStmt::ForStmt(const Token& var, ExprUP& iter, ExprUP& where,
     var(var), iter(std::move(iter)), where(std::move(where)),
     label(label), body(std::move(body)), elseClause(std::move(elseClause)) {}
 
-MatchStmt::matchCase::matchCase(ExprUP& value, StmtUP& body,
+MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body,
     bool fall) :
     value(std::move(value)), body(std::move(body)),
     fallthrough(fall) {}
 
-MatchStmt::MatchStmt(ExprUP& matchValue, std::vector<matchCase>& cases) :
+MatchStmt::MatchStmt(ExprUP& matchValue, std::vector<MatchCase>& cases) :
     Stmt(S_MATCH_STMT),
     matchValue(std::move(matchValue)), cases(std::move(cases)) {}
 

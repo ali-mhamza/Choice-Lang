@@ -108,19 +108,19 @@ namespace AST
 
         struct MatchStmt : public Stmt
         {
-            struct matchCase
+            struct MatchCase
             {
                 ExprUP value; // Must be a literal (even if an iterable).
                 StmtUP body; // No declarations without a block.
                 bool fallthrough;
 
-                matchCase(ExprUP& value, StmtUP& body, bool fall);
+                MatchCase(ExprUP& value, StmtUP& body, bool fall);
             };
             
             ExprUP matchValue;
-            std::vector<matchCase> cases;
+            std::vector<MatchCase> cases;
 
-            MatchStmt(ExprUP& matchValue, std::vector<matchCase>& cases);
+            MatchStmt(ExprUP& matchValue, std::vector<MatchCase>& cases);
         };
 
         struct RepeatStmt : public Stmt
