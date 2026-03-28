@@ -691,7 +691,7 @@ void VM::executeOp(Opcode op)
             updateIter();
             DISPATCH();
         }
-        
+
         // Arithmetic operators.
 
         CASE(OP_ADD):   CASE(OP_SUB):   CASE(OP_MULT):

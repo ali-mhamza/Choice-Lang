@@ -131,7 +131,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 ui64 ByteCode::countPool() const
 {
 	ui64 count = 0;
-	
+
 	for (const Object& obj : pool)
 	{
 		if (IS_(INT, obj) || IS_(DEC, obj))
