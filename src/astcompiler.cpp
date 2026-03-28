@@ -57,12 +57,12 @@ ASTCompiler::~ASTCompiler()
 inline void ASTCompiler::addVariableOp(bool type, const VarInfo& info,
     ui8 dest, ui8 src)
 {
-    if (info.depth == 0)
+    if (info.type == GLOBAL)
     {
         code.addOp((type == getVar ? OP_GET_GLOBAL : OP_SET_GLOBAL),
             dest, src);
     }
-    else if (info.depth == depth)
+    else if (info.type == LOCAL)
     {
         code.addOp((type == getVar ? OP_GET_LOCAL : OP_SET_LOCAL),
             dest, src);
@@ -89,48 +89,64 @@ inline bool ASTCompiler::getAccess(ui8 reg)
     return *ret;
 }
 
-inline ASTCompiler::VarInfo ASTCompiler::getVarInfo(const Token& token)
+inline ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token)
 {
+    VarEntry entry(token.text, scope);
+    ui8* slot = varsWrapper->vars.get(entry);
+    if (slot != nullptr)
+        return { true, *slot };
+
+    return { false };
+}
+
+inline ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
+{
+    // Check if variable is local first.
     for (ui8 i = 0; i <= scope; i++)
     {
         VarEntry entry(token.text, scope - i);
         ui8* slot = varsWrapper->vars.get(entry);
         if (slot != nullptr)
-            return { true, *slot, static_cast<ui8>(scope - i), depth,
-                getAccess(*slot) };
+        {
+            VarType type = LOCAL;
+            if ((depth == 0) && (entry.scope == 0))
+                type = GLOBAL;
+            return { true, *slot, type, getAccess(*slot) };
+        }
     }
 
-    if (scopeCompiler == nullptr)
-        return { false };
-    return scopeCompiler->getVarInfo(token);
+    // Check enclosing non-global scopes.
+    if (scopeCompiler != nullptr)
+    {
+        VarInfo info = scopeCompiler->resolveVariable(token);
+        if (info.found)
+        {
+            info.inCell = (info.type == CELL); 
+            info.slot = captureVariable(token, info);
+            // Local variables in enclosing scopes become cells in
+            // the current scope.
+            if (info.type == LOCAL) info.type = CELL;
+            return info;
+        }
+    }
+
+    return { false };
 }
 
-inline ASTCompiler::CellInfo ASTCompiler::getCell(const std::string& name,
-    const VarInfo& info)
+inline ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
 {
-    auto it = captureNames.find(name);
-    if (it != captureNames.end())
-        return { this->depth, it->second, true };
-
-    if (scopeCompiler == nullptr)
-        return { info.depth, info.slot, false };
-    return scopeCompiler->getCell(name, info);
-}
-
-inline bool ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
-{
-    // No captures for global or local variables.
-    if ((info.depth == 0) || (info.depth == depth))
-        return false;
+    if (info.type == GLOBAL)
+        return info.slot;
 
     std::string name{token.text};
     auto it = captureNames.find(name);
     if (it != captureNames.end()) // Already captured -> don't capture again.
-        return false;
+        return it->second;
 
-    captureNames[name] = static_cast<ui8>(captures.size());
-    captures.push_back(scopeCompiler->getCell(name, info));
-    return true;
+    ui8 cellIndex = static_cast<ui8>(captures.size());
+    captureNames[name] = cellIndex;
+    captures.push_back({ info.slot, info.inCell });
+    return cellIndex;
 }
 
 inline void ASTCompiler::pushScope()
@@ -138,6 +154,7 @@ inline void ASTCompiler::pushScope()
     scope++;
     scopeStart = previousReg;
     varScopes.emplace();
+    code.addOp(OP_ENTER_SCOPE, scopeStart);
 }
 
 inline void ASTCompiler::popScope()
@@ -149,6 +166,7 @@ inline void ASTCompiler::popScope()
     varScopes.pop();
     scope--;
     previousReg = scopeStart;
+    code.addOp(OP_EXIT_SCOPE);
 }
 
 void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
@@ -160,7 +178,9 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
         auto* vec = this->labelsWrapper->breaklabels.get(label.text);
         for (ui64 jump : *vec)
             code.patchJump(jump);
+        // Breaks are always patched at the very end.
         this->labelsWrapper->breaklabels.remove(label.text);
+        this->labelsWrapper->continueLabels.remove(label.text);
     }
     else
     {
@@ -172,20 +192,20 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
 DEF(VarDecl)
 {
-    VarInfo info = getVarInfo(node->name);
-    if (info.found && (info.scope == scope)
-        && (info.depth == depth))
+    LocalInfo localInfo = getScopeLocal(node->name);
+    if (localInfo.found)
     {
-        if (inRepl && (depth == 0))
+        if (inRepl && (depth == 0) && (scope == 0))
         {
             ui8 reg = previousReg;
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
-                addVariableOp(setVar, info, info.slot, reg); // Always a local variable.
+                // Always a local variable.
+                code.addOp(OP_SET_LOCAL, localInfo.slot, reg);
             }
             else
-                code.loadReg(info.slot, OP_NULL);
+                code.loadReg(localInfo.slot, OP_NULL);
             return;
         }
         else
@@ -220,7 +240,7 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
     for (const Token& param : params)
     {
         ui8 reg = miniCompiler.previousReg;
-        auto info = miniCompiler.getVarInfo(param);
+        LocalInfo info = miniCompiler.getScopeLocal(param);
         if (info.found)
             REPORT_ERROR(param, "Parameter with the same name already in use.");
         miniCompiler.defVar(std::string(param.text), reg, accessVar);
@@ -231,7 +251,6 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
     miniCompiler.code.addOp(OP_RETURN, 0);
 
     ByteCode& funcCode = miniCompiler.code;
-    funcCode.depth = miniCompiler.depth;
     this->hitError = miniCompiler.hitError;
 
     Object func;
@@ -244,21 +263,20 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
 
     for (const auto& info : miniCompiler.captures)
     {
-        // Capture object in register [slot] from depth [depth],
-        // or reuse the cell at index [slot] from depth [depth].
-        code.addOp((info.captured ? OP_CAPTURE_CELL : OP_CAPTURE_VAL),
-            funcReg, info.depth, info.slot);
+        // Capture object in register [slot] from enclosing scope,
+        // or reuse the cell at index [slot] from enclosing scope.
+        code.addOp((info.inCell ? OP_CAPTURE_CELL : OP_CAPTURE_VAL),
+            funcReg, info.slot);
     }
 }
 
 DEF(FuncDecl)
 {
-    VarInfo info = getVarInfo(node->name);
+    LocalInfo localInfo = getScopeLocal(node->name);
     bool redefined = false;
-    if (info.found && (info.scope == scope)
-        && (info.depth == depth))
+    if (localInfo.found)
     {
-        if (inRepl && (depth == 0))
+        if (inRepl && (depth == 0) && (scope == 0))
             redefined = true;
         else
             REPORT_ERROR(node->name,
@@ -275,7 +293,7 @@ DEF(FuncDecl)
             "Too many parameters in function.");
     }
 
-    ui8 varSlot = (redefined ? info.slot : previousReg);
+    ui8 varSlot = (redefined ? localInfo.slot : previousReg);
     std::string name = std::string(node->name.text);
     if (!redefined)
     {
@@ -556,7 +574,6 @@ DEF(BlockStmt)
     for (StmtUP& stmt : node->block)
         compileStmt(stmt);
     popScope();
-    code.addOp(OP_EXIT_SCOPE);
 }
 
 DEF(TupleExpr)
@@ -586,11 +603,10 @@ DEF(TupleExpr)
 }
 
 void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
-    const VarInfo& info, bool cellUsed)
+    const VarInfo& info)
 {
-    ui8 slot = (cellUsed ? (captures.size() - 1) : info.slot);
     ui8 varReg = previousReg;
-    addVariableOp(getVar, info, varReg, slot);
+    addVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
     ui8 valueReg = previousReg;
@@ -616,7 +632,7 @@ void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
     }
 
     code.addOp(op, varReg, valueReg);
-    addVariableOp(setVar, info, slot, varReg);
+    addVariableOp(setVar, info, info.slot, varReg);
     freeReg(); // Free the temporary register used for the RHS value.
 }
 
@@ -624,7 +640,7 @@ DEF(AssignExpr)
 {
     // Temporarily assuming regular variables only.
     VarExpr* temp = static_cast<VarExpr*>(node->target.get());
-    VarInfo info = getVarInfo(temp->name);
+    VarInfo info = resolveVariable(temp->name);
 
     if (!info.found)
     {
@@ -635,18 +651,15 @@ DEF(AssignExpr)
         REPORT_ERROR(node->oper,
             "Cannot assign to a fixed-value variable.");
 
-    bool cellUsed = captureVariable(temp->name, info);
     if (node->oper.type != TOK_EQUAL)
     {
-        compoundAssign(node, info, cellUsed);
+        compoundAssign(node, info);
         return;
     }
 
     ui8 reg = previousReg;
     compileExpr(node->value);
-    addVariableOp(setVar, info,
-        (cellUsed ? (captures.size() - 1) : info.slot), reg
-    );
+    addVariableOp(setVar, info, info.slot, reg);
 }
 
 DEF(LogicExpr)
@@ -776,7 +789,7 @@ void ASTCompiler::_crementExpr(std::unique_ptr<UnaryExpr>& node)
             "Invalid increment/decrement target.");
 
     VarExpr* temp = static_cast<VarExpr*>(node->expr.get());
-    VarInfo info = getVarInfo(temp->name);
+    VarInfo info = resolveVariable(temp->name);
     if (!info.found)
     {
         REPORT_ERROR(temp->name, "Undefined variable '"
@@ -800,15 +813,13 @@ void ASTCompiler::_crementExpr(std::unique_ptr<UnaryExpr>& node)
     // In both cases, the result ends up in the first register,
     // which is the only reserved register.
 
-    bool cellUsed = captureVariable(temp->name, info);
-    ui8 slot = (cellUsed ? (captures.size() - 1) : info.slot);
-    addVariableOp(getVar, info, previousReg, slot);
+    addVariableOp(getVar, info, previousReg, info.slot);
     reserveReg();
 
-    addVariableOp(getVar, info, previousReg, slot);
+    addVariableOp(getVar, info, previousReg, info.slot);
     code.addOp((node->oper.type == TOK_INCR ?
         OP_INCR : OP_DECR), previousReg);
-    addVariableOp(setVar, info, slot, previousReg);
+    addVariableOp(setVar, info, info.slot, previousReg);
 
     if (!node->prev)
     {
@@ -981,15 +992,12 @@ DEF(ListExpr)
 
 DEF(VarExpr)
 {
-    VarInfo info = getVarInfo(node->name);
+    VarInfo info = resolveVariable(node->name);
     if (!info.found)
         REPORT_ERROR(node->name, "Undefined variable '"
             + std::string(node->name.text) + "'.");
 
-    bool cellUsed = captureVariable(node->name, info);
-    addVariableOp(getVar, info, previousReg,
-        (cellUsed ? (captures.size() - 1) : info.slot)
-    );
+    addVariableOp(getVar, info, previousReg, info.slot);
     reserveReg();
 }
 

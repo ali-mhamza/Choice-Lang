@@ -227,10 +227,10 @@ void Disassembler::captureOper(ui8 byte)
 	ip++;
 
 	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
-		CH_PRINT("F[{}] D[{}] R[{}]\n", funcReg, ip[1], ip[2]);
+		CH_PRINT("F[{}] R[{}]\n", funcReg, ip[1]);
 	else
-		CH_PRINT("F[{}] D[{}] C[{}]\n", funcReg, ip[1], ip[2]);
-	ip += 3;
+		CH_PRINT("F[{}] C[{}]\n", funcReg, ip[1]);
+	ip += 2;
 }
 
 void Disassembler::disassembleOp(ui8 byte)
@@ -242,7 +242,7 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_XOR:		case OP_SHIFT_R:	case OP_SHIFT_L:	case OP_GET_GLOBAL:
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
-		case OP_IN:			case OP_INCR:		case OP_DECR:		case OP_MOVE_R:
+		case OP_IN:			case OP_MOVE_R:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
@@ -254,8 +254,9 @@ void Disassembler::disassembleOp(ui8 byte)
 		case OP_CALL_NAT:	case OP_CALL_DEF:
 			callOper(byte);
 			break;
-		case OP_NEG:		case OP_NOT:			case OP_COMP:		case OP_RETURN:
-		case OP_VOID:		case OP_PRINT_VALID:
+		case OP_NEG:		case OP_NOT:		case OP_INCR:		case OP_DECR:
+		case OP_COMP:		case OP_RETURN:		case OP_VOID:		case OP_PRINT_VALID:
+		case OP_ENTER_SCOPE:
 			singleOper(byte);
 			break;
 		case OP_LOAD_R:

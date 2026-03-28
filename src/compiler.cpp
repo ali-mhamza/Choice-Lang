@@ -339,7 +339,6 @@ void Compiler::funDecl()
     this->setCompilerData(&miniCompiler);
     inFunc = prevInFunc;
     ByteCode& funcCode = miniCompiler.code;
-    funcCode.depth = miniCompiler.depth;
     Object func = CH_ALLOC(Function, name, funcCode, count);
 
     // We only declare in the current function scope.
@@ -753,6 +752,7 @@ void Compiler::blockStmt()
     varScopes.pop();
     scope--;
     previousReg = origVarReg;
+    code.addOp(OP_EXIT_SCOPE);
 }
 
 void Compiler::exprStmt()

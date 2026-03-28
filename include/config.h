@@ -31,8 +31,8 @@ constexpr inline int COMPILE_ERROR_MAX = 10;
 
 /* VM */
 
-// Maximum level of nested function scopes.
-constexpr inline int MAX_SCOPE_DEPTH = CODE_MAX;
+// Maximum depth of nested scopes.
+constexpr inline int MAX_SCOPE_DEPTH = CODE_MAX + 1;
 // Used to estimate space to reserve early in call-stack.
 constexpr inline int CALL_FRAMES_DEFAULT = 10;
 

@@ -28,8 +28,6 @@ class ByteCode
         void clearPool();
 
     public:
-        ui8 depth{0};
-
         ByteCode();
         ByteCode(const vByte& block);
         ByteCode(const vByte& block, const vObj& pool);

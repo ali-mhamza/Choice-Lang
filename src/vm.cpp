@@ -3,8 +3,8 @@
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
-#include "../include/opcodes.h"
 #include "../include/object.h"
+#include "../include/opcodes.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -20,33 +20,32 @@
         do {                    \
             regSlot = slot;     \
         } while (false)
-    
+
     #undef MAX
     #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-    
+
     #define SET_REGSLOT_MAX(a, b)   \
         do {                        \
             regSlot = MAX(a, b);    \
         } while (false)
+
+    #undef MAX
 #else
     #define SET_REGSLOT(slot)
     #define SET_REGSLOT_MAX(a, b)
 #endif
 
-#undef MAX
-#define MAX(a, b) (a > b ? a : b)
-
 VM::VM() :
-    registers(new Object[regSize])
+    globalRegisters(new Object[regSize])
 {
     for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
-        registers[i] = Object(Natives::FuncType(i));
+        globalRegisters[i] = Object(Natives::FuncType(i));
     SET_REGSLOT(Natives::NUM_FUNCS);
 }
 
 VM::~VM()
 {
-    delete[] registers;
+    delete[] globalRegisters;
 }
 
 inline ui8 VM::readByte()
@@ -90,15 +89,16 @@ inline bool VM::isTruthy(const Object& obj)
     }
 }
 
-inline Cell* VM::captureValue(ui8 depth, ui8 slot)
+inline Cell* VM::captureValue(ui8 slot)
 {
-    Object* addr = depthRecords[depth].window + slot;
+    // We always capture from the current scope.
+    Object* addr = registers + slot;
     for (auto it = activeCells.rbegin(); it != activeCells.rend(); it++)
     {
         Cell* cell = *it;
         if (cell->location < addr)
             break;
-        if (cell->location == addr)
+        else if (cell->location == addr)
             return cell;
     }
 
@@ -115,14 +115,14 @@ inline Cell* VM::captureValue(ui8 depth, ui8 slot)
     return cell;
 }
 
-inline void VM::closeCells()
+inline void VM::closeCells(Object* limit)
 {
     // Close all cells that were declared *in this scope*.
     // Do not clear or close ALL cells.
     while (!activeCells.empty())
     {
         Cell* cell = activeCells.back();
-        if (cell->location < registers)
+        if (cell->location < limit)
             break;
         cell->close();
         activeCells.pop_back();
@@ -143,19 +143,6 @@ inline void VM::closeCells()
     }
 #endif
 
-inline void VM::pushScope(ui8 depth, Object* window, Cell** cells)
-{
-    scopeUndo.push_back({depth, depthRecords[depth]});
-    depthRecords[depth] = { window, cells };
-}
-
-inline void VM::popScope()
-{
-    const auto& scope = scopeUndo.back();
-    depthRecords[scope.offset] = scope.record;
-    scopeUndo.pop_back();
-}
-
 inline void VM::clearScopes(bool keepGlobal)
 {
     if (frames.size() == 0) return;
@@ -164,8 +151,6 @@ inline void VM::clearScopes(bool keepGlobal)
         frames.resize(1);
     else
         frames.clear();
-
-    scopeUndo.clear();
 }
 
 inline Object VM::loadOper()
@@ -382,8 +367,7 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 
     const ByteCode& code = func->code;
     frames.emplace_back(CallFrame::Args{
-        currentFunc, registers, ip,
-        static_cast<ui8>(code.depth - 1)
+        currentFunc, registers, ip
         #if WATCH_EXEC
         , this->dis
         #endif
@@ -398,9 +382,6 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
     #if WATCH_EXEC
         this->dis = new Disassembler(code);
     #endif
-
-    Cell** cells = (func->cells.empty() ? nullptr : &(func->cells[0]));
-    pushScope(code.depth, registers, cells);
 }
 
 void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
@@ -446,47 +427,46 @@ inline void VM::restoreData()
     #endif
 
     frames.pop_back();
-    popScope();
 }
 
 // Handle regSlot.
-void VM::handleIter(Opcode oper)
+void VM::startIter()
 {
-    if (oper == OP_MAKE_ITER)
+    Object& var = registers[readByte()];
+    Object& iterable = registers[readByte()];
+
+    ObjIter* iter;
+    if ((iter = iterable.makeIter()) == nullptr)
+        throw TypeMismatch(
+            "Given object is not iterable.",
+            OBJ_ITER,
+            iterable.type
+        );
+
+    if (iter->start(var))
     {
-        Object& var = registers[readByte()];
-        Object& iterable = registers[readByte()];
-
-        ObjIter* iter;
-        if ((iter = iterable.makeIter()) == nullptr)
-            throw TypeMismatch(
-                "Given object is not iterable.",
-                OBJ_ITER,
-                iterable.type
-            );
-
-        if (iter->start(var))
-        {
-            iterable = Object(iter);
-            ip += 3; // Skip our fail-case jump.
-            #if WATCH_EXEC
-                this->dis->ip += 3;
-            #endif
-        }
+        iterable = Object(iter);
+        ip += 3; // Skip our fail-case jump.
+        #if WATCH_EXEC
+            this->dis->ip += 3;
+        #endif
     }
-    else if (oper == OP_UPDATE_ITER)
-    {
-        Object& var = registers[readByte()];
-        Object& iter = registers[readByte()];
-        ui16 jump = readShort();
+}
 
-        if (AS_(iter, iter)->next(var))
-        {
-            ip -= jump;
-            #if WATCH_EXEC
-                this->dis->ip -= jump;
-            #endif
-        }
+void VM::updateIter()
+{
+    closeCells(scopeStarts.back());
+
+    Object& var = registers[readByte()];
+    Object& iter = registers[readByte()];
+    ui16 jump = readShort();
+
+    if (AS_(iter, iter)->next(var))
+    {
+        ip -= jump;
+        #if WATCH_EXEC
+            this->dis->ip -= jump;
+        #endif
     }
 }
 
@@ -624,7 +604,7 @@ void VM::executeOp(Opcode op)
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            COPY(registers[dest], depthRecords[0].window[src]);
+            COPY(registers[dest], globalRegisters[src]);
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -633,7 +613,7 @@ void VM::executeOp(Opcode op)
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            COPY(depthRecords[0].window[dest], registers[src]);
+            COPY(globalRegisters[dest], registers[src]);
             DISPATCH();
         }
 
@@ -702,9 +682,13 @@ void VM::executeOp(Opcode op)
         }
 
         CASE(OP_MAKE_ITER):
+        {
+            startIter();
+            DISPATCH();
+        }
         CASE(OP_UPDATE_ITER):
         {
-            handleIter(op);
+            updateIter();
             DISPATCH();
         }
         
@@ -795,7 +779,7 @@ void VM::executeOp(Opcode op)
 
             // Correct regSlot after return.
             restoreData();
-            closeCells();
+            closeCells(registers);
             DISPATCH();
         }
         CASE(OP_VOID):
@@ -809,24 +793,29 @@ void VM::executeOp(Opcode op)
         CASE(OP_CAPTURE_VAL):
         {
             auto* func = AS_(func, registers[readByte()]);
-            ui8 depth = readByte();
             ui8 slot = readByte();
 
-            func->cells.push(captureValue(depth, slot));
+            func->cells.push(captureValue(slot));
             DISPATCH();
         }
         CASE(OP_CAPTURE_CELL):
         {
             auto* func = AS_(func, registers[readByte()]);
-            ui8 depth = readByte();
             ui8 index = readByte();
 
-            func->cells.push(depthRecords[depth].cells[index]);
+            func->cells.push(currentFunc->cells[index]);
+            DISPATCH();
+        }
+
+        CASE(OP_ENTER_SCOPE):
+        {
+            scopeStarts.emplace_back(registers + readByte());
             DISPATCH();
         }
         CASE(OP_EXIT_SCOPE):
         {
-            closeCells();
+            closeCells(scopeStarts.back());
+            scopeStarts.pop_back();
             DISPATCH();
         }
 
@@ -845,6 +834,7 @@ void VM::executeOp(Opcode op)
 void VM::executeCode(Function* script)
 {
     currentFunc = script;
+    registers = globalRegisters;
     ip = script->code.block.data();
     end = ip + script->code.block.size();
     pool = script->code.pool.data();
@@ -855,11 +845,8 @@ void VM::executeCode(Function* script)
     #endif
 
     frames.reserve(CALL_FRAMES_DEFAULT);
-    depthRecords.reserve(MAX_SCOPE_DEPTH);
-    scopeUndo.reserve(MAX_SCOPE_DEPTH);
+    scopeStarts.reserve(MAX_SCOPE_DEPTH);
     activeCells.reserve(CODE_MAX);
-
-    depthRecords[0] = {registers, nullptr};
 
     try
     {
@@ -902,7 +889,7 @@ void VM::executeCode(Function* script)
 
 VM::CallFrame::CallFrame(const Args& args) :
     function(args.function), regStart(args.regStart),
-    ip(args.ip), offset(args.offset)
+    ip(args.ip)
     #if WATCH_EXEC
     , dis(args.dis)
     #endif

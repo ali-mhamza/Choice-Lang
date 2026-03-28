@@ -48,20 +48,40 @@ class ASTCompiler
         )
 
     private:
+        enum VarType : ui8
+        {
+            GLOBAL,
+            CELL,
+            LOCAL
+        };
+
         struct VarInfo
+        {
+            // Whether or not the variable was found.
+            bool found;
+            // The slot/cell index of the variable.
+            ui8 slot{0};
+
+            // Variable location type.
+            VarType type{};
+
+            // Whether or not variable is mutable.
+            bool access{false};
+            // Whether or not variable is contained in a cell in the enclosing function.
+            // False by default for non-captured (global/local) variables.
+            bool inCell{false};
+        };
+
+        struct LocalInfo
         {
             bool found;
             ui8 slot{0};
-            ui8 scope{0}; // Block scope depth.
-            ui8 depth{0}; // Function scope depth.
-            bool access{false};
         };
 
         struct CellInfo
         {
-            ui8 depth;
             ui8 slot;
-            bool captured;
+            bool inCell;
         };
 
         ByteCode code;
@@ -90,11 +110,16 @@ class ASTCompiler
         inline void addVariableOp(bool type, const VarInfo& info, ui8 dest,
             ui8 src);
         inline void defVar(std::string name, ui8 reg, bool access);
+
         inline bool getAccess(ui8 reg);
-        inline VarInfo getVarInfo(const Token& token);
-        inline CellInfo getCell(const std::string& name, const VarInfo& info);
-        // Returns true if a new capture has been made.
-        inline bool captureVariable(const Token& token, const VarInfo& info);
+        // Check if variable is already defined in local scope
+        // (for declaration compiling helpers).
+        inline LocalInfo getScopeLocal(const Token& token);
+        // Properly resolve a variable, recursively capturing
+        // cells from enclosing scopes if needed.
+        inline VarInfo resolveVariable(const Token& token);
+        inline ui8 captureVariable(const Token& token, const VarInfo& info);
+
         inline void pushScope();
         inline void popScope();
 
@@ -125,7 +150,7 @@ class ASTCompiler
         void forLoopHelper(std::unique_ptr<ForStmt>& node, ui8 varReg,
             ui8 iterReg);
         DECL(ForStmt);
-        void matchCaseHelper(MatchStmt::matchCase& checkCase, const ui8 matchReg,
+        void matchCaseHelper(MatchStmt::MatchCase& checkCase, const ui8 matchReg,
             ui64& fallJump, ui64& emptyJump);
         DECL(MatchStmt);
         DECL(RepeatStmt);
@@ -141,7 +166,7 @@ class ASTCompiler
         DECL(TupleExpr);
         // Helper.
         void compoundAssign(std::unique_ptr<AssignExpr>& node,
-            const VarInfo& info, bool cellUsed);
+            const VarInfo& info);
         DECL(AssignExpr);
         DECL(LogicExpr);
         DECL(CompareExpr);

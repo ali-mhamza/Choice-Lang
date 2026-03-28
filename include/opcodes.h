@@ -79,7 +79,6 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_VOID,			// Load an invalid (void) return value.
 	OP_CAPTURE_VAL,		// Capture a value from a surrounding scope into a cell.
 	OP_CAPTURE_CELL,	// Capture a cell from a surrounding scope.
-	OP_EXIT_SCOPE,		// Mark that a scope is being exited (for internal use).
 
 	/* Loop specifics. */
 
@@ -95,6 +94,9 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_BYTE_OPER,		// Operand is a single byte.
 	OP_SHORT_OPER,		// Operand is two bytes.
 	OP_LONG_OPER,		// Operand is four bytes.
+
+	OP_ENTER_SCOPE,		// Mark that a scope is being entered (for internal use).
+	OP_EXIT_SCOPE,		// Mark that a scope is being exited (for internal use).
 
 	OP_LOAD_R,			// Load a constant into a register.
 	OP_MOVE_R,			// Move a register's value into another register.
@@ -125,12 +127,14 @@ static std::string_view opNames[] = {
 	"OP_TUPLE", "OP_EXT_TUPLE",
 
 	"OP_CALL_NAT", "OP_CALL_DEF", "OP_RETURN", "OP_VOID",
-	"OP_CAPTURE_VAL", "OP_CAPTURE_CELL", "OP_EXIT_SCOPE",
+	"OP_CAPTURE_VAL", "OP_CAPTURE_CELL",
 
 	"OP_MAKE_ITER", "OP_UPDATE_ITER",
 
 	"OP_JUMP", "OP_JUMP_TRUE", "OP_JUMP_FALSE", "OP_LOOP",
 	"OP_BYTE_OPER", "OP_SHORT_OPER", "OP_LONG_OPER",
+
+	"OP_ENTER_SCOPE", "OP_EXIT_SCOPE",
 
 	"OP_LOAD_R", "OP_MOVE_R", "OP_PRINT_VALID"
 };
