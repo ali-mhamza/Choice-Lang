@@ -141,6 +141,7 @@ ui64 ByteCode::countPool() const
 			switch (obj.type)
 			{
 				case OBJ_FUNC:
+				case OBJ_LAMBDA:
 				{
 					const Function& func = *(AS_(func, obj));
 					// Added type byte (1) and null byte (1)
