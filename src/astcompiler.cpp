@@ -517,7 +517,8 @@ DEF(ReturnStmt)
     else
         code.addOp(OP_VOID, reg);
     code.addOp(OP_RETURN, reg);
-    freeReg();
+
+    if (node->expr != nullptr) freeReg();
 }
 
 DEF(BreakStmt)
