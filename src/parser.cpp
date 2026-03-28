@@ -331,7 +331,7 @@ StmtUP Parser::matchStmt()
         if (static_cast<int>(cases.size()) == MATCH_CASES_MAX)
             REPORT_SEMANTIC(currentTok,
                 "Too many cases in match-is structure.");
-        
+
         MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
         ExprUP value;
         bool defaultCase = false;
@@ -345,9 +345,12 @@ StmtUP Parser::matchStmt()
         {
             Token errorToken = currentTok;
             value = primary();
+            // This is a bit too strict.
+            // Prohibits variables and even lists.
+            // Maybe just keep it as a general expression since the bytecode
+            // doesn't change.
             if ((value == nullptr) || (value->type != E_LITERAL_EXPR))
-                REPORT_SEMANTIC(errorToken,
-                    "Case value must be a literal.");
+                REPORT_SEMANTIC(errorToken, "Case value must be a literal.");
         }
 
         MATCH_TOK(TOK_COLON, "Expect ':' before case body.");
