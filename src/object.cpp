@@ -117,10 +117,11 @@ bool Object::operator==(const Object& other) const
         case OBJ_TYPE:      return AS_(type, *this) == AS_(type, other);
         case OBJ_NATIVE:    return AS_(native, *this) == AS_(native, other);
         case OBJ_FUNC:
-        case OBJ_LAMBDA:    return AS_(func, *this) == AS_(func, other);
-        case OBJ_STRING:    return AS_(string, *this) == AS_(string, other);
-        case OBJ_RANGE:     return AS_(range, *this) == AS_(range, other);
-        case OBJ_LIST:      return AS_(list, *this) == AS_(list, other);
+        case OBJ_LAMBDA:    return *(AS_(func, *this)) == *(AS_(func, other));
+        case OBJ_CLOSURE:   return *(AS_(closure, *this)) == *(AS_(closure, other));
+        case OBJ_STRING:    return *(AS_(string, *this)) == *(AS_(string, other));
+        case OBJ_RANGE:     return *(AS_(range, *this)) == *(AS_(range, other));
+        case OBJ_LIST:      return *(AS_(list, *this)) == *(AS_(list, other));
         // TODO: Tuples shouldn't be comparable.
         default: CH_UNREACHABLE();
     }
@@ -151,6 +152,7 @@ std::string Object::printVal() const
         case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
         case OBJ_NATIVE:    return CH_STR("<builtin {}>", funcNames[AS_(native, *this)]);
         case OBJ_FUNC:      return CH_STR("<func {}>", AS_(func, *this)->name);
+        case OBJ_CLOSURE:   return CH_STR("<func {}>", AS_(closure, *this)->function->name);
         case OBJ_LAMBDA:    return "<lambda>";
         case OBJ_STRING:    return AS_(string, *this)->printVal();
         case OBJ_RANGE:     return AS_(range, *this)->printVal();
@@ -218,7 +220,7 @@ HeapObj::HeapObj(ObjType type) :
     type(type), refCount(0) {}
 
 Cell::Cell(Object* location) :
-    location(location) {}
+    location(location), refCount(0) {}
 
 void Cell::close()
 {
@@ -271,6 +273,40 @@ void Function::emit(std::ofstream& os) const
     const vObj& pool = code.pool;
 	for (const Object& constant : pool)
 		constant.emit(os);
+}
+
+Closure::Closure(Function* function) :
+    HeapObj(OBJ_CLOSURE),
+    function(function)
+{
+    function->refCount++;
+}
+
+Closure::~Closure()
+{
+    #if !USE_ALLOC
+        for (Cell* cell : cells)
+        {
+            cell->refCount--;
+            if (cell->refCount == 0)
+                delete cell;
+        }
+
+        function->refCount--;
+        if (function->refCount == 0)
+            delete function;
+    #endif
+}
+
+bool Closure::operator==(const Closure& other) const
+{
+    return (this == &other);
+}
+
+void Closure::addCell(Cell* cell)
+{
+    cell->refCount++;
+    cells.push(cell);
 }
 
 String::String(const std::string& str) :

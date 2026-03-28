@@ -258,8 +258,11 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
         func = CH_ALLOC(Function, funcCode, params.size());
     else
         func = CH_ALLOC(Function, name, funcCode, params.size());
+
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
+    if (miniCompiler.captures.size() != 0)
+        code.addOp(OP_CLOSURE, funcReg);
 
     for (const auto& info : miniCompiler.captures)
     {

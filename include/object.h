@@ -22,6 +22,7 @@ enum ObjType
     OBJ_TYPE,
     OBJ_NATIVE,
     OBJ_FUNC,
+    OBJ_CLOSURE,
     OBJ_LAMBDA,
     OBJ_BIGINT,
     OBJ_BIGDEC,
@@ -29,12 +30,18 @@ enum ObjType
     OBJ_RANGE,
     OBJ_LIST,
     OBJ_TABLE,
+
+    // Internal types.
+
+    // Used in function return values.
     OBJ_TUPLE,
-    // OBJ_NUM only used with TypeMismatch (below).
-    // Not to be stored in any Object.
+    // Used to initialize function objects from the constant pool.
+    OBJ_CODEOBJ,
+    // Used in TypeMismatch errors.
     OBJ_NUM,
-    // Only used internally for for-loops.
+    // Used in for-loops.
     OBJ_ITER,
+
     OBJ_INVALID,
 };
 
@@ -42,12 +49,20 @@ enum ObjType
 /* Type check and validation macros. */
 
 #define IS_(TYPE, obj)      ((obj).type == OBJ_##TYPE)
-#define IS_FUNC(obj)        (((obj).type == OBJ_FUNC) || ((obj).type == OBJ_LAMBDA))
+// Object is a function object.
+#define IS_FUNC(obj) \
+    (((obj).type == OBJ_FUNC) || ((obj).type == OBJ_LAMBDA) || ((obj).type == OBJ_CLOSURE))
+// Object can be called.
 #define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_FUNC(obj))
-#define IS_HEAP_OBJ(obj)    (((obj).type > OBJ_NATIVE) && ((obj).type < OBJ_NUM))
+// Object is allocated/involves allocation on the heap.
+#define IS_HEAP_OBJ(obj)    (((obj).type >= OBJ_FUNC) && ((obj).type <= OBJ_TUPLE))
+// Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
+// Object is iterable.
 #define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
+// Object data is stored in-line within the object as a payload.
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_(ITER, obj))
+// Object is a valid, initialized object.
 #define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 
 
@@ -62,6 +77,7 @@ enum ObjType
 /* Forward declarations. */
 
 struct Function;
+struct Closure;
 struct String;
 struct Range;
 struct List;
@@ -87,6 +103,7 @@ class Object
             ObjType     typeVal;
             FuncType    nativeVal;
             Function*   funcVal;
+            Closure*    closureVal;
             String*     stringVal;
             Range*      rangeVal;
             List*       listVal;
@@ -189,8 +206,8 @@ struct Cell
 {
     Object* location;
     Object obj;
+    int refCount;
 
-    Cell() = default;
     Cell(Object* location);
     void close();
 };
@@ -199,7 +216,6 @@ struct Function : public HeapObj
 {
     char* name;
     ByteCode code;
-    Array<Cell*> cells;
     ui8 argCount;
     bool lambda;
 
@@ -212,6 +228,19 @@ struct Function : public HeapObj
     void emit(std::ofstream& os) const;
 };
 
+struct Closure : public HeapObj
+{
+    Function* function;
+    Array<Cell*> cells;
+
+    Closure(Function* function);
+    ~Closure();
+
+    bool operator==(const Closure& other) const;
+
+    void addCell(Cell* cell);
+};
+
 struct String : public HeapObj
 {
     std::string str;
@@ -219,9 +248,10 @@ struct String : public HeapObj
     String(const std::string& str);
     String(const std::string_view& view);
     String(const char* str, size_t len = -1);
-    bool operator==(const String& other) const;
 
+    bool operator==(const String& other) const;
     bool contains(const String& substr) const;
+
     std::string printVal() const;
     void emit(std::ofstream& os) const;
 };
@@ -233,9 +263,10 @@ struct Range : public HeapObj
     i64 step;
 
     Range(const std::array<i64, 3>& limits);
-    bool operator==(const Range& other) const;
 
+    bool operator==(const Range& other) const;
     bool contains(const i64 num) const;
+
     std::string printVal() const;
     void emit(std::ofstream& os) const;
 };
@@ -245,9 +276,10 @@ struct List : public HeapObj
     Array<Object> array;
 
     List(ui32 size);
-    bool operator==(const List& other) const;
 
+    bool operator==(const List& other) const;
     bool contains(const Object& obj) const;
+
     std::string printVal() const;
 };
 

@@ -24,6 +24,7 @@ class VM
             struct Args
             {
                 Function* function;
+                Closure* closure;
                 Object* regStart;
                 const ui8* ip;
 
@@ -33,6 +34,7 @@ class VM
             };
 
             Function* function;
+            Closure* closure;
             Object* regStart;
             const ui8* ip;
 
@@ -45,6 +47,7 @@ class VM
         };
 
         Function* currentFunc{nullptr};
+        Closure* currentClosure{nullptr};
         const ui8* ip{nullptr};
         const ui8* end{nullptr};
         static constexpr size_t regSize = 4096;

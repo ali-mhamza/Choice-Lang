@@ -77,6 +77,8 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_CALL_DEF,		// Call a user-defined function.
 	OP_RETURN,			// Return a value.
 	OP_VOID,			// Load an invalid (void) return value.
+
+	OP_CLOSURE,			// Create a closure with an environment from a loaded function object.
 	OP_CAPTURE_VAL,		// Capture a value from a surrounding scope into a cell.
 	OP_CAPTURE_CELL,	// Capture a cell from a surrounding scope.
 
@@ -127,7 +129,8 @@ static std::string_view opNames[] = {
 	"OP_TUPLE", "OP_EXT_TUPLE",
 
 	"OP_CALL_NAT", "OP_CALL_DEF", "OP_RETURN", "OP_VOID",
-	"OP_CAPTURE_VAL", "OP_CAPTURE_CELL",
+
+	"OP_CLOSURE", "OP_CAPTURE_VAL", "OP_CAPTURE_CELL",
 
 	"OP_MAKE_ITER", "OP_UPDATE_ITER",
 

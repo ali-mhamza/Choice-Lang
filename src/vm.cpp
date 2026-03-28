@@ -355,7 +355,20 @@ Object VM::unaryOper(Opcode op, ui8 oper)
 
 void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 {
-    Function* func = AS_(func, callee);
+    Function* func;
+    Closure* closure;
+
+    if (IS_(CLOSURE, callee))
+    {
+        closure = AS_(closure, callee);
+        func = closure->function;
+    }
+    else
+    {
+        closure = nullptr;
+        func = AS_(func, callee);
+    }
+
     if (func->argCount != argCount)
     {
         throw RuntimeError(
@@ -367,13 +380,14 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 
     const ByteCode& code = func->code;
     frames.emplace_back(CallFrame::Args{
-        currentFunc, registers, ip
+        currentFunc, currentClosure, registers, ip
         #if WATCH_EXEC
         , this->dis
         #endif
     });
 
     currentFunc = func;
+    currentClosure = closure;
     registers += start;
     ip = code.block.data();
     end = ip + code.block.size();
@@ -405,6 +419,7 @@ void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
             callNative(callee, start, argCount);
             break;
         case OBJ_FUNC:
+        case OBJ_CLOSURE:
         case OBJ_LAMBDA:
             callFunc(callee, start, argCount);
             break;
@@ -622,7 +637,7 @@ void VM::executeOp(Opcode op)
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            COPY(registers[dest], *(currentFunc->cells[src]->location));
+            COPY(registers[dest], *(currentClosure->cells[src]->location));
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -631,7 +646,7 @@ void VM::executeOp(Opcode op)
             ui8 dest = readByte();
             ui8 src = readByte();
 
-            COPY(*(currentFunc->cells[dest]->location), registers[src]);
+            COPY(*(currentClosure->cells[dest]->location), registers[src]);
             DISPATCH();
         }
 
@@ -790,20 +805,27 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        CASE(OP_CLOSURE):
+        {
+            ui8 slot = readByte();
+            auto* func = AS_(func, registers[slot]);
+            registers[slot] = CH_ALLOC(Closure, func);
+            DISPATCH();
+        }
         CASE(OP_CAPTURE_VAL):
         {
-            auto* func = AS_(func, registers[readByte()]);
+            auto* closure = AS_(closure, registers[readByte()]);
             ui8 slot = readByte();
 
-            func->cells.push(captureValue(slot));
+            closure->addCell(captureValue(slot));
             DISPATCH();
         }
         CASE(OP_CAPTURE_CELL):
         {
-            auto* func = AS_(func, registers[readByte()]);
+            auto* closure = AS_(closure, registers[readByte()]);
             ui8 index = readByte();
 
-            func->cells.push(currentFunc->cells[index]);
+            closure->addCell(currentClosure->cells[index]);
             DISPATCH();
         }
 
@@ -834,6 +856,9 @@ void VM::executeOp(Opcode op)
 void VM::executeCode(Function* script)
 {
     currentFunc = script;
+    // The global scope doesn't capture any variables,
+    // so it doesn't need to have an active closure.
+    currentClosure = nullptr;
     registers = globalRegisters;
     ip = script->code.block.data();
     end = ip + script->code.block.size();
@@ -888,7 +913,9 @@ void VM::executeCode(Function* script)
 /* FuncContext logic. */
 
 VM::CallFrame::CallFrame(const Args& args) :
-    function(args.function), regStart(args.regStart),
+    function(args.function),
+    closure(args.closure),
+    regStart(args.regStart),
     ip(args.ip)
     #if WATCH_EXEC
     , dis(args.dis)
