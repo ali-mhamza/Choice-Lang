@@ -125,7 +125,9 @@ void Parser::matchType(std::string_view message /* = "" */)
 
 StmtUP Parser::declaration()
 {
-    if (consumeToks(TOK_MAKE, TOK_FIX))
+    if (consumeTok(TOK_SEMICOLON)) // Empty statement.
+        return nullptr;
+    else if (consumeToks(TOK_MAKE, TOK_FIX))
         return varDecl();
     else if (consumeTok(TOK_FUNC))
         return funDecl();

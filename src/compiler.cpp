@@ -215,7 +215,9 @@ inline void Compiler::setCompilerData(Compiler* other)
 
 void Compiler::declaration()
 {
-    if (consumeToks(TOK_MAKE, TOK_FIX))
+    if (consumeTok(TOK_SEMICOLON))
+        return;
+    else if (consumeToks(TOK_MAKE, TOK_FIX))
         varDecl();
     else if (consumeTok(TOK_FUNC))
         funDecl();
