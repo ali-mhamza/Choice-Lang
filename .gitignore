@@ -16,6 +16,7 @@
 
 # Comparison test and benchmark scripts.
 programs/
+test/
 *.sh
 
 # Extra directories with notes or build files/

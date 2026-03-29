@@ -37,6 +37,10 @@ OBJ_DIR = build
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
+TEST_DIR = test
+PYTHON = python3
+PY_TEST_FILE = run_tests.py
+
 all: $(NAME)
 
 $(NAME): $(OBJS) $(REPL_LIB)
@@ -61,6 +65,11 @@ release: CXXFLAGS += $(RELEASE_FLAGS)
 release: NAME = $(RELEASE)
 release: ast
 
+test:
+	@	cd $(TEST_DIR) && \
+		$(PYTHON) $(PY_TEST_FILE) && \
+		cd ..
+
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
@@ -84,4 +93,4 @@ re: fclean all
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all clean fclean re
+.PHONY: all ast type opt debug release test clean fclean re
