@@ -66,9 +66,7 @@ release: NAME = $(RELEASE)
 release: ast
 
 test:
-	@	cd $(TEST_DIR) && \
-		$(PYTHON) $(PY_TEST_FILE) && \
-		cd ..
+	@$(PYTHON) $(TEST_DIR)/$(PY_TEST_FILE)
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
