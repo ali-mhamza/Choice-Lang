@@ -359,10 +359,21 @@ bool Range::operator==(const Range& other) const
 
 bool Range::contains(const i64 num) const
 {
-    for (i64 i = start; i <= stop; i += step)
+    if (start <= stop)
     {
-        if (num == i)
-            return true;
+        for (i64 i = start; i <= stop; i += step)
+        {
+            if (num == i)
+                return true;
+        }
+    }
+    else
+    {
+        for (i64 i = start; i >= stop; i -= step)
+        {
+            if (num == i)
+                return true;
+        }
     }
 
     return false;
@@ -509,7 +520,7 @@ RangeIter::RangeIter() :
     obj(nullptr), val(0) {}
 
 RangeIter::RangeIter(Range* obj) :
-    obj(obj), val(obj->start)
+    obj(obj), val(0)
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -549,16 +560,19 @@ RangeIter::~RangeIter()
 
 bool RangeIter::start(Object& var)
 {
-    if (obj->start > obj->stop)
-        return false;
-    var = Object(obj->start);
+    val = obj->start;
+    var = Object(val);
     return true;
 }
 
 bool RangeIter::next(Object& var)
 {
-    val += obj->step;
-    if (val > obj->stop) return false;
+    bool reverse = (obj->start > obj->stop);
+    val += (reverse ? -1 : 1) * obj->step;
+    if (!reverse && (val > obj->stop))
+        return false;
+    else if (reverse && (val < obj->stop))
+        return false;
     AS_(int, var) = val;
     return true;
 }
