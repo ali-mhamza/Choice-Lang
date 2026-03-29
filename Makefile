@@ -37,9 +37,18 @@ OBJ_DIR = build
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
+# Testing.
+
 TEST_DIR = test
 PYTHON = python3
 PY_TEST_FILE = run_tests.py
+TEST_QUIET = off
+
+ifeq ($(TEST_QUIET),off)
+	TEST_CMD = $(PYTHON) $(TEST_DIR)/$(PY_TEST_FILE)
+else
+	TEST_CMD = $(PYTHON) $(TEST_DIR)/$(PY_TEST_FILE) --quiet
+endif
 
 all: $(NAME)
 
@@ -66,8 +75,7 @@ release: NAME = $(RELEASE)
 release: ast
 
 test:
-	@$(PYTHON) $(TEST_DIR)/$(PY_TEST_FILE)
-
+	@$(TEST_CMD)
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
