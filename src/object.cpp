@@ -11,8 +11,9 @@ using Natives::funcNames;
 
 static std::string_view objTypes[] = {
     "int", "dec", "bool", "null", "type", "builtin function",
-    "user function", "lambda", "bigint", "bigdec", "string", "range",
-    "list", "table", "tuple", "num", "iterable"
+    "user function", "user function", "lambda", "bigint",
+    "bigdec", "string", "range", "list", "table", "tuple",
+    "num", "iterable"
 };
 
 /* Object. */
