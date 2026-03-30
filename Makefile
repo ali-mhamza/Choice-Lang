@@ -40,6 +40,7 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 # Testing.
 
 TEST_DIR = test
+TEST_COUNT = $(shell find ${TEST_DIR} -type f | grep .ch | wc -l)
 PYTHON = python3
 PY_TEST_FILE = run_tests.py
 TEST_QUIET = off
@@ -75,7 +76,9 @@ release: NAME = $(RELEASE)
 release: ast
 
 test:
+	@echo "Running $(TEST_COUNT) tests...\n"
 	@$(TEST_CMD)
+
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
