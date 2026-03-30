@@ -187,17 +187,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
         case OBJ_RANGE:
         {
             auto* range = AS_(range, obj);
-            if (range->step == 1)
-                len = range->stop - range->start + 1;
-            else
-            {
-                i64 temp = range->start;
-                while (temp <= range->stop)
-                {
-                    len++;
-                    temp += range->step;
-                }
-            }
+            len = range->length();
             break;
         }
         case OBJ_LIST:

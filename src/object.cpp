@@ -414,6 +414,38 @@ bool Range::contains(const i64 num) const
     return false;
 }
 
+i64 Range::length() const
+{
+    if (step == 1)
+    {
+        if (start <= stop)
+            return stop - start + 1;
+        else
+            return start - stop + 1;
+    }
+
+    i64 temp{start};
+    i64 len{0};
+    if (start <= stop)
+    {
+        while (temp <= stop)
+        {
+            len++;
+            temp += step;
+        }
+    }
+    else
+    {
+        while (temp >= stop)
+        {
+            len++;
+            temp -= step;
+        }
+    }
+
+    return len;
+}
+
 std::string Range::printVal() const
 {
     auto retStr = CH_STR("{}..{}", start, stop);

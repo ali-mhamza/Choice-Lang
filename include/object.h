@@ -266,6 +266,7 @@ struct Range : public HeapObj
     bool operator==(const Range& other) const;
     bool contains(const i64 num) const;
 
+    i64 length() const;
     std::string printVal() const;
     void emit(std::ofstream& os) const;
 };
