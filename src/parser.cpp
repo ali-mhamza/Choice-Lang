@@ -625,7 +625,7 @@ ExprUP Parser::exponent()
     while (consumeTok(TOK_STAR_STAR))
     {
         TokenType oper = previousTok.type;
-        expr = std::make_unique<BinaryExpr>(expr, oper, call());
+        expr = std::make_unique<BinaryExpr>(expr, oper, exponent());
     }
 
     return expr;

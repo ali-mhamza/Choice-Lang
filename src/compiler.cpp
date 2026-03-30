@@ -1115,7 +1115,16 @@ void Compiler::unary()
 
 void Compiler::exponent()
 {
-    compileDescent(&Compiler::call, TOK_STAR_STAR, OP_POWER);
+    ui8 firstOper = previousReg;
+    call();
+
+    while (consumeTok(tok))
+    {
+        ui8 secondOper = previousReg;
+        exponent();
+        code.addOp(OP_POWER, depth, firstOper, secondOper);
+        freeReg();
+    }
 }
 
 void Compiler::call()
