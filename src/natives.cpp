@@ -45,7 +45,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
         {
             // Fast path printing.
             case OBJ_INT:   CH_PRINT("{}", AS_(int, it[i]));        break;
-            case OBJ_DEC:   CH_PRINT("{:.6f}", AS_(dec, it[i]));    break;
+            case OBJ_DEC:   CH_PRINT("{:.6}", AS_(dec, it[i]));     break;
             case OBJ_BOOL:  CH_PRINT("{}", AS_(bool, it[i]));       break;
             case OBJ_NULL:  CH_PRINT("null");                       break;
             case OBJ_STRING:
