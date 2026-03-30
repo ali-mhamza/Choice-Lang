@@ -190,25 +190,46 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
             case OP_ADD:    return aVal + bVal;
             case OP_SUB:    return aVal - bVal;
             case OP_MULT:   return aVal * bVal;
-            case OP_DIV:    return (double) aVal / bVal;
-            case OP_MOD:    return aVal % bVal;
-            case OP_POWER:  return i64(pow(aVal, bVal));
+            case OP_DIV:
+            {
+                if (bVal == 0)
+                    throw RuntimeError(Token(), "Division by zero.");
+                return static_cast<double>(aVal) / bVal;
+            }
+            case OP_MOD:
+            {
+                if (bVal == 0)
+                    throw RuntimeError(Token(), "Modulus with divisor zero.");
+                return aVal % bVal;
+            }
+            case OP_POWER:  return static_cast<i64>(pow(aVal, bVal));
             default: CH_UNREACHABLE();
         }
     }
     else if (IS_NUM(a) && IS_NUM(b))
     {
-        double aVal = (double) AS_NUM(a);
-        double bVal = (double) AS_NUM(b);
+        double aVal = static_cast<double>(AS_NUM(a));
+        double bVal = static_cast<double>(AS_NUM(b));
         switch (oper)
         {
             case OP_ADD:    return aVal + bVal;
             case OP_SUB:    return aVal - bVal;
             case OP_MULT:   return aVal * bVal;
-            case OP_DIV:    return aVal / bVal;
+            case OP_DIV:
+            {
+                if (bVal == 0.0)
+                    throw RuntimeError(Token(), "Division by zero.");
+                return aVal / bVal;
+            }
             case OP_POWER:  return pow(aVal, bVal);
-            // Cannot do modulus for non-integers.
-            // Maybe raise an error?
+            case OP_MOD:
+            {
+                throw TypeMismatch(
+                    "Cannot apply modulus operator to non-integers.",
+                    OBJ_INT,
+                    (IS_(INT,a) ? b.type : a.type)
+                );
+            }
             default: CH_UNREACHABLE();
         }
     }
