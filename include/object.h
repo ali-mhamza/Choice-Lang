@@ -125,6 +125,7 @@ class Object
         bool operator==(const Object& other) const;
         bool operator>(const Object& other) const;
         bool operator<(const Object& other) const;
+        bool in(const Object& other) const;
 
         std::string printVal() const;
         std::string_view printType() const;

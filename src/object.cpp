@@ -142,6 +142,40 @@ bool Object::operator<(const Object& other) const
     return AS_NUM(*this) < AS_NUM(other);
 }
 
+bool Object::in(const Object& other) const
+{
+    const Object& obj = *this;    
+
+    if (IS_(STRING, obj) && IS_(STRING, other))
+    {
+        const String& s1 = *(AS_(string, obj));
+        const String& s2 = *(AS_(string, other));
+        return s2.contains(s1);
+    }
+    else if (IS_(INT, obj) && IS_(RANGE, other))
+    {
+        const Range& range = *(AS_(range, other));
+        return range.contains(AS_(int, obj));
+    }
+    else  if (IS_(LIST, other))
+    {
+        const List& list = *(AS_(list, other));
+        return list.contains(obj);
+    }
+    else if (!IS_(STRING, obj) && !IS_(RANGE, other))
+        throw TypeMismatch(
+            "Right operand must be an iterable object.",
+            OBJ_ITER,
+            other.type
+        );
+    else
+        throw TypeMismatch(
+            "Left operand not matching member type of iterable object.",
+            (other.type == OBJ_STRING ? OBJ_STRING : OBJ_INT),
+            obj.type
+        );
+}
+
 std::string Object::printVal() const
 {
     switch (type)

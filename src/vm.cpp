@@ -263,32 +263,7 @@ Object VM::compareOper(Opcode op, ui8 firstOper)
         case OP_EQUAL:  return (a == b);
         case OP_GT:     return (a > b);
         case OP_LT:     return (a < b);
-        case OP_IN:
-        {
-            if (IS_(STRING, a) && IS_(STRING, b))
-            {
-                const String& s1 = *(AS_(string, a));
-                const String& s2 = *(AS_(string, b));
-                return s2.contains(s1);
-            }
-            else if (IS_(INT, a) && IS_(RANGE, b))
-            {
-                const Range& range = *(AS_(range, b));
-                return range.contains(AS_(int, a));
-            }
-            else if (!IS_(STRING, b) && !IS_(RANGE, b))
-                throw TypeMismatch(
-                    "Right operand must be an iterable object.",
-                    OBJ_ITER,
-                    b.type
-                );
-            else
-                throw TypeMismatch(
-                    "Left operand not matching member type of iterable object.",
-                    (b.type == OBJ_STRING ? OBJ_STRING : OBJ_INT),
-                    a.type
-                );
-        }
+        case OP_IN:     return a.in(b);
         default: CH_UNREACHABLE();
     }
 }
