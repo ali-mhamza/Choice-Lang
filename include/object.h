@@ -35,8 +35,6 @@ enum ObjType
 
     // Used in function return values.
     OBJ_TUPLE,
-    // Used to initialize function objects from the constant pool.
-    OBJ_CODEOBJ,
     // Used in TypeMismatch errors.
     OBJ_NUM,
     // Used in for-loops.
