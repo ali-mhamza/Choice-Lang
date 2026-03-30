@@ -1,7 +1,7 @@
 #pragma once
-#include "common.h"
-#include <iostream>
+#include "common.h"     // For Hash, ui8.
 #include <string>
+#include <string_view>
 
 struct VarEntry
 {
@@ -11,7 +11,6 @@ struct VarEntry
     VarEntry() = default;
     VarEntry(std::string_view name, ui8 scope);
     bool operator==(const VarEntry& other) const;
-    friend std::ostream& operator<<(std::ostream& os, const VarEntry& entry);
 };
 
 Hash hashVarEntry(const VarEntry& entry);

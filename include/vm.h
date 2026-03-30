@@ -1,10 +1,7 @@
 #pragma once
-#include "astnodes.h"
-#include "bytecode.h"
-#include "common.h"
+#include "common.h"     // For fixed-size integer types, size_t.
 #include "object.h"
 #include "opcodes.h"
-#include "vartable.h"
 #include <vector>
 
 #if defined(DEBUG)

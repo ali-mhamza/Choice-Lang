@@ -1,11 +1,9 @@
 #pragma once
 #include "bytecode.h"
-#include "common.h"
-#include "object.h"
+#include "common.h"     // For vObj, vByte, vT in multiple function signatures.
+#include <fstream>      // For ifstream in readCache.
 #include <string>
 #include <string_view>
-#include <vector>
-#include <memory>
 
 #ifdef DEBUG
     #define CHECK_EOF()     \

@@ -1,7 +1,7 @@
 #pragma once
-#include "common.h"
+#include "common.h"     // For vByte, vObj, fixed-size integer types.
 #include "opcodes.h"
-#include <fstream>
+#include <fstream>      // For cacheStream() method.
 #include <vector>
 
 class Disassembler;
@@ -17,13 +17,13 @@ class ByteCode
 
         void addByte(ui8 byte);
         template<typename... Bytes>
-        inline void addBytes(Bytes... bytes);
+        void addBytes(Bytes... bytes);
         // Using big endian.
         void addShort(ui16 bytes);
         void addLong(ui32 bytes);
 
+        // Return the size of the constant pool once serialized.
         ui64 countPool() const;
-
         void clearCode();
         void clearPool();
 
@@ -33,22 +33,29 @@ class ByteCode
         ByteCode(const vByte& block, const vObj& pool);
 
         void addOp(Opcode op);
-        template<typename Op, typename... Bytes>
-        inline void addOp(Op op, Bytes... opers);
+        template<typename... Bytes>
+        void addOp(Opcode op, Bytes... opers);
 
-        // i16 to allow negative values while still
-        // fitting all register values.
+        // Add a jump instruction with an optional condition
+        // register
+        // i16 to allow -1 while still fitting all register values.
         ui64 addJump(Opcode op, i16 reg = -1);
+        // Fill in the two-byte operand for a jump instruction.
         void patchJump(ui64 offset);
 
-        inline ui64 getLoopStart() const { return codeSize(); }
+        ui64 getLoopStart() const { return codeSize(); }
         void addLoop(ui64 start);
 
+        // Load a register with an immediate, opcode-based value.
         void loadReg(ui8 reg, ui8 op);
+        // Store a constant in the constant pool, and emit a load
+        // instruction to store it in a register.
         void loadRegConst(Object& constant, ui8 reg);
 
-        inline ui64 codeSize() const { return static_cast<ui64>(block.size()); }
+        ui64 codeSize() const { return static_cast<ui64>(block.size()); }
+        // Serialize a ByteCode object into a file.
         void cacheStream(std::ofstream& os) const;
+        // Clear code and constant pool.
         void clear();
 
         friend class Disassembler;
@@ -57,16 +64,15 @@ class ByteCode
 };
 
 template<typename... Bytes>
-inline void ByteCode::addBytes(Bytes... bytes)
+void ByteCode::addBytes(Bytes... bytes)
 {
     for (ui8 byte : {bytes...})
         addByte(byte);
 }
 
-template<typename Op, typename... Bytes>
-inline void ByteCode::addOp(Op op, Bytes... opers)
+template<typename... Bytes>
+void ByteCode::addOp(Opcode op, Bytes... opers)
 {
     addByte(static_cast<ui8>(op));
-    for (ui8 operand : {opers...})
-        addByte(operand);
+    addBytes(opers...);
 }

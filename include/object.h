@@ -1,14 +1,14 @@
 #pragma once
-#include "bytecode.h"
-#include "common.h"
-#include "natives.h"
-#include "opcodes.h"
-#include "../dependencies/personal/array.h"
-#include "../dependencies/personal/linearTable.h"
-#include <array>
+#include "array.h"          // For Array in multiple object structs.
+#include "linearTable.h"    // For Table object struct.
+
+#include "bytecode.h"       // For Function object struct.
+#include "common.h"         // For fixed-size integer types, macros, etc.
+#include "natives.h"        // For Natives::FuncType.
+#include <array>            // For Range object struct.
 #include <string>
 #include <string_view>
-#include <variant>
+#include <variant>          // For ObjIter.
 using Natives::FuncType;
 
 /* Type enum. */
@@ -31,7 +31,7 @@ enum ObjType
     OBJ_LIST,
     OBJ_TABLE,
 
-    // Internal types.
+    /* Internal types. */
 
     // Used in function return values.
     OBJ_TUPLE,
@@ -66,7 +66,7 @@ enum ObjType
 
 /* Conversion macros. */
 
-#define AS_(TYPE, obj)      ((obj).as.TYPE##Val)
+#define AS_(type, obj)      ((obj).as.type##Val)
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_(INT, obj) ? AS_(int, obj) : AS_(dec, obj))
 #define AS_UINT(obj)        (static_cast<ui64>(AS_(int, obj)))
@@ -214,12 +214,16 @@ struct Cell
 struct Function : public HeapObj
 {
     char* name;
-    ByteCode code;
-    ui8 argCount;
-    bool lambda;
+    const ByteCode code;
+    const ui8 argCount;
+    const bool lambda;
 
-    Function(const ByteCode& code, ui8 argCount);
-    Function(const std::string& name, const ByteCode& code, ui8 argCount);
+    Function(const ByteCode& code, const ui8 argCount);
+    Function(
+        const std::string& name,
+        const ByteCode& code,
+        const ui8 argCount
+    );
     ~Function();
 
     bool operator==(const Function& other) const;
@@ -257,9 +261,9 @@ struct String : public HeapObj
 
 struct Range : public HeapObj
 {
-    i64 start;
-    i64 stop;
-    i64 step;
+    const i64 start;
+    const i64 stop;
+    const i64 step;
 
     Range(const std::array<i64, 3>& limits);
 
@@ -388,11 +392,14 @@ struct CustomDealloc
 
 struct TypeMismatch
 {    
-    std::string message;
-    ObjType expect;
-    ObjType actual;
+    const std::string message;
+    const ObjType expect;
+    const ObjType actual;
 
-    TypeMismatch(const std::string& message, ObjType expect,
-        ObjType actual);
+    TypeMismatch(
+        const std::string& message,
+        const ObjType expect,
+        const ObjType actual
+    );
     void report();
 };

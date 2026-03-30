@@ -1,7 +1,6 @@
 #pragma once
-#include "common.h"
+#include "common.h"		// For ui8 in enum defintion.
 #include <string_view>
-#include <unordered_map>
 
 enum Opcode : ui8 // Each opcode is a single byte.
 {
@@ -15,7 +14,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 	OP_TRUE,			// true
 	OP_FALSE,			// false
 	OP_NULL,			// null
-	
+
 	/* Arithmetic. */
 
 	OP_ADD,				// Add two values.
@@ -108,7 +107,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 
 #define IS_VALID_OP(op)	(((op) >= OP_NEG_TWO) && ((op) < TOTAL_OPS))
 
-static std::string_view opNames[] = {
+constexpr std::string_view opNames[] = {
 	"OP_NEG_TWO", "OP_NEG_ONE", "OP_ZERO", "OP_ONE",
 	"OP_TWO", "OP_TRUE", "OP_FALSE", "OP_NULL",
 

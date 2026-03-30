@@ -13,8 +13,12 @@ class LexError
 
 	public:
 		LexError() = default;
-		LexError(char c, ui16 line, ui8 position,
-			std::string_view message);
+		LexError(
+			char c,
+			ui16 line,
+			ui8 position,
+			std::string_view message
+		);
 
 		void report() const;
 };

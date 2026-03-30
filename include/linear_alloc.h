@@ -1,14 +1,13 @@
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 
 #pragma once
-#include "array.h"
-#include "common.h"
-#include "gen_alloc.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <type_traits>
-#include <utility>
+#include "array.h"      // For allocs field.
+
+#include "common.h"     // For CH_ASSERT_MEM macro.
+#include "gen_alloc.h"  // For multiple macros, helpers.
+#include <cstddef>      // For size_t.
+#include <type_traits>  // For std::is_trivially_destructible in alloc() method.
+#include <utility>      // For std::forward in alloc() method.
 
 class LinearAlloc
 {
@@ -20,7 +19,7 @@ class LinearAlloc
         size_t used;
         size_t cap;
         Array<AllocPair> allocs;
-    
+
     public:
         LinearAlloc(size_t size = BASE_SIZE);
         ~LinearAlloc();

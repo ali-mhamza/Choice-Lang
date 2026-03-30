@@ -1,50 +1,10 @@
 #pragma once
 #include "astnodes.h"
-#include "common.h"
-#include "error.h"
-#include <utility>
+#include "common.h"     // For vT.
+#include <string_view>
 
 class Parser
 {
-    #undef REPORT_SYNTAX
-    #define REPORT_SYNTAX(...)                                          \
-        do {                                                            \
-            hitError = true;                                            \
-            if (syntaxError || (errorCount > COMPILE_ERROR_MAX))        \
-                return nullptr;                                         \
-            if (errorCount == COMPILE_ERROR_MAX)                        \
-            {                                                           \
-                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
-                errorCount++;                                           \
-                return nullptr;                                         \
-            }                                                           \
-            CompileError(__VA_ARGS__).report();                         \
-            syntaxError = true;                                         \
-            errorCount++;                                               \
-            return nullptr;                                             \
-        } while (false)
-
-    #undef REPORT_SEMANTIC
-    #define REPORT_SEMANTIC(...)                                        \
-        do {                                                            \
-            hitError = true;                                            \
-            if (semanticError || (errorCount > COMPILE_ERROR_MAX))      \
-                return nullptr;                                         \
-            if (errorCount == COMPILE_ERROR_MAX)                        \
-            {                                                           \
-                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
-                errorCount++;                                           \
-                return nullptr;                                         \
-            }                                                           \
-            CompileError(__VA_ARGS__).report();                         \
-            semanticError = true;                                       \
-            errorCount++;                                               \
-            return nullptr;                                             \
-        } while (false)
-
-    #define MATCH_TOK(...)                              \
-        if (!matchError(__VA_ARGS__)) return nullptr;
-
     private:
         StmtVec program;
         Token previousTok;
@@ -75,7 +35,11 @@ class Parser
         StmtUP varDecl();
         // skipParams: Since || is scanned as a single token, we use
         // this to indicate that the parser should assume no parameters.
-        StmtUP funcBodyHelper(bool lambda, vT& params, bool skipParams = false);
+        StmtUP funcBodyHelper(
+            bool lambda,
+            vT& params,
+            bool skipParams = false
+        );
         StmtUP funDecl();
         StmtUP classDecl();
 

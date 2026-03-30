@@ -1,13 +1,12 @@
 #pragma once
-#include "common.h"
 #include "token.h"
-#include <memory>
+#include <memory>   // For std::unique_ptr.
 #include <vector>
 
 namespace AST
 {
-    namespace Statement { struct Stmt; }
-    namespace Expression { struct Expr; }
+    namespace Statement     { struct Stmt; }
+    namespace Expression    { struct Expr; }
 }
 
 using StmtUP    = std::unique_ptr<AST::Statement::Stmt>;
@@ -39,7 +38,7 @@ namespace AST
 
         struct Stmt
         {
-            StmtType type;
+            const StmtType type;
 
             Stmt(StmtType type);
             virtual ~Stmt() = default;
@@ -47,63 +46,85 @@ namespace AST
 
         struct VarDecl : public Stmt
         {
-            TokenType declType;
-            Token name;
-            ExprUP init;
+            const TokenType declType;
+            const Token name;
+            const ExprUP init;
 
-            VarDecl(TokenType declType, const Token& name, ExprUP& init);
+            VarDecl(
+                TokenType declType,
+                const Token& name,
+                ExprUP& init
+            );
         };
 
         struct FuncDecl : public Stmt
         {
-            Token name;
-            vT params;
-            StmtUP body;
+            const Token name;
+            const vT params;
+            const StmtUP body;
 
-            FuncDecl(const Token& name, const vT& params, StmtUP& body);
+            FuncDecl(
+                const Token& name,
+                const vT& params,
+                StmtUP& body
+            );
         };
 
         struct ClassDecl : public Stmt
         {
-            Token name;
-            vT fields;
-            StmtVec methods;
+            const Token name;
+            const vT fields;
+            const StmtVec methods;
 
-            ClassDecl(const Token& name, const vT& fields, StmtVec& methods);
+            ClassDecl(
+                const Token& name,
+                const vT& fields,
+                StmtVec& methods
+            );
         };
 
         struct IfStmt : public Stmt
         {
-            ExprUP condition;
-            StmtUP trueBranch;
-            StmtUP falseBranch;
+            const ExprUP condition;
+            const StmtUP trueBranch, falseBranch;
 
-            IfStmt(ExprUP& condition, StmtUP& trueBranch,
-                StmtUP& falseBranch);
+            IfStmt(
+                ExprUP& condition,
+                StmtUP& trueBranch,
+                StmtUP& falseBranch
+            );
         };
 
         struct WhileStmt : public Stmt
         {
-            ExprUP condition;
-            Token label;
-            StmtUP body;
-            StmtUP elseClause;
+            const ExprUP condition;
+            const Token label;
+            const StmtUP body, elseClause;
 
-            WhileStmt(ExprUP& condition, const Token& label, StmtUP& body,
-                StmtUP& elseClause);
+            WhileStmt(
+                ExprUP& condition,
+                const Token& label,
+                StmtUP& body,
+                StmtUP& elseClause
+            );
         };
 
         struct ForStmt : public Stmt
         {
-            Token var;
-            ExprUP iter; // Must be an iterable.
-            ExprUP where;
-            Token label;
-            StmtUP body;
-            StmtUP elseClause;
+            const Token var;
+            const ExprUP iter; // Must be an iterable.
+            const ExprUP where;
+            const Token label;
+            const StmtUP body, elseClause;
 
-            ForStmt(const Token& var, ExprUP& iter, ExprUP& where,
-                const Token& label, StmtUP& body, StmtUP& elseClause);
+            ForStmt(
+                const Token& var,
+                ExprUP& iter,
+                ExprUP& where,
+                const Token& label,
+                StmtUP& body,
+                StmtUP& elseClause
+            );
         };
 
         struct MatchStmt : public Stmt
@@ -114,41 +135,54 @@ namespace AST
                 StmtUP body; // No declarations without a block.
                 bool fallthrough;
 
-                MatchCase(ExprUP& value, StmtUP& body, bool fall);
+                MatchCase(
+                    ExprUP& value,
+                    StmtUP& body,
+                    bool fall
+                );
             };
-            
-            ExprUP matchValue;
-            std::vector<MatchCase> cases;
 
-            MatchStmt(ExprUP& matchValue, std::vector<MatchCase>& cases);
+            const ExprUP matchValue;
+            const std::vector<MatchCase> cases;
+
+            MatchStmt(
+                ExprUP& matchValue,
+                std::vector<MatchCase>& cases
+            );
         };
 
         struct RepeatStmt : public Stmt
         {
-            ExprUP condition;
-            StmtUP body; // Must be a block statement.
+            const ExprUP condition;
+            const StmtUP body; // Must be a block statement.
 
-            RepeatStmt(ExprUP& condition, StmtUP& body);
+            RepeatStmt(
+                ExprUP& condition,
+                StmtUP& body
+            );
         };
 
         struct ReturnStmt : public Stmt
         {
-            Token keyword;
-            ExprUP expr;
+            const Token keyword;
+            const ExprUP expr;
 
-            ReturnStmt(const Token& keyword, ExprUP& expr);
+            ReturnStmt(
+                const Token& keyword,
+                ExprUP& expr
+            );
         };
 
         struct BreakStmt : public Stmt
         {
-            Token label;
+            const Token label;
 
             BreakStmt(const Token& label);
         };
 
         struct ContinueStmt : public Stmt
         {
-            Token label;
+            const Token label;
 
             ContinueStmt(const Token& label);
         };
@@ -160,14 +194,14 @@ namespace AST
 
         struct ExprStmt : public Stmt
         {
-            ExprUP expr;
+            const ExprUP expr;
 
             ExprStmt(ExprUP expr);
         };
 
         struct BlockStmt : public Stmt
         {
-            StmtVec block;
+            const StmtVec block;
 
             BlockStmt(StmtVec& block);
         };
@@ -196,7 +230,7 @@ namespace AST
 
         struct Expr
         {
-            ExprType type;
+            const ExprType type;
 
             Expr(ExprType type);
             virtual ~Expr() = default;
@@ -204,133 +238,174 @@ namespace AST
 
         struct TupleExpr : public Expr
         {
-            ExprVec entries;
+            const ExprVec entries;
 
             TupleExpr(ExprVec& entries);
         };
 
         struct AssignExpr : public Expr
         {
-            ExprUP target;
-            Token oper;
-            ExprUP value;
+            const ExprUP target;
+            const Token oper;
+            const ExprUP value;
 
-            AssignExpr(ExprUP& target, const Token& oper, ExprUP value);
+            AssignExpr(
+                ExprUP& target,
+                const Token& oper,
+                ExprUP value
+            );
         };
 
         struct LogicExpr : public Expr
         {
-            ExprUP left;
-            TokenType oper;
-            ExprUP right;
+            const ExprUP left;
+            const TokenType oper;
+            const ExprUP right;
 
-            LogicExpr(ExprUP& left, TokenType oper, ExprUP right);
+            LogicExpr(
+                ExprUP& left,
+                TokenType oper,
+                ExprUP right
+            );
         };
 
         struct CompareExpr : public Expr
         {
-            ExprUP left;
-            TokenType oper;
-            ExprUP right;
+            const ExprUP left;
+            const TokenType oper;
+            const ExprUP right;
 
-            CompareExpr(ExprUP& left, TokenType oper, ExprUP right);
+            CompareExpr(
+                ExprUP& left,
+                TokenType oper,
+                ExprUP right
+            );
         };
 
         struct BitExpr : public Expr
         {
-            ExprUP left;
-            TokenType oper;
-            ExprUP right;
+            const ExprUP left;
+            const TokenType oper;
+            const ExprUP right;
 
-            BitExpr(ExprUP& left, TokenType oper, ExprUP right);
+            BitExpr(
+                ExprUP& left,
+                TokenType oper,
+                ExprUP right
+            );
         };
 
         struct ShiftExpr : public Expr
         {
-            ExprUP left;
-            TokenType oper;
-            ExprUP right;
+            const ExprUP left;
+            const TokenType oper;
+            const ExprUP right;
 
-            ShiftExpr(ExprUP& left, TokenType oper, ExprUP right);
+            ShiftExpr(
+                ExprUP& left,
+                TokenType oper,
+                ExprUP right
+            );
         };
 
         struct BinaryExpr : public Expr
         {
-            ExprUP left;
-            TokenType oper;
-            ExprUP right;
+            const ExprUP left;
+            const TokenType oper;
+            const ExprUP right;
 
-            BinaryExpr(ExprUP& left, TokenType oper, ExprUP right);
+            BinaryExpr(
+                ExprUP& left,
+                TokenType oper,
+                ExprUP right
+            );
         };
 
         struct UnaryExpr : public Expr
         {
-            Token oper;
-            ExprUP expr;
+            const Token oper;
+            const ExprUP expr;
             // Whether or not it evaluates to the previous
             // value in the register (like with post-increment/
             // decrement operators) or the new value.
-            bool prev;
+            const bool prev;
 
-            UnaryExpr(const Token& oper, ExprUP expr, bool prev);
+            UnaryExpr(
+                const Token& oper,
+                ExprUP expr,
+                const bool prev
+            );
         };
 
         struct CallExpr : public Expr
         {
-            ExprUP callee;
-            ExprVec args;
-            bool builtin;
-            Token rightParen; // For error reporting.
+            const ExprUP callee;
+            const ExprVec args;
+            const bool builtin;
+            const Token rightParen; // For error reporting.
 
-            CallExpr(ExprUP& callee, ExprVec& args, bool builtin,
-                const Token& paren);
+            CallExpr(
+                ExprUP& callee,
+                ExprVec& args,
+                const bool builtin,
+                const Token& paren
+            );
         };
 
         struct IfExpr : public Expr
         {
-            ExprUP condition;
-            ExprUP trueExpr;
-            ExprUP falseExpr;
+            const ExprUP condition, trueExpr, falseExpr;
 
-            IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr);
+            IfExpr(
+                ExprUP& condition,
+                ExprUP& trueExpr,
+                ExprUP& falseExpr
+            );
         };
 
         struct LambdaExpr : public Expr
         {
-            vT params;
-            StmtUP body;
+            const vT params;
+            const StmtUP body;
 
-            LambdaExpr(const vT& params, StmtUP& body);
+            LambdaExpr(
+                const vT& params,
+                StmtUP& body
+            );
         };
 
         struct ComprehensionExpr : public Expr
         {
-            Token var;
-            ExprUP iter; // Must be an iterable.
-            ExprUP where;
-            ExprUP expr;
+            const Token var;
+            const ExprUP iter; // Must be an iterable.
+            const ExprUP where;
+            const ExprUP expr;
 
-            ComprehensionExpr(const Token& var, ExprUP& iter,
-                ExprUP& where, ExprUP& expr);
+            ComprehensionExpr(
+                const Token& var,
+                ExprUP& iter,
+                ExprUP& where,
+                ExprUP& expr
+            );
         };
 
         struct ListExpr : public Expr
         {
-            ExprVec entries;
+            const ExprVec entries;
 
             ListExpr(ExprVec& entries);
         };
 
         struct VarExpr : public Expr
         {
-            Token name;
+            const Token name;
 
             VarExpr(const Token& name);
         };
 
         struct LiteralExpr : public Expr
         {
-            Token value;
+            const Token value;
 
             LiteralExpr(const Token& value);
         };

@@ -1,8 +1,6 @@
 #pragma once
-#include "common.h"
-#include <cstddef>
+#include "common.h"		// For fixed-size integer types.
 #include <string_view>
-#include <variant>
 
 enum TokenType : ui8
 {
@@ -139,7 +137,7 @@ enum TokenType : ui8
 
 // Can hold a literal of any needed size.
 typedef union Value {
-	const char*		s; // For NULL exclusively.
+	void*			s; // For NULL exclusively.
 	i64				i;
 	double			d;
 	bool			b;
@@ -162,8 +160,13 @@ class Token
 
 	public:
 		Token();
-		Token(TokenType type, std::string_view text, Value content,
-				ui16 line, ui8 position);
+		Token(
+			TokenType type,
+			std::string_view text,
+			Value content,
+			ui16 line,
+			ui8 position
+		);
 
 		Token(const Token& other) noexcept;
 		Token& operator=(const Token& other) noexcept;

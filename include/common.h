@@ -1,5 +1,4 @@
 #pragma once
-#include "config.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -36,6 +35,9 @@
 #define CH_VERSION_MINOR	0
 #define CH_VERSION_PATCH	1
 
+#define CH_VERSION \
+	(CH_VERSION_MAJOR * 100 + CH_VERSION_MINOR * 10 + CH_VERSION_PATCH)
+
 // Fallthrough.
 
 #define CH_FALLTHROUGH() [[fallthrough]]
@@ -68,7 +70,7 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 	#define CH_COMPUTED_GOTO	1
-#elif defined(_MSC_VER)
+#else
 	#define CH_COMPUTED_GOTO	0
 #endif
 
@@ -94,6 +96,8 @@
 // Allocation approach and assertions.
 
 #if CH_USE_ALLOC
+	#include "gen_alloc.h"
+
 	#if !defined(CH_ALLOC_SIZE)
 		#define CH_ALLOC_SIZE MiB(10)
 	#endif
@@ -160,7 +164,11 @@ using vBit		= vByte::const_iterator;
 // Whether we're running an externally loaded
 // program or not.
 extern bool external;
+// Whether or not we are in the REPL or executing
+// a given file.
 extern bool inRepl;
+// The (optional) name of the file being executed.
+// Has value "" when in the REPL.
 extern std::string file;
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)

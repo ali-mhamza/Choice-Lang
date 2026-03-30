@@ -2,7 +2,7 @@
 #include "bytecode.h"
 #include "common.h"
 #include "token.h"
-#include "utils.h"
+#include <memory>
 #include <stack>
 #include <string>
 #include <string_view>
@@ -13,51 +13,6 @@ class TokCompLoopLabels;
 
 class Compiler
 {
-    // Cannot propagate returns, so we make them macros instead.
-    #undef REPORT_SYNTAX
-    #define REPORT_SYNTAX(...)                                          \
-        do {                                                            \
-            hitError = true;                                            \
-            if (syntaxError || (errorCount > COMPILE_ERROR_MAX))        \
-                return;                                                 \
-            else if (errorCount == COMPILE_ERROR_MAX)                   \
-            {                                                           \
-                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
-                errorCount++;                                           \
-                return;                                                 \
-            }                                                           \
-            CompileError(__VA_ARGS__).report();                         \
-            syntaxError = true;                                         \
-            errorCount++;                                               \
-            return;                                                     \
-        } while (false)
-
-    #undef REPORT_SEMANTIC
-    #define REPORT_SEMANTIC(...)                                        \
-        do {                                                            \
-            hitError = true;                                            \
-            if (semanticError || (errorCount > COMPILE_ERROR_MAX))      \
-                return;                                                 \
-            else if (errorCount == COMPILE_ERROR_MAX)                   \
-            {                                                           \
-                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
-                errorCount++;                                           \
-                return;                                                 \
-            }                                                           \
-            CompileError(__VA_ARGS__).report();                         \
-            semanticError = true;                                       \
-            errorCount++;                                               \
-            return;                                                     \
-        } while (false)
-
-    #define MATCH_TOK(...)                      \
-        if (!matchError(__VA_ARGS__)) return;
-
-    #define GET_STR(tok)                                \
-        normalizeNewlines(                              \
-            (tok).text.substr(1, (tok).text.size() - 2) \
-        )
-
     private:
         struct VarInfo
         {
@@ -68,18 +23,18 @@ class Compiler
         };
 
         ByteCode code;
-        Compiler* scopeCompiler;
+        Compiler* const scopeCompiler;
 
         Token previousTok;
         Token currentTok;
-        vT::const_iterator it;
+        vT::const_iterator it{};
         ui8 previousReg{0};
         ui8 scope{0}; // Our current lexical scope depth.
         ui8 depth; // Our current function scope depth.
 
         std::stack<std::vector<std::string>> varScopes;
-        TokCompVarsWrapper* varsWrapper;
-        TokCompLoopLabels* labelsWrapper;
+        const std::unique_ptr<TokCompVarsWrapper> varsWrapper;
+        const std::unique_ptr<TokCompLoopLabels> labelsWrapper;
         std::vector<ui64>* endJumps{nullptr};
         std::vector<ui64>* breakJumps{nullptr};
         std::vector<ui64>* continueJumps{nullptr};

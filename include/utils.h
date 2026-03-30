@@ -1,6 +1,6 @@
-#include "common.h"
-#include "object.h"
+#include "common.h"     // For i64 in constructRange() function.
 #include <array>
+#include <string>
 #include <string_view>
 
 bool ends_with(std::string_view str, std::string_view suffix);

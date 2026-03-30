@@ -1,7 +1,6 @@
 #pragma once
-#include "common.h"
+#include "common.h"         // For ui8 in NativeFunc type alias.
 #include "token.h"
-#include <functional>
 #include <string_view>
 #include <unordered_map>
 

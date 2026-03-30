@@ -1,5 +1,6 @@
+#pragma once
 #include "bytecode.h"
-#include "common.h"
+#include "common.h"     // For vBit, fixed-size integer types.
 #include "object.h"
 #include <string_view>
 
@@ -27,12 +28,15 @@ class Disassembler
 
         void singleOper(ui8 byte);
         void doubleOper(ui8 byte);
-        void loadOper();
-        void jumpOper(ui8 byte, int sign);
-        void callOper(ui8 byte);
-        void iterOper(ui8 byte);
-        void collectionOper(ui8 byte);
-        void captureOper(ui8 byte);
+        void loadOp();
+        // `sign`: positive to jump forward, negative otherwise.
+        void jumpOp(ui8 byte, int sign);
+        void callOp(ui8 byte);
+        void iterOp(ui8 byte);
+        // Currently: lists and tuples.
+        void collectionOp(ui8 byte);
+        // For closure captures.
+        void captureOp(ui8 byte);
     
     public:
         Disassembler(const ByteCode& code);

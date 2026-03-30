@@ -1,60 +1,22 @@
 #pragma once
+#include "linearTable.h"
+
 #include "astnodes.h"
 #include "bytecode.h"
-#include "object.h"
-#include "utils.h"
 #include "vartable.h"
-#include "vm.h"
-#include <memory>
+#include <memory>       // For std::unique_ptr.
 #include <stack>
-#include <unordered_map>
 #include <vector>
-using namespace AST::Statement;
-using namespace AST::Expression;
-
-// Using PIMPL idiom.
-class ASTCompVarsWrapper;
-class ASTCompLoopLabels;
 
 class ASTCompiler
 {
-    #define DECL(type)  void compile##type(std::unique_ptr<type> node)
-    #define DEF(type)   void ASTCompiler::compile##type(std::unique_ptr<type> node)
-    #define COMPILE(type)                                   \
-        do {                                                \
-            type* ptr = static_cast<type*>(node.release()); \
-            compile##type(std::unique_ptr<type>(ptr));      \
-        } while (false)
-
-    #undef REPORT_ERROR
-    #define REPORT_ERROR(...)                                           \
-        do {                                                            \
-            hitError = true;                                            \
-            if (errorCount > COMPILE_ERROR_MAX) return;                 \
-            else if (errorCount == COMPILE_ERROR_MAX)                   \
-            {                                                           \
-                CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
-                errorCount++;                                           \
-                return;                                                 \
-            }                                                           \
-            CompileError(__VA_ARGS__).report();                         \
-            errorCount++;                                               \
-            return;                                                     \
-        } while (false)
-
-    #define GET_STR(tok)                                \
-        normalizeNewlines(                              \
-            (tok).text.substr(1, (tok).text.size() - 2) \
-        )
+    #define DECL_STMT(type) \
+        void compile##type(const AST::Statement::type* node)
+    #define DECL_EXPR(type) \
+        void compile##type(const AST::Expression::type* node)
 
     private:
-        enum VarType : ui8
-        {
-            GLOBAL,
-            CELL,
-            LOCAL
-        };
-
+        enum VarType : ui8 { GLOBAL, CELL, LOCAL };
         struct VarInfo
         {
             // Whether or not the variable was found.
@@ -85,19 +47,25 @@ class ASTCompiler
         };
 
         ByteCode code;
-        ASTCompiler* scopeCompiler;
+        ASTCompiler* const scopeCompiler;
 
         ui8 previousReg{0};
-        ui8 scope{0}; // Our current block scope depth.
-        ui8 scopeStart; // To mark the initial register for a new scope (to pop to on exit).
-        ui8 depth; // Our current function scope depth.
+        ui8 scope{0};       // Our current block scope depth.
+        ui8 scopeStart{0};  // To mark the initial register for a new scope (to pop to on exit).
+        ui8 depth;          // Our current function scope depth.
+
+        using varTable = linearTable<VarEntry, ui8, VarHasher>;
+        using accessTable = linearTable<ui8, bool>;
+        using labelTable = linearTable<std::string_view, std::vector<ui64>>;
 
         std::stack<std::vector<std::string>> varScopes;
-        ASTCompVarsWrapper* varsWrapper;
-        ASTCompLoopLabels* labelsWrapper;
+        const std::unique_ptr<varTable> varLocations;
+        const std::unique_ptr<accessTable> varAccess;
+        const std::unique_ptr<labelTable> breakLabels;
+        const std::unique_ptr<labelTable> continueLabels;
 
         std::vector<CellInfo> captures;
-        std::unordered_map<std::string, ui8> captureNames;
+        linearTable<std::string, ui8> captureNames;
 
         std::vector<ui64>* endJumps{nullptr};
         std::vector<ui64>* breakJumps{nullptr};
@@ -105,86 +73,119 @@ class ASTCompiler
 
         bool hitError{false};
 
-        // Variables.
+        /* Variables. */
 
-        inline void addVariableOp(bool type, const VarInfo& info, ui8 dest,
-            ui8 src);
-        inline void defVar(std::string name, ui8 reg, bool access);
+        // Emit an appropriate get or set instruction.
+        void addVariableOp(
+            bool type,
+            const VarInfo& info,
+            ui8 dest,
+            ui8 src
+        );
 
-        inline bool getAccess(ui8 reg);
+        // Define a variable with a register location and mutability
+        // state.
+        void defVar(std::string name, ui8 reg, bool access);
+
+        // Check if variable at register `reg` is mutable.
+        bool getAccess(ui8 reg) const;
+
         // Check if variable is already defined in local scope
         // (for declaration compiling helpers).
-        inline LocalInfo getScopeLocal(const Token& token);
+        LocalInfo getScopeLocal(const Token& token) const;
+
         // Properly resolve a variable, recursively capturing
         // cells from enclosing scopes if needed.
-        inline VarInfo resolveVariable(const Token& token);
-        inline ui8 captureVariable(const Token& token, const VarInfo& info);
+        VarInfo resolveVariable(const Token& token);
 
-        inline void pushScope();
-        inline void popScope();
+        // Capture a variable from the enclosing scope.
+        // Returns the cell index for the new capture, if a capture is made.
+        // Otherwise returns the variable's already-used cell index, or its
+        // register slot if it should not be captured.
+        ui8 captureVariable(const Token& token, const VarInfo& info);
 
-        // Registers.
-        // Defined here for increased likelihood of inlining.
+        /* Variable scoping. */
 
-        inline void freeReg() { previousReg--; }
-        inline void reserveReg() { previousReg++; }
+        void pushScope();
+        void popScope();
 
-        // General helpers.
+        /* Registers. */
 
-        // patchBreaks: True if we are to patch 'break' jumps.
-        // False otherwise.
+        inline void freeReg()      { previousReg--; }
+        inline void reserveReg()   { previousReg++; }
+
+        /* General helpers. */
+
+        // `patchBreaks`: True if we are to patch 'break' jumps.
+        //                False otherwise.
         void patchLoopLabelJumps(const Token& label, bool patchBreaks);
 
-        // Declarations.
+        /* Declarations. */
 
-        DECL(VarDecl);
-        void funcBodyHelper(const vT& params, StmtUP& body, ui8 funcReg,
-            const std::string& name);
-        DECL(FuncDecl);
-        DECL(ClassDecl);
+        DECL_STMT(VarDecl);
+        void funcBodyHelper(
+            const vT& params,
+            const StmtUP& body,
+            const ui8 funcReg,
+            const std::string& name
+        );
+        DECL_STMT(FuncDecl);
+        DECL_STMT(ClassDecl);
 
-        // Statements.
+        /* Statements. */
 
-        DECL(IfStmt);
-        DECL(WhileStmt);
-        void forLoopHelper(std::unique_ptr<ForStmt>& node, ui8 varReg,
-            ui8 iterReg);
-        DECL(ForStmt);
-        void matchCaseHelper(MatchStmt::MatchCase& checkCase, const ui8 matchReg,
-            ui64& fallJump, ui64& emptyJump);
-        DECL(MatchStmt);
-        DECL(RepeatStmt);
-        DECL(ReturnStmt);
-        DECL(BreakStmt);
-        DECL(ContinueStmt);
-        DECL(EndStmt);
-        DECL(ExprStmt);
-        DECL(BlockStmt);
+        DECL_STMT(IfStmt);
+        DECL_STMT(WhileStmt);
+        void forLoopHelper(
+            const AST::Statement::ForStmt* node,
+            const ui8 varReg,
+            const ui8 iterReg
+        );
+        DECL_STMT(ForStmt);
+        void matchCaseHelper(
+            const AST::Statement::MatchStmt::MatchCase& checkCase,
+            const ui8 matchReg,
+            ui64& fallJump,
+            ui64& emptyJump
+        );
+        DECL_STMT(MatchStmt);
+        DECL_STMT(RepeatStmt);
+        DECL_STMT(ReturnStmt);
+        DECL_STMT(BreakStmt);
+        DECL_STMT(ContinueStmt);
+        DECL_STMT(EndStmt);
+        DECL_STMT(ExprStmt);
+        DECL_STMT(BlockStmt);
 
-        // Expressions.
+        /* Expressions. */
 
-        DECL(TupleExpr);
-        // Helper.
-        void compoundAssign(std::unique_ptr<AssignExpr>& node,
-            const VarInfo& info);
-        DECL(AssignExpr);
-        DECL(LogicExpr);
-        DECL(CompareExpr);
-        DECL(BitExpr);
-        DECL(ShiftExpr);
-        DECL(BinaryExpr);
-        void _crementExpr(std::unique_ptr<UnaryExpr>& node); // Helper.
-        DECL(UnaryExpr);
-        DECL(CallExpr);
-        DECL(IfExpr);
-        DECL(LambdaExpr);
-        DECL(ComprehensionExpr);
-        DECL(ListExpr);
-        DECL(VarExpr);
-        DECL(LiteralExpr);
+        DECL_EXPR(TupleExpr);
+        void compoundAssign(
+            const AST::Expression::AssignExpr* node,
+            const VarInfo& info
+        );
+        DECL_EXPR(AssignExpr);
+        DECL_EXPR(LogicExpr);
+        DECL_EXPR(CompareExpr);
+        DECL_EXPR(BitExpr);
+        DECL_EXPR(ShiftExpr);
+        DECL_EXPR(BinaryExpr);
+        void _crementExpr(
+            const AST::Expression::UnaryExpr* node
+        );
+        DECL_EXPR(UnaryExpr);
+        DECL_EXPR(CallExpr);
+        DECL_EXPR(IfExpr);
+        DECL_EXPR(LambdaExpr);
+        DECL_EXPR(ComprehensionExpr);
+        DECL_EXPR(ListExpr);
+        DECL_EXPR(VarExpr);
+        DECL_EXPR(LiteralExpr);
 
-        void compileExpr(ExprUP& node);
-        void compileStmt(StmtUP& node);
+        /* Primary compilation functions. */
+
+        void compileExpr(const ExprUP& node);
+        void compileStmt(const StmtUP& node);
 
     public:
         int errorCount{0}; // So it can be modified directly.
