@@ -1,8 +1,7 @@
 /*  This hash table has a basic implementation of open addressing to deal with hash collisions.
 *   It uses linear probing (rather than quadratic probing or similar alternatives) to traverse through the array upon
 *   collisions.
-*   Deletions are dealt with using tombstones rather than back-shifting (or other methods), and the main structure is
-*   an AOS (array of structs).
+*   Deletions are dealt with using tombstones rather than back-shifting (or other methods), and the main structure  *   is an AOS (array of structs).
 */
 
 #pragma once
@@ -136,8 +135,8 @@ void linearTable<Key, Value, HashFunc>::resize()
 KVHTEMP
 EKV& linearTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos)
 {
-    uint32_t hash = getHash(key);
-    uint32_t bitmask = static_cast<uint32_t>(entries.capacity() - 1);
+    std::uint32_t hash = getHash(key);
+    auto bitmask = static_cast<std::uint32_t>(entries.capacity() - 1);
     size_t index = hash & bitmask;
 
     EKV* tombstone = nullptr;
@@ -177,7 +176,7 @@ EKV& linearTable<Key, Value, HashFunc>::emptyAdd(const Key& key)
     
     resize(); // Grow if needed.
 
-    uint32_t hash = getHash(key);
+    std::uint32_t hash = getHash(key);
     size_t index;
     EKV& newEntry = findSlot(key, &index);
 
@@ -209,7 +208,7 @@ void linearTable<Key, Value, HashFunc>::add(const Key& key,
 
     resize(); // Grow size if needed.
 
-    uint32_t hash = getHash(key);
+    std::uint32_t hash = getHash(key);
     size_t index;
     EKV& newEntry = findSlot(key, &index);
 
@@ -231,7 +230,7 @@ KVHTEMP
 Value* linearTable<Key, Value, HashFunc>::get(const Key& key)
 {
     if (count == 0) return nullptr;
-
+    
     EKV& entry = findSlot(key, nullptr);
     if (entry.state != VALID)
         return nullptr;

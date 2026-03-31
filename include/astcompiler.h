@@ -85,7 +85,7 @@ class ASTCompiler
 
         // Define a variable with a register location and mutability
         // state.
-        void defVar(std::string name, ui8 reg, bool access);
+        void defVar(const std::string& name, ui8 reg, bool access);
 
         // Check if variable at register `reg` is mutable.
         bool getAccess(ui8 reg) const;

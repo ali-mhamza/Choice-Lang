@@ -2,7 +2,7 @@
 #include "bytecode.h"
 #include "common.h"
 #include "token.h"
-#include <memory>
+#include <memory>       // For std::unique_ptr.
 #include <stack>
 #include <string>
 #include <string_view>

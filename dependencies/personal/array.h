@@ -18,9 +18,9 @@ class Array
         // Constructing Array objects.
         Array();
         Array(size_t size);
-        Array(const Array& other);
+        Array(const Array& other) noexcept;
         Array(Array&& other) noexcept;
-        Array& operator=(const Array& other);
+        Array& operator=(const Array& other) noexcept;
         Array& operator=(Array&& other) noexcept;
         ~Array();
 
@@ -47,7 +47,7 @@ class Array
 
         [[nodiscard]] inline size_t count() const;
         [[nodiscard]] inline size_t capacity() const;
-        [[nodisard]] inline bool empty() const;
+        [[nodiscard]] inline bool empty() const;
 
         [[nodiscard]] inline T* front();
         [[nodiscard]] inline const T* front() const;
@@ -122,7 +122,7 @@ Array<T>::Array(size_t size)
 }
 
 TEMP
-Array<T>::Array(const Array<T>& other) :
+Array<T>::Array(const Array<T>& other) noexcept :
     entries(new T[other._capacity]), _count(other._count),
     _capacity(other._capacity)
 {
@@ -131,7 +131,7 @@ Array<T>::Array(const Array<T>& other) :
 }
 
 TEMP
-Array<T>::Array(Array<T>&& other) :
+Array<T>::Array(Array<T>&& other) noexcept :
     entries(other.entries), _count(other._count),
     _capacity(other._capacity)
 {
@@ -291,10 +291,10 @@ void Array<T>::shift(int shift, size_t start)
     // will deallocate the memory we just "filled up".
 
     T* newEntries = new T[_capacity];
-    for (int i = 0; i < start; i++)
+    for (size_t i = 0; i < start; i++)
         newEntries[i] = this->entries[i];
     
-    for (int i = start; i < _count; i++)
+    for (size_t i = start; i < _count; i++)
         newEntries[i + shift] = this->entries[i];
     delete[] this->entries;
     this->entries = newEntries;

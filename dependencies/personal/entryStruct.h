@@ -3,7 +3,7 @@
 
 #define KVTEMP template<typename Key, typename Value>
 
-enum EntryState
+enum EntryState : std::uint8_t
 {
     VALID,
     TOMBSTONE,
@@ -15,13 +15,13 @@ struct Entry
 {
     Key key;
     Value value;
-    uint32_t hash;
+    std::uint32_t hash;
     EntryState state;
 
     Entry();
     Entry(const Key& key, const Value& value);
-    Entry(const Key& key, uint32_t hash);
-    Entry(const Key& key, const Value& value, uint32_t hash);
+    Entry(const Key& key, std::uint32_t hash);
+    Entry(const Key& key, const Value& value, std::uint32_t hash);
     ~Entry() = default;
     bool operator==(const Entry& other) const;
 };
@@ -35,12 +35,12 @@ Entry<Key, Value>::Entry(const Key& key, const Value& value) :
     key(key), value(value), state(VALID) {}
 
 KVTEMP
-Entry<Key, Value>::Entry(const Key& key, uint32_t hash) :
+Entry<Key, Value>::Entry(const Key& key, std::uint32_t hash) :
     key(key), hash(hash), state(VALID) {}
 
 KVTEMP
 Entry<Key, Value>::Entry(const Key& key, const Value& value,
-    uint32_t hash) :
+    std::uint32_t hash) :
     key(key), value(value), hash(hash), state(VALID) {}
 
 KVTEMP

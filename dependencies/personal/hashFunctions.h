@@ -6,7 +6,7 @@
 #include <string_view>
 #include <type_traits>
 
-using Hash = uint32_t;
+using Hash = std::uint32_t;
 
 template<typename Key>
 inline Hash hashKey(const Key& key, size_t size = SIZE_MAX);
@@ -39,7 +39,7 @@ inline Hash hashKey(const Key& key, size_t size)
 }
 
 // Using Jenkins' one-at-a-time function.
-inline Hash hashBytes(const uint8_t* bytes, size_t size)
+inline Hash hashBytes(const std::uint8_t* bytes, size_t size)
 {
     Hash hash = 0;
 
@@ -59,18 +59,18 @@ inline Hash hashBytes(const uint8_t* bytes, size_t size)
 template<typename T>
 inline Hash hashNumeric(T key)
 {
-    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&key);
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(&key);
     return hashBytes(bytes, sizeof(T));
 }
 
 inline Hash hashChar(char key)
 {
-    return (uint32_t) key;
+    return (std::uint32_t) key;
 }
 
 inline Hash hashString(std::string_view string)
 {
-    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(string.data());
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(string.data());
     return hashBytes(bytes, string.size());
 }
 
@@ -78,6 +78,6 @@ inline Hash hashCStr(const char* string, size_t length)
 {
     if (length == SIZE_MAX)
         length = strlen(string); // Null-terminated.
-    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(string);
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(string);
     return hashBytes(bytes, length);
 }
