@@ -34,7 +34,7 @@ struct AllocPair
 {
     using DeallocObj = std::function<void(void*)>;
 
-    void*       obj;
+    void*       obj{};
     DeallocObj  func;
 
     ~AllocPair() = default;
