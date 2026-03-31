@@ -251,7 +251,8 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
     miniCompiler.code.addOp(OP_RETURN, 0);
 
     ByteCode& funcCode = miniCompiler.code;
-    this->hitError = miniCompiler.hitError;
+    if (miniCompiler.hitError)
+        this->hitError = true;
 
     Object func;
     if (name.empty()) // Compiling a lambda.

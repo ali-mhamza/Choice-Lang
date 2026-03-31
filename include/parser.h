@@ -12,7 +12,6 @@ class Parser
         vT::const_iterator it;
         bool inMatch, inFunc, fall; // For structures.
         bool syntaxError, semanticError; // We are currently in an error state.
-        bool hitError;
 
         // Utilities.
 
@@ -83,7 +82,8 @@ class Parser
         ExprUP primary();
     
     public:
-        int errorCount; // So it can be modified directly.
+        bool hitError{false};
+        int errorCount{0}; // So it can be modified directly.
 
         Parser();
         StmtVec& parseToAST(const vT& tokens);

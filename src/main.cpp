@@ -109,6 +109,8 @@ static Function* runCompiler(const vT& tokens)
 			// Optimize here.
 		#endif
 
+		// To exit if either hit an error.
+		compiler.hitError = parser.hitError;
 		// To not report too many errors when using an
 		// AST.
 		compiler.errorCount = parser.errorCount;

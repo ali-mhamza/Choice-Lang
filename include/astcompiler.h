@@ -71,8 +71,6 @@ class ASTCompiler
         std::vector<ui64>* breakJumps{nullptr};
         std::vector<ui64>* continueJumps{nullptr};
 
-        bool hitError{false};
-
         /* Variables. */
 
         // Emit an appropriate get or set instruction.
@@ -188,7 +186,9 @@ class ASTCompiler
         void compileStmt(const StmtUP& node);
 
     public:
-        int errorCount{0}; // So it can be modified directly.
+        // So they can be modified directly.
+        bool hitError{false};
+        int errorCount{0};
 
         ASTCompiler(ASTCompiler* comp = nullptr);
         ~ASTCompiler();
