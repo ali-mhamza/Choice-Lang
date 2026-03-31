@@ -2,16 +2,61 @@
 
 #include "../include/parser.h"
 #include "../include/astnodes.h"
+#include "../include/common.h"
+#include "../include/config.h"
 #include "../include/error.h"
 #include "../include/token.h"
 #include <memory>
+#include <string>
+#include <string_view>
+#include <utility> // For std::move.
+#include <vector>
+
 using namespace AST::Statement;
 using namespace AST::Expression;
 
+#undef REPORT_SYNTAX
+#define REPORT_SYNTAX(...)                                          \
+    do {                                                            \
+        hitError = true;                                            \
+        if (syntaxError || (errorCount > COMPILE_ERROR_MAX))        \
+            return nullptr;                                         \
+        if (errorCount == COMPILE_ERROR_MAX)                        \
+        {                                                           \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+            errorCount++;                                           \
+            return nullptr;                                         \
+        }                                                           \
+        CompileError(__VA_ARGS__).report();                         \
+        syntaxError = true;                                         \
+        errorCount++;                                               \
+        return nullptr;                                             \
+    } while (false)
+
+#undef REPORT_SEMANTIC
+#define REPORT_SEMANTIC(...)                                        \
+    do {                                                            \
+        hitError = true;                                            \
+        if (semanticError || (errorCount > COMPILE_ERROR_MAX))      \
+            return nullptr;                                         \
+        if (errorCount == COMPILE_ERROR_MAX)                        \
+        {                                                           \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+            errorCount++;                                           \
+            return nullptr;                                         \
+        }                                                           \
+        CompileError(__VA_ARGS__).report();                         \
+        semanticError = true;                                       \
+        errorCount++;                                               \
+        return nullptr;                                             \
+    } while (false)
+
+#define MATCH_TOK(...)                              \
+    if (!matchError(__VA_ARGS__)) return nullptr;
+
 Parser::Parser() :
     inMatch(false), inFunc(false), fall(false),
-    syntaxError(false), semanticError(false),
-    hitError(false), errorCount(0) {}
+    syntaxError(false), semanticError(false) {}
 
 void Parser::nextTok()
 {
@@ -633,9 +678,16 @@ ExprUP Parser::exponent()
 
 ExprUP Parser::call()
 {
+    // Callee does not need to be an identifier.
+    // Just has to evaluate to a callable object.
+    // Exception: builtin with ! token.
+
     ExprUP expr = post();
-    if ((currentTok.type == TOK_BANG) && (expr->type != E_VAR_EXPR))
+    if ((currentTok.type == TOK_BANG) && (expr != nullptr)
+        && (expr->type != E_VAR_EXPR))
+    {
         REPORT_SEMANTIC(currentTok, "Built-in functions must be called by name.");
+    }
 
     if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
     {
@@ -646,10 +698,6 @@ ExprUP Parser::call()
                 return nullptr;
             builtin = true;
         }
-        
-        // Callee does not need to be an identifier.
-        // Just has to evaluate to a callable object.
-        // Exception: builtin with ! token.
 
         ExprVec args;
         while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
@@ -672,8 +720,7 @@ ExprUP Parser::post()
     if (consumeToks(TOK_INCR, TOK_DECR))
     {
         if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
-            REPORT_SEMANTIC(previousTok,
-                "Invalid increment/decrement target.");
+            REPORT_SEMANTIC(previousTok, "Invalid increment/decrement target.");
         do {
             Token oper = previousTok;
             expr = std::make_unique<UnaryExpr>(oper, std::move(expr), true);

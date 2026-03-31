@@ -1,5 +1,6 @@
 #ifdef COMP_AST
 	#include "../include/astcompiler.h"
+	#include "../include/astnodes.h"
 	#include "../include/parser.h"
 #else
 	#include "../include/compiler.h"
@@ -22,17 +23,18 @@
 	#include "replxx.hxx"
 #endif
 
-#include <chrono>
-#include <cstdio> // For stderr.
+#include <cstdio>			// For stderr in multiple functions.
+#include <cstdlib>			// For exit().
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 #if defined(DEBUG)
+	#include <chrono>
+
 	#define TIME_TOTAL	1
 	#define TIME_RUN	0
 #endif
@@ -53,7 +55,7 @@ bool inRepl = false;
 	LinearAlloc allocator(CH_ALLOC_SIZE);
 #endif
 
-enum ArgvOption
+enum ArgvOption : ui8
 {
 	// Show the tokens for the given 
 	// script or REPL input.
@@ -271,8 +273,9 @@ static std::string& buildLine(std::string& line)
 {
 	while (ends_with(line, "\\"))
 	{
-		line[line.size() - 1] = '\n';
+		line.back() = '\n';
 		std::string temp;
+		// Can replace this combination with rx.input("... ").
 		CH_PRINT("... ");
 		std::getline(std::cin, temp);
 		line += temp;

@@ -1,4 +1,7 @@
 #include "../include/vm.h"
+#include "../include/bytecode.h"
+#include "../include/common.h"
+#include "../include/config.h"
 #include "../include/disasm.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
@@ -8,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <utility> // For std::move.
 
 #if COPY_INLINE
     #define COPY(a, b) copyObject((a), (b))
@@ -36,7 +40,8 @@
 #endif
 
 VM::VM() :
-    globalRegisters(new Object[regSize])
+    globalRegisters(new Object[regSize]),
+    registers(globalRegisters)
 {
     for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
         globalRegisters[i] = Object(Natives::FuncType(i));
@@ -766,7 +771,7 @@ void VM::executeOp(Opcode op)
             #endif
             SET_REGSLOT(start);
 
-            auto& func = Natives::functions[callee];
+            const auto& func = Natives::functions[callee];
             func(&registers[start], argCount, Token()); // Temporarily.
 
             SET_REGSLOT(currentSlot);
@@ -786,7 +791,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_RETURN):
         {
             ui8 retSlot = readByte();
-            COPY(registers[-1], registers[retSlot]);
+            registers[-1] = std::move(registers[retSlot]);
 
             // Correct regSlot after return.
             restoreData();

@@ -2,6 +2,9 @@
 #include "../include/common.h"
 #include "../include/token.h"
 #include <algorithm>
+#include <array>
+#include <string>
+#include <string_view>
 
 TokenPrinter::TokenPrinter(const vT& tokens) :
     tokens(tokens) {}
@@ -56,7 +59,7 @@ void TokenPrinter::printValue(const Token& token)
     }
 }
 
-static const char* typeStrings[] = {
+static std::array<const char*, NUM_TOK_TYPES> typeStrings = {
     "TOK_LEFT_BRACKET", "TOK_RIGHT_BRACKET", "TOK_LEFT_PAREN",
     "TOK_RIGHT_PAREN", "TOK_LEFT_BRACE", "TOK_RIGHT_BRACE",
     "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",

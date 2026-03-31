@@ -1,4 +1,7 @@
 #include "../include/natives.h"
+
+#include "format-inl.h"
+
 #include "../include/common.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
@@ -6,19 +9,21 @@
 #include <array>
 #include <chrono>
 #include <cstdio> // For fflush.
-#include <stdexcept>
 #include <iostream>
+#include <stdexcept>
 #include <string>
-#include <vector>
+#include <string_view>
+#include <unordered_map>
 
-const Natives::NativeFunc
-Natives::functions[Natives::NUM_FUNCS] = {
+const std::array<Natives::NativeFunc,
+Natives::FuncType::NUM_FUNCS> Natives::functions = {
     Natives::print, Natives::println, Natives::format,
     Natives::type, Natives::len, Natives::clock,
     Natives::range, Natives::read
 };
 
-const char* Natives::funcNames[NUM_FUNCS] = {
+const std::array<const char*,
+Natives::FuncType::NUM_FUNCS> Natives::funcNames = {
     "print", "println", "format", "type", "len",
     "clock", "range", "read"
 };

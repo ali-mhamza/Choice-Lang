@@ -40,6 +40,7 @@ enum ObjType
     // Used in for-loops.
     OBJ_ITER,
 
+    NUM_TYPES,
     OBJ_INVALID,
 };
 

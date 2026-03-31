@@ -132,7 +132,8 @@ enum TokenType : ui8
 	TOK_UNDER_UNDER,	// __
 	TOK_RARROW,			// ->
 
-	TOK_EOF
+	TOK_EOF,
+	NUM_TOK_TYPES
 };
 
 // Can hold a literal of any needed size.

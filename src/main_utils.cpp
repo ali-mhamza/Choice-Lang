@@ -1,22 +1,27 @@
 #include "../include/main_utils.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
-#include "../include/disasm.h"
+#include "../include/disasm.h"			// For optionShowBytes() function.
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
-#include "../include/tokprinter.h"
-#include "../include/utils.h"
-#include "../include/vm.h"
-#include <array>
-#include <climits> // For CHAR_BIT.
-#include <cstdio> // For stderr.
-#include <cstring>
-#include <filesystem>
+#include "../include/tokprinter.h"		// For optionShowTokens() function.
+#include "../include/utils.h"			// For ends_with(), starts_with(), constructRange() helper functions.
+#include "../include/vm.h"				// For optionLoad() function.
+#include <array>						// For reconstructRange() helper function.
+#include <climits>						// For CHAR_BIT.
+#include <cstdio>						// For stderr.
+#include <cstdlib>						// For exit().
+#include <cstring>						// For strncmp() in readMagic() helper function.
+#include <filesystem>					// For path in optionCacheBytes() function.
 #include <fstream>
-#include <sstream>
+#include <sstream>						// For stringstream in readFile() helper function.
 #include <string>
-#include <string_view>
 #include <vector>
+
+#if defined(DEBUG)
+	#include <ios>		// For std::streamsize.
+	#include <limits>	// For std::numeric_limits.
+#endif
 
 static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");
 using vBit = vByte::const_iterator;
@@ -169,19 +174,19 @@ vObj reconstructPool(const vByte& poolBytes)
 		switch (type)
 		{
 			case OBJ_INT:
-				pool.push_back(reconstructBytes<i64>(++it, poolBytes.end()));
+				pool.emplace_back(reconstructBytes<i64>(++it, poolBytes.end()));
 				break;
 			case OBJ_DEC:
-				pool.push_back(reconstructBytes<double>(++it, poolBytes.end()));
+				pool.emplace_back(reconstructBytes<double>(++it, poolBytes.end()));
 				break;
 			case OBJ_FUNC:
-				pool.push_back(reconstructFunc(++it, poolBytes.end()));
+				pool.emplace_back(reconstructFunc(++it, poolBytes.end()));
 				break;
 			case OBJ_STRING:
-				pool.push_back(reconstructString(++it, poolBytes.end()));
+				pool.emplace_back(reconstructString(++it, poolBytes.end()));
 				break;
 			case OBJ_RANGE:
-				pool.push_back(reconstructRange(++it, poolBytes.end()));
+				pool.emplace_back(reconstructRange(++it, poolBytes.end()));
 				break;
 			default:
 			{
@@ -214,10 +219,10 @@ static void handleFileLength(std::ifstream& fileIn, size_t expected)
 
 static void readMagic(std::ifstream& fileIn)
 {
-	char magic[6];
-	fileIn.read(magic, sizeof(magic));
+	std::array<char, 6> magic;
+	fileIn.read(magic.data(), sizeof(magic));
 	handleFileLength(fileIn, sizeof(magic));
-	if (strncmp(magic, "choice", 6) != 0)
+	if (strncmp(magic.data(), "choice", 6) != 0)
 	{
 		CH_PRINT(stderr, "Improper magic flag for bytecode file.\n");
 		exit(65);
@@ -226,8 +231,8 @@ static void readMagic(std::ifstream& fileIn)
 
 static void readVersionNum(std::ifstream& fileIn)
 {
-	char num[3];
-	fileIn.read(num, sizeof(num));
+	std::array<char, 3> num;
+	fileIn.read(num.data(), sizeof(num));
 	handleFileLength(fileIn, sizeof(num));
 }
 
@@ -259,6 +264,17 @@ ByteCode readCache(std::ifstream& fileIn)
 		fileIn.read(reinterpret_cast<char*>(fileName.data()), nameLength);
 		handleFileLength(fileIn, nameLength);
 		file = fileName;
+
+		#if defined(DEBUG)
+			constexpr auto maxSize = static_cast<ui64>(
+				std::numeric_limits<std::streamsize>::max()
+			);
+			CH_ASSERT(
+				(codeLength < maxSize) && (poolLength < maxSize),
+				"File serialization did not bounds-check bytecode "
+				"and constant pool sizes."
+			);
+		#endif
 
 		fileIn.read(reinterpret_cast<char*>(codeBytes.data()), codeLength);
 		handleFileLength(fileIn, codeLength);

@@ -1,15 +1,43 @@
 #ifdef COMP_AST
 
-#include "linearTable.h"
 #include "../include/astcompiler.h"
-#include "../include/bytecode.h"
+#include "../include/astnodes.h"
 #include "../include/common.h"
+#include "../include/config.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
+#include "../include/object.h"
 #include "../include/opcodes.h"
+#include "../include/token.h"
 #include "../include/utils.h"
-#include "../include/vartable.h"
+#include <climits>
+#include <vector>
+
+using namespace AST::Statement;
+using namespace AST::Expression;
+
+#define DEF(type) void ASTCompiler::compile##type(const type* node)
+#define COMPILE(type)                                   \
+    do {                                                \
+        auto* ptr = static_cast<type*>(node.get());     \
+        compile##type(ptr);                             \
+    } while (false)
+
+#define REPORT_ERROR(...)                                           \
+    do {                                                            \
+        hitError = true;                                            \
+        if (errorCount > COMPILE_ERROR_MAX) return;                 \
+        if (errorCount == COMPILE_ERROR_MAX)                        \
+        {                                                           \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
+            errorCount++;                                           \
+            return;                                                 \
+        }                                                           \
+        CompileError(__VA_ARGS__).report();                         \
+        errorCount++;                                               \
+        return;                                                     \
+    } while (false)
 
 constexpr bool accessFix = false;
 constexpr bool accessVar = true;
@@ -17,45 +45,29 @@ constexpr bool accessVar = true;
 constexpr bool getVar = true;
 constexpr bool setVar = false;
 
-class ASTCompVarsWrapper
-{
-    public:
-        linearTable<VarEntry, ui8, VarHasher> vars;
-        linearTable<ui8, bool> access;
-
-        ASTCompVarsWrapper() = default;
-};
-
-class ASTCompLoopLabels
-{
-    public:
-        linearTable<std::string_view, std::vector<ui64>> breaklabels;
-        linearTable<std::string_view, std::vector<ui64>> continueLabels;
-
-        ASTCompLoopLabels() = default;
-};
-
 ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     scopeCompiler(comp),
-    varsWrapper(new ASTCompVarsWrapper),
-    labelsWrapper(new ASTCompLoopLabels)
+    varLocations(new varTable),
+    varAccess(new accessTable),
+    breakLabels(new labelTable),
+    continueLabels(new labelTable)
 {
     depth = (comp == nullptr ? 0 : comp->depth + 1);
     if (depth == 0) // Global scope compiler.
     {
-        for (auto func : Natives::funcNames)
+        for (const auto* func : Natives::funcNames)
             defVar(func, previousReg++, accessFix); // For now.
     }
 }
 
-ASTCompiler::~ASTCompiler()
-{
-    delete varsWrapper;
-    delete labelsWrapper;
-}
+ASTCompiler::~ASTCompiler() = default;
 
-inline void ASTCompiler::addVariableOp(bool type, const VarInfo& info,
-    ui8 dest, ui8 src)
+void ASTCompiler::addVariableOp(
+    bool type,
+    const VarInfo& info,
+    ui8 dest,
+    ui8 src
+)
 {
     if (info.type == GLOBAL)
     {
@@ -74,38 +86,43 @@ inline void ASTCompiler::addVariableOp(bool type, const VarInfo& info,
     }
 }
 
-inline void ASTCompiler::defVar(std::string name, ui8 reg, bool access)
+// We pass an std::string instead of std::string_view
+// since the line containing the variable's text will
+// likely be destroyed soon after (if using the REPL),
+// and thus we must take ownership of the string first
+// to avoid invalidating the view.
+void ASTCompiler::defVar(const std::string& name, ui8 reg, bool access)
 {
-    varsWrapper->vars[{ name, scope }] = reg;
-    varsWrapper->access[reg] = access;
+    (*varLocations)[{ name, scope }] = reg;
+    (*varAccess)[reg] = access;
     if (scope != 0) varScopes.top().push_back(name);
 }
 
-inline bool ASTCompiler::getAccess(ui8 reg)
+bool ASTCompiler::getAccess(ui8 reg) const
 {
-    bool* ret = varsWrapper->access.get(reg);
+    bool* ret = varAccess->get(reg);
     CH_ASSERT(ret != nullptr,
         "Variable registered with no access field.");
     return *ret;
 }
 
-inline ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token)
+ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
 {
     VarEntry entry(token.text, scope);
-    ui8* slot = varsWrapper->vars.get(entry);
+    ui8* slot = varLocations->get(entry);
     if (slot != nullptr)
         return { true, *slot };
 
     return { false };
 }
 
-inline ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
+ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
 {
     // Check if variable is local first.
     for (ui8 i = 0; i <= scope; i++)
     {
         VarEntry entry(token.text, scope - i);
-        ui8* slot = varsWrapper->vars.get(entry);
+        ui8* slot = varLocations->get(entry);
         if (slot != nullptr)
         {
             VarType type = LOCAL;
@@ -121,7 +138,7 @@ inline ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
         VarInfo info = scopeCompiler->resolveVariable(token);
         if (info.found)
         {
-            info.inCell = (info.type == CELL); 
+            info.inCell = (info.type == CELL);
             info.slot = captureVariable(token, info);
             // Local variables in enclosing scopes become cells in
             // the current scope.
@@ -133,15 +150,15 @@ inline ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
     return { false };
 }
 
-inline ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
+ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
 {
     if (info.type == GLOBAL)
         return info.slot;
 
     std::string name{token.text};
-    auto it = captureNames.find(name);
-    if (it != captureNames.end()) // Already captured -> don't capture again.
-        return it->second;
+    ui8* index = captureNames.get(name);
+    if (index != nullptr) // Already captured -> don't capture again.
+        return *index;
 
     ui8 cellIndex = static_cast<ui8>(captures.size());
     captureNames[name] = cellIndex;
@@ -149,7 +166,7 @@ inline ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
     return cellIndex;
 }
 
-inline void ASTCompiler::pushScope()
+void ASTCompiler::pushScope()
 {
     scope++;
     scopeStart = previousReg;
@@ -157,11 +174,11 @@ inline void ASTCompiler::pushScope()
     code.addOp(OP_ENTER_SCOPE, scopeStart);
 }
 
-inline void ASTCompiler::popScope()
+void ASTCompiler::popScope()
 {
     auto& scopeVec = varScopes.top();
     for (std::string& var : scopeVec)
-        varsWrapper->vars.remove({var, scope});
+        varLocations->remove({var, scope});
 
     varScopes.pop();
     scope--;
@@ -175,16 +192,16 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
     if (patchBreaks)
     {
-        auto* vec = this->labelsWrapper->breaklabels.get(label.text);
+        auto* vec = breakLabels->get(label.text);
         for (ui64 jump : *vec)
             code.patchJump(jump);
         // Breaks are always patched at the very end.
-        this->labelsWrapper->breaklabels.remove(label.text);
-        this->labelsWrapper->continueLabels.remove(label.text);
+        breakLabels->remove(label.text);
+        continueLabels->remove(label.text);
     }
     else
     {
-        auto* vec = this->labelsWrapper->continueLabels.get(label.text);
+        auto* vec = continueLabels->get(label.text);
         for (ui64 jump : *vec)
             code.patchJump(jump);
     }
@@ -208,13 +225,18 @@ DEF(VarDecl)
                 code.loadReg(localInfo.slot, OP_NULL);
             return;
         }
-        else
-            REPORT_ERROR(node->name,
-                "Variable '" + std::string(node->name.text)
-                + "' is already defined in this scope.");
+
+        REPORT_ERROR(node->name,
+            "Variable '" + std::string(node->name.text)
+            + "' is already defined in this scope.");
     }
 
     ui8 varSlot = previousReg;
+    // Define first, since initializer could be a lambda
+    // that references the variable.
+    defVar(std::string(node->name.text), varSlot,
+        node->declType == TOK_MAKE ? accessVar : accessFix);
+
     if (node->init != nullptr)
         compileExpr(node->init);
     else
@@ -222,19 +244,14 @@ DEF(VarDecl)
         code.loadReg(varSlot, OP_NULL);
         reserveReg();
     }
-
-    // We pass an std::string instead of std::string_view
-    // since the line containing the variable's text will
-    // likely be destroyed soon after (if using the REPL),
-    // and thus we must take ownership of the string first
-    // to avoid invalidating the view.
-
-    defVar(std::string(node->name.text), varSlot,
-        node->declType == TOK_MAKE ? accessVar : accessFix);
 }
 
-void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
-    ui8 funcReg, const std::string& name)
+void ASTCompiler::funcBodyHelper(
+    const vT& params,
+    const StmtUP& body,
+    const ui8 funcReg,
+    const std::string& name
+)
 {
     ASTCompiler miniCompiler(this);
     for (const Token& param : params)
@@ -255,14 +272,15 @@ void ASTCompiler::funcBodyHelper(const vT& params, StmtUP& body,
         this->hitError = true;
 
     Object func;
+    ui8 arity = static_cast<ui8>(params.size());
     if (name.empty()) // Compiling a lambda.
-        func = CH_ALLOC(Function, funcCode, params.size());
+        func = CH_ALLOC(Function, funcCode, arity);
     else
-        func = CH_ALLOC(Function, name, funcCode, params.size());
+        func = CH_ALLOC(Function, name, funcCode, arity);
 
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
-    if (miniCompiler.captures.size() != 0)
+    if (!miniCompiler.captures.empty())
         code.addOp(OP_CLOSURE, funcReg);
 
     for (const auto& info : miniCompiler.captures)
@@ -288,6 +306,8 @@ DEF(FuncDecl)
                 + "' is already defined in this scope.");
     }
 
+    // MAX_SCOPE_DEPTH involves block scopes as well.
+    // Fix.
     if (depth + 1 == MAX_SCOPE_DEPTH)
         REPORT_ERROR(node->name, "Maximum function scope depth reached.");
 
@@ -335,16 +355,16 @@ DEF(WhileStmt)
     ui64 loopStart = code.getLoopStart();
     if (node->label.type != TOK_EOF)
     {
-        this->labelsWrapper->breaklabels.add(node->label.text, {});
-        this->labelsWrapper->continueLabels.add(node->label.text, {});
+        breakLabels->add(node->label.text, {});
+        continueLabels->add(node->label.text, {});
     }
 
     std::vector<ui64> breaks;
-    auto prevBreaks = breakJumps;
+    auto* prevBreaks = breakJumps;
     breakJumps = &breaks;
 
     std::vector<ui64> continues;
-    auto prevContinues = continueJumps;
+    auto* prevContinues = continueJumps;
     continueJumps = &continues;
 
     compileExpr(node->condition);
@@ -368,8 +388,11 @@ DEF(WhileStmt)
     continueJumps = prevContinues;
 }
 
-void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
-    ui8 varReg, ui8 iterReg)
+void ASTCompiler::forLoopHelper(
+    const ForStmt* node,
+    const ui8 varReg,
+    const ui8 iterReg
+)
 {
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
     ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
@@ -392,10 +415,12 @@ void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
         code.patchJump(jump);
     patchLoopLabelJumps(node->label, false);
 
-    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart + 5);
+    constexpr int UPDATE_ITER_OP_SIZE = 5;
+    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart
+        + UPDATE_ITER_OP_SIZE);
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
-        static_cast<ui8>((diff >> 8) & 0xff),
-        static_cast<ui8>(diff & 0xff)
+        static_cast<ui8>((diff >> CHAR_BIT) & CODE_MAX),
+        static_cast<ui8>(diff & CODE_MAX)
     );
 
     code.patchJump(failJump);
@@ -409,19 +434,18 @@ void ASTCompiler::forLoopHelper(std::unique_ptr<ForStmt>& node,
 DEF(ForStmt)
 {
     pushScope();
-
     if (node->label.type != TOK_EOF)
     {
-        this->labelsWrapper->breaklabels.add(node->label.text, {});
-        this->labelsWrapper->continueLabels.add(node->label.text, {});
+        breakLabels->add(node->label.text, {});
+        continueLabels->add(node->label.text, {});
     }
 
     std::vector<ui64> breaks;
-    auto prevBreaks = breakJumps;
+    auto* prevBreaks = breakJumps;
     breakJumps = &breaks;
 
     std::vector<ui64> continues;
-    auto prevContinues = continueJumps;
+    auto* prevContinues = continueJumps;
     continueJumps = &continues;
 
     ui8 varReg = previousReg;
@@ -439,8 +463,12 @@ DEF(ForStmt)
     popScope();
 }
 
-void ASTCompiler::matchCaseHelper(MatchStmt::MatchCase& checkCase,
-    const ui8 matchReg, ui64& fallJump, ui64& emptyJump)
+void ASTCompiler::matchCaseHelper(
+    const MatchStmt::MatchCase& checkCase,
+    const ui8 matchReg,
+    ui64& fallJump,
+    ui64& emptyJump
+)
 {
     ui8 caseReg = previousReg;
     compileExpr(checkCase.value);
@@ -480,13 +508,13 @@ DEF(MatchStmt)
     compileExpr(node->matchValue);
 
     std::vector<ui64> jumps;
-    auto prevEndJumps = endJumps;
+    auto* prevEndJumps = endJumps;
     this->endJumps = &jumps;
 
     ui64 fallJump = 0; // Invalid jump offset value.
     ui64 emptyJump = 0;
 
-    for (MatchStmt::MatchCase& checkCase : node->cases)
+    for (const MatchStmt::MatchCase& checkCase : node->cases)
     {
         if (checkCase.value != nullptr)
             matchCaseHelper(checkCase, matchReg, fallJump, emptyJump);
@@ -531,7 +559,7 @@ DEF(BreakStmt)
         this->breakJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec = this->labelsWrapper->breaklabels.get(node->label.text);
+        auto* vec = breakLabels->get(node->label.text);
         if (vec == nullptr)
             REPORT_ERROR(node->label,
                 "Break label is not assigned to any loop.");
@@ -546,7 +574,7 @@ DEF(ContinueStmt)
         this->continueJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec = this->labelsWrapper->continueLabels.get(node->label.text);
+        auto* vec = continueLabels->get(node->label.text);
         if (vec == nullptr)
             REPORT_ERROR(node->label,
                 "Continue label is not assigned to any loop.");
@@ -576,7 +604,7 @@ DEF(ExprStmt)
 DEF(BlockStmt)
 {
     pushScope();
-    for (StmtUP& stmt : node->block)
+    for (const StmtUP& stmt : node->block)
         compileStmt(stmt);
     popScope();
 }
@@ -597,7 +625,7 @@ DEF(TupleExpr)
         count = 0;
     };
 
-    for (ExprUP& entry : node->entries)
+    for (const ExprUP& entry : node->entries)
     {
         compileExpr(entry);
         if (++count == TUPLE_GROUP)
@@ -607,8 +635,10 @@ DEF(TupleExpr)
     if (count > 0) emitTuple();
 }
 
-void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
-    const VarInfo& info)
+void ASTCompiler::compoundAssign(
+    const AssignExpr* node,
+    const VarInfo& info
+)
 {
     ui8 varReg = previousReg;
     addVariableOp(getVar, info, varReg, info.slot);
@@ -644,7 +674,7 @@ void ASTCompiler::compoundAssign(std::unique_ptr<AssignExpr>& node,
 DEF(AssignExpr)
 {
     // Temporarily assuming regular variables only.
-    VarExpr* temp = static_cast<VarExpr*>(node->target.get());
+    auto* temp = static_cast<VarExpr*>(node->target.get());
     VarInfo info = resolveVariable(temp->name);
 
     if (!info.found)
@@ -787,13 +817,13 @@ DEF(BinaryExpr)
 // Temporarily only dealing with simple identifier
 // variables; will need to extend later.
 
-void ASTCompiler::_crementExpr(std::unique_ptr<UnaryExpr>& node)
+void ASTCompiler::_crementExpr(const UnaryExpr* node)
 {
     if (node->expr->type != E_VAR_EXPR)
         REPORT_ERROR(node->oper,
             "Invalid increment/decrement target.");
 
-    VarExpr* temp = static_cast<VarExpr*>(node->expr.get());
+    auto* temp = static_cast<VarExpr*>(node->expr.get());
     VarInfo info = resolveVariable(temp->name);
     if (!info.found)
     {
@@ -868,7 +898,7 @@ DEF(CallExpr)
     ui8 location;
     if (node->builtin)
     {
-        VarExpr* var = static_cast<VarExpr*>(node->callee.get());
+        auto* var = static_cast<VarExpr*>(node->callee.get());
         auto find = Natives::builtins.find(var->name.text);
         if (find == Natives::builtins.end())
             REPORT_ERROR(var->name, "No builtin '"
@@ -883,7 +913,7 @@ DEF(CallExpr)
     }
 
     ui8 argsStart = previousReg;
-    for (ExprUP& arg : node->args)
+    for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
     ui8 size = static_cast<ui8>(node->args.size());
@@ -961,10 +991,12 @@ DEF(ComprehensionExpr)
     if (whereJump != 0)
         code.patchJump(whereJump);
 
-    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart + 5);
+    constexpr int UPDATE_ITER_OP_SIZE = 5;
+    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart
+        + UPDATE_ITER_OP_SIZE);
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
-        static_cast<ui8>((diff >> 8) & 0xff),
-        static_cast<ui8>(diff & 0xff)
+        static_cast<ui8>((diff >> CHAR_BIT) & CODE_MAX),
+        static_cast<ui8>(diff & CODE_MAX)
     );
 
     code.patchJump(failJump);
@@ -985,7 +1017,7 @@ DEF(ListExpr)
         count = 0;
     };
 
-    for (ExprUP& entry : node->entries)
+    for (const ExprUP& entry : node->entries)
     {
         compileExpr(entry);
         if (++count == LIST_ENTRY_GROUP)
@@ -1008,6 +1040,11 @@ DEF(VarExpr)
 
 DEF(LiteralExpr)
 {
+    #define GET_STR(tok)                                \
+        normalizeNewlines(                              \
+            (tok).text.substr(1, (tok).text.size() - 2) \
+        )
+    
     Token tok = node->value;
 
     if (tok.type == TOK_NUM)
@@ -1050,9 +1087,11 @@ DEF(LiteralExpr)
         code.loadReg(previousReg, OP_NULL);
         reserveReg();
     }
+
+    #undef GET_STR
 }
 
-void ASTCompiler::compileExpr(ExprUP& node)
+void ASTCompiler::compileExpr(const ExprUP& node)
 {
     if (node == nullptr) return;
     
@@ -1076,10 +1115,10 @@ void ASTCompiler::compileExpr(ExprUP& node)
     }
 }
 
-void ASTCompiler::compileStmt(StmtUP& node)
+void ASTCompiler::compileStmt(const StmtUP& node)
 {
     if (node == nullptr) return;
-    
+
     switch (node->type)
     {
         case S_VAR_DECL:    COMPILE(VarDecl);       break;
@@ -1102,8 +1141,7 @@ void ASTCompiler::compileStmt(StmtUP& node)
 Function* ASTCompiler::compile(StmtVec& program)
 {
     code.clear();
-    hitError = false;
-    // Inherit errorCount from parser.
+    // Inherit hitError and errorCount from parser.
 
     for (StmtUP& node : program)
         compileStmt(node);
@@ -1111,5 +1149,9 @@ Function* ASTCompiler::compile(StmtVec& program)
     if (hitError) code.clear();
     return CH_ALLOC(Function, code, 0);
 }
+
+#undef DEF
+#undef COMPILE
+#undef REPORT_ERROR
 
 #endif

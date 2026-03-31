@@ -1,9 +1,13 @@
 #include "../include/bytecode.h"
-#include "../include/object.h"
+#include "../include/common.h"
+#include "../include/object.h"		// For Object and object structs.
 #include "../include/opcodes.h"
-#include <cmath>
-#include <cstring>
-#include <fstream>
+#include <cmath>					// For fmod() in loadRegConst() method.
+#include <cstring>					// For strlen() in countPool() method.
+#include <fstream>					// For ifstream in cacheStream() method.
+#include <ios>						// For std::streamsize.
+#include <limits>					// For std::numeric_limits.
+#include <utility>					// For std::move.
 
 ByteCode::ByteCode() :
 	block(0), pool(0) {}
@@ -193,12 +197,20 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	os.write(reinterpret_cast<const char*>(&poolSize),
 		sizeof(ui64));
 
+	ui64 fileSize = file.size();
+	constexpr auto maxSize = static_cast<ui64>(
+		std::numeric_limits<std::streamsize>::max()
+	);
+	// Check to avoid narrowing conversions below.
+	if ((fileSize > maxSize) || (codeSize > maxSize))
+		return; // Report an error.
+
 	// File name.
-	os.write(file.data(), file.size());
+	os.write(file.data(), static_cast<std::streamsize>(file.size()));
 
 	// Bytecode.
 	os.write(reinterpret_cast<const char*>(block.data()),
-		block.size());
+		static_cast<std::streamsize>(block.size()));
 
 	// Constant pool.
 	for (const Object& constant : pool)

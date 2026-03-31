@@ -1,10 +1,28 @@
 #include "../include/lexer.h"
-#include "../include/common.h"
+#include "../include/common.h"	// For CH_PRINT, fixed-size integer types.
+#include "../include/config.h"	// For LEX_ERROR_MAX, AVG_TOK_SIZE constants.
 #include "../include/error.h"
-#include "../include/object.h"
 #include "../include/token.h"
-#include <cctype>
-#include <unordered_map>
+#include <cctype>				// For isdigit, isalpha, is alnum.
+#include <cstdio>				// For EOF.
+#include <string_view>
+#include <unordered_map>		// For keywords map.
+
+#undef REPORT_ERROR
+#define REPORT_ERROR(...)                                       \
+	do {                                                        \
+		hitError = true;                                        \
+		if (errorCount > LEX_ERROR_MAX) return;                 \
+		else if (errorCount == LEX_ERROR_MAX)                   \
+		{                                                       \
+			CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");  \
+			errorCount++;                                       \
+			return;                                             \
+		}                                                       \
+		LexError(__VA_ARGS__).report();                         \
+		errorCount++;                                           \
+		return;                                                 \
+	} while (false)
 
 static std::unordered_map<std::string_view, TokenType> keywords = {
 	{"int", TOK_INT},		{"dec", TOK_DEC},		{"boolean", TOK_BOOL},
@@ -20,11 +38,6 @@ static std::unordered_map<std::string_view, TokenType> keywords = {
 	{"not", TOK_NOT},		{"return", TOK_RETURN},	{"new", TOK_NEW},
 	{"def", TOK_DEF},		{"fields", TOK_FIELDS},	{"in", TOK_IN}
 };
-
-Lexer::Lexer() :
-	start(nullptr), current(nullptr), end(nullptr),
-	line(1), column(1), state({false, 0}), hitError(false),
-	errorCount(0) {}
 
 inline void Lexer::setUp(const std::string_view& code)
 {
@@ -119,8 +132,8 @@ i64 Lexer::intValue(std::string_view text)
 double Lexer::decValue(std::string_view text)
 {
 	double ret = 0;
-	auto it = text.begin();
-	auto end = text.end();
+	const auto* it = text.begin();
+	const auto* end = text.end();
 	for (; it < end; it++)
 	{
 		char c = *it;
@@ -161,7 +174,7 @@ void Lexer::makeToken(TokenType type)
 			case TOK_NUM_DEC:	value.d = decValue(text);	break;
 			case TOK_TRUE:
 			case TOK_FALSE:		value.b = boolValue(type);	break;
-			case TOK_NULL:		value.s = "NULL";			break;
+			case TOK_NULL:		value.s = nullptr;			break;
 			// For string literals we use the token's own text later.
 			default: break;
 		}

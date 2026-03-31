@@ -13,6 +13,51 @@
 #include "../include/vartable.h"
 #include <string_view>
 
+// Cannot propagate returns, so we make them macros instead.
+#undef REPORT_SYNTAX
+#define REPORT_SYNTAX(...)                                          \
+    do {                                                            \
+        hitError = true;                                            \
+        if (syntaxError || (errorCount > COMPILE_ERROR_MAX))        \
+            return;                                                 \
+        else if (errorCount == COMPILE_ERROR_MAX)                   \
+        {                                                           \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+            errorCount++;                                           \
+            return;                                                 \
+        }                                                           \
+        CompileError(__VA_ARGS__).report();                         \
+        syntaxError = true;                                         \
+        errorCount++;                                               \
+        return;                                                     \
+    } while (false)
+
+#undef REPORT_SEMANTIC
+#define REPORT_SEMANTIC(...)                                        \
+    do {                                                            \
+        hitError = true;                                            \
+        if (semanticError || (errorCount > COMPILE_ERROR_MAX))      \
+            return;                                                 \
+        else if (errorCount == COMPILE_ERROR_MAX)                   \
+        {                                                           \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+            errorCount++;                                           \
+            return;                                                 \
+        }                                                           \
+        CompileError(__VA_ARGS__).report();                         \
+        semanticError = true;                                       \
+        errorCount++;                                               \
+        return;                                                     \
+    } while (false)
+
+#define MATCH_TOK(...)                      \
+    if (!matchError(__VA_ARGS__)) return;
+
+#define GET_STR(tok)                                \
+    normalizeNewlines(                              \
+        (tok).text.substr(1, (tok).text.size() - 2) \
+    )
+
 constexpr bool accessFix = false;
 constexpr bool accessVar = true;
 
@@ -47,11 +92,7 @@ Compiler::Compiler(Compiler* comp) :
     }
 }
 
-Compiler::~Compiler()
-{
-    delete varsWrapper;
-    delete labelsWrapper;
-}
+Compiler::~Compiler() = default;
 
 inline void Compiler::defVar(std::string name, ui8 reg, bool access)
 {

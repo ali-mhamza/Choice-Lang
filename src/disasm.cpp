@@ -1,7 +1,11 @@
 #include "../include/disasm.h"
-#include "../include/common.h"
-#include "../include/natives.h"
+#include "../include/bytecode.h"
+#include "../include/common.h"	// For CH_PRINT macro and 'file' global variable.
+#include "../include/config.h"	// For DIS_FUNCTION_OBJS constant.
+#include "../include/natives.h"	// For funcNames in callOp() method.
+#include "../include/object.h"
 #include "../include/opcodes.h"
+#include <string_view>
 
 #define PRINT_FULL_OFFSET 1
 
@@ -97,7 +101,7 @@ void Disassembler::doubleOper(ui8 byte)
 	ip += 3;
 }
 
-void Disassembler::loadOper()
+void Disassembler::loadOp()
 {
 	printOpcode("OP_LOAD_R");
 	CH_PRINT("R[{}] ", ip[1]);
@@ -135,7 +139,7 @@ void Disassembler::loadOper()
 	}
 }
 
-void Disassembler::jumpOper(ui8 byte, int sign)
+void Disassembler::jumpOp(ui8 byte, int sign)
 {
 	printOpcode(opNames[byte]);
 	if ((byte == OP_JUMP_TRUE) || (byte == OP_JUMP_FALSE))
@@ -149,7 +153,7 @@ void Disassembler::jumpOper(ui8 byte, int sign)
 	CH_PRINT("-> {}\n", ip - start + (sign * jump));
 }
 
-void Disassembler::callOper(ui8 byte)
+void Disassembler::callOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 	ui8 callee = restoreByte();
@@ -176,7 +180,7 @@ void Disassembler::callOper(ui8 byte)
 	}
 }
 
-void Disassembler::iterOper(ui8 byte)
+void Disassembler::iterOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
@@ -195,7 +199,7 @@ void Disassembler::iterOper(ui8 byte)
 	}
 }
 
-void Disassembler::collectionOper(ui8 byte)
+void Disassembler::collectionOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
@@ -220,7 +224,7 @@ void Disassembler::collectionOper(ui8 byte)
 	}
 }
 
-void Disassembler::captureOper(ui8 byte)
+void Disassembler::captureOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 	ui8 funcReg = restoreByte();
@@ -246,13 +250,13 @@ void Disassembler::disassembleOp(ui8 byte)
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
-			jumpOper(byte, byte == OP_LOOP ? -1 : 1);
+			jumpOp(byte, byte == OP_LOOP ? -1 : 1);
 			break;
 		case OP_MAKE_ITER:	case OP_UPDATE_ITER:
-			iterOper(byte);
+			iterOp(byte);
 			break;
 		case OP_CALL_NAT:	case OP_CALL_DEF:
-			callOper(byte);
+			callOp(byte);
 			break;
 		case OP_CLOSURE:	case OP_NEG:		case OP_NOT:		case OP_INCR:
 		case OP_DECR:		case OP_COMP:		case OP_RETURN:		case OP_VOID:
@@ -260,13 +264,13 @@ void Disassembler::disassembleOp(ui8 byte)
 			singleOper(byte);
 			break;
 		case OP_LOAD_R:
-			loadOper();
+			loadOp();
 			break;
 		case OP_LIST:		case OP_EXT_LIST:		case OP_TUPLE:		case OP_EXT_TUPLE:
-			collectionOper(byte);
+			collectionOp(byte);
 			break;
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
-			captureOper(byte);
+			captureOp(byte);
 			break;
 		case OP_EXIT_SCOPE:
 		{

@@ -1,15 +1,24 @@
 #include "../include/object.h"
+#include "../include/bytecode.h"
+#include "../include/common.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
-#include "../include/token.h"
-#include <climits> // For CHAR_BIT, SIZE_MAX.
-#include <cstdio> // For stderr.
+#include <array>
+#include <climits>  // For CHAR_BIT, SIZE_MAX.
+#include <cstddef>  // For size_t.
+#include <cstdio>   // For stderr.
 #include <cstring>
+#include <string>
 #include <string_view>
-#include <type_traits>
+#include <variant>
 using Natives::funcNames;
 
-static std::string_view objTypes[] = {
+#ifndef SIZE_MAX
+    #include <limits>
+    #define SIZE_MAX std::numeric_limits<std::size_t>::max()
+#endif
+
+static std::array<std::string_view, NUM_TYPES> objTypes = {
     "int", "dec", "bool", "null", "type", "builtin function",
     "user function", "user function", "lambda", "bigint",
     "bigdec", "string", "range", "list", "table", "tuple",
@@ -219,10 +228,10 @@ static void emitBytes(std::ofstream& os, ObjType type, T value)
         os.put(static_cast<char>(type));
     constexpr size_t size = sizeof(T);
     ui64* asBytes = reinterpret_cast<ui64*>(&value);
-    char bytes[size];
+    std::array<char, size> bytes;
     for (size_t i = 0; i < size; i++)
         bytes[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & 0xff;
-    os.write(&bytes[0], size);
+    os.write(bytes.data(), size);
 }
 
 void Object::emit(std::ofstream& os) const
@@ -263,25 +272,30 @@ void Cell::close()
     location = &obj;
 }
 
-Function::Function(const ByteCode& code, ui8 argCount) :
+Function::Function(const ByteCode& code, const ui8 argCount) :
     HeapObj(OBJ_LAMBDA),
     name(nullptr), code(code), argCount(argCount), lambda(true) {}
 
-#if defined(__GNUC__) || defined(__clang__)
-    #define STRDUP strdup
-#elif defined(_MSC_VER)
-    #define STRDUP _strdup
-#endif
+// strdup is not a standard C++ function, but is instead from POSIX.
+static char* choiceStrdup(const char* str)
+{
+    auto size = strlen(str) + 1;
+    char* ret = new char[size];
+    memcpy(ret, str, size); // Includes null byte.
+    return ret;
+}
 
-Function::Function(const std::string& name, const ByteCode& code,
-    ui8 argCount) :
-    HeapObj(OBJ_FUNC),
-    name(STRDUP(name.c_str())), code(code), argCount(argCount),
+Function::Function(
+    const std::string& name,
+    const ByteCode& code,
+    const ui8 argCount
+) : HeapObj(OBJ_FUNC),
+    name(choiceStrdup(name.c_str())), code(code), argCount(argCount),
     lambda(false) {}
 
 Function::~Function()
 {   
-    free(name);
+    delete[] name;
 }
 
 bool Function::operator==(const Function& other) const
@@ -636,10 +650,11 @@ bool RangeIter::next(Object& var)
 {
     bool reverse = (obj->start > obj->stop);
     val += (reverse ? -1 : 1) * obj->step;
-    if (!reverse && (val > obj->stop))
-        return false;
-    else if (reverse && (val < obj->stop))
-        return false;
+    if ((!reverse && (val > obj->stop))
+        || (reverse && (val < obj->stop)))
+    {
+        return false;   
+    }
     AS_(int, var) = val;
     return true;
 }

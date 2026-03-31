@@ -1,6 +1,9 @@
 #include "../include/error.h"
-#include "../include/common.h"
-#include <cstdio> // For stderr.
+#include "../include/common.h"  // For CH_PRINT macro, fixed-size integer types.
+#include "../include/token.h"
+#include <cstdio>               // For stderr.
+#include <string>
+#include <string_view>
 
 // LexError.
 

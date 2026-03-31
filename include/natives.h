@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"         // For ui8 in NativeFunc type alias.
 #include "token.h"
+#include <array>
 #include <string_view>
 #include <unordered_map>
 
@@ -34,7 +35,7 @@ namespace Natives
     void range(iter it, ui8 args, const Token& error);
     void read(iter it, ui8 args, const Token& error);
 
-    extern const NativeFunc functions[NUM_FUNCS];
-    extern const char* funcNames[NUM_FUNCS];
+    extern const std::array<NativeFunc, NUM_FUNCS> functions;
+    extern const std::array<const char*, NUM_FUNCS> funcNames;
     extern const std::unordered_map<std::string_view, FuncType> builtins;
 }

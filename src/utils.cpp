@@ -1,4 +1,11 @@
 #include "../include/utils.h"
+#include "../include/common.h"
+#include <algorithm>	// For std::remove_if.
+#include <array>
+#include <cctype>		// For isdigit().
+#include <cstddef> 		// For size_t.
+#include <string>
+#include <string_view>
 #include <vector>
 
 // Credit for ends_with and starts_with: Pavel P.

@@ -1,6 +1,11 @@
 #ifdef COMP_AST
 
 #include "../include/astnodes.h"
+#include "../include/common.h"
+#include "../include/token.h"
+#include <utility> // For std::move.
+#include <vector>
+
 using namespace AST::Statement;
 using namespace AST::Expression;
 
@@ -39,7 +44,7 @@ ForStmt::ForStmt(const Token& var, ExprUP& iter, ExprUP& where,
     label(label), body(std::move(body)), elseClause(std::move(elseClause)) {}
 
 MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body,
-    bool fall) :
+    const bool fall) :
     value(std::move(value)), body(std::move(body)),
     fallthrough(fall) {}
 
@@ -107,11 +112,11 @@ BinaryExpr::BinaryExpr(ExprUP& left, TokenType oper, ExprUP right) :
     Expr(E_BINARY_EXPR),
     left(std::move(left)), oper(oper), right(std::move(right)) {}
 
-UnaryExpr::UnaryExpr(const Token& oper, ExprUP expr, bool prev) :
+UnaryExpr::UnaryExpr(const Token& oper, ExprUP expr, const bool prev) :
     Expr(E_UNARY_EXPR),
     oper(oper), expr(std::move(expr)), prev(prev) {}
 
-CallExpr::CallExpr(ExprUP& callee, ExprVec& args, bool builtin,
+CallExpr::CallExpr(ExprUP& callee, ExprVec& args, const bool builtin,
     const Token& paren) :
     Expr(E_CALL_EXPR),
     callee(std::move(callee)), args(std::move(args)), builtin(builtin),
