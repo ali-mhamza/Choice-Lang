@@ -19,9 +19,9 @@ class Array
         Array();
         Array(size_t size);
         Array(const Array& other);
-        Array(Array&& other);
+        Array(Array&& other) noexcept;
         Array& operator=(const Array& other);
-        Array& operator=(Array&& other);
+        Array& operator=(Array&& other) noexcept;
         ~Array();
 
         // Basic operators.
@@ -45,14 +45,14 @@ class Array
         inline T pop();
         inline void popn(size_t n);
 
-        inline size_t count() const;
-        inline size_t capacity() const;
-        inline bool empty() const;
+        [[nodiscard]] inline size_t count() const;
+        [[nodiscard]] inline size_t capacity() const;
+        [[nodisard]] inline bool empty() const;
 
-        inline T* front();
-        inline const T* front() const;
-        inline T* back();
-        inline const T* back() const;
+        [[nodiscard]] inline T* front();
+        [[nodiscard]] inline const T* front() const;
+        [[nodiscard]] inline T* back();
+        [[nodiscard]] inline const T* back() const;
 
         inline T& slot(size_t index); // index < capacity.
         void slotInsert(const T& element, size_t index); // index < capacity.
@@ -100,12 +100,12 @@ class Array
                 bool operator!=(const const_iterator& other) const;
         };
 
-        iterator begin() noexcept;
-        iterator end() noexcept;
-        const_iterator begin() const noexcept;
-        const_iterator end() const noexcept;
-        const_iterator cbegin() const noexcept;
-        const_iterator cend() const noexcept;
+        [[nodiscard]] iterator begin() noexcept;
+        [[nodiscard]] iterator end() noexcept;
+        [[nodiscard]] const_iterator begin() const noexcept;
+        [[nodiscard]] const_iterator end() const noexcept;
+        [[nodiscard]] const_iterator cbegin() const noexcept;
+        [[nodiscard]] const_iterator cend() const noexcept;
 };
 
 TEMP
@@ -141,7 +141,7 @@ Array<T>::Array(Array<T>&& other) :
 }
 
 TEMP
-Array<T>& Array<T>::operator=(const Array<T>& other)
+Array<T>& Array<T>::operator=(const Array<T>& other) noexcept
 {
     if (this != &other)
     {
@@ -159,7 +159,7 @@ Array<T>& Array<T>::operator=(const Array<T>& other)
 }
 
 TEMP
-Array<T>& Array<T>::operator=(Array<T>&& other)
+Array<T>& Array<T>::operator=(Array<T>&& other) noexcept
 {
     if (this != &other)
     {
@@ -535,7 +535,8 @@ constArrIter::const_iterator(const const_iterator& other) :
 TEMP
 typename constArrIter& constArrIter::operator=(const const_iterator& other)
 {
-    this->ptr = other.ptr;
+    if (this != &other)
+        this->ptr = other.ptr;
     return *this;
 }
 
