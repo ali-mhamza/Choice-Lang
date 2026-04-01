@@ -8,6 +8,7 @@
 #include <cstddef>  // For size_t.
 #include <cstdio>   // For stderr.
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -19,10 +20,10 @@ using Natives::funcNames;
 #endif
 
 static std::array<std::string_view, NUM_TYPES> objTypes = {
-    "int", "dec", "bool", "null", "type", "builtin function",
-    "user function", "user function", "lambda", "bigint",
-    "bigdec", "string", "range", "list", "table", "tuple",
-    "num", "iterable"
+    "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
+    "Function", "Function", "Lambda", "BigInt",
+    "BigDec", "String", "Range", "List", "Table", "Tuple",
+    "Num", "Iterable"
 };
 
 /* Object. */
