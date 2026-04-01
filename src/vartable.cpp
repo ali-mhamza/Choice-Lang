@@ -2,6 +2,7 @@
 #include "../include/common.h"
 #include "hashFunctions.h"
 #include <string>
+#include <string_view>
 
 VarEntry::VarEntry(std::string_view name, ui8 scope) :
     name(std::string(name)), scope(scope) {}
