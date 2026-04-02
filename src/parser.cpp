@@ -637,7 +637,7 @@ ExprUP Parser::shift()
     while (consumeToks(TOK_RIGHT_SHIFT, TOK_LEFT_SHIFT))
     {
         TokenType oper = previousTok.type;
-        expr = std::make_unique<ShiftExpr>(expr, oper, shift());
+        expr = std::make_unique<ShiftExpr>(expr, oper, sum());
     }
 
     return expr;

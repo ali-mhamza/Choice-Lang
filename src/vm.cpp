@@ -304,8 +304,19 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
         case OP_AND:        return fromUnsigned(aVal & bVal);
         case OP_OR:         return fromUnsigned(aVal | bVal);
         case OP_XOR:        return fromUnsigned(aVal ^ bVal);
-        case OP_SHIFT_L:    return fromUnsigned(aVal << bVal);
-        case OP_SHIFT_R:    return fromUnsigned(aVal >> bVal);
+        case OP_SHIFT_L:
+        {
+            if (bVal >= 64)
+                throw RuntimeError(Token(), "Shift value too high.");
+            return fromUnsigned(aVal << bVal);
+        }
+        case OP_SHIFT_R:
+        {
+            if (bVal >= 64)
+                throw RuntimeError(Token(), "Shift value too high.");
+            i64 term = ((AS_(int, a) >= 0) ? 0 : INT64_MIN);
+            return fromUnsigned(aVal >> bVal) + term;
+        }
         default: CH_UNREACHABLE();
     }
 }
