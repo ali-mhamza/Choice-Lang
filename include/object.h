@@ -31,7 +31,7 @@ using Natives::FuncType;
     X(RANGE, rangeVal)      \
     X(LIST, listVal)        \
     X(TABLE, tableVal)      \
-    /* Used in function return values. */    \
+    /* Used in function return values. */   \
     X(TUPLE, tupleVal)      \
     /* Used in for-loops. */                \
     X(ITER, iterVal)        \
