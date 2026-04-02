@@ -301,9 +301,11 @@ DEF(FuncDecl)
         if (inRepl && (depth == 0) && (scope == 0))
             redefined = true;
         else
+        {
             REPORT_ERROR(node->name,
                 "Object '" + std::string(node->name.text)
                 + "' is already defined in this scope.");
+        }
     }
 
     // MAX_SCOPE_DEPTH involves block scopes as well.
@@ -494,7 +496,7 @@ void ASTCompiler::matchCaseHelper(
     // fall/keep falling.
     if (checkCase.fallthrough || (fallJump != 0))
         fallJump = code.addJump(OP_JUMP);
-    else if (empty)
+    else if (empty) // Default fallthrough with empty match blocks.
         emptyJump = code.addJump(OP_JUMP);
     else
         this->endJumps->push_back(code.addJump(OP_JUMP));
@@ -547,7 +549,7 @@ DEF(ReturnStmt)
     if (node->expr != nullptr)
         compileExpr(node->expr);
     else
-        code.addOp(OP_VOID, reg);
+        code.addOp(OP_VOID, reg); // Return void value as default.
     code.addOp(OP_RETURN, reg);
 
     if (node->expr != nullptr) freeReg();
@@ -561,8 +563,10 @@ DEF(BreakStmt)
     {
         auto* vec = breakLabels->get(node->label.text);
         if (vec == nullptr)
+        {
             REPORT_ERROR(node->label,
                 "Break label is not assigned to any loop.");
+        }
         else
             vec->push_back(code.addJump(OP_JUMP));
     }
@@ -576,8 +580,10 @@ DEF(ContinueStmt)
     {
         auto* vec = continueLabels->get(node->label.text);
         if (vec == nullptr)
+        {
             REPORT_ERROR(node->label,
                 "Continue label is not assigned to any loop.");
+        }
         else
             vec->push_back(code.addJump(OP_JUMP));
     }
@@ -683,8 +689,7 @@ DEF(AssignExpr)
             + std::string(temp->name.text) + "'.");
     }
     else if (info.access == accessFix)
-        REPORT_ERROR(node->oper,
-            "Cannot assign to a fixed-value variable.");
+        REPORT_ERROR(node->oper, "Cannot assign to a fixed-value variable.");
 
     if (node->oper.type != TOK_EQUAL)
     {
@@ -820,8 +825,7 @@ DEF(BinaryExpr)
 void ASTCompiler::_crementExpr(const UnaryExpr* node)
 {
     if (node->expr->type != E_VAR_EXPR)
-        REPORT_ERROR(node->oper,
-            "Invalid increment/decrement target.");
+        REPORT_ERROR(node->oper, "Invalid increment/decrement target.");
 
     auto* temp = static_cast<VarExpr*>(node->expr.get());
     VarInfo info = resolveVariable(temp->name);
@@ -831,8 +835,7 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
             + std::string(temp->name.text) + "'.");
     }
     else if (info.access == accessFix)
-        REPORT_ERROR(node->oper,
-            "Cannot modify a fixed-value variable.");
+        REPORT_ERROR(node->oper, "Cannot modify a fixed-value variable.");
 
     // We copy the variable into two temporary register slots:
     // [x][.][.][.][...] -> [...][x][x]
@@ -901,8 +904,10 @@ DEF(CallExpr)
         auto* var = static_cast<VarExpr*>(node->callee.get());
         auto find = Natives::builtins.find(var->name.text);
         if (find == Natives::builtins.end())
+        {
             REPORT_ERROR(var->name, "No builtin '"
                 + std::string(var->name.text) + "' function.");
+        }
         location = static_cast<ui8>(find->second);
         reserveReg(); // Reserve a register in place of the function object.
     }
@@ -1031,8 +1036,10 @@ DEF(VarExpr)
 {
     VarInfo info = resolveVariable(node->name);
     if (!info.found)
+    {
         REPORT_ERROR(node->name, "Undefined variable '"
             + std::string(node->name.text) + "'.");
+    }
 
     addVariableOp(getVar, info, previousReg, info.slot);
     reserveReg();

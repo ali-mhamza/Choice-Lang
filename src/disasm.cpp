@@ -71,8 +71,10 @@ ui16 Disassembler::restoreShort()
 ui32 Disassembler::restoreLong()
 {
 	ui32 value = static_cast<ui32>(
-		(ip[1] << 24) | (ip[2] << 16)
-		| (ip[3] << 8) | ip[4]
+		(ip[1] << 24)
+		| (ip[2] << 16)
+		| (ip[3] << 8)
+		| ip[4]
 	);
 
 	return value;

@@ -12,7 +12,8 @@ TokenPrinter::TokenPrinter(const vT& tokens) :
 static std::string removeDigitSeps(const std::string_view& sv)
 {
     std::string newStr(sv);
-    newStr.erase(std::remove_if(newStr.begin(), newStr.end(), [](char c){
+    newStr.erase(std::remove_if(newStr.begin(), newStr.end(),
+    [](char c){
         return (c == '\'');
     }), newStr.end());
 
@@ -24,7 +25,8 @@ static std::string formatMultiLineString(const std::string_view& sv)
     std::string newStr(sv);
 
     // Clear any unwanted whitespace characters.
-    newStr.erase(std::remove_if(newStr.begin(), newStr.end(), [](char c){
+    newStr.erase(std::remove_if(newStr.begin(), newStr.end(),
+    [](char c){
         return ((c == '\r') || (c == '\f') || (c == '\v'));
     }), newStr.end());
 

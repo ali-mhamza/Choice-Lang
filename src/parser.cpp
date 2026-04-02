@@ -23,7 +23,7 @@ using namespace AST::Expression;
             return nullptr;                                         \
         if (errorCount == COMPILE_ERROR_MAX)                        \
         {                                                           \
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
             errorCount++;                                           \
             return nullptr;                                         \
         }                                                           \
@@ -41,7 +41,7 @@ using namespace AST::Expression;
             return nullptr;                                         \
         if (errorCount == COMPILE_ERROR_MAX)                        \
         {                                                           \
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");   \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
             errorCount++;                                           \
             return nullptr;                                         \
         }                                                           \
@@ -132,7 +132,9 @@ void Parser::reset()
     {
         if ((previousTok.type == TOK_SEMICOLON)
             || (previousTok.type == TOK_RIGHT_BRACE))
-                return;
+        {
+            return;
+        }
 
         switch (currentTok.type)
         {
@@ -197,15 +199,18 @@ StmtUP Parser::varDecl()
     else if (declType == TOK_FIX)
     {
         if (currentTok.type == TOK_SEMICOLON)
+        {
             REPORT_SEMANTIC(currentTok,
                 "Initializer required for fixed-value variable.");
+        }
         else
+        {
             REPORT_SYNTAX(currentTok,
                 "Expect '=' before initializer for fixed-value variable.");
+        }
     }
 
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after variable declaration.");
-
     return std::make_unique<VarDecl>(declType, name, init);
 }
 
@@ -234,8 +239,8 @@ StmtUP Parser::funcBodyHelper(bool lambda, vT& params, bool skipParams)
         }
     }
 
-    MATCH_TOK(TOK_LEFT_BRACE,
-        lambda ? "Expect '{' before lambda body." : "Expect '{' before function body.");
+    MATCH_TOK(TOK_LEFT_BRACE, lambda ?
+        "Expect '{' before lambda body." : "Expect '{' before function body.");
 
     bool prevInFunc = inFunc;
     inFunc = true;
@@ -276,23 +281,30 @@ StmtUP Parser::statement()
         return blockStmt();
     else if (consumeTok(TOK_CONT))
         return continueStmt();
+    // Consider splitting into their own methods.
     else if (consumeTok(TOK_FALL))
     {
         if (!inMatch)
+        {
             REPORT_SEMANTIC(previousTok, "Invalid instruction 'fallthrough'" \
                 " outside of match-is structure.");
+        }
         MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'fallthrough'.");
         if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
+        {
             REPORT_SEMANTIC(currentTok,
                 "Cannot have a statement following a 'fallthrough' instruction.");
+        }
         fall = true;
         return nullptr;
     }
     else if (consumeTok(TOK_END))
     {
         if (!inMatch)
+        {
             REPORT_SEMANTIC(previousTok,
                 "Invalid instruction 'end' outside of match-is structure.");
+        }
         MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'end'.");
         return std::make_unique<EndStmt>();
     }
@@ -376,8 +388,10 @@ StmtUP Parser::matchStmt()
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
         if (static_cast<int>(cases.size()) == MATCH_CASES_MAX)
+        {
             REPORT_SEMANTIC(currentTok,
                 "Too many cases in match-is structure.");
+        }
 
         MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
         ExprUP value;
@@ -408,8 +422,10 @@ StmtUP Parser::matchStmt()
             body = statement();
 
         if (defaultCase && consumeTok(TOK_IS))
+        {
             REPORT_SEMANTIC(previousTok,
                 "Cannot have another case after the default case.");
+        }
 
         // 'fall' updated in statement().
         cases.emplace_back(value, body, fall);
@@ -442,8 +458,7 @@ StmtUP Parser::repeatStmt()
 StmtUP Parser::returnStmt()
 {
     if (!inFunc)
-        REPORT_SEMANTIC(previousTok,
-            "Cannot use 'return' outside a function.");
+        REPORT_SEMANTIC(previousTok, "Cannot use 'return' outside a function.");
 
     Token keyword = previousTok;
     ExprUP expr = nullptr;
@@ -569,8 +584,8 @@ ExprUP Parser::equality()
 ExprUP Parser::comparison()
 {
     ExprUP expr = bitOr();
-    while (consumeToks(TOK_GT, TOK_GT_EQ, TOK_LT, TOK_LT_EQ,
-        TOK_IN) || (consumeTok(TOK_NOT) && checkTok(TOK_IN)))
+    while (consumeToks(TOK_GT, TOK_GT_EQ, TOK_LT, TOK_LT_EQ, TOK_IN)
+            || (consumeTok(TOK_NOT) && checkTok(TOK_IN)))
     {
         TokenType oper = previousTok.type;
         if (oper == TOK_NOT) nextTok();
@@ -694,8 +709,7 @@ ExprUP Parser::call()
         bool builtin = false;
         if (previousTok.type == TOK_BANG)
         {
-            if (!matchError(TOK_LEFT_PAREN, "Invalid placement for token '!'."))
-                return nullptr;
+            MATCH_TOK(TOK_LEFT_PAREN, "Invalid placement for token '!'.");
             builtin = true;
         }
 
@@ -719,7 +733,7 @@ ExprUP Parser::post()
 
     if (consumeToks(TOK_INCR, TOK_DECR))
     {
-        if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
+        if ((expr == nullptr) || (expr->type != E_VAR_EXPR)) // Temporary.
             REPORT_SEMANTIC(previousTok, "Invalid increment/decrement target.");
         do {
             Token oper = previousTok;
@@ -751,8 +765,10 @@ ExprUP Parser::ifExpr()
         MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
     }
     else
+    {
         REPORT_SEMANTIC(currentTok,
             "A conditional expression must have a false-case branch.");
+    }
 
     return std::make_unique<IfExpr>(condition, trueBranch, falseBranch);
 }

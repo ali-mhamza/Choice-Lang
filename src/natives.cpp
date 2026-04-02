@@ -165,9 +165,11 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
 void Natives::type(Natives::iter it, ui8 args, const Token& error)
 {
     if (args != 1)
+    {
         throw RuntimeError(error,
             CH_STR("Expected 1 argument but found {}.", args)
         );
+    }
 
     it[-1] = Object(it->type);
 }
@@ -175,9 +177,11 @@ void Natives::type(Natives::iter it, ui8 args, const Token& error)
 void Natives::len(Natives::iter it, ui8 args, const Token& error)
 {
     if (args != 1)
+    {
         throw RuntimeError(error,
             CH_STR("Expected 1 argument but found {}.", args)
         );
+    }
 
     const Object& obj = *it;
     if (!IS_ITERABLE(obj))
@@ -208,9 +212,11 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
 void Natives::clock(Natives::iter it, ui8 args, const Token& error)
 {   
     if (args != 0)
+    {
         throw RuntimeError(error,
             CH_STR("Expected 0 arguments but found {}.", args)
         );
+    }
 
     using clock = std::chrono::steady_clock;
     using std::chrono::duration_cast;
@@ -225,9 +231,11 @@ void Natives::clock(Natives::iter it, ui8 args, const Token& error)
 void Natives::range(Natives::iter it, ui8 args, const Token& error)
 {
     if ((args != 2) && (args != 3))
+    {
         throw RuntimeError(error,
             CH_STR("Expect 2 or 3 arguments but found {}.", args)
         );
+    }
     if (!IS_(INT, it[0]) || !IS_(INT, it[1]) || ((args == 3) && !IS_(INT, it[2])))
         throw RuntimeError(error, "Arguments must be integers.");
 
@@ -240,9 +248,11 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
 void Natives::read(Natives::iter it, ui8 args, const Token& error)
 {
     if (args > 1)
+    {
         throw RuntimeError(error,
             CH_STR("Expect 0 or 1 arguments but found {}.", args)
         );
+    }
     if (args == 1)
     {
         if (!IS_(STRING, it[0]))

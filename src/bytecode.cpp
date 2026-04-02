@@ -66,6 +66,7 @@ void ByteCode::patchJump(ui64 offset)
 	else
 	{
 		// Jump is too big.
+		// TODO: Report error (somehow).
 	}
 }
 
@@ -150,7 +151,7 @@ ui64 ByteCode::countPool() const
 					const Function& func = *(AS_(func, obj));
 					// Added type byte (1) and null byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
-					count += 1 + strlen(func.name) + 1 + 1 + 1;
+					count += strlen(func.name) + 4 * sizeof(ui8);
 					// Added code size and pool size values,
 					// as well as the actual sizes of the code and pool.
 					count += 2 * sizeof(ui64) + func.code.codeSize()
@@ -159,11 +160,11 @@ ui64 ByteCode::countPool() const
 				}
 				case OBJ_STRING:
 					// Added type byte (1) and null byte (1).
-					count += 1 + AS_(string, obj)->str.size() + 1;
+					count += AS_(string, obj)->str.size() + 2 * sizeof(ui8);
 					break;
 				case OBJ_RANGE:
 					// Added type byte (1) and three i64 (3 * 8) values.
-					count += 1 + 3 * 8;
+					count += sizeof(ui8) + 3 * sizeof(i64);
 					break;
 				default:
 					CH_UNREACHABLE();
@@ -177,7 +178,7 @@ ui64 ByteCode::countPool() const
 void ByteCode::cacheStream(std::ofstream& os) const
 {
 	// Magic.
-	os.write("choice", 6);
+	os.write("choice", sizeof("choice") - 1);
 
 	// Version number.
 	os.put(static_cast<char>(CH_VERSION_MAJOR));

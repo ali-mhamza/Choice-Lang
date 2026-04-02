@@ -173,17 +173,21 @@ bool Object::in(const Object& other) const
         return list.contains(obj);
     }
     else if (!IS_(STRING, obj) && !IS_(RANGE, other))
+    {
         throw TypeMismatch(
             "Right operand must be an iterable object.",
             OBJ_ITER,
             other.type
         );
+    }
     else
+    {
         throw TypeMismatch(
             "Left operand not matching member type of iterable object.",
             (other.type == OBJ_STRING ? OBJ_STRING : OBJ_INT),
             obj.type
         );
+    }
 }
 
 std::string Object::printVal() const
@@ -463,10 +467,10 @@ i64 Range::length() const
 
 std::string Range::printVal() const
 {
-    auto retStr = CH_STR("{}..{}", start, stop);
+    auto str = CH_STR("{}..{}", start, stop);
     if (step != 1)
-        retStr += CH_STR("..{}", step);
-    return retStr;
+        str += CH_STR("..{}", step);
+    return str;
 }
 
 void Range::emit(std::ofstream& os) const
@@ -778,7 +782,7 @@ void TypeMismatch::report()
 {
     CH_ASSERT(IS_OBJ(expect) && IS_OBJ(actual),
         "Invalid object type for error reporting.");
-    
+
     CH_PRINT(stderr,
         "Type mismatch: Expected type ({}) but found ({}) instead.\n",
         objTypes[expect], objTypes[actual]

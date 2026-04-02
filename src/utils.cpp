@@ -64,17 +64,15 @@ std::array<i64, 3> constructRange(std::string_view tokText)
 	std::array<i64, 3> nums;
 	nums[0] = transform(parts[0]);
 	nums[1] = transform(parts[1]);
-	if (parts.size() == 3)
-		nums[2] = transform(parts[2]);
-	else
-		nums[2] = 1;
+	nums[2] = ((parts.size() == 3) ? transform(parts[2]) : 1);
 	return nums;
 }
 
 std::string normalizeNewlines(const std::string_view& sv)
 {
 	std::string str(sv);
-	str.erase(std::remove_if(str.begin(), str.end(), [](char c){
+	str.erase(std::remove_if(str.begin(), str.end(),
+	[](char c){
         return (c == '\r');
     }), str.end());
 	return str;

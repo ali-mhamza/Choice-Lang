@@ -187,8 +187,10 @@ void Lexer::makeToken(TokenType type)
 void Lexer::rangeToken()
 {
 	if (!isdigit(peekChar()))
+	{
 		REPORT_ERROR(peekChar(), line, column + 1, // Check column value here.
 			"Expecting range-end value after '..'.");
+	}
 
 	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 		advance();
@@ -197,8 +199,10 @@ void Lexer::rangeToken()
 	{
 		consumeChars(2);
 		if (!isdigit(peekChar()))
+		{
 			REPORT_ERROR(peekChar(), line, column + 1, // Check column value here.
 				"Expecting skip value after '..'.");
+		}
 
 		while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 			advance();
@@ -209,7 +213,7 @@ void Lexer::rangeToken()
 
 void Lexer::numToken()
 {
-	TokenType type;	
+	TokenType type;
 	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 		advance();
 
@@ -235,8 +239,10 @@ void Lexer::stringToken()
 	while ((peekChar() != '"') && !hitEnd())
 	{
 		if (peekChar() == '\n')
+		{
 			REPORT_ERROR(previousChar(), line, column + 1,
 				"Incorrect syntax for multi-line string.");
+		}
 		advance();
 	}
 
@@ -257,8 +263,10 @@ void Lexer::multiStringToken()
 		advance();
 
 	if (hitEnd())
+	{
 		REPORT_ERROR(EOF, line, 0, // Column is irrelevant.
 			"Unterminated multi-line string.");
+	}
 
 	advance(); // Consume final `.
 

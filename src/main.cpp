@@ -111,7 +111,7 @@ static Function* runCompiler(const vT& tokens)
 			// Optimize here.
 		#endif
 
-		// To exit if either hit an error.
+		// To stop after compilation if either hit an error.
 		compiler.hitError = parser.hitError;
 		// To not report too many errors when using an
 		// AST.
@@ -269,20 +269,29 @@ static void printReplIntro()
 	CH_PRINT("Built on: [{}][{}].\n", CH_COMPILER, CH_LOCAL_OS);
 }
 
-static std::string& buildLine(std::string& line)
-{
-	while (ends_with(line, "\\"))
+#if EXTERNAL_REPL
+	static void buildLine(replxx::Replxx& rx, std::string& line)
 	{
-		line.back() = '\n';
-		std::string temp;
-		// Can replace this combination with rx.input("... ").
-		CH_PRINT("... ");
-		std::getline(std::cin, temp);
-		line += temp;
+		while (ends_with(line, "\\"))
+		{
+			line.back() = '\n';
+			std::string temp = rx.input("... ");
+			line += temp;
+		}
 	}
-
-	return line;
-}
+#else
+	static void buildLine(std::string& line)
+	{
+		while (ends_with(line, "\\"))
+		{
+			line.back() = '\n';
+			std::string temp;
+			CH_PRINT("... ");
+			std::getline(std::cin, temp);
+			line += temp;
+		}
+	}
+#endif /* EXTERNAL_REPL */
 
 static void repl(ArgvOption option = EXECUTE)
 {	
@@ -317,11 +326,12 @@ static void repl(ArgvOption option = EXECUTE)
 	{
 		#if EXTERNAL_REPL
 			line = rx.input(">>> ");
+			buildLine(rx, line);
 		#else
 			CH_PRINT(">>> ");
 			std::getline(std::cin, line);
+			buildLine(line);
 		#endif
-		buildLine(line);
 
 		if (!line.empty())
 		{

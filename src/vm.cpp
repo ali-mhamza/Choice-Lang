@@ -241,11 +241,13 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
     else if (IS_(STRING, a) && IS_(STRING, b) && (oper == OP_ADD))
         return concatStrings(a, b);
     else
+    {
         throw TypeMismatch(
             "Cannot apply arithmetic operator to non-numeric values.",
             OBJ_NUM,
             (IS_NUM(a) ? b.type : a.type)
         );
+    }
 }
 
 Object VM::compareOper(Opcode op, ui8 firstOper)
@@ -286,11 +288,13 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
     const Object& b = registers[readByte()];
 
     if (!IS_(INT, a) || !IS_(INT, b))
+    {
         throw TypeMismatch(
             "Cannot apply bitwise operator to non-integer values.",
             OBJ_INT,
             (IS_(INT, a) ? b.type : a.type)
         );
+    }
 
     ui64 aVal = AS_UINT(a);
     ui64 bVal = AS_UINT(b);
@@ -316,11 +320,13 @@ Object VM::unaryOper(Opcode op, ui8 oper)
         case OP_DECR:
         {
             if (!IS_NUM(obj))
+            {
                 throw TypeMismatch(
                     "Cannot increment or decrement a non-numeric value.",
                     OBJ_NUM,
                     obj.type
                 );
+            }
             if (IS_(INT, obj))
                 return AS_(int, obj) + i64(op == OP_INCR ? 1 : -1);
             else
@@ -329,11 +335,13 @@ Object VM::unaryOper(Opcode op, ui8 oper)
         case OP_NEG:
         {
             if (!IS_NUM(obj))
+            {
                 throw TypeMismatch(
                     "Cannot negate a non-numeric value.",
                     OBJ_NUM,
                     obj.type
                 );
+            }
             if (IS_(INT, obj))
                 return i64(AS_NUM(obj) * -1);
             else
@@ -343,11 +351,13 @@ Object VM::unaryOper(Opcode op, ui8 oper)
         case OP_COMP:
         {
             if (!IS_(INT, obj))
+            {
                 throw TypeMismatch(
                     "Cannot apply bitwise operator to non-integer values.",
                     OBJ_INT,
                     obj.type
                 );
+            }
             return i64(~AS_UINT(obj));
         }
         default: CH_UNREACHABLE();
@@ -408,11 +418,13 @@ void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
 void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
 {
     if (!IS_CALLABLE(callee))
+    {
         throw TypeMismatch(
             "Object is not callable.",
             OBJ_FUNC,
             callee.type
         );
+    }
 
     switch (callee.type)
     {
@@ -453,11 +465,13 @@ void VM::startIter()
 
     ObjIter* iter;
     if ((iter = iterable.makeIter()) == nullptr)
+    {
         throw TypeMismatch(
             "Given object is not iterable.",
             OBJ_ITER,
             iterable.type
         );
+    }
 
     if (iter->start(var))
     {
@@ -535,8 +549,8 @@ void VM::executeOp(Opcode op)
                 if (ip >= end)                                                      \
                     return;                                                         \
                 op = static_cast<Opcode>(readByte());                               \
-                CH_ASSERT(IS_VALID_OP(op),                                             \
-                    CH_STR("Invalid opcode {}.", static_cast<ui8>(op)));        \
+                CH_ASSERT(IS_VALID_OP(op),                                          \
+                    CH_STR("Invalid opcode {}.", static_cast<ui8>(op)));            \
                 DEBUG_OP(op);                                                       \
                 DISPATCH_OP(op);                                                    \
             } while (false)
