@@ -166,7 +166,7 @@ void Lexer::makeToken(TokenType type)
 	std::string_view text(start, current - start);
 
 	Value value;
-	if (IS_LITERAL(type))
+	if (IS_LITERAL_TOK(type))
 	{
 		switch (type)
 		{

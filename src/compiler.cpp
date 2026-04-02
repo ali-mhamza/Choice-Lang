@@ -624,7 +624,7 @@ ui64 Compiler::matchCaseHelper(const ui8 matchReg, ui64& fallJump,
 {
     ui64 retJump = 0;
     Token errorToken = currentTok;
-    if (!IS_LITERAL(errorToken.type))
+    if (!IS_LITERAL_TOK(errorToken.type))
     {
         // Must report manually since function is not void.
         hitError = true;
@@ -899,7 +899,7 @@ void Compiler::assignment()
     const Token& firstTok = currentTok;
     const Token& secondTok = *(it + 1);
 
-    if (IS_ASSIGN(secondTok.type))
+    if (IS_ASSIGN_TOK(secondTok.type))
     {
         exprPrint = false;
         

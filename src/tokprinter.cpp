@@ -113,7 +113,7 @@ void TokenPrinter::printToken(const Token& token)
         else
             CH_PRINT("'{}' ", formatMultiLineString(token.text));
 
-        if (IS_LITERAL(token.type))
+        if (IS_LITERAL_TOK(token.type))
             printValue(token);
     }
     

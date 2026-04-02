@@ -81,14 +81,14 @@ inline bool VM::isTruthy(const Object& obj)
 {
     switch (obj.type)
     {
-        case OBJ_INT:       return (AS_(int, obj) != 0);
-        case OBJ_DEC:       return (AS_(dec, obj) != 0.0);
-        case OBJ_BOOL:      return AS_(bool, obj);
+        case OBJ_INT:       return (AS_INT(obj) != 0);
+        case OBJ_DEC:       return (AS_DEC(obj) != 0.0);
+        case OBJ_BOOL:      return AS_BOOL(obj);
         case OBJ_NULL:      return false;
-        case OBJ_STRING:    return (AS_(string, obj)->str.size() != 0);
-        case OBJ_LIST:      return (AS_(list, obj)->array.count() != 0);
-        case OBJ_TABLE:     return (AS_(table, obj)->table.size() != 0);
-        case OBJ_TUPLE:     return (AS_(tuple, obj)->entries.count() != 0);
+        case OBJ_STRING:    return (AS_STRING(obj)->str.size() != 0);
+        case OBJ_LIST:      return (AS_LIST(obj)->array.count() != 0);
+        case OBJ_TABLE:     return (AS_TABLE(obj)->table.size() != 0);
+        case OBJ_TUPLE:     return (AS_TUPLE(obj)->entries.count() != 0);
         // Rest are always truthy.
         default:            return true;
     }
@@ -177,7 +177,7 @@ inline Object VM::loadOper()
 
 inline Object VM::concatStrings(const Object& str1, const Object& str2)
 {
-    std::string concat = AS_(string, str1)->str + AS_(string, str2)->str;
+    std::string concat = AS_STRING(str1)->str + AS_STRING(str2)->str;
     return CH_ALLOC(String, concat);
 }
 
@@ -186,7 +186,7 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
     const Object& a = registers[firstOper];
     const Object& b = registers[readByte()];
 
-    if (IS_(INT, a) && IS_(INT, b))
+    if (IS_INT(a) && IS_INT(b))
     {
         i64 aVal = a.as.intVal;
         i64 bVal = b.as.intVal;
@@ -232,13 +232,13 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
                 throw TypeMismatch(
                     "Cannot apply modulus operator to non-integers.",
                     OBJ_INT,
-                    (IS_(INT,a) ? b.type : a.type)
+                    (IS_INT(a) ? b.type : a.type)
                 );
             }
             default: CH_UNREACHABLE();
         }
     }
-    else if (IS_(STRING, a) && IS_(STRING, b) && (oper == OP_ADD))
+    else if (IS_STRING(a) && IS_STRING(b) && (oper == OP_ADD))
         return concatStrings(a, b);
     else
     {
@@ -287,12 +287,12 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
     const Object& a = registers[firstOper];
     const Object& b = registers[readByte()];
 
-    if (!IS_(INT, a) || !IS_(INT, b))
+    if (!IS_INT(a) || !IS_INT(b))
     {
         throw TypeMismatch(
             "Cannot apply bitwise operator to non-integer values.",
             OBJ_INT,
-            (IS_(INT, a) ? b.type : a.type)
+            (IS_INT(a) ? b.type : a.type)
         );
     }
 
@@ -315,7 +315,7 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
             if (bVal >= 64)
                 throw RuntimeError(Token(), "Shift value too high.");
             // Manually perform wraparound to maintain LHS signed-ness.
-            i64 term = ((AS_(int, a) >= 0) ? 0 : INT64_MIN);
+            i64 term = ((AS_INT(a) >= 0) ? 0 : INT64_MIN);
             return fromUnsigned(aVal >> bVal) + term;
         }
         default: CH_UNREACHABLE();
@@ -339,10 +339,10 @@ Object VM::unaryOper(Opcode op, ui8 oper)
                     obj.type
                 );
             }
-            if (IS_(INT, obj))
-                return AS_(int, obj) + i64(op == OP_INCR ? 1 : -1);
+            if (IS_INT(obj))
+                return AS_INT(obj) + i64(op == OP_INCR ? 1 : -1);
             else
-                return AS_(dec, obj) + double(op == OP_INCR ? 1 : -1);
+                return AS_DEC(obj) + double(op == OP_INCR ? 1 : -1);
         }
         case OP_NEG:
         {
@@ -354,15 +354,15 @@ Object VM::unaryOper(Opcode op, ui8 oper)
                     obj.type
                 );
             }
-            if (IS_(INT, obj))
-                return i64(AS_(int, obj) * -1);
+            if (IS_INT(obj))
+                return i64(AS_INT(obj) * -1);
             else
-                return (AS_(dec, obj) * -1);
+                return (AS_DEC(obj) * -1);
         }
         case OP_NOT: return !isTruthy(obj);
         case OP_COMP:
         {
-            if (!IS_(INT, obj))
+            if (!IS_INT(obj))
             {
                 throw TypeMismatch(
                     "Cannot apply bitwise operator to non-integer values.",
@@ -381,15 +381,15 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
     Function* func;
     Closure* closure;
 
-    if (IS_(CLOSURE, callee))
+    if (IS_CLOSURE(callee))
     {
-        closure = AS_(closure, callee);
+        closure = AS_CLOSURE(callee);
         func = closure->function;
     }
     else
     {
         closure = nullptr;
-        func = AS_(func, callee);
+        func = AS_FUNC(callee);
     }
 
     if (func->argCount != argCount)
@@ -423,7 +423,7 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 
 void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
 {
-    auto* func = Natives::functions[AS_(native, callee)];
+    auto* func = Natives::functions[AS_NATIVE(callee)];
     (*func)(&registers[start], argCount, Token());
 }
 
@@ -503,7 +503,7 @@ void VM::updateIter()
     Object& iter = registers[readByte()];
     ui16 jump = readShort();
 
-    if (AS_(iter, iter)->next(var))
+    if (AS_ITER(iter)->next(var))
     {
         ip -= jump;
         #if WATCH_EXEC
@@ -700,7 +700,7 @@ void VM::executeOp(Opcode op)
             ui8 startReg = readByte();
             ui8 count = readByte();
 
-            auto& array = AS_(list, registers[listReg])->array;
+            auto& array = AS_LIST(registers[listReg])->array;
             for (ui8 i = 0; i < count; i++)
                 array.push(registers[startReg + i]);
             DISPATCH();
@@ -717,7 +717,7 @@ void VM::executeOp(Opcode op)
             ui8 tupleReg = readByte();
             ui8 startReg = readByte();
             ui8 count = readByte();
-            auto& entries = AS_(tuple, registers[tupleReg])->entries;
+            auto& entries = AS_TUPLE(registers[tupleReg])->entries;
             for (ui8 i = 0; i < count; i++)
                 entries.push(registers[startReg + i]);
             DISPATCH();
@@ -779,7 +779,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_PRINT_VALID):
         {
             const Object& obj = registers[readByte()];
-            if (IS_VALID(obj) && !IS_(TUPLE, obj))
+            if (IS_VALID(obj) && !IS_TUPLE(obj))
                 CH_PRINT("{}\n", obj.printVal());
             DISPATCH();
         }
@@ -835,13 +835,13 @@ void VM::executeOp(Opcode op)
         CASE(OP_CLOSURE):
         {
             ui8 slot = readByte();
-            auto* func = AS_(func, registers[slot]);
+            auto* func = AS_FUNC(registers[slot]);
             registers[slot] = CH_ALLOC(Closure, func);
             DISPATCH();
         }
         CASE(OP_CAPTURE_VAL):
         {
-            auto* closure = AS_(closure, registers[readByte()]);
+            auto* closure = AS_CLOSURE(registers[readByte()]);
             ui8 slot = readByte();
 
             closure->addCell(captureValue(slot));
@@ -849,7 +849,7 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_CAPTURE_CELL):
         {
-            auto* closure = AS_(closure, registers[readByte()]);
+            auto* closure = AS_CLOSURE(registers[readByte()]);
             ui8 index = readByte();
 
             closure->addCell(currentClosure->cells[index]);

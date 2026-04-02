@@ -9,68 +9,48 @@
 #include <string>
 #include <string_view>
 #include <variant>          // For ObjIter.
+
 using Natives::FuncType;
+
+/* Type list macro. */
+
+#undef NULL
+#define TYPE_LIST           \
+    X(INT, intVal)          \
+    X(DEC, decVal)          \
+    X(BOOL, boolVal)        \
+    X(NULL, heapVal)        \
+    X(TYPE, typeVal)        \
+    X(NATIVE, nativeVal)    \
+    X(FUNC, funcVal)        \
+    X(CLOSURE, closureVal)  \
+    X(LAMBDA, funcVal)      \
+    X(BIGINT, heapVal)      \
+    X(BIGDEC, heapVal)      \
+    X(STRING, stringVal)    \
+    X(RANGE, rangeVal)      \
+    X(LIST, listVal)        \
+    X(TABLE, tableVal)      \
+    /* Used in function return values. */    \
+    X(TUPLE, tupleVal)      \
+    /* Used in for-loops. */                \
+    X(ITER, iterVal)        \
 
 /* Type enum. */
 
+#define X(TYPE, field) OBJ_##TYPE,
+
 enum ObjType
 {
-    OBJ_INT,
-    OBJ_DEC,
-    OBJ_BOOL,
-    OBJ_NULL,
-    OBJ_TYPE,
-    OBJ_NATIVE,
-    OBJ_FUNC,
-    OBJ_CLOSURE,
-    OBJ_LAMBDA,
-    OBJ_BIGINT,
-    OBJ_BIGDEC,
-    OBJ_STRING,
-    OBJ_RANGE,
-    OBJ_LIST,
-    OBJ_TABLE,
+    TYPE_LIST
 
-    /* Internal types. */
-
-    // Used in function return values.
-    OBJ_TUPLE,
     // Used in TypeMismatch errors.
     OBJ_NUM,
-    // Used in for-loops.
-    OBJ_ITER,
-
     NUM_TYPES,
     OBJ_INVALID,
 };
 
-
-/* Type check and validation macros. */
-
-#define IS_(TYPE, obj)      ((obj).type == OBJ_##TYPE)
-// Object is a function object.
-#define IS_FUNC(obj) \
-    (((obj).type == OBJ_FUNC) || ((obj).type == OBJ_LAMBDA) || ((obj).type == OBJ_CLOSURE))
-// Object can be called.
-#define IS_CALLABLE(obj)    (IS_(NATIVE, obj) || IS_FUNC(obj))
-// Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type >= OBJ_FUNC) && ((obj).type <= OBJ_TUPLE))
-// Object is a numeric object (int or dec/float).
-#define IS_NUM(obj)         (IS_(INT, obj) || IS_(DEC, obj))
-// Object is iterable.
-#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
-// Object data is stored in-line within the object as a payload.
-#define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_(ITER, obj))
-// Object is a valid, initialized object.
-#define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
-
-
-/* Conversion macros. */
-
-#define AS_(type, obj)      ((obj).as.type##Val)
-#define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
-#define AS_NUM(obj)         (IS_(INT, obj) ? AS_(int, obj) : AS_(dec, obj))
-#define AS_UINT(obj)        (static_cast<ui64>(AS_(int, obj)))
+#undef X
 
 
 /* Forward declarations. */
@@ -188,6 +168,44 @@ Object::Object(T val)
 
     #undef INCREMENT_REF
 }
+
+
+/* Type check, validation and conversion macros. */
+
+#define X(TYPE, field) \
+    static inline bool IS_##TYPE(const Object& obj) {   \
+        return (obj.type == OBJ_##TYPE);                \
+    }                                                   \
+    static inline auto AS_##TYPE(const Object& obj) {   \
+        return obj.as.field;                            \
+    }                                                   \
+    static inline auto& AS_##TYPE(Object& obj) {        \
+        return obj.as.field;                            \
+    }
+
+TYPE_LIST
+
+#undef X
+
+// Object is a function object.
+#define IS_FUNCOBJ(obj) \
+    (((obj).type == OBJ_FUNC) || ((obj).type == OBJ_LAMBDA) || ((obj).type == OBJ_CLOSURE))
+// Object can be called.
+#define IS_CALLABLE(obj)    (IS_NATIVE(obj) || IS_FUNCOBJ(obj))
+// Object is allocated/involves allocation on the heap.
+#define IS_HEAP_OBJ(obj)    (((obj).type >= OBJ_FUNC) && ((obj).type <= OBJ_TUPLE))
+// Object is a numeric object (int or dec/float).
+#define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
+// Object is iterable.
+#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
+// Object data is stored in-line within the object as a payload.
+#define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_ITER(obj))
+// Object is a valid, initialized object.
+#define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
+
+#define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
+#define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
+#define AS_UINT(obj)        (static_cast<ui64>(AS_INT(obj)))
 
 
 /* Heap-allocated object structs. */
@@ -404,3 +422,5 @@ struct TypeMismatch
     );
     void report();
 };
+
+#undef TYPE_LIST

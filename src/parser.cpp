@@ -533,7 +533,7 @@ ExprUP Parser::expression()
 ExprUP Parser::assignment()
 {
     ExprUP target = logicOr();
-    if (IS_ASSIGN(currentTok.type))
+    if (IS_ASSIGN_TOK(currentTok.type))
     {
         nextTok();
         Token oper = previousTok;
@@ -823,7 +823,7 @@ ExprUP Parser::primary()
     nextTok();
     TokenType type = previousTok.type;
 
-    if (IS_LITERAL(type))
+    if (IS_LITERAL_TOK(type))
         return std::make_unique<LiteralExpr>(previousTok);
     
     else if (type == TOK_IDENTIFIER)

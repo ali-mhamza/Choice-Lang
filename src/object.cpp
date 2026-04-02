@@ -23,7 +23,7 @@ static std::array<std::string_view, NUM_TYPES> objTypes = {
     "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
     "Function", "Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table", "Tuple",
-    "Num", "Iterable"
+    "Iterable", "Num"
 };
 
 /* Object. */
@@ -31,7 +31,7 @@ static std::array<std::string_view, NUM_TYPES> objTypes = {
 Object::Object() :
     type(OBJ_INVALID)
 {
-    AS_(int, *this) = 0;
+    AS_INT(*this) = 0;
 }
 
 void Object::clean()
@@ -47,9 +47,9 @@ void Object::clean()
             temp->refCount--;
             if (temp->refCount == 0) delete temp;
         }
-        else if (IS_(ITER, *this))
+        else if (IS_ITER(*this))
         {
-            ObjIter* iter = AS_(iter, *this);
+            ObjIter* iter = AS_ITER(*this);
             CH_ASSERT(iter != nullptr, "NULL iterator pointer.");
             delete iter; // We never copy iterators, so no refcount.
         }
@@ -59,7 +59,7 @@ void Object::clean()
 Object::Object(const Object& other) noexcept :
     type(other.type), as(other.as)
 {
-    CH_ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
+    CH_ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
 
     #if !CH_USE_ALLOC
         if (IS_HEAP_OBJ(*this))
@@ -69,7 +69,7 @@ Object::Object(const Object& other) noexcept :
 
 Object& Object::operator=(const Object& other) noexcept
 {
-    CH_ASSERT(!IS_(ITER, other), "Copying an iterator is not allowed.");
+    CH_ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
 
     if (this != &other)
     {
@@ -91,7 +91,7 @@ Object::Object(Object&& other) noexcept :
     type(other.type), as(other.as)
 {
     other.type = OBJ_INVALID; // To prevent deallocation when it is destroyed.
-    AS_(int, other) = 0;
+    AS_INT(other) = 0;
 }
 
 Object& Object::operator=(Object&& other) noexcept
@@ -104,7 +104,7 @@ Object& Object::operator=(Object&& other) noexcept
         this->as = other.as;
 
         other.type = OBJ_INVALID;
-        AS_(int, other) = 0;
+        AS_INT(other) = 0;
     }
 
     return *this;
@@ -123,16 +123,16 @@ bool Object::operator==(const Object& other) const
 
     switch (this->type)
     {
-        case OBJ_BOOL:      return AS_(bool, *this) == AS_(bool, other);
+        case OBJ_BOOL:      return AS_BOOL(*this) == AS_BOOL(other);
         case OBJ_NULL:      return true;
-        case OBJ_TYPE:      return AS_(type, *this) == AS_(type, other);
-        case OBJ_NATIVE:    return AS_(native, *this) == AS_(native, other);
+        case OBJ_TYPE:      return AS_TYPE(*this) == AS_TYPE(other);
+        case OBJ_NATIVE:    return AS_NATIVE(*this) == AS_NATIVE(other);
         case OBJ_FUNC:
-        case OBJ_LAMBDA:    return *(AS_(func, *this)) == *(AS_(func, other));
-        case OBJ_CLOSURE:   return *(AS_(closure, *this)) == *(AS_(closure, other));
-        case OBJ_STRING:    return *(AS_(string, *this)) == *(AS_(string, other));
-        case OBJ_RANGE:     return *(AS_(range, *this)) == *(AS_(range, other));
-        case OBJ_LIST:      return *(AS_(list, *this)) == *(AS_(list, other));
+        case OBJ_LAMBDA:    return *(AS_FUNC(*this)) == *(AS_FUNC(other));
+        case OBJ_CLOSURE:   return *(AS_CLOSURE(*this)) == *(AS_CLOSURE(other));
+        case OBJ_STRING:    return *(AS_STRING(*this)) == *(AS_STRING(other));
+        case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
+        case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
         // TODO: Tuples shouldn't be comparable.
         default: CH_UNREACHABLE();
     }
@@ -156,23 +156,23 @@ bool Object::in(const Object& other) const
 {
     const Object& obj = *this;    
 
-    if (IS_(STRING, obj) && IS_(STRING, other))
+    if (IS_STRING(obj) && IS_STRING(other))
     {
-        const String& s1 = *(AS_(string, obj));
-        const String& s2 = *(AS_(string, other));
+        const String& s1 = *(AS_STRING(obj));
+        const String& s2 = *(AS_STRING(other));
         return s2.contains(s1);
     }
-    else if (IS_(INT, obj) && IS_(RANGE, other))
+    else if (IS_INT(obj) && IS_RANGE(other))
     {
-        const Range& range = *(AS_(range, other));
-        return range.contains(AS_(int, obj));
+        const Range& range = *(AS_RANGE(other));
+        return range.contains(AS_INT(obj));
     }
-    else  if (IS_(LIST, other))
+    else  if (IS_LIST(other))
     {
-        const List& list = *(AS_(list, other));
+        const List& list = *(AS_LIST(other));
         return list.contains(obj);
     }
-    else if (!IS_(STRING, obj) && !IS_(RANGE, other))
+    else if (!IS_STRING(obj) && !IS_RANGE(other))
     {
         throw TypeMismatch(
             "Right operand must be an iterable object.",
@@ -194,22 +194,22 @@ std::string Object::printVal() const
 {
     switch (type)
     {
-        case OBJ_INT:       return std::to_string(AS_(int, *this));
-        case OBJ_DEC:       return std::to_string(AS_(dec, *this));
-        case OBJ_BOOL:      return (AS_(bool, *this) ? "true" : "false");
+        case OBJ_INT:       return std::to_string(AS_INT(*this));
+        case OBJ_DEC:       return std::to_string(AS_DEC(*this));
+        case OBJ_BOOL:      return (AS_BOOL(*this) ? "true" : "false");
         case OBJ_NULL:      return "null";
-        case OBJ_TYPE:      return std::string(objTypes[AS_(type, *this)]);
-        case OBJ_NATIVE:    return CH_STR("<builtin {}>", funcNames[AS_(native, *this)]);
-        case OBJ_FUNC:      return CH_STR("<func {}>", AS_(func, *this)->name);
-        case OBJ_CLOSURE:   return CH_STR("<func {}>", AS_(closure, *this)->function->name);
+        case OBJ_TYPE:      return std::string(objTypes[AS_TYPE(*this)]);
+        case OBJ_NATIVE:    return CH_STR("<builtin {}>", funcNames[AS_NATIVE(*this)]);
+        case OBJ_FUNC:      return CH_STR("<func {}>", AS_FUNC(*this)->name);
+        case OBJ_CLOSURE:   return CH_STR("<func {}>", AS_CLOSURE(*this)->function->name);
         case OBJ_LAMBDA:    return "<lambda>";
-        case OBJ_STRING:    return AS_(string, *this)->printVal();
-        case OBJ_RANGE:     return AS_(range, *this)->printVal();
-        case OBJ_LIST:      return AS_(list, *this)->printVal();
-        case OBJ_TUPLE:     return AS_(tuple, *this)->printVal();
+        case OBJ_STRING:    return AS_STRING(*this)->printVal();
+        case OBJ_RANGE:     return AS_RANGE(*this)->printVal();
+        case OBJ_LIST:      return AS_LIST(*this)->printVal();
+        case OBJ_TUPLE:     return AS_TUPLE(*this)->printVal();
         case OBJ_ITER:
         {
-            const auto& iter = AS_(iter, *this)->iter;
+            const auto& iter = AS_ITER(*this)->iter;
             std::string ret;
             std::visit([&ret](auto&& iter) {
                 ret = "->" + iter.obj->printVal();
@@ -243,12 +243,12 @@ void Object::emit(std::ofstream& os) const
 {
     switch (type)
     {
-        case OBJ_INT:       emitBytes(os, OBJ_INT, AS_(int, *this));    break;
-        case OBJ_DEC:       emitBytes(os, OBJ_DEC, AS_(dec, *this));    break;
+        case OBJ_INT:       emitBytes(os, OBJ_INT, AS_INT(*this));    break;
+        case OBJ_DEC:       emitBytes(os, OBJ_DEC, AS_DEC(*this));    break;
         case OBJ_FUNC:
-        case OBJ_LAMBDA:    AS_(func, *this)->emit(os);                 break;
-        case OBJ_STRING:    AS_(string, *this)->emit(os);               break;
-        case OBJ_RANGE:     AS_(range, *this)->emit(os);                break;
+        case OBJ_LAMBDA:    AS_FUNC(*this)->emit(os);                 break;
+        case OBJ_STRING:    AS_STRING(*this)->emit(os);               break;
+        case OBJ_RANGE:     AS_RANGE(*this)->emit(os);                break;
         default: break;
     }
 }
@@ -660,7 +660,7 @@ bool RangeIter::next(Object& var)
     {
         return false;   
     }
-    AS_(int, var) = val;
+    AS_INT(var) = val;
     return true;
 }
 
@@ -734,13 +734,13 @@ ObjIter::ObjIter(Object& obj)
             // iterator in-place with no intermediate temporary object
             // (otherwise the temporary's destructor will mess with
             // the refcount).
-            iter.emplace<StringIter>(AS_(string, obj));
+            iter.emplace<StringIter>(AS_STRING(obj));
             break;
         case OBJ_RANGE:
-            iter.emplace<RangeIter>(AS_(range, obj));
+            iter.emplace<RangeIter>(AS_RANGE(obj));
             break;
         case OBJ_LIST:
-            iter.emplace<ListIter>(AS_(list, obj));
+            iter.emplace<ListIter>(AS_LIST(obj));
             break;
         default: break;
     }

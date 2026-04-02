@@ -95,7 +95,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 {
 	addBytes(static_cast<ui8>(OP_LOAD_R), reg); // Destination first.
 
-	if (IS_(INT, constant))
+	if (IS_INT(constant))
 	{
 		if (IS_SMALL(constant.as.intVal))
 		{
@@ -103,7 +103,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 			return;
 		}
 	}
-	else if (IS_(DEC, constant))
+	else if (IS_DEC(constant))
 	{
 		if (IS_SMALL(constant.as.decVal)
 			&& (fmod(constant.as.decVal, 1.0) == 0.0))
@@ -139,7 +139,7 @@ ui64 ByteCode::countPool() const
 
 	for (const Object& obj : pool)
 	{
-		if (IS_(INT, obj) || IS_(DEC, obj))
+		if (IS_INT(obj) || IS_DEC(obj))
 			count += 9; // 8 bytes + 1 type byte.
 		else if (IS_HEAP_OBJ(obj))
 		{
@@ -148,7 +148,7 @@ ui64 ByteCode::countPool() const
 				case OBJ_FUNC:
 				case OBJ_LAMBDA:
 				{
-					const Function& func = *(AS_(func, obj));
+					const Function& func = *(AS_FUNC(obj));
 					// Added type byte (1) and null byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
 					count += strlen(func.name) + 4 * sizeof(ui8);
@@ -160,7 +160,7 @@ ui64 ByteCode::countPool() const
 				}
 				case OBJ_STRING:
 					// Added type byte (1) and null byte (1).
-					count += AS_(string, obj)->str.size() + 2 * sizeof(ui8);
+					count += AS_STRING(obj)->str.size() + 2 * sizeof(ui8);
 					break;
 				case OBJ_RANGE:
 					// Added type byte (1) and three i64 (3 * 8) values.

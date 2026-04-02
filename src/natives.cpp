@@ -49,13 +49,13 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
         switch (it[i].type)
         {
             // Fast path printing.
-            case OBJ_INT:   CH_PRINT("{}", AS_(int, it[i]));        break;
-            case OBJ_DEC:   CH_PRINT("{:.6}", AS_(dec, it[i]));     break;
-            case OBJ_BOOL:  CH_PRINT("{}", AS_(bool, it[i]));       break;
-            case OBJ_NULL:  CH_PRINT("null");                       break;
+            case OBJ_INT:   CH_PRINT("{}", AS_INT(it[i]));      break;
+            case OBJ_DEC:   CH_PRINT("{:.6}", AS_DEC(it[i]));   break;
+            case OBJ_BOOL:  CH_PRINT("{}", AS_BOOL(it[i]));     break;
+            case OBJ_NULL:  CH_PRINT("null");                   break;
             case OBJ_STRING:
             {
-                CH_PRINT("{}", AS_(string, it[i])->str);
+                CH_PRINT("{}", AS_STRING(it[i])->str);
                 break;
             }
             // Slower alternative.
@@ -87,7 +87,7 @@ void Natives::println(Natives::iter it, ui8 args, const Token& error)
         const Token& error)
     {
         using sizeT = std::string::size_type;
-        const std::string& str = AS_(string, it[0])->str;
+        const std::string& str = AS_STRING(it[0])->str;
         sizeT size = str.size();
         ui8 count = 0;
 
@@ -133,7 +133,7 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
 {
     if (args == 0)
         throw RuntimeError(error, "String argument not provided.");
-    else if (!IS_(STRING, it[0]))
+    else if (!IS_STRING(it[0]))
         throw RuntimeError(error, "First argument must be a string.");
 
     std::string result;
@@ -143,7 +143,7 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
         for (ui8 i = 1; i < args; i++)
             store.push_back(it[i].printVal());
 
-        const std::string& str = AS_(string, it[0])->str;
+        const std::string& str = AS_STRING(it[0])->str;
         try
         {
             result = fmt::vformat(str, store);
@@ -191,16 +191,16 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
     switch (obj.type)
     {
         case OBJ_STRING:
-            len = AS_(string, obj)->str.size();
+            len = AS_STRING(obj)->str.size();
             break;
         case OBJ_RANGE:
         {
-            auto* range = AS_(range, obj);
+            auto* range = AS_RANGE(obj);
             len = range->length();
             break;
         }
         case OBJ_LIST:
-            len = AS_(list, obj)->array.count();
+            len = AS_LIST(obj)->array.count();
             break;
         default:
             CH_UNREACHABLE();
@@ -236,12 +236,12 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
             CH_STR("Expect 2 or 3 arguments but found {}.", args)
         );
     }
-    if (!IS_(INT, it[0]) || !IS_(INT, it[1]) || ((args == 3) && !IS_(INT, it[2])))
+    if (!IS_INT(it[0]) || !IS_INT(it[1]) || ((args == 3) && !IS_INT(it[2])))
         throw RuntimeError(error, "Arguments must be integers.");
 
-    std::array<i64, 3> limits = {AS_(int, it[0]), AS_(int, it[1]), 1};
+    std::array<i64, 3> limits = {AS_INT(it[0]), AS_INT(it[1]), 1};
     if (args == 3)
-        limits[2] = AS_(int, it[2]);
+        limits[2] = AS_INT(it[2]);
     it[-1] = Object(CH_ALLOC(Range, limits));
 }
 
@@ -255,9 +255,9 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
     }
     if (args == 1)
     {
-        if (!IS_(STRING, it[0]))
+        if (!IS_STRING(it[0]))
             throw RuntimeError(error, "Argument must be a string."); // Temporarily.
-        CH_PRINT("{}", AS_(string, it[0])->str);
+        CH_PRINT("{}", AS_STRING(it[0])->str);
         fflush(stdout);
     }
 
