@@ -269,29 +269,17 @@ static void printReplIntro()
 	CH_PRINT("Built on: [{}][{}].\n", CH_COMPILER, CH_LOCAL_OS);
 }
 
-#if EXTERNAL_REPL
-	static void buildLine(replxx::Replxx& rx, std::string& line)
+static void buildLine(std::string& line)
+{
+	while (ends_with(line, "\\"))
 	{
-		while (ends_with(line, "\\"))
-		{
-			line.back() = '\n';
-			std::string temp = rx.input("... ");
-			line += temp;
-		}
+		line.back() = '\n';
+		std::string temp;
+		CH_PRINT("... ");
+		std::getline(std::cin, temp);
+		line += temp;
 	}
-#else
-	static void buildLine(std::string& line)
-	{
-		while (ends_with(line, "\\"))
-		{
-			line.back() = '\n';
-			std::string temp;
-			CH_PRINT("... ");
-			std::getline(std::cin, temp);
-			line += temp;
-		}
-	}
-#endif /* EXTERNAL_REPL */
+}
 
 static void repl(ArgvOption option = EXECUTE)
 {	
@@ -326,7 +314,7 @@ static void repl(ArgvOption option = EXECUTE)
 	{
 		#if EXTERNAL_REPL
 			line = rx.input(">>> ");
-			buildLine(rx, line);
+			buildLine(line);
 		#else
 			CH_PRINT(">>> ");
 			std::getline(std::cin, line);
