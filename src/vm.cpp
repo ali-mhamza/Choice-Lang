@@ -314,6 +314,7 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
         {
             if (bVal >= 64)
                 throw RuntimeError(Token(), "Shift value too high.");
+            // Manually perform wraparound to maintain LHS signed-ness.
             i64 term = ((AS_(int, a) >= 0) ? 0 : INT64_MIN);
             return fromUnsigned(aVal >> bVal) + term;
         }
