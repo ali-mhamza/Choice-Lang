@@ -343,9 +343,9 @@ Object VM::unaryOper(Opcode op, ui8 oper)
                 );
             }
             if (IS_(INT, obj))
-                return i64(AS_NUM(obj) * -1);
+                return i64(AS_(int, obj) * -1);
             else
-                return (AS_NUM(obj) * -1);
+                return (AS_(dec, obj) * -1);
         }
         case OP_NOT: return !isTruthy(obj);
         case OP_COMP:
