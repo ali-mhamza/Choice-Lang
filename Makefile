@@ -36,10 +36,12 @@ OBJ_DIR = build
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
+TIDY = $(SRCS:.cpp=.tidy)
 
 # Testing.
 
 TEST_DIR = test
+TEST_SUBDIRS = $(patsubst %, test-%, $(wildcard $(TEST_DIR)/*/))
 TEST_COUNT = $(shell find ${TEST_DIR} -type f | grep .ch | wc -l)
 PYTHON = python3
 PY_TEST_FILE = run_tests.py
@@ -75,9 +77,25 @@ release: CXXFLAGS += $(RELEASE_FLAGS)
 release: NAME = $(RELEASE)
 release: ast
 
+release-workflow: release test tidy
+
+debug-workflow: debug test tidy
+
 test:
 	@echo "Running $(TEST_COUNT) tests...\n"
 	@$(TEST_CMD)
+
+test-%:
+	@DIR=$(TEST_DIR)/$*; \
+	$(TEST_CMD) $$DIR
+
+tidy: $(TIDY)
+
+clean-tidy:
+	@rm -f $(SRC_DIR)/*.tidy
+
+%.tidy: %.cpp
+	@clang-tidy $< -p . > $@ 2> /dev/null
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -102,4 +120,5 @@ re: fclean all
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all ast type opt debug release test clean fclean re
+.PHONY: all ast type opt debug release release-workflow debug-workflow \
+		test $(TEST_SUBDIRS) tidy clean-tidy clean fclean re

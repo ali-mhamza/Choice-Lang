@@ -1,0 +1,17 @@
+Checks: >
+  bugprone-*,
+  -bugprone-unhandled-exception-at-new,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  llvm-include-order,
+  misc-include-cleaner,
+  misc-header-include-cycle,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-pass-by-value,
+  performance-*,
+  readability-qualified-auto,
+  #  cppcoreguidelines-*
+WarningsAsErrors: ''
+HeaderFilterRegex: '^(include|dependencies/personal)/'
+FormatStyle: none

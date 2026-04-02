@@ -6,8 +6,11 @@
 *.md
 !README.md
 
-# VSCode set up.
+# Set-up files.
 *.json
+
+# Clang-tidy log files.
+*.tidy
 
 # Test scripts and bytecode files I
 # use for quick testing.
