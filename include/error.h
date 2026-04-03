@@ -6,18 +6,18 @@
 class LexError
 {
 	private:
-		char errorChar;
-		ui16 line;
-		ui8 position;
-		std::string_view message;
+		const char errorChar{};
+		const ui16 line{};
+		const ui8 position{};
+		const std::string_view message{};
 
 	public:
 		LexError() = default;
 		LexError(
-			char c,
-			ui16 line,
-			ui8 position,
-			std::string_view message
+			const char c,
+			const ui16 line,
+			const ui8 position,
+			const std::string_view message
 		);
 
 		void report() const;
@@ -26,8 +26,8 @@ class LexError
 class CompileError
 {
 	private:
-		Token token;
-		std::string message;
+		const Token token{};
+		const std::string message{};
 
 	public:
 		CompileError(const Token& token, const std::string& message);
@@ -38,8 +38,8 @@ class CompileError
 class RuntimeError
 {
 	private:
-		Token token; // Temporarily, at least.
-		std::string message;
+		const Token token{}; // Temporarily, at least.
+		const std::string message{};
 
 	public:
 		RuntimeError(const Token& token, const std::string& message);

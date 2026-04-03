@@ -15,13 +15,13 @@
 inline constexpr size_t MAX_ALIGN = alignof(std::max_align_t);
 inline constexpr size_t BASE_SIZE = 4096;
 
-inline bool isValidAlign(size_t align)
+inline bool isValidAlign(const size_t align)
 {
     // Check if align is a power of 2.
     return ((align & (align - 1)) == 0);
 }
 
-inline void* alignMem(void* mem, size_t align)
+inline void* alignMem(const void* mem, const size_t align)
 {
     if (!isValidAlign(align)) return nullptr;
 

@@ -4,12 +4,12 @@
 class TokenPrinter
 {
     private:
-        const vT& tokens;
+        const vT& tokens{};
 
-        void printValue(const Token& token);
-        void printToken(const Token& token);
+        void printValue(const Token& token) const;
+        void printToken(const Token& token) const;
     
     public:
         TokenPrinter(const vT& tokens);
-        void printTokens();
+        void printTokens() const;
 };

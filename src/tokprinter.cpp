@@ -7,11 +7,11 @@
 #include <string_view>
 
 TokenPrinter::TokenPrinter(const vT& tokens) :
-    tokens(tokens) {}
+    tokens{tokens} {}
 
 static std::string removeDigitSeps(const std::string_view& sv)
 {
-    std::string newStr(sv);
+    std::string newStr{sv};
     newStr.erase(std::remove_if(newStr.begin(), newStr.end(),
     [](char c){
         return (c == '\'');
@@ -22,7 +22,7 @@ static std::string removeDigitSeps(const std::string_view& sv)
 
 static std::string formatMultiLineString(const std::string_view& sv)
 {
-    std::string newStr(sv);
+    std::string newStr{sv};
 
     // Clear any unwanted whitespace characters.
     newStr.erase(std::remove_if(newStr.begin(), newStr.end(),
@@ -30,7 +30,7 @@ static std::string formatMultiLineString(const std::string_view& sv)
         return ((c == '\r') || (c == '\f') || (c == '\v'));
     }), newStr.end());
 
-    auto it = newStr.find('\n');
+    auto it{newStr.find('\n')};
     while (it != newStr.npos)
     {
         newStr.replace(it, 1, "\\n");
@@ -40,7 +40,7 @@ static std::string formatMultiLineString(const std::string_view& sv)
     return newStr;
 }
 
-void TokenPrinter::printValue(const Token& token)
+void TokenPrinter::printValue(const Token& token) const
 {
     switch (token.type)
     {
@@ -61,7 +61,7 @@ void TokenPrinter::printValue(const Token& token)
     }
 }
 
-static std::array<const char*, NUM_TOK_TYPES> typeStrings = {
+constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_LEFT_BRACKET", "TOK_RIGHT_BRACKET", "TOK_LEFT_PAREN",
     "TOK_RIGHT_PAREN", "TOK_LEFT_BRACE", "TOK_RIGHT_BRACE",
     "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
@@ -99,13 +99,12 @@ static std::array<const char*, NUM_TOK_TYPES> typeStrings = {
     "TOK_EOF"
 };
 
-void TokenPrinter::printToken(const Token& token)
+void TokenPrinter::printToken(const Token& token) const
 {
     CH_PRINT("{:<20}", typeStrings[token.type]);
     if (token.type != TOK_EOF)
     {
-        std::string format = CH_STR("({}:{})",
-            token.line, token.position);
+        std::string format{CH_STR("({}:{})", token.line, token.position)};
         CH_PRINT("{:<10}", format);
 
         if (token.type != TOK_STR_LIT)
@@ -120,7 +119,7 @@ void TokenPrinter::printToken(const Token& token)
     CH_PRINT("\n");
 }
 
-void TokenPrinter::printTokens()
+void TokenPrinter::printTokens() const
 {
     for (const Token& token : tokens)
         printToken(token);

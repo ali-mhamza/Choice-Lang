@@ -34,25 +34,21 @@ using namespace AST::Expression;
             errorCount++;                                           \
             return;                                                 \
         }                                                           \
-        CompileError(__VA_ARGS__).report();                         \
+        CompileError{__VA_ARGS__}.report();                         \
         errorCount++;                                               \
         return;                                                     \
     } while (false)
 
-constexpr bool accessFix = false;
-constexpr bool accessVar = true;
+constexpr bool accessFix{false};
+constexpr bool accessVar{true};
 
-constexpr bool getVar = true;
-constexpr bool setVar = false;
+constexpr bool getVar{true};
+constexpr bool setVar{false};
 
 ASTCompiler::ASTCompiler(ASTCompiler* comp) :
-    scopeCompiler(comp),
-    varLocations(new varTable),
-    varAccess(new accessTable),
-    breakLabels(new labelTable),
-    continueLabels(new labelTable)
+    scopeCompiler{comp},
+    depth{comp == nullptr ? 0 : comp->depth + 1}
 {
-    depth = (comp == nullptr ? 0 : comp->depth + 1);
     if (depth == 0) // Global scope compiler.
     {
         for (const auto* func : Natives::funcNames)
@@ -100,7 +96,7 @@ void ASTCompiler::defVar(const std::string& name, ui8 reg, bool access)
 
 bool ASTCompiler::getAccess(ui8 reg) const
 {
-    bool* ret = varAccess->get(reg);
+    bool* ret{varAccess->get(reg)};
     CH_ASSERT(ret != nullptr,
         "Variable registered with no access field.");
     return *ret;
@@ -108,8 +104,8 @@ bool ASTCompiler::getAccess(ui8 reg) const
 
 ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
 {
-    VarEntry entry(token.text, scope);
-    ui8* slot = varLocations->get(entry);
+    VarEntry entry{token.text, scope};
+    ui8* slot{varLocations->get(entry)};
     if (slot != nullptr)
         return { true, *slot };
 
@@ -119,13 +115,13 @@ ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
 ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
 {
     // Check if variable is local first.
-    for (ui8 i = 0; i <= scope; i++)
+    for (ui8 i{0}; i <= scope; i++)
     {
-        VarEntry entry(token.text, scope - i);
-        ui8* slot = varLocations->get(entry);
+        VarEntry entry{token.text, scope - i};
+        ui8* slot{varLocations->get(entry)};
         if (slot != nullptr)
         {
-            VarType type = LOCAL;
+            VarType type{LOCAL};
             if ((depth == 0) && (entry.scope == 0))
                 type = GLOBAL;
             return { true, *slot, type, getAccess(*slot) };
@@ -135,7 +131,7 @@ ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
     // Check enclosing non-global scopes.
     if (scopeCompiler != nullptr)
     {
-        VarInfo info = scopeCompiler->resolveVariable(token);
+        VarInfo info{scopeCompiler->resolveVariable(token)};
         if (info.found)
         {
             info.inCell = (info.type == CELL);
@@ -156,11 +152,11 @@ ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
         return info.slot;
 
     std::string name{token.text};
-    ui8* index = captureNames.get(name);
+    ui8* index{captureNames.get(name)};
     if (index != nullptr) // Already captured -> don't capture again.
         return *index;
 
-    ui8 cellIndex = static_cast<ui8>(captures.size());
+    ui8 cellIndex{static_cast<ui8>(captures.size())};
     captureNames[name] = cellIndex;
     captures.push_back({ info.slot, info.inCell });
     return cellIndex;
@@ -176,8 +172,8 @@ void ASTCompiler::pushScope()
 
 void ASTCompiler::popScope()
 {
-    auto& scopeVec = varScopes.top();
-    for (std::string& var : scopeVec)
+    auto& scopeVars{varScopes.top()};
+    for (std::string& var : scopeVars)
         varLocations->remove({var, scope});
 
     varScopes.pop();
@@ -192,7 +188,7 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
     if (patchBreaks)
     {
-        auto* vec = breakLabels->get(label.text);
+        auto* vec{breakLabels->get(label.text)};
         for (ui64 jump : *vec)
             code.patchJump(jump);
         // Breaks are always patched at the very end.
@@ -201,7 +197,7 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
     }
     else
     {
-        auto* vec = continueLabels->get(label.text);
+        auto* vec{continueLabels->get(label.text)};
         for (ui64 jump : *vec)
             code.patchJump(jump);
     }
@@ -209,12 +205,12 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
 DEF(VarDecl)
 {
-    LocalInfo localInfo = getScopeLocal(node->name);
+    LocalInfo localInfo{getScopeLocal(node->name)};
     if (localInfo.found)
     {
         if (inRepl && (depth == 0) && (scope == 0))
         {
-            ui8 reg = previousReg;
+            ui8 reg{previousReg};
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
@@ -231,7 +227,7 @@ DEF(VarDecl)
             + "' is already defined in this scope.");
     }
 
-    ui8 varSlot = previousReg;
+    ui8 varSlot{previousReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
     defVar(std::string(node->name.text), varSlot,
@@ -253,11 +249,11 @@ void ASTCompiler::funcBodyHelper(
     const std::string& name
 )
 {
-    ASTCompiler miniCompiler(this);
+    ASTCompiler miniCompiler{this};
     for (const Token& param : params)
     {
-        ui8 reg = miniCompiler.previousReg;
-        LocalInfo info = miniCompiler.getScopeLocal(param);
+        ui8 reg{miniCompiler.previousReg};
+        LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
             REPORT_ERROR(param, "Parameter with the same name already in use.");
         miniCompiler.defVar(std::string(param.text), reg, accessVar);
@@ -267,12 +263,12 @@ void ASTCompiler::funcBodyHelper(
     miniCompiler.code.addOp(OP_VOID, 0);
     miniCompiler.code.addOp(OP_RETURN, 0);
 
-    ByteCode& funcCode = miniCompiler.code;
+    ByteCode& funcCode{miniCompiler.code};
     if (miniCompiler.hitError)
         this->hitError = true;
 
-    Object func;
-    ui8 arity = static_cast<ui8>(params.size());
+    Object func{};
+    ui8 arity{static_cast<ui8>(params.size())};
     if (name.empty()) // Compiling a lambda.
         func = CH_ALLOC(Function, funcCode, arity);
     else
@@ -294,8 +290,8 @@ void ASTCompiler::funcBodyHelper(
 
 DEF(FuncDecl)
 {
-    LocalInfo localInfo = getScopeLocal(node->name);
-    bool redefined = false;
+    LocalInfo localInfo{getScopeLocal(node->name)};
+    bool redefined{false};
     if (localInfo.found)
     {
         if (inRepl && (depth == 0) && (scope == 0))
@@ -319,8 +315,8 @@ DEF(FuncDecl)
             "Too many parameters in function.");
     }
 
-    ui8 varSlot = (redefined ? localInfo.slot : previousReg);
-    std::string name = std::string(node->name.text);
+    ui8 varSlot{redefined ? localInfo.slot : previousReg};
+    std::string name{node->name.text};
     if (!redefined)
     {
         defVar(name, varSlot, accessFix); // Temporarily.
@@ -334,14 +330,14 @@ DEF(ClassDecl) { (void) node; }
 
 DEF(IfStmt)
 {
-    ui8 reg = previousReg;
+    ui8 reg{previousReg};
     compileExpr(node->condition);
-    ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+    ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
     compileStmt(node->trueBranch);
     if (node->falseBranch != nullptr)
     {
-        ui64 trueJump = code.addJump(OP_JUMP);
+        ui64 trueJump{code.addJump(OP_JUMP)};
         code.patchJump(falseJump);
         if (node->falseBranch != nullptr)
             compileStmt(node->falseBranch);
@@ -353,24 +349,24 @@ DEF(IfStmt)
 
 DEF(WhileStmt)
 {
-    ui8 reg = previousReg;
-    ui64 loopStart = code.getLoopStart();
+    ui8 reg{previousReg};
+    ui64 loopStart{code.getLoopStart()};
     if (node->label.type != TOK_EOF)
     {
         breakLabels->add(node->label.text, {});
         continueLabels->add(node->label.text, {});
     }
 
-    std::vector<ui64> breaks;
-    auto* prevBreaks = breakJumps;
+    std::vector<ui64> breaks{};
+    auto* prevBreaks{breakJumps};
     breakJumps = &breaks;
 
-    std::vector<ui64> continues;
-    auto* prevContinues = continueJumps;
+    std::vector<ui64> continues{};
+    auto* prevContinues{continueJumps};
     continueJumps = &continues;
 
     compileExpr(node->condition);
-    ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+    ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
     compileStmt(node->body);
 
@@ -397,13 +393,13 @@ void ASTCompiler::forLoopHelper(
 )
 {
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
-    ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
+    ui64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
-    ui64 loopStart = code.getLoopStart();
-    ui64 whereJump = 0;
+    ui64 loopStart{code.getLoopStart()};
+    ui64 whereJump{0};
     if (node->where != nullptr)
     {
-        ui8 whereReg = previousReg;
+        ui8 whereReg{previousReg};
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
@@ -417,9 +413,9 @@ void ASTCompiler::forLoopHelper(
         code.patchJump(jump);
     patchLoopLabelJumps(node->label, false);
 
-    constexpr int UPDATE_ITER_OP_SIZE = 5;
-    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart
-        + UPDATE_ITER_OP_SIZE);
+    constexpr int UPDATE_ITER_OP_SIZE{5};
+    ui16 diff{static_cast<ui16>(code.codeSize() - loopStart
+        + UPDATE_ITER_OP_SIZE)};
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
         static_cast<ui8>((diff >> CHAR_BIT) & CODE_MAX),
         static_cast<ui8>(diff & CODE_MAX)
@@ -442,19 +438,19 @@ DEF(ForStmt)
         continueLabels->add(node->label.text, {});
     }
 
-    std::vector<ui64> breaks;
-    auto* prevBreaks = breakJumps;
+    std::vector<ui64> breaks{};
+    auto* prevBreaks{breakJumps};
     breakJumps = &breaks;
 
-    std::vector<ui64> continues;
-    auto* prevContinues = continueJumps;
+    std::vector<ui64> continues{};
+    auto* prevContinues{continueJumps};
     continueJumps = &continues;
 
-    ui8 varReg = previousReg;
+    ui8 varReg{previousReg};
     defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
 
-    ui8 iterReg = previousReg;
+    ui8 iterReg{previousReg};
     compileExpr(node->iter);
 
     forLoopHelper(node, varReg, iterReg);
@@ -472,10 +468,10 @@ void ASTCompiler::matchCaseHelper(
     ui64& emptyJump
 )
 {
-    ui8 caseReg = previousReg;
+    ui8 caseReg{previousReg};
     compileExpr(checkCase.value);
     code.addOp(OP_EQUAL, caseReg, matchReg);
-    ui64 falseJump = code.addJump(OP_JUMP_FALSE, caseReg);
+    ui64 falseJump{code.addJump(OP_JUMP_FALSE, caseReg)};
     freeReg();
 
     if (fallJump != 0) // We skip condition checking during fallthrough.
@@ -506,15 +502,15 @@ void ASTCompiler::matchCaseHelper(
 
 DEF(MatchStmt)
 {
-    ui8 matchReg = previousReg;
+    ui8 matchReg{previousReg};
     compileExpr(node->matchValue);
 
-    std::vector<ui64> jumps;
-    auto* prevEndJumps = endJumps;
+    std::vector<ui64> jumps{};
+    auto* prevEndJumps{endJumps};
     this->endJumps = &jumps;
 
-    ui64 fallJump = 0; // Invalid jump offset value.
-    ui64 emptyJump = 0;
+    ui64 fallJump{0}; // Invalid jump offset value.
+    ui64 emptyJump{0};
 
     for (const MatchStmt::MatchCase& checkCase : node->cases)
     {
@@ -533,19 +529,21 @@ DEF(MatchStmt)
 
 DEF(RepeatStmt)
 {
-    ui64 loopStart = code.getLoopStart();
+    ui64 loopStart{code.getLoopStart()};
     compileStmt(node->body);
-    ui8 reg = previousReg;
+
+    ui8 reg{previousReg};
     compileExpr(node->condition);
-    ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
+    ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
+
     code.addLoop(loopStart);
     code.patchJump(trueJump);
 }
 
 DEF(ReturnStmt)
 {
-    ui8 reg = previousReg;
+    ui8 reg{previousReg};
     if (node->expr != nullptr)
         compileExpr(node->expr);
     else
@@ -561,7 +559,7 @@ DEF(BreakStmt)
         this->breakJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec = breakLabels->get(node->label.text);
+        auto* vec{breakLabels->get(node->label.text)};
         if (vec == nullptr)
         {
             REPORT_ERROR(node->label,
@@ -578,7 +576,7 @@ DEF(ContinueStmt)
         this->continueJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec = continueLabels->get(node->label.text);
+        auto* vec{continueLabels->get(node->label.text)};
         if (vec == nullptr)
         {
             REPORT_ERROR(node->label,
@@ -599,10 +597,9 @@ DEF(ExprStmt)
 {
     if (node->expr == nullptr) return;
     
-    ui8 reg = previousReg;
-    ExprType type = node->expr->type;
+    ui8 reg{previousReg};
     compileExpr(node->expr);
-    if (inRepl && (type != E_ASSIGN_EXPR))
+    if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
         code.addOp(OP_PRINT_VALID, reg);
     freeReg();
 }
@@ -617,14 +614,14 @@ DEF(BlockStmt)
 
 DEF(TupleExpr)
 {
-    constexpr int TUPLE_GROUP = 5;
+    constexpr int TUPLE_GROUP{5};
     
-    ui8 tupleReg = previousReg;
+    ui8 tupleReg{previousReg};
     code.addOp(OP_TUPLE, tupleReg);
     reserveReg();
 
-    ui8 count = 0;
-    ui8 startReg = previousReg;
+    ui8 count{0};
+    ui8 startReg{previousReg};
     auto emitTuple = [this, tupleReg, &count, startReg] {
         code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
         previousReg = startReg;
@@ -646,14 +643,14 @@ void ASTCompiler::compoundAssign(
     const VarInfo& info
 )
 {
-    ui8 varReg = previousReg;
+    ui8 varReg{previousReg};
     addVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
-    ui8 valueReg = previousReg;
+    ui8 valueReg{previousReg};
     compileExpr(node->value);
 
-    Opcode op;
+    Opcode op{};
     switch (node->oper.type)
     {
         case TOK_PLUS_EQ:       op = OP_ADD;            break;
@@ -680,8 +677,8 @@ void ASTCompiler::compoundAssign(
 DEF(AssignExpr)
 {
     // Temporarily assuming regular variables only.
-    auto* temp = static_cast<VarExpr*>(node->target.get());
-    VarInfo info = resolveVariable(temp->name);
+    auto* temp{static_cast<VarExpr*>(node->target.get())};
+    VarInfo info{resolveVariable(temp->name)};
 
     if (!info.found)
     {
@@ -697,7 +694,7 @@ DEF(AssignExpr)
         return;
     }
 
-    ui8 reg = previousReg;
+    ui8 reg{previousReg};
     compileExpr(node->value);
     addVariableOp(setVar, info, info.slot, reg);
 }
@@ -706,18 +703,18 @@ DEF(LogicExpr)
 {
     if ((node->oper == TOK_AMP_AMP) || (node->oper == TOK_AND)) // &&, and
     {
-        ui8 reg = previousReg;
+        ui8 reg{previousReg};
         compileExpr(node->left);
-        ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+        ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
         previousReg = reg;
         compileExpr(node->right);
         code.patchJump(falseJump);
     }
     else if ((node->oper == TOK_BAR_BAR) || (node->oper == TOK_OR)) // ||, or
     {
-        ui8 reg = previousReg;
+        ui8 reg{previousReg};
         compileExpr(node->left);
-        ui64 trueJump = code.addJump(OP_JUMP_TRUE, reg);
+        ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
         previousReg = reg;
         compileExpr(node->right);
         code.patchJump(trueJump);
@@ -726,13 +723,13 @@ DEF(LogicExpr)
 
 DEF(CompareExpr)
 {
-    ui8 firstOper = previousReg;
+    ui8 firstOper{previousReg};
     compileExpr(node->left);
 
-    ui8 secondOper = previousReg;
+    ui8 secondOper{previousReg};
     compileExpr(node->right);
 
-    Opcode op;
+    Opcode op{};
     switch (node->oper)
     {
         case TOK_IN:
@@ -763,13 +760,13 @@ DEF(CompareExpr)
 
 DEF(BitExpr)
 {
-    ui8 firstOper = previousReg;
+    ui8 firstOper{previousReg};
     compileExpr(node->left);
 
-    ui8 secondOper = previousReg;
+    ui8 secondOper{previousReg};
     compileExpr(node->right);
 
-    Opcode op;
+    Opcode op{};
     switch (node->oper)
     {
         case TOK_AMP:       op = OP_AND;    break;
@@ -784,10 +781,10 @@ DEF(BitExpr)
 
 DEF(ShiftExpr)
 {
-    ui8 firstOper = previousReg;
+    ui8 firstOper{previousReg};
     compileExpr(node->left);
 
-    ui8 secondOper = previousReg;
+    ui8 secondOper{previousReg};
     compileExpr(node->right);
 
     code.addOp(node->oper == TOK_RIGHT_SHIFT ?
@@ -797,13 +794,13 @@ DEF(ShiftExpr)
 
 DEF(BinaryExpr)
 {
-    ui8 firstOper = previousReg;
+    ui8 firstOper{previousReg};
     compileExpr(node->left);
 
-    ui8 secondOper = previousReg;
+    ui8 secondOper{previousReg};
     compileExpr(node->right);
 
-    Opcode op;
+    Opcode op{};
     switch (node->oper)
     {
         case TOK_PLUS:      op = OP_ADD;    break;
@@ -827,8 +824,8 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
     if (node->expr->type != E_VAR_EXPR)
         REPORT_ERROR(node->oper, "Invalid increment/decrement target.");
 
-    auto* temp = static_cast<VarExpr*>(node->expr.get());
-    VarInfo info = resolveVariable(temp->name);
+    auto* temp{static_cast<VarExpr*>(node->expr.get())};
+    VarInfo info{resolveVariable(temp->name)};
     if (!info.found)
     {
         REPORT_ERROR(temp->name, "Undefined variable '"
@@ -874,10 +871,10 @@ DEF(UnaryExpr)
         return;
     }
 
-    ui8 firstOper = previousReg;
+    ui8 firstOper{previousReg};
     compileExpr(node->expr);
 
-    Opcode op;
+    Opcode op{};
     switch (node->oper.type)
     {
         case TOK_MINUS: op = OP_NEG;        break;
@@ -898,11 +895,11 @@ DEF(CallExpr)
 {
     if (node->callee == nullptr) return;
 
-    ui8 location;
+    ui8 location{};
     if (node->builtin)
     {
-        auto* var = static_cast<VarExpr*>(node->callee.get());
-        auto find = Natives::builtins.find(var->name.text);
+        auto* var{static_cast<VarExpr*>(node->callee.get())};
+        auto find{Natives::builtins.find(var->name.text)};
         if (find == Natives::builtins.end())
         {
             REPORT_ERROR(var->name, "No builtin '"
@@ -917,11 +914,11 @@ DEF(CallExpr)
         compileExpr(node->callee); // Will reserve a register.
     }
 
-    ui8 argsStart = previousReg;
+    ui8 argsStart{previousReg};
     for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
-    ui8 size = static_cast<ui8>(node->args.size());
+    ui8 size{static_cast<ui8>(node->args.size())};
     code.addOp((node->builtin ? OP_CALL_NAT : OP_CALL_DEF),
         location, argsStart, size);
 
@@ -934,14 +931,14 @@ DEF(CallExpr)
 
 DEF(IfExpr)
 {
-    ui8 reg = previousReg;
+    ui8 reg{previousReg};
     compileExpr(node->condition);
-    ui64 falseJump = code.addJump(OP_JUMP_FALSE, reg);
+    ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
 
-    ui8 current = previousReg;
+    ui8 current{previousReg};
     compileExpr(node->trueExpr);
-    ui64 trueJump = code.addJump(OP_JUMP);
+    ui64 trueJump{code.addJump(OP_JUMP)};
     code.patchJump(falseJump);
 
     previousReg = current;
@@ -964,41 +961,41 @@ DEF(LambdaExpr)
 
 DEF(ComprehensionExpr)
 {
-    ui8 listReg = previousReg;
+    ui8 listReg{previousReg};
     code.addOp(OP_LIST, listReg);
     reserveReg();
 
     pushScope();
-    ui8 varReg = previousReg;
+    ui8 varReg{previousReg};
     defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
 
-    ui8 iterReg = previousReg;
+    ui8 iterReg{previousReg};
     compileExpr(node->iter);
 
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
-    ui64 failJump = code.addJump(OP_JUMP); // If we fail to construct an iterator.
+    ui64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
-    ui64 loopStart = code.getLoopStart();
-    ui64 whereJump = 0;
+    ui64 loopStart{code.getLoopStart()};
+    ui64 whereJump{0};
     if (node->where != nullptr)
     {
-        ui8 whereReg = previousReg;
+        ui8 whereReg{previousReg};
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
 
-    ui8 result = previousReg;
+    ui8 result{previousReg};
     compileExpr(node->expr);
     code.addOp(OP_EXT_LIST, listReg, result, ui8(1));
 
     if (whereJump != 0)
         code.patchJump(whereJump);
 
-    constexpr int UPDATE_ITER_OP_SIZE = 5;
-    ui16 diff = static_cast<ui16>(code.codeSize() - loopStart
-        + UPDATE_ITER_OP_SIZE);
+    constexpr int UPDATE_ITER_OP_SIZE{5};
+    ui16 diff{static_cast<ui16>(code.codeSize() - loopStart
+        + UPDATE_ITER_OP_SIZE)};
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
         static_cast<ui8>((diff >> CHAR_BIT) & CODE_MAX),
         static_cast<ui8>(diff & CODE_MAX)
@@ -1010,12 +1007,12 @@ DEF(ComprehensionExpr)
 
 DEF(ListExpr)
 {
-    ui8 listReg = previousReg;
+    ui8 listReg{previousReg};
     code.addOp(OP_LIST, listReg);
     reserveReg();
 
-    ui8 count = 0;
-    ui8 startReg = previousReg;
+    ui8 count{0};
+    ui8 startReg{previousReg};
     auto emitList = [this, listReg, &count, startReg] {
         code.addOp(OP_EXT_LIST, listReg, startReg, count);
         previousReg = startReg;
@@ -1034,7 +1031,7 @@ DEF(ListExpr)
 
 DEF(VarExpr)
 {
-    VarInfo info = resolveVariable(node->name);
+    VarInfo info{resolveVariable(node->name)};
     if (!info.found)
     {
         REPORT_ERROR(node->name, "Undefined variable '"
@@ -1051,40 +1048,40 @@ DEF(LiteralExpr)
         normalizeNewlines(                              \
             (tok).text.substr(1, (tok).text.size() - 2) \
         )
-    
-    Token tok = node->value;
+
+    const Token& tok{node->value};
 
     if (tok.type == TOK_NUM)
     {
-        Object obj = tok.content.i;
+        Object obj{tok.content.i};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_NUM_DEC)
     {
-        Object obj = tok.content.d;
+        Object obj{tok.content.d};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj = CH_ALLOC(String, GET_STR(tok));
+        Object obj{CH_ALLOC(String, GET_STR(tok))};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RANGE)
     {
-        Object obj = CH_ALLOC(Range, constructRange(tok.text));
+        Object obj{CH_ALLOC(Range, constructRange(tok.text))};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
 
     else if ((tok.type == TOK_TRUE) || (tok.type == TOK_FALSE))
     {
-        bool value = tok.content.b;
+        bool value{tok.content.b};
         code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE));
         reserveReg();
     }
@@ -1145,12 +1142,12 @@ void ASTCompiler::compileStmt(const StmtUP& node)
     }
 }
 
-Function* ASTCompiler::compile(StmtVec& program)
+Function* ASTCompiler::compile(const StmtVec& program)
 {
     code.clear();
     // Inherit hitError and errorCount from parser.
 
-    for (StmtUP& node : program)
+    for (const StmtUP& node : program)
         compileStmt(node);
 
     if (hitError) code.clear();

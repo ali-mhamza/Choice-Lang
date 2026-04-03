@@ -39,11 +39,9 @@
     #define SET_REGSLOT_MAX(a, b)
 #endif
 
-VM::VM() :
-    globalRegisters(new Object[regSize]),
-    registers(globalRegisters)
+VM::VM()
 {
-    for (ui8 i = 0; i < Natives::FuncType::NUM_FUNCS; i++)
+    for (ui8 i{0}; i < Natives::FuncType::NUM_FUNCS; i++)
         globalRegisters[i] = Object(Natives::FuncType(i));
     SET_REGSLOT(Natives::NUM_FUNCS);
 }
@@ -61,18 +59,18 @@ inline ui8 VM::readByte()
 
 inline ui16 VM::readShort()
 {
-    ui16 b1 = ip[0];
-    ui16 b2 = ip[1];
+    ui16 b1{ip[0]};
+    ui16 b2{ip[1]};
     ip += 2;
     return static_cast<ui16>((b1 << 8) | b2);
 }
 
 inline ui32 VM::readLong()
 {
-    ui32 b1 = ip[0];
-    ui32 b2 = ip[1];
-    ui32 b3 = ip[2];
-    ui32 b4 = ip[3];
+    ui32 b1{ip[0]};
+    ui32 b2{ip[1]};
+    ui32 b3{ip[2]};
+    ui32 b4{ip[3]};
     ip += 4;
     return static_cast<ui32>((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
 }
@@ -97,25 +95,25 @@ inline bool VM::isTruthy(const Object& obj)
 inline Cell* VM::captureValue(ui8 slot)
 {
     // We always capture from the current scope.
-    Object* addr = registers + slot;
-    for (auto it = activeCells.rbegin(); it != activeCells.rend(); it++)
+    Object* addr{registers + slot};
+    for (auto it{activeCells.rbegin()}; it != activeCells.rend(); it++)
     {
-        Cell* cell = *it;
+        Cell* cell{*it};
         if (cell->location < addr)
             break;
         else if (cell->location == addr)
             return cell;
     }
 
-    Cell* cell = CH_ALLOC(Cell, addr);
+    Cell* cell{CH_ALLOC(Cell, addr)};
     // Insert the cell in sorted order.
-    auto it = std::lower_bound(activeCells.begin(),
+    auto it{std::lower_bound(activeCells.begin(),
         activeCells.end(),
         cell,
         [](Cell* c1, Cell* c2) -> bool {
             return c1->location < c2->location;
         }
-    );
+    )};
     activeCells.insert(it, cell);
     return cell;
 }
@@ -126,7 +124,7 @@ inline void VM::closeCells(Object* limit)
     // Do not clear or close ALL cells.
     while (!activeCells.empty())
     {
-        Cell* cell = activeCells.back();
+        Cell* cell{activeCells.back()};
         if (cell->location < limit)
             break;
         cell->close();
@@ -177,19 +175,19 @@ inline Object VM::loadOper()
 
 inline Object VM::concatStrings(const Object& str1, const Object& str2)
 {
-    std::string concat = AS_STRING(str1)->str + AS_STRING(str2)->str;
+    std::string concat{AS_STRING(str1)->str + AS_STRING(str2)->str};
     return CH_ALLOC(String, concat);
 }
 
 Object VM::arithOper(Opcode oper, ui8 firstOper)
 {
-    const Object& a = registers[firstOper];
-    const Object& b = registers[readByte()];
+    const Object& a{registers[firstOper]};
+    const Object& b{registers[readByte()]};
 
     if (IS_INT(a) && IS_INT(b))
     {
-        i64 aVal = a.as.intVal;
-        i64 bVal = b.as.intVal;
+        i64 aVal{AS_INT(a)};
+        i64 bVal{AS_INT(b)};
         switch (oper)
         {
             case OP_ADD:    return aVal + bVal;
@@ -213,8 +211,8 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
     }
     else if (IS_NUM(a) && IS_NUM(b))
     {
-        double aVal = static_cast<double>(AS_NUM(a));
-        double bVal = static_cast<double>(AS_NUM(b));
+        double aVal{static_cast<double>(AS_NUM(a))};
+        double bVal{static_cast<double>(AS_NUM(b))};
         switch (oper)
         {
             case OP_ADD:    return aVal + bVal;
@@ -252,8 +250,8 @@ Object VM::arithOper(Opcode oper, ui8 firstOper)
 
 Object VM::compareOper(Opcode op, ui8 firstOper)
 {
-    const Object& a = registers[firstOper];
-    const Object& b = registers[readByte()];
+    const Object& a{registers[firstOper]};
+    const Object& b{registers[readByte()]};
 
     if (((op == OP_GT) || (op == OP_LT))
         && (!IS_NUM(a) || !IS_NUM(b)))
@@ -277,15 +275,15 @@ Object VM::compareOper(Opcode op, ui8 firstOper)
 
 static inline i64 fromUnsigned(ui64 num)
 {
-    i64 i;
+    i64 i{};
     std::memcpy(&i, &num, sizeof(ui64));
     return i;
 }
 
 Object VM::bitOper(Opcode op, ui8 firstOper)
 {
-    const Object& a = registers[firstOper];
-    const Object& b = registers[readByte()];
+    const Object& a{registers[firstOper]};
+    const Object& b{registers[readByte()]};
 
     if (!IS_INT(a) || !IS_INT(b))
     {
@@ -296,8 +294,8 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
         );
     }
 
-    ui64 aVal = AS_UINT(a);
-    ui64 bVal = AS_UINT(b);
+    ui64 aVal{AS_UINT(a)};
+    ui64 bVal{AS_UINT(b)};
 
     switch (op)
     {
@@ -315,7 +313,7 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
             if (bVal >= 64)
                 throw RuntimeError(Token(), "Shift value too high.");
             // Manually perform wraparound to maintain LHS signed-ness.
-            i64 term = ((AS_INT(a) >= 0) ? 0 : INT64_MIN);
+            i64 term{(AS_INT(a) >= 0) ? 0 : INT64_MIN};
             return fromUnsigned(aVal >> bVal) + term;
         }
         default: CH_UNREACHABLE();
@@ -324,7 +322,7 @@ Object VM::bitOper(Opcode op, ui8 firstOper)
 
 Object VM::unaryOper(Opcode op, ui8 oper)
 {
-    const Object& obj = registers[oper];
+    const Object& obj{registers[oper]};
 
     switch (op)
     {
@@ -378,8 +376,8 @@ Object VM::unaryOper(Opcode op, ui8 oper)
 
 void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 {
-    Function* func;
-    Closure* closure;
+    Function* func{};
+    Closure* closure{};
 
     if (IS_CLOSURE(callee))
     {
@@ -401,7 +399,7 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
         );
     }
 
-    const ByteCode& code = func->code;
+    const ByteCode& code{func->code};
     frames.emplace_back(CallFrame::Args{
         currentFunc, currentClosure, registers, ip
         #if WATCH_EXEC
@@ -423,7 +421,7 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 
 void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
 {
-    auto* func = Natives::functions[AS_NATIVE(callee)];
+    auto* func{Natives::functions[AS_NATIVE(callee)]};
     (*func)(&registers[start], argCount, Token());
 }
 
@@ -455,7 +453,7 @@ void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
 
 inline void VM::restoreData()
 {
-    CallFrame& frame = frames.back();
+    CallFrame& frame{frames.back()};
     currentFunc = frame.function;
     registers = frame.regStart;
     ip = frame.ip;
@@ -472,10 +470,10 @@ inline void VM::restoreData()
 // Handle regSlot.
 void VM::startIter()
 {
-    Object& var = registers[readByte()];
-    Object& iterable = registers[readByte()];
+    Object& var{registers[readByte()]};
+    Object& iterable{registers[readByte()]};
 
-    ObjIter* iter;
+    ObjIter* iter{};
     if ((iter = iterable.makeIter()) == nullptr)
     {
         throw TypeMismatch(
@@ -487,7 +485,7 @@ void VM::startIter()
 
     if (iter->start(var))
     {
-        iterable = Object(iter);
+        iterable = Object{iter};
         ip += 3; // Skip our fail-case jump.
         #if WATCH_EXEC
             this->dis->ip += 3;
@@ -499,9 +497,9 @@ void VM::updateIter()
 {
     closeCells(scopeStarts.back());
 
-    Object& var = registers[readByte()];
-    Object& iter = registers[readByte()];
-    ui16 jump = readShort();
+    Object& var{registers[readByte()]};
+    Object& iter{registers[readByte()]};
+    ui16 jump{readShort()};
 
     if (AS_ITER(iter)->next(var))
     {
@@ -517,12 +515,13 @@ void VM::updateIter()
 
 void VM::printRegister()
 {
-    ui8 i;
-    for (i = 0; i <= regSlot; i++)
+    ui8 i{0};
+    while (i <= regSlot)
     {
         if (!IS_VALID(registers[i]))
             break;
         CH_PRINT("[{}]", registers[i].printVal());
+        i++;
     }
     if (i != 0) CH_PRINT("\n");
 }
@@ -582,15 +581,15 @@ void VM::executeOp(Opcode op)
     {
         CASE(OP_LOAD_R):
         {
-            ui8 dest = readByte();
+            ui8 dest{readByte()};
             registers[dest] = loadOper();
             SET_REGSLOT(dest);
             DISPATCH();
         }
         CASE(OP_MOVE_R):
         {
-            ui8 dest = readByte();
-            ui8 src = readByte();
+            ui8 dest{readByte()};
+            ui8 src{readByte()};
             registers[dest] = std::move(registers[src]);
             SET_REGSLOT_MAX(dest, src);
             DISPATCH();
@@ -598,7 +597,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_LOOP):
         {
-            ui16 jump = readShort();
+            ui16 jump{readShort()};
             ip -= jump;
             #if WATCH_EXEC
                 this->dis->ip -= jump;
@@ -607,7 +606,7 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_JUMP):
         {
-            ui16 jump = readShort();
+            ui16 jump{readShort()};
             ip += jump;
             #if WATCH_EXEC
                 this->dis->ip += jump;
@@ -616,8 +615,8 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_JUMP_TRUE):
         {
-            ui8 check = readByte();
-            ui16 jump = readShort();
+            ui8 check{readByte()};
+            ui16 jump{readShort()};
             if (isTruthy(registers[check]))
             {
                 ip += jump;
@@ -629,8 +628,8 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_JUMP_FALSE):
         {
-            ui8 check = readByte();
-            ui16 jump = readShort();
+            ui8 check{readByte()};
+            ui16 jump{readShort()};
             if (!isTruthy(registers[check]))
             {
                 ip += jump;
@@ -643,8 +642,8 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_GET_GLOBAL):
         {
-            ui8 dest = readByte();
-            ui8 src = readByte();
+            ui8 dest{readByte()};
+            ui8 src{readByte()};
 
             COPY(registers[dest], globalRegisters[src]);
             SET_REGSLOT(dest);
@@ -652,8 +651,8 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_SET_GLOBAL):
         {
-            ui8 dest = readByte();
-            ui8 src = readByte();
+            ui8 dest{readByte()};
+            ui8 src{readByte()};
 
             COPY(globalRegisters[dest], registers[src]);
             DISPATCH();
@@ -661,8 +660,8 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_GET_CELL):
         {
-            ui8 dest = readByte();
-            ui8 src = readByte();
+            ui8 dest{readByte()};
+            ui8 src{readByte()};
 
             COPY(registers[dest], *(currentClosure->cells[src]->location));
             SET_REGSLOT(dest);
@@ -670,8 +669,8 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_SET_CELL):
         {
-            ui8 dest = readByte();
-            ui8 src = readByte();
+            ui8 dest{readByte()};
+            ui8 src{readByte()};
 
             COPY(*(currentClosure->cells[dest]->location), registers[src]);
             DISPATCH();
@@ -680,8 +679,8 @@ void VM::executeOp(Opcode op)
         CASE(OP_GET_LOCAL):
         CASE(OP_SET_LOCAL):
         {
-            ui8 dest = readByte();
-            ui8 src = readByte();
+            ui8 dest{readByte()};
+            ui8 src{readByte()};
 
             COPY(registers[dest], registers[src]);
             SET_REGSLOT_MAX(dest, src);
@@ -696,12 +695,12 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_EXT_LIST):
         {
-            ui8 listReg = readByte();
-            ui8 startReg = readByte();
-            ui8 count = readByte();
+            ui8 listReg{readByte()};
+            ui8 startReg{readByte()};
+            ui8 count{readByte()};
 
-            auto& array = AS_LIST(registers[listReg])->array;
-            for (ui8 i = 0; i < count; i++)
+            auto& array{AS_LIST(registers[listReg])->array};
+            for (ui8 i{0}; i < count; i++)
                 array.push(registers[startReg + i]);
             DISPATCH();
         }
@@ -714,11 +713,11 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_EXT_TUPLE):
         {
-            ui8 tupleReg = readByte();
-            ui8 startReg = readByte();
-            ui8 count = readByte();
-            auto& entries = AS_TUPLE(registers[tupleReg])->entries;
-            for (ui8 i = 0; i < count; i++)
+            ui8 tupleReg{readByte()};
+            ui8 startReg{readByte()};
+            ui8 count{readByte()};
+            auto& entries{AS_TUPLE(registers[tupleReg])->entries};
+            for (ui8 i{0}; i < count; i++)
                 entries.push(registers[startReg + i]);
             DISPATCH();
         }
@@ -739,7 +738,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_ADD):   CASE(OP_SUB):   CASE(OP_MULT):
         CASE(OP_DIV):   CASE(OP_MOD):   CASE(OP_POWER):
         {
-            ui8 dest = readByte();
+            ui8 dest{readByte()};
             registers[dest] = arithOper(op, dest);
             SET_REGSLOT(regSlot - 1);
             DISPATCH();
@@ -749,7 +748,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_GT):    CASE(OP_LT):    CASE(OP_EQUAL):     CASE(OP_IN):
         {
-            ui8 dest = readByte();
+            ui8 dest{readByte()};
             registers[dest] = compareOper(op, dest);
             SET_REGSLOT(regSlot - 1);
             DISPATCH();
@@ -760,7 +759,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_AND):       CASE(OP_OR):        CASE(OP_XOR):
         CASE(OP_SHIFT_L):   CASE(OP_SHIFT_R):
         {
-            ui8 dest = readByte();
+            ui8 dest{readByte()};
             registers[dest] = bitOper(op, dest);
             SET_REGSLOT(regSlot - 1);
             DISPATCH();
@@ -771,14 +770,14 @@ void VM::executeOp(Opcode op)
         CASE(OP_INCR):      CASE(OP_DECR):      CASE(OP_NOT):
         CASE(OP_NEG):       CASE(OP_COMP):
         {
-            ui8 dest = readByte();
+            ui8 dest{readByte()};
             registers[dest] = unaryOper(op, dest);
             DISPATCH();
         }
 
         CASE(OP_PRINT_VALID):
         {
-            const Object& obj = registers[readByte()];
+            const Object& obj{registers[readByte()]};
             if (IS_VALID(obj) && !IS_TUPLE(obj))
                 CH_PRINT("{}\n", obj.printVal());
             DISPATCH();
@@ -788,16 +787,16 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_CALL_NAT):
         {
-            ui8 callee = readByte();
-            ui8 start = readByte();
-            ui8 argCount = readByte();
+            ui8 callee{readByte()};
+            ui8 start{readByte()};
+            ui8 argCount{readByte()};
 
             #if WATCH_REG
                 ui8 currentSlot = regSlot;
             #endif
             SET_REGSLOT(start);
 
-            const auto& func = Natives::functions[callee];
+            const auto& func{Natives::functions[callee]};
             func(&registers[start], argCount, Token()); // Temporarily.
 
             SET_REGSLOT(currentSlot);
@@ -805,9 +804,9 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_CALL_DEF):
         {
-            const Object& callee = registers[readByte()];
-            ui8 start = readByte();
-            ui8 argCount = readByte();
+            const Object& callee{registers[readByte()]};
+            ui8 start{readByte()};
+            ui8 argCount{readByte()};
 
             callObj(callee, start, argCount);
             SET_REGSLOT(0);
@@ -816,7 +815,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_RETURN):
         {
-            ui8 retSlot = readByte();
+            ui8 retSlot{readByte()};
             registers[-1] = std::move(registers[retSlot]);
 
             // Correct regSlot after return.
@@ -827,30 +826,30 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             // To avoid reallocating the return value each time.
-            static auto ret = Object(CH_ALLOC(Tuple));
+            static auto ret{Object{CH_ALLOC(Tuple)}};
             registers[readByte()] = ret;
             DISPATCH();
         }
 
         CASE(OP_CLOSURE):
         {
-            ui8 slot = readByte();
-            auto* func = AS_FUNC(registers[slot]);
+            ui8 slot{readByte()};
+            auto* func{AS_FUNC(registers[slot])};
             registers[slot] = CH_ALLOC(Closure, func);
             DISPATCH();
         }
         CASE(OP_CAPTURE_VAL):
         {
-            auto* closure = AS_CLOSURE(registers[readByte()]);
-            ui8 slot = readByte();
+            auto* closure{AS_CLOSURE(registers[readByte()])};
+            ui8 slot{readByte()};
 
             closure->addCell(captureValue(slot));
             DISPATCH();
         }
         CASE(OP_CAPTURE_CELL):
         {
-            auto* closure = AS_CLOSURE(registers[readByte()]);
-            ui8 index = readByte();
+            auto* closure{AS_CLOSURE(registers[readByte()])};
+            ui8 index{readByte()};
 
             closure->addCell(currentClosure->cells[index]);
             DISPATCH();
@@ -885,7 +884,6 @@ void VM::executeCode(Function* script)
     currentFunc = script;
     // The global scope doesn't capture any variables,
     // so it doesn't need to have an active closure.
-    currentClosure = nullptr;
     registers = globalRegisters;
     ip = script->code.block.data();
     end = ip + script->code.block.size();

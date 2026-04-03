@@ -16,20 +16,20 @@
 #include <unordered_map>
 
 const std::array<Natives::NativeFunc,
-Natives::FuncType::NUM_FUNCS> Natives::functions = {
+Natives::FuncType::NUM_FUNCS> Natives::functions{
     Natives::print, Natives::println, Natives::format,
     Natives::type, Natives::len, Natives::clock,
     Natives::range, Natives::read
 };
 
 const std::array<const char*,
-Natives::FuncType::NUM_FUNCS> Natives::funcNames = {
+Natives::FuncType::NUM_FUNCS> Natives::funcNames{
     "print", "println", "format", "type", "len",
     "clock", "range", "read"
 };
 
 const std::unordered_map<std::string_view,
-    Natives::FuncType> Natives::builtins = {
+    Natives::FuncType> Natives::builtins{
     {"print", Natives::FUNC_PRINT},
     {"println", Natives::FUNC_PRINTLN},
     {"format", Natives::FUNC_FORMAT},
@@ -44,7 +44,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
 {
     (void) error;
 
-    for (ui8 i = 0; i < args; i++)
+    for (ui8 i{0}; i < args; i++)
     {
         switch (it[i].type)
         {
@@ -71,7 +71,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
         fflush(stdout);
 
     // To avoid reallocating the return value each time.
-    static auto ret = Object(CH_ALLOC(Tuple));
+    static auto ret{Object{CH_ALLOC(Tuple)}};
     it[-1] = ret;
 }
 
@@ -87,17 +87,17 @@ void Natives::println(Natives::iter it, ui8 args, const Token& error)
         const Token& error)
     {
         using sizeT = std::string::size_type;
-        const std::string& str = AS_STRING(it[0])->str;
-        sizeT size = str.size();
-        ui8 count = 0;
+        const std::string& str{AS_STRING(it[0])->str};
+        sizeT size{str.size()};
+        ui8 count{0};
 
-        std::string newStr;
+        std::string newStr{};
         if (size != 0)
         {
             newStr.reserve(str.size() + args - 1);
 
-            sizeT pos = 0;
-            sizeT start = pos;
+            sizeT pos{0};
+            sizeT start{pos};
             while ((pos = str.find("{}", pos)) != std::string::npos)
             {
                 if ((pos > 0) && (pos < size - 2)
@@ -136,14 +136,14 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
     else if (!IS_STRING(it[0]))
         throw RuntimeError(error, "First argument must be a string.");
 
-    std::string result;
+    std::string result{};
 
     #if defined(CH_USE_FMT_LIB)
-        fmt_store store;
+        fmt_store store{};
         for (ui8 i = 1; i < args; i++)
             store.push_back(it[i].printVal());
 
-        const std::string& str = AS_STRING(it[0])->str;
+        const std::string& str{AS_STRING(it[0])->str};
         try
         {
             result = fmt::vformat(str, store);
@@ -159,7 +159,7 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
         result = defaultFormat(it, args, error);
     #endif
 
-    it[-1] = Object(CH_ALLOC(String, result));
+    it[-1] = Object{CH_ALLOC(String, result)};
 }
 
 void Natives::type(Natives::iter it, ui8 args, const Token& error)
@@ -171,7 +171,7 @@ void Natives::type(Natives::iter it, ui8 args, const Token& error)
         );
     }
 
-    it[-1] = Object(it->type);
+    it[-1] = Object{it->type};
 }
 
 void Natives::len(Natives::iter it, ui8 args, const Token& error)
@@ -183,11 +183,11 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
         );
     }
 
-    const Object& obj = *it;
+    const Object& obj{*it};
     if (!IS_ITERABLE(obj))
         throw RuntimeError(error, "Argument provided is not iterable.");
 
-    i64 len = 0;
+    i64 len{0};
     switch (obj.type)
     {
         case OBJ_STRING:
@@ -195,7 +195,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
             break;
         case OBJ_RANGE:
         {
-            auto* range = AS_RANGE(obj);
+            auto* range{AS_RANGE(obj)};
             len = range->length();
             break;
         }
@@ -206,7 +206,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
             CH_UNREACHABLE();
     }
 
-    it[-1] = Object(len);
+    it[-1] = Object{len};
 }
 
 void Natives::clock(Natives::iter it, ui8 args, const Token& error)
@@ -221,11 +221,11 @@ void Natives::clock(Natives::iter it, ui8 args, const Token& error)
     using clock = std::chrono::steady_clock;
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
-    static const auto start = clock::now();
+    static const auto start{clock::now()};
 
-    auto time = clock::now();
-    auto ret = duration_cast<nanoseconds>(time - start);
-    it[-1] = Object(i64(ret.count()));
+    auto time{clock::now()};
+    auto ret{duration_cast<nanoseconds>(time - start)};
+    it[-1] = Object{i64(ret.count())};
 }
 
 void Natives::range(Natives::iter it, ui8 args, const Token& error)
@@ -239,10 +239,10 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     if (!IS_INT(it[0]) || !IS_INT(it[1]) || ((args == 3) && !IS_INT(it[2])))
         throw RuntimeError(error, "Arguments must be integers.");
 
-    std::array<i64, 3> limits = {AS_INT(it[0]), AS_INT(it[1]), 1};
+    std::array<i64, 3> limits{AS_INT(it[0]), AS_INT(it[1]), 1};
     if (args == 3)
         limits[2] = AS_INT(it[2]);
-    it[-1] = Object(CH_ALLOC(Range, limits));
+    it[-1] = Object{CH_ALLOC(Range, limits)};
 }
 
 void Natives::read(Natives::iter it, ui8 args, const Token& error)
@@ -262,7 +262,7 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
     }
 
     std::ios_base::sync_with_stdio(false);
-    std::string input;
+    std::string input{};
     std::getline(std::cin, input);
-    it[-1] = Object(CH_ALLOC(String, input));
+    it[-1] = Object{CH_ALLOC(String, input)};
 }

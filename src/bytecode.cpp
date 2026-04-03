@@ -1,5 +1,6 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
+#include "../include/config.h"
 #include "../include/object.h"		// For Object and object structs.
 #include "../include/opcodes.h"
 #include <cmath>					// For fmod() in loadRegConst() method.
@@ -9,14 +10,11 @@
 #include <limits>					// For std::numeric_limits.
 #include <utility>					// For std::move.
 
-ByteCode::ByteCode() :
-	block(0), pool(0) {}
-
 ByteCode::ByteCode(const vByte& block) :
-	block(block) {}
+	block{block} {}
 
 ByteCode::ByteCode(const vByte& block, const vObj& pool) :
-	block(block), pool(pool) {}
+	block{block}, pool{pool} {}
 
 void ByteCode::addByte(ui8 byte)
 {
@@ -48,7 +46,7 @@ ui64 ByteCode::addJump(Opcode op, i16 reg)
 		addByte(static_cast<ui8>(op));
 	else
 		addBytes(static_cast<ui8>(op), static_cast<ui8>(reg));
-	ui64 offset = block.size();
+	ui64 offset{block.size()};
 	block.emplace_back();
 	block.emplace_back();
 	return offset;
@@ -57,8 +55,8 @@ ui64 ByteCode::addJump(Opcode op, i16 reg)
 void ByteCode::patchJump(ui64 offset)
 {
 	// We've skipped the 2 jump bytes.
-	ui64 diff = block.size() - offset - 2;
-	if (diff < (1 << 16))
+	ui64 diff{block.size() - offset - 2};
+	if (diff <= BYTE_JUMP_MAX)
 	{
 		block[offset] = static_cast<ui8>((diff >> 8) & 0xff);
 		block[offset + 1] = static_cast<ui8>(diff & 0xff);
@@ -78,7 +76,7 @@ void ByteCode::addLoop(ui64 start)
 	// *after* the two bytes by the time we've decoded the
 	// offset.
 
-	ui16 diff = static_cast<ui16>(block.size() - start + 3);	
+	ui16 diff{static_cast<ui16>(block.size() - start + 3)};
 	addByte(OP_LOOP);
 	addByte(static_cast<ui8>((diff >> 8) & 0xff));
 	addByte(static_cast<ui8>(diff & 0xff));
@@ -115,7 +113,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 
 	pool.push_back(std::move(constant));
 
-	size_t size = pool.size();
+	size_t size{pool.size()};
 	if (size - 1 < (1 << 8))
 	{
 		addByte(OP_BYTE_OPER);
@@ -135,7 +133,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 
 ui64 ByteCode::countPool() const
 {
-	ui64 count = 0;
+	ui64 count{0};
 
 	for (const Object& obj : pool)
 	{
@@ -148,7 +146,7 @@ ui64 ByteCode::countPool() const
 				case OBJ_FUNC:
 				case OBJ_LAMBDA:
 				{
-					const Function& func = *(AS_FUNC(obj));
+					const Function& func{*(AS_FUNC(obj))};
 					// Added type byte (1) and null byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
 					count += strlen(func.name) + 4 * sizeof(ui8);
@@ -189,19 +187,19 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	os.put(static_cast<char>(file.size()));
 
 	// Bytecode length.
-	ui64 codeSize = block.size();
+	ui64 codeSize{block.size()};
 	os.write(reinterpret_cast<const char*>(&codeSize),
 		sizeof(ui64));
 
 	// Constant pool length.
-	ui64 poolSize = countPool();
+	ui64 poolSize{countPool()};
 	os.write(reinterpret_cast<const char*>(&poolSize),
 		sizeof(ui64));
 
-	ui64 fileSize = file.size();
-	constexpr auto maxSize = static_cast<ui64>(
+	ui64 fileSize{file.size()};
+	constexpr auto maxSize{static_cast<ui64>(
 		std::numeric_limits<std::streamsize>::max()
-	);
+	)};
 	// Check to avoid narrowing conversions below.
 	if ((fileSize > maxSize) || (codeSize > maxSize))
 		return; // Report an error.

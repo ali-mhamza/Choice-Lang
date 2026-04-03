@@ -20,7 +20,7 @@ class ASTCompiler
         struct VarInfo
         {
             // Whether or not the variable was found.
-            bool found;
+            bool found{};
             // The slot/cell index of the variable.
             ui8 slot{0};
 
@@ -36,40 +36,40 @@ class ASTCompiler
 
         struct LocalInfo
         {
-            bool found;
+            bool found{};
             ui8 slot{0};
         };
 
         struct CellInfo
         {
-            ui8 slot;
-            bool inCell;
+            ui8 slot{};
+            bool inCell{};
         };
 
-        ByteCode code;
-        ASTCompiler* const scopeCompiler;
+        ByteCode code{};
+        ASTCompiler* const scopeCompiler{};
 
         ui8 previousReg{0};
         ui8 scope{0};       // Our current block scope depth.
         ui8 scopeStart{0};  // To mark the initial register for a new scope (to pop to on exit).
-        ui8 depth;          // Our current function scope depth.
+        const ui8 depth{};  // Our current function scope depth.
 
         using varTable = linearTable<VarEntry, ui8, VarHasher>;
         using accessTable = linearTable<ui8, bool>;
         using labelTable = linearTable<std::string_view, std::vector<ui64>>;
 
-        std::stack<std::vector<std::string>> varScopes;
-        const std::unique_ptr<varTable> varLocations;
-        const std::unique_ptr<accessTable> varAccess;
-        const std::unique_ptr<labelTable> breakLabels;
-        const std::unique_ptr<labelTable> continueLabels;
+        std::stack<std::vector<std::string>> varScopes{};
+        const std::unique_ptr<varTable> varLocations{new varTable};
+        const std::unique_ptr<accessTable> varAccess{new accessTable};
+        const std::unique_ptr<labelTable> breakLabels{new labelTable};
+        const std::unique_ptr<labelTable> continueLabels{new labelTable};
 
-        std::vector<CellInfo> captures;
-        linearTable<std::string, ui8> captureNames;
+        std::vector<CellInfo> captures{};
+        linearTable<std::string, ui8> captureNames{};
 
-        std::vector<ui64>* endJumps{nullptr};
-        std::vector<ui64>* breakJumps{nullptr};
-        std::vector<ui64>* continueJumps{nullptr};
+        std::vector<ui64>* endJumps{};
+        std::vector<ui64>* breakJumps{};
+        std::vector<ui64>* continueJumps{};
 
         /* Variables. */
 
@@ -193,5 +193,5 @@ class ASTCompiler
         ASTCompiler(ASTCompiler* comp = nullptr);
         ~ASTCompiler();
 
-        Function* compile(StmtVec& program);
+        Function* compile(const StmtVec& program);
 };

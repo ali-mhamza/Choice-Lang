@@ -153,14 +153,14 @@ class VM;
 class Token
 {
 	private:
-		std::string_view text; // The actual text of the token.
-		Value content; // The literal's actual value.
-		ui16 line; // The line holding the token.
-		ui8 position; // The starting position of the token.
-		TokenType type;
+		std::string_view text{};	// The actual text of the token.
+		Value content{};			// The literal's actual value.
+		ui16 line{};				// The line holding the token.
+		ui8 position{};				// The starting position of the token.
+		TokenType type{TOK_EOF};
 
 	public:
-		Token();
+		Token() = default;
 		Token(
 			TokenType type,
 			std::string_view text,

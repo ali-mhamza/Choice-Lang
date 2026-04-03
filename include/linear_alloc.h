@@ -14,11 +14,11 @@ class LinearAlloc
     private:
         using Arena = void;
 
-        Arena* start;
-        Arena* arena;
-        size_t used;
-        size_t cap;
-        Array<AllocPair> allocs;
+        const Arena* start{};
+        Arena* arena{};
+        size_t used{0};
+        const size_t cap{};
+        Array<AllocPair> allocs{};
 
     public:
         LinearAlloc(size_t size = BASE_SIZE);

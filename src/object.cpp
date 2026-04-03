@@ -1,6 +1,7 @@
 #include "../include/object.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
+#include "../include/config.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include <array>
@@ -19,7 +20,7 @@ using Natives::funcNames;
     #define SIZE_MAX std::numeric_limits<std::size_t>::max()
 #endif
 
-static std::array<std::string_view, NUM_TYPES> objTypes = {
+constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
     "Function", "Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table", "Tuple",
@@ -29,7 +30,7 @@ static std::array<std::string_view, NUM_TYPES> objTypes = {
 /* Object. */
 
 Object::Object() :
-    type(OBJ_INVALID)
+    type{OBJ_INVALID}
 {
     AS_INT(*this) = 0;
 }
@@ -39,7 +40,7 @@ void Object::clean()
     #if !CH_USE_ALLOC
         if (IS_HEAP_OBJ(*this))
         {
-            HeapObj* temp = AS_HEAP_PTR(*this);
+            HeapObj* temp{AS_HEAP_PTR(*this)};
             CH_ASSERT(temp != nullptr, "NULL object pointer.");
 
             CH_ASSERT(temp->refCount != 0, "Zero object refcount.");
@@ -49,7 +50,7 @@ void Object::clean()
         }
         else if (IS_ITER(*this))
         {
-            ObjIter* iter = AS_ITER(*this);
+            ObjIter* iter{AS_ITER(*this)};
             CH_ASSERT(iter != nullptr, "NULL iterator pointer.");
             delete iter; // We never copy iterators, so no refcount.
         }
@@ -57,7 +58,7 @@ void Object::clean()
 }
 
 Object::Object(const Object& other) noexcept :
-    type(other.type), as(other.as)
+    type{other.type}, as{other.as}
 {
     CH_ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
 
@@ -88,7 +89,7 @@ Object& Object::operator=(const Object& other) noexcept
 }
 
 Object::Object(Object&& other) noexcept :
-    type(other.type), as(other.as)
+    type{other.type}, as{other.as}
 {
     other.type = OBJ_INVALID; // To prevent deallocation when it is destroyed.
     AS_INT(other) = 0;
@@ -154,22 +155,22 @@ bool Object::operator<(const Object& other) const
 
 bool Object::in(const Object& other) const
 {
-    const Object& obj = *this;    
+    const Object& obj{*this};    
 
     if (IS_STRING(obj) && IS_STRING(other))
     {
-        const String& s1 = *(AS_STRING(obj));
-        const String& s2 = *(AS_STRING(other));
+        const String& s1{*(AS_STRING(obj))};
+        const String& s2{*(AS_STRING(other))};
         return s2.contains(s1);
     }
     else if (IS_INT(obj) && IS_RANGE(other))
     {
-        const Range& range = *(AS_RANGE(other));
+        const Range& range{*(AS_RANGE(other))};
         return range.contains(AS_INT(obj));
     }
     else  if (IS_LIST(other))
     {
-        const List& list = *(AS_LIST(other));
+        const List& list{*(AS_LIST(other))};
         return list.contains(obj);
     }
     else if (!IS_STRING(obj) && !IS_RANGE(other))
@@ -209,8 +210,8 @@ std::string Object::printVal() const
         case OBJ_TUPLE:     return AS_TUPLE(*this)->printVal();
         case OBJ_ITER:
         {
-            const auto& iter = AS_ITER(*this)->iter;
-            std::string ret;
+            const auto& iter{AS_ITER(*this)->iter};
+            std::string ret{};
             std::visit([&ret](auto&& iter) {
                 ret = "->" + iter.obj->printVal();
             }, iter);
@@ -231,11 +232,11 @@ static void emitBytes(std::ofstream& os, ObjType type, T value)
 {
     if (type != OBJ_INVALID)
         os.put(static_cast<char>(type));
-    constexpr size_t size = sizeof(T);
-    ui64* asBytes = reinterpret_cast<ui64*>(&value);
-    std::array<char, size> bytes;
+    constexpr size_t size{sizeof(T)};
+    ui64* asBytes{reinterpret_cast<ui64*>(&value)};
+    std::array<char, size> bytes{};
     for (size_t i = 0; i < size; i++)
-        bytes[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & 0xff;
+        bytes[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & CODE_MAX;
     os.write(bytes.data(), size);
 }
 
@@ -263,13 +264,13 @@ ObjIter* Object::makeIter()
 /* HeapObj. */
 
 HeapObj::HeapObj() :
-    type(OBJ_INVALID), refCount(0) {}
+    type{OBJ_INVALID} {}
 
 HeapObj::HeapObj(ObjType type) :
-    type(type), refCount(0) {}
+    type{type} {}
 
 Cell::Cell(Object* location) :
-    location(location), refCount(0) {}
+    location{location} {}
 
 void Cell::close()
 {
@@ -278,14 +279,14 @@ void Cell::close()
 }
 
 Function::Function(const ByteCode& code, const ui8 argCount) :
-    HeapObj(OBJ_LAMBDA),
-    name(nullptr), code(code), argCount(argCount), lambda(true) {}
+    HeapObj{OBJ_LAMBDA},
+    name{nullptr}, code{code}, argCount{argCount}, lambda{true} {}
 
 // strdup is not a standard C++ function, but is instead from POSIX.
 static char* choiceStrdup(const char* str)
 {
-    auto size = strlen(str) + 1;
-    char* ret = new char[size];
+    auto size{strlen(str) + 1};
+    char* ret{new char[size]};
     memcpy(ret, str, size); // Includes null byte.
     return ret;
 }
@@ -294,9 +295,9 @@ Function::Function(
     const std::string& name,
     const ByteCode& code,
     const ui8 argCount
-) : HeapObj(OBJ_FUNC),
-    name(choiceStrdup(name.c_str())), code(code), argCount(argCount),
-    lambda(false) {}
+) : HeapObj{OBJ_FUNC},
+    name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
+    lambda{false} {}
 
 Function::~Function()
 {   
@@ -317,21 +318,21 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(argCount));
     os.put(static_cast<char>(lambda));
 
-    const vByte& block = code.block;
+    const vByte& block{code.block};
     emitBytes<ui64>(os, OBJ_INVALID, block.size());
     emitBytes<ui64>(os, OBJ_INVALID, code.countPool());
     os.write(reinterpret_cast<const char*>(block.data()),
 		block.size());
 
 	// Constant pool.
-    const vObj& pool = code.pool;
+    const vObj& pool{code.pool};
 	for (const Object& constant : pool)
 		constant.emit(os);
 }
 
 Closure::Closure(Function* function) :
-    HeapObj(OBJ_CLOSURE),
-    function(function)
+    HeapObj{OBJ_CLOSURE},
+    function{function}
 {
     function->refCount++;
 }
@@ -364,18 +365,18 @@ void Closure::addCell(Cell* cell)
 }
 
 String::String(const std::string& str) :
-    HeapObj(OBJ_STRING),
-    str(str) {}
+    HeapObj{OBJ_STRING},
+    str{str} {}
 
 String::String(const std::string_view& view) :
-    HeapObj(OBJ_STRING),
-    str(view) {}
+    HeapObj{OBJ_STRING},
+    str{view} {}
 
 String::String(const char* str, size_t len) :
-    HeapObj(OBJ_STRING)
+    HeapObj{OBJ_STRING}
 {
     len = (len == SIZE_MAX ? strlen(str) : len);
-    this->str = std::string(str, len);
+    this->str = std::string{str, len};
 }
 
 bool String::operator==(const String& other) const
@@ -401,8 +402,8 @@ void String::emit(std::ofstream& os) const
 }
 
 Range::Range(const std::array<i64, 3>& limits) :
-    HeapObj(OBJ_RANGE),
-    start(limits[0]), stop(limits[1]), step(limits[2]) {}
+    HeapObj{OBJ_RANGE},
+    start{limits[0]}, stop{limits[1]}, step{limits[2]} {}
 
 bool Range::operator==(const Range& other) const
 {
@@ -415,7 +416,7 @@ bool Range::contains(const i64 num) const
 {
     if (start <= stop)
     {
-        for (i64 i = start; i <= stop; i += step)
+        for (i64 i{start}; i <= stop; i += step)
         {
             if (num == i)
                 return true;
@@ -423,7 +424,7 @@ bool Range::contains(const i64 num) const
     }
     else
     {
-        for (i64 i = start; i >= stop; i -= step)
+        for (i64 i{start}; i >= stop; i -= step)
         {
             if (num == i)
                 return true;
@@ -467,7 +468,7 @@ i64 Range::length() const
 
 std::string Range::printVal() const
 {
-    auto str = CH_STR("{}..{}", start, stop);
+    auto str{CH_STR("{}..{}", start, stop)};
     if (step != 1)
         str += CH_STR("..{}", step);
     return str;
@@ -482,8 +483,8 @@ void Range::emit(std::ofstream& os) const
 }
 
 List::List(ui32 size) :
-    HeapObj(OBJ_LIST),
-    array(size) {}
+    HeapObj{OBJ_LIST},
+    array{size} {}
 
 bool List::operator==(const List& other) const
 {
@@ -504,9 +505,9 @@ bool List::contains(const Object& obj) const
 
 std::string List::printVal() const
 {
-    std::string ret = "[";
-    size_t size = array.count();
-    for (size_t i = 0; i < size; i++)
+    std::string ret{"["};
+    size_t size{array.count()};
+    for (size_t i{0}; i < size; i++)
     {
         ret += array[i].printVal();
         if (i != size - 1)
@@ -518,17 +519,17 @@ std::string List::printVal() const
 }
 
 Tuple::Tuple() :
-    HeapObj(OBJ_TUPLE) {}
+    HeapObj{OBJ_TUPLE} {}
 
 Tuple::Tuple(ui32 size) :
-    HeapObj(OBJ_TUPLE),
-    entries(size) {}
+    HeapObj{OBJ_TUPLE},
+    entries{size} {}
 
 std::string Tuple::printVal() const
 {
-    std::string ret = "(";
-    size_t size = entries.count();
-    for (size_t i = 0; i < size; i++)
+    std::string ret{"("};
+    size_t size{entries.count()};
+    for (size_t i{0}; i < size; i++)
     {
         ret += entries[i].printVal();
         if (i != size - 1)
@@ -542,11 +543,8 @@ std::string Tuple::printVal() const
 
 /* Object iterator struct types. */
 
-StringIter::StringIter() :
-    obj(nullptr), begin(nullptr) {}
-
 StringIter::StringIter(String* obj) :
-    obj(obj), begin(obj->str.c_str())
+    obj{obj}, begin{obj->str.c_str()}
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -554,7 +552,7 @@ StringIter::StringIter(String* obj) :
 }
 
 StringIter::StringIter(StringIter&& other) noexcept :
-    obj(other.obj), begin(other.begin)
+    obj{other.obj}, begin{other.begin}
 {
     other.obj = nullptr;
     other.begin = nullptr; // Must split; pointers are of different types.
@@ -589,7 +587,7 @@ StringIter::~StringIter()
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
-    var = Object(CH_ALLOC(String, begin, 1));
+    var = Object{CH_ALLOC(String, begin, 1)};
     return true;
 }
 
@@ -598,15 +596,12 @@ bool StringIter::next(Object& var)
     begin++;
     if (*begin == '\0')
         return false;
-    var = Object(CH_ALLOC(String, begin, 1));
+    var = Object{CH_ALLOC(String, begin, 1)};
     return true;
 }
 
-RangeIter::RangeIter() :
-    obj(nullptr), val(0) {}
-
 RangeIter::RangeIter(Range* obj) :
-    obj(obj), val(0)
+    obj{obj}
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -614,7 +609,7 @@ RangeIter::RangeIter(Range* obj) :
 }
 
 RangeIter::RangeIter(RangeIter&& other) noexcept :
-    obj(other.obj), val(other.val)
+    obj{other.obj}, val{other.val}
 {
     other.obj = nullptr;
 }
@@ -647,13 +642,13 @@ RangeIter::~RangeIter()
 bool RangeIter::start(Object& var)
 {
     val = obj->start;
-    var = Object(val);
+    var = Object{val};
     return true;
 }
 
 bool RangeIter::next(Object& var)
 {
-    bool reverse = (obj->start > obj->stop);
+    bool reverse{obj->start > obj->stop};
     val += (reverse ? -1 : 1) * obj->step;
     if ((!reverse && (val > obj->stop))
         || (reverse && (val < obj->stop)))
@@ -664,11 +659,8 @@ bool RangeIter::next(Object& var)
     return true;
 }
 
-ListIter::ListIter() :
-    obj(nullptr), it() {}
-
 ListIter::ListIter(List* obj) :
-    obj(obj), it()
+    obj{obj}
 {   
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -676,7 +668,7 @@ ListIter::ListIter(List* obj) :
 }
 
 ListIter::ListIter(ListIter&& other) noexcept :
-    obj(other.obj), it(other.it)
+    obj{other.obj}, it{other.it}
 {
     other.obj = nullptr;
 }
@@ -748,7 +740,7 @@ ObjIter::ObjIter(Object& obj)
 
 bool ObjIter::start(Object& var)
 {
-    bool ret;
+    bool ret{};
     std::visit([&var, &ret](auto&& iter) {
         ret = iter.start(var);
     }, iter);
@@ -758,7 +750,7 @@ bool ObjIter::start(Object& var)
 
 bool ObjIter::next(Object& var)
 {
-    bool ret;
+    bool ret{};
     std::visit([&var, &ret](auto&& iter) {
         ret = iter.next(var);
     }, iter);
@@ -770,7 +762,7 @@ bool ObjIter::next(Object& var)
 
 TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
     ObjType actual) :
-    message(message), expect(expect), actual(actual) {}
+    message{message}, expect{expect}, actual{actual} {}
 
 #if defined(DEBUG)
     #define LENGTH(array) sizeof(array) / sizeof(array[0])

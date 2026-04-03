@@ -27,7 +27,7 @@ using namespace AST::Expression;
             errorCount++;                                           \
             return nullptr;                                         \
         }                                                           \
-        CompileError(__VA_ARGS__).report();                         \
+        CompileError{__VA_ARGS__}.report();                         \
         syntaxError = true;                                         \
         errorCount++;                                               \
         return nullptr;                                             \
@@ -45,7 +45,7 @@ using namespace AST::Expression;
             errorCount++;                                           \
             return nullptr;                                         \
         }                                                           \
-        CompileError(__VA_ARGS__).report();                         \
+        CompileError{__VA_ARGS__}.report();                         \
         semanticError = true;                                       \
         errorCount++;                                               \
         return nullptr;                                             \
@@ -53,10 +53,6 @@ using namespace AST::Expression;
 
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
-
-Parser::Parser() :
-    inMatch(false), inFunc(false), fall(false),
-    syntaxError(false), semanticError(false) {}
 
 void Parser::nextTok()
 {
@@ -67,7 +63,7 @@ void Parser::nextTok()
     }
 }
 
-bool Parser::checkTok(TokenType type)
+bool Parser::checkTok(TokenType type) const
 {
     return (currentTok.type == type);
 }
@@ -86,7 +82,7 @@ bool Parser::consumeTok(TokenType type)
 template<typename... Type>
 bool Parser::consumeToks(Type... toks)
 {
-    for (TokenType type : {toks ...})
+    for (TokenType type : {toks...})
     {
         if (checkTok(type))
             return consumeTok(type);
@@ -102,7 +98,7 @@ bool Parser::matchError(TokenType type, std::string_view message)
         hitError = true;
         if (!syntaxError && (errorCount < COMPILE_ERROR_MAX))
         {
-            CompileError(currentTok, std::string(message)).report();
+            CompileError{currentTok, std::string{message}}.report();
             semanticError = true;
         }
         else if (errorCount == COMPILE_ERROR_MAX)
@@ -116,9 +112,9 @@ bool Parser::matchError(TokenType type, std::string_view message)
 
 bool Parser::consumeType()
 {
-    for (int i = TOK_INT; i <= TOK_ANY; i++)
+    for (int i{TOK_INT}; i <= TOK_ANY; i++)
     {
-        TokenType type = static_cast<TokenType>(i);
+        TokenType type{static_cast<TokenType>(i)};
         if (checkTok(type))
             return consumeTok(type);
     }
@@ -161,7 +157,7 @@ void Parser::matchType(std::string_view message /* = "" */)
         hitError = true;
         if (!syntaxError && (errorCount < COMPILE_ERROR_MAX))
         {
-            CompileError(currentTok, std::string(message)).report();
+            CompileError{currentTok, std::string{message}}.report();
             syntaxError = true;
         }
         else if (errorCount == COMPILE_ERROR_MAX)
@@ -184,16 +180,16 @@ StmtUP Parser::declaration()
 
 StmtUP Parser::varDecl()
 {
-    TokenType declType = previousTok.type;
+    TokenType declType{previousTok.type};
     consumeTok(TOK_DEF); // In case it's there.
 
     MATCH_TOK(TOK_IDENTIFIER, "Expect variable name.");
-    Token name = previousTok;
+    Token name{previousTok};
 
     if (consumeTok(TOK_COLON))
         matchType("Expect variable type.");
 
-    ExprUP init = nullptr;
+    ExprUP init{nullptr};
     if (consumeTok(TOK_EQUAL))
         init = expression();
     else if (declType == TOK_FIX)
@@ -242,9 +238,9 @@ StmtUP Parser::funcBodyHelper(bool lambda, vT& params, bool skipParams)
     MATCH_TOK(TOK_LEFT_BRACE, lambda ?
         "Expect '{' before lambda body." : "Expect '{' before function body.");
 
-    bool prevInFunc = inFunc;
+    bool prevInFunc{inFunc};
     inFunc = true;
-    StmtUP body = blockStmt();
+    StmtUP body{blockStmt()};
     inFunc = prevInFunc;
 
     return body;
@@ -253,10 +249,10 @@ StmtUP Parser::funcBodyHelper(bool lambda, vT& params, bool skipParams)
 StmtUP Parser::funDecl()
 {
     MATCH_TOK(TOK_IDENTIFIER, "Expect function name.");
-    Token name = previousTok;
+    Token name{previousTok};
 
-    vT params;
-    StmtUP body = funcBodyHelper(false, params);
+    vT params{};
+    StmtUP body{funcBodyHelper(false, params)};
 
     return std::make_unique<FuncDecl>(name, params, body);
 }
@@ -314,11 +310,11 @@ StmtUP Parser::statement()
 StmtUP Parser::ifStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'if'.");
-    ExprUP condition = expression();
+    ExprUP condition{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
-    StmtUP trueBranch = statement();
-    StmtUP falseBranch = nullptr;
+    StmtUP trueBranch{statement()};
+    StmtUP falseBranch{nullptr};
     if (consumeTok(TOK_ELIF))
         falseBranch = ifStmt();
     else if (consumeTok(TOK_ELSE))
@@ -329,16 +325,16 @@ StmtUP Parser::ifStmt()
 StmtUP Parser::whileStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
-    ExprUP condition = expression();
+    ExprUP condition{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
-    Token label; // Default: TOK_EOF.
+    Token label{}; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
         MATCH_TOK(TOK_IDENTIFIER, "Expect loop label after ':'.");
         label = previousTok;
     }
-    StmtUP body = statement();
-    StmtUP elseClause = nullptr;
+    StmtUP body{statement()};
+    StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
@@ -349,24 +345,24 @@ StmtUP Parser::forStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
     MATCH_TOK(TOK_IDENTIFIER, "Expect loop variable identifier.");
-    Token var = previousTok;
+    Token var{previousTok};
     MATCH_TOK(TOK_IN, "Expect 'in' keyword after loop identifier.");
-    ExprUP iter = expression();
+    ExprUP iter{expression()};
 
-    ExprUP where = nullptr;
+    ExprUP where{nullptr};
     if (consumeTok(TOK_WHERE))
         where = expression();
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
-    Token label; // Default: TOK_EOF.
+    Token label{}; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
         MATCH_TOK(TOK_IDENTIFIER, "Expect loop label after ':'.");
         label = previousTok;
     }
 
-    StmtUP body = statement();
-    StmtUP elseClause = nullptr;
+    StmtUP body{statement()};
+    StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
@@ -376,14 +372,14 @@ StmtUP Parser::forStmt()
 StmtUP Parser::matchStmt()
 {   
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before match value.");
-    ExprUP match = expression();
+    ExprUP match{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after match value.");
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before match cases.");
 
-    std::vector<MatchStmt::MatchCase> cases;
+    std::vector<MatchStmt::MatchCase> cases{};
     cases.reserve(MATCH_CASES_MAX);
 
-    bool prevInMatch = inMatch;
+    bool prevInMatch{inMatch};
     inMatch = true;
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
@@ -394,8 +390,8 @@ StmtUP Parser::matchStmt()
         }
 
         MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
-        ExprUP value;
-        bool defaultCase = false;
+        ExprUP value{};
+        bool defaultCase{false};
 
         if (consumeTok(TOK_QMARK))
         {
@@ -404,7 +400,7 @@ StmtUP Parser::matchStmt()
         }
         else
         {
-            Token errorToken = currentTok;
+            Token errorToken{currentTok};
             value = primary();
             // This is a bit too strict.
             // Prohibits variables and even lists.
@@ -415,7 +411,7 @@ StmtUP Parser::matchStmt()
         }
 
         MATCH_TOK(TOK_COLON, "Expect ':' before case body.");
-        StmtUP body;
+        StmtUP body{};
         if (checkTok(TOK_IS) || checkTok(TOK_RIGHT_BRACE))
             body = nullptr;
         else
@@ -445,10 +441,10 @@ StmtUP Parser::repeatStmt()
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
     if (previousTok.type != TOK_LEFT_BRACE) return nullptr;
 
-    StmtUP body = blockStmt(); // Will consume the '}'.
+    StmtUP body{blockStmt()}; // Will consume the '}'.
     MATCH_TOK(TOK_UNTIL, "Expect 'until' condition after 'repeat'.");
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before 'until' condition.");
-    ExprUP condition = expression();
+    ExprUP condition{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
 
@@ -460,8 +456,8 @@ StmtUP Parser::returnStmt()
     if (!inFunc)
         REPORT_SEMANTIC(previousTok, "Cannot use 'return' outside a function.");
 
-    Token keyword = previousTok;
-    ExprUP expr = nullptr;
+    Token keyword{previousTok};
+    ExprUP expr{nullptr};
     if (!checkTok(TOK_SEMICOLON))
         expr = tuple();
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after return statement.");
@@ -472,7 +468,7 @@ StmtUP Parser::breakStmt()
 {
     // Add error handling.
 
-    Token name;
+    Token name{};
     if (consumeTok(TOK_IDENTIFIER))
         name = previousTok;
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'break'.");
@@ -483,7 +479,7 @@ StmtUP Parser::continueStmt()
 {
     // Add error handling.
 
-    Token name;
+    Token name{};
     if (consumeTok(TOK_IDENTIFIER))
         name = previousTok;
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after 'continue'.");
@@ -492,7 +488,7 @@ StmtUP Parser::continueStmt()
 
 StmtUP Parser::blockStmt()
 {
-    StmtVec block;
+    StmtVec block{};
     block.reserve(10);
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         block.push_back(declaration());
@@ -502,15 +498,15 @@ StmtUP Parser::blockStmt()
 
 StmtUP Parser::exprStmt()
 {
-    StmtUP ptr = std::make_unique<ExprStmt>(expression());
+    StmtUP ptr{std::make_unique<ExprStmt>(expression())};
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after expression.");
     return ptr;
 }
 
 ExprUP Parser::tuple()
 {
-    ExprVec entries;
-    ExprUP entry = expression();
+    ExprVec entries{};
+    ExprUP entry{expression()};
 
     if (consumeTok(TOK_COMMA))
     {
@@ -532,11 +528,11 @@ ExprUP Parser::expression()
 
 ExprUP Parser::assignment()
 {
-    ExprUP target = logicOr();
+    ExprUP target{logicOr()};
     if (IS_ASSIGN_TOK(currentTok.type))
     {
         nextTok();
-        Token oper = previousTok;
+        Token oper{previousTok};
         if ((target == nullptr) || (target->type != E_VAR_EXPR)) // Temporary.
             REPORT_SEMANTIC(previousTok, "Invalid assignment target.");
         target = std::make_unique<AssignExpr>(target, oper, expression());
@@ -547,10 +543,10 @@ ExprUP Parser::assignment()
 
 ExprUP Parser::logicOr()
 {
-    ExprUP expr = logicAnd();
+    ExprUP expr{logicAnd()};
     while (consumeToks(TOK_BAR_BAR, TOK_OR))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<LogicExpr>(expr, oper, logicAnd());
     }
 
@@ -559,10 +555,10 @@ ExprUP Parser::logicOr()
 
 ExprUP Parser::logicAnd()
 {
-    ExprUP expr = equality();
+    ExprUP expr{equality()};
     while (consumeToks(TOK_AMP_AMP, TOK_AND))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<LogicExpr>(expr, oper, equality());
     }
 
@@ -571,10 +567,10 @@ ExprUP Parser::logicAnd()
 
 ExprUP Parser::equality()
 {
-    ExprUP expr = comparison();
+    ExprUP expr{comparison()};
     while (consumeToks(TOK_EQ_EQ, TOK_BANG_EQ))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<CompareExpr>(expr, oper, comparison());
     }
 
@@ -583,11 +579,11 @@ ExprUP Parser::equality()
 
 ExprUP Parser::comparison()
 {
-    ExprUP expr = bitOr();
+    ExprUP expr{bitOr()};
     while (consumeToks(TOK_GT, TOK_GT_EQ, TOK_LT, TOK_LT_EQ, TOK_IN)
             || (consumeTok(TOK_NOT) && checkTok(TOK_IN)))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         if (oper == TOK_NOT) nextTok();
         expr = std::make_unique<CompareExpr>(expr, oper, bitOr());
     }
@@ -597,10 +593,10 @@ ExprUP Parser::comparison()
 
 ExprUP Parser::bitOr()
 {
-    ExprUP expr = bitXor();
+    ExprUP expr{bitXor()};
     while (consumeTok(TOK_BAR))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<BitExpr>(expr, oper, bitXor());
     }
 
@@ -609,10 +605,10 @@ ExprUP Parser::bitOr()
 
 ExprUP Parser::bitXor()
 {
-    ExprUP expr = bitAnd();
+    ExprUP expr{bitAnd()};
     while (consumeTok(TOK_UARROW))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<BitExpr>(expr, oper, bitAnd());
     }
 
@@ -621,10 +617,10 @@ ExprUP Parser::bitXor()
 
 ExprUP Parser::bitAnd()
 {
-    ExprUP expr = shift();
+    ExprUP expr{shift()};
     while (consumeTok(TOK_AMP))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<BitExpr>(expr, oper, shift());
     }
 
@@ -633,10 +629,10 @@ ExprUP Parser::bitAnd()
 
 ExprUP Parser::shift()
 {
-    ExprUP expr = sum();
+    ExprUP expr{sum()};
     while (consumeToks(TOK_RIGHT_SHIFT, TOK_LEFT_SHIFT))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<ShiftExpr>(expr, oper, sum());
     }
 
@@ -645,10 +641,10 @@ ExprUP Parser::shift()
 
 ExprUP Parser::sum()
 {
-    ExprUP expr = product();
+    ExprUP expr{product()};
     while (consumeToks(TOK_PLUS, TOK_MINUS))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<BinaryExpr>(expr, oper, product());
     }
 
@@ -657,10 +653,10 @@ ExprUP Parser::sum()
 
 ExprUP Parser::product()
 {
-    ExprUP expr = unary();
+    ExprUP expr{unary()};
     while (consumeToks(TOK_STAR, TOK_SLASH, TOK_PERCENT))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<BinaryExpr>(expr, oper, unary());
     }
 
@@ -672,7 +668,7 @@ ExprUP Parser::unary()
     if (consumeToks(TOK_INCR, TOK_DECR, TOK_MINUS,
         TOK_BANG, TOK_NOT, TOK_TILDE))
     {
-        Token oper = previousTok;
+        Token oper{previousTok};
         return std::make_unique<UnaryExpr>(oper, unary(), false);
     }
 
@@ -681,10 +677,10 @@ ExprUP Parser::unary()
 
 ExprUP Parser::exponent()
 {
-    ExprUP expr = call();
+    ExprUP expr{call()};
     while (consumeTok(TOK_STAR_STAR))
     {
-        TokenType oper = previousTok.type;
+        TokenType oper{previousTok.type};
         expr = std::make_unique<BinaryExpr>(expr, oper, exponent());
     }
 
@@ -697,7 +693,7 @@ ExprUP Parser::call()
     // Just has to evaluate to a callable object.
     // Exception: builtin with ! token.
 
-    ExprUP expr = post();
+    ExprUP expr{post()};
     if ((currentTok.type == TOK_BANG) && (expr != nullptr)
         && (expr->type != E_VAR_EXPR))
     {
@@ -706,14 +702,14 @@ ExprUP Parser::call()
 
     if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
     {
-        bool builtin = false;
+        bool builtin{false};
         if (previousTok.type == TOK_BANG)
         {
             MATCH_TOK(TOK_LEFT_PAREN, "Invalid placement for token '!'.");
             builtin = true;
         }
 
-        ExprVec args;
+        ExprVec args{};
         while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
         {
             do {
@@ -729,14 +725,14 @@ ExprUP Parser::call()
 
 ExprUP Parser::post()
 {
-    ExprUP expr = primary();
+    ExprUP expr{primary()};
 
     if (consumeToks(TOK_INCR, TOK_DECR))
     {
         if ((expr == nullptr) || (expr->type != E_VAR_EXPR)) // Temporary.
             REPORT_SEMANTIC(previousTok, "Invalid increment/decrement target.");
         do {
-            Token oper = previousTok;
+            Token oper{previousTok};
             expr = std::make_unique<UnaryExpr>(oper, std::move(expr), true);
         } while (consumeToks(TOK_INCR, TOK_DECR));
     }
@@ -747,15 +743,15 @@ ExprUP Parser::post()
 ExprUP Parser::ifExpr()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before condition.");
-    ExprUP condition = expression();
+    ExprUP condition{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     // Possibly return if no brace found?
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before conditional expression.");
-    ExprUP trueBranch = expression();
+    ExprUP trueBranch{expression()};
     MATCH_TOK(TOK_RIGHT_BRACE, "Expect '}' after conditional expression.");
 
-    ExprUP falseBranch = nullptr; // To avoid warnings.
+    ExprUP falseBranch{nullptr}; // To avoid warnings.
     if (consumeTok(TOK_ELIF))
         falseBranch = ifExpr();
     else if (consumeTok(TOK_ELSE))
@@ -775,8 +771,8 @@ ExprUP Parser::ifExpr()
 
 ExprUP Parser::lambda(bool skipParams)
 {
-    vT params;
-    StmtUP body = funcBodyHelper(true, params, skipParams);
+    vT params{};
+    StmtUP body{funcBodyHelper(true, params, skipParams)};
     return std::make_unique<LambdaExpr>(params, body);
 }
 
@@ -784,17 +780,17 @@ ExprUP Parser::comprehension()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
     MATCH_TOK(TOK_IDENTIFIER, "Expect loop variable identifier.");
-    Token var = previousTok;
+    Token var{previousTok};
     MATCH_TOK(TOK_IN, "Expect 'in' keyword after loop identifier.");
-    ExprUP iter = expression();
+    ExprUP iter{expression()};
 
-    ExprUP where = nullptr;
+    ExprUP where{nullptr};
     if (consumeTok(TOK_WHERE))
         where = expression();
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after condition.");
 
     MATCH_TOK(TOK_COLON, "Expect ':' before comprehension expression.");
-    ExprUP expr = expression();
+    ExprUP expr{expression()};
     MATCH_TOK(TOK_RIGHT_BRACKET, "Expect ']' to conclude list comprehension.");
 
     return std::make_unique<ComprehensionExpr>(var, iter, where, expr);
@@ -802,7 +798,7 @@ ExprUP Parser::comprehension()
 
 ExprUP Parser::list()
 {
-    ExprVec entries;
+    ExprVec entries{};
     entries.reserve(LIST_ENTRY_GROUP); // Minimal size to start off with.
     if (!checkTok(TOK_RIGHT_BRACKET))
     {
@@ -821,7 +817,7 @@ ExprUP Parser::list()
 ExprUP Parser::primary()
 {
     nextTok();
-    TokenType type = previousTok.type;
+    TokenType type{previousTok.type};
 
     if (IS_LITERAL_TOK(type))
         return std::make_unique<LiteralExpr>(previousTok);
@@ -831,7 +827,7 @@ ExprUP Parser::primary()
     
     else if (type == TOK_LEFT_PAREN)
     {
-        ExprUP expr = expression();
+        ExprUP expr{expression()};
         MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after grouped expression.");
         return expr;
     }

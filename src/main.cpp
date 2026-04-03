@@ -46,13 +46,13 @@
 	#define CLEAR_REPL_HISTORY	0
 #endif
 
-std::string file = "";
-bool external = false;
-bool inRepl = false;
+std::string file{};
+bool external{false};
+bool inRepl{false};
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 	#include "../include/linear_alloc.h"
-	LinearAlloc allocator(CH_ALLOC_SIZE);
+	LinearAlloc allocator{CH_ALLOC_SIZE};
 #endif
 
 enum ArgvOption : ui8
@@ -82,7 +82,7 @@ enum ArgvOption : ui8
 	EXECUTE
 };
 
-static std::unordered_map<std::string_view, ArgvOption> options = {
+static const std::unordered_map<std::string_view, ArgvOption> options{
 	{"-token", EMIT_TOKENS},		{"-t", EMIT_TOKENS},
 	{"-bytecode", EMIT_BYTECODE},	{"-b", EMIT_BYTECODE},
 	{"-cache", CACHE_BYTECODE},		{"-c", CACHE_BYTECODE},
@@ -90,18 +90,18 @@ static std::unordered_map<std::string_view, ArgvOption> options = {
 	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM}
 };
 
-static inline vT& runLexer(std::string_view source)
+static inline vT& runLexer(const std::string_view source)
 {
-	static Lexer lexer;
+	static Lexer lexer{};
 	return lexer.tokenize(source);
 }
 
 static Function* runCompiler(const vT& tokens)
 {
 	#ifdef COMP_AST
-		static Parser parser;
-		static ASTCompiler compiler;
-		StmtVec& program = parser.parseToAST(tokens);
+		static Parser parser{};
+		static ASTCompiler compiler{};
+		const StmtVec& program = parser.parseToAST(tokens);
 
 		#ifdef TYPE
 			// Perform type-checking here.
@@ -134,7 +134,7 @@ static bool cacheOptimize(ArgvOption option)
 	using std::filesystem::exists;
 	using std::filesystem::last_write_time;
 
-	std::filesystem::path cache(file);
+	std::filesystem::path cache{file};
 	cache.replace_extension(".bch");
 
 	if (exists(file))
@@ -145,8 +145,8 @@ static bool cacheOptimize(ArgvOption option)
 			if (option == CACHE_BYTECODE)
 				return true; // Nothing to do.
 			
-			std::ifstream code(cache);
-			ByteCode chunk = readCache(code);
+			std::ifstream code{cache};
+			ByteCode chunk{readCache(code)};
 
 			if (option == EMIT_BYTECODE)
 			{
@@ -156,9 +156,8 @@ static bool cacheOptimize(ArgvOption option)
 
 			if (option == EXECUTE)
 			{
-				VM vm;
-				Function* script = CH_ALLOC(Function, chunk, 0);
-				vm.executeCode(script);
+				Function* script{CH_ALLOC(Function, chunk, 0)};
+				VM{}.executeCode(script);
 
 				#if !CH_USE_ALLOC
 					delete script;
@@ -185,7 +184,7 @@ static bool prelimChecks(const char* fileName, ArgvOption option)
 		exit(65);
 	}
 
-	file = std::string(fileName);
+	file = std::string{fileName};
 	if (option == LOAD_PROGRAM)
 	{
 		optionLoad(fileName);
@@ -213,18 +212,18 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 
 	using namespace std::chrono;
 	#if TIME_TOTAL && !TIME_RUN
-		auto begin = steady_clock::now();
+		auto begin{steady_clock::now()};
 	#endif
 
-	std::string code = readFile(fileName);
-	vT& tokens = runLexer(code);
+	std::string code{readFile(fileName)};
+	vT& tokens{runLexer(code)};
 	if (option == EMIT_TOKENS)
 	{
 		optionShowTokens(tokens);
 		return;
 	}
 
-	Function* script = runCompiler(tokens);
+	Function* script{runCompiler(tokens)};
 
 	if (option == EMIT_BYTECODE)
 	{
@@ -238,15 +237,14 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	}
 
 	#if TIME_RUN && !TIME_TOTAL
-		auto begin = steady_clock::now();
+		auto begin{steady_clock::now()};
 	#endif
 
-	VM vm; // Must persist for the entire execution.
-	vm.executeCode(script);
+	VM{}.executeCode(script);
 
 	#if TIME_RUN || TIME_TOTAL
-		auto end = steady_clock::now();
-		auto time = duration_cast<microseconds>(end - begin);
+		auto end{steady_clock::now()};
+		auto time{duration_cast<microseconds>(end - begin)};
 		CH_PRINT("Time: {:.6f}\n",
 			static_cast<long double>(time.count()) / 1000000);
 	#endif
@@ -274,7 +272,7 @@ static void buildLine(std::string& line)
 	while (ends_with(line, "\\"))
 	{
 		line.back() = '\n';
-		std::string temp;
+		std::string temp{};
 		CH_PRINT("... ");
 		std::getline(std::cin, temp);
 		line += temp;
@@ -294,20 +292,20 @@ static void repl(ArgvOption option = EXECUTE)
 	}
 	
 	file = "";
-	std::string line;
+	std::string line{};
 
 	#if EXTERNAL_REPL
-		replxx::Replxx rx;
+		replxx::Replxx rx{};
 	#endif
 
 	#if LOAD_REPL_HISTORY
 		rx.history_load("history.txt");
 	#elif CLEAR_REPL_HISTORY
-		std::ofstream history("history.txt", std::ios::trunc);
+		std::ofstream history{"history.txt", std::ios::trunc};
 		if (history.is_open()) history.close();
 	#endif
 
-	VM vm; // Must persist for the entire execution.
+	VM vm{}; // Must persist for the entire execution.
 
 	printReplIntro();
 	while (true)
@@ -327,12 +325,12 @@ static void repl(ArgvOption option = EXECUTE)
 				rx.history_add(line);
 			#endif
 
-			vT& tokens = runLexer(line);
+			vT& tokens{runLexer(line)};
 			if (option == EMIT_TOKENS)
 				optionShowTokens(tokens);
 			else
 			{
-				Function* script = runCompiler(tokens);
+				Function* script{runCompiler(tokens)};
 				if (option == EMIT_BYTECODE)
 					optionShowBytes(script->code);
 				else
@@ -357,7 +355,7 @@ int main(int argc, const char* argv[])
 {
 	if (argc == 3)
 	{
-		auto it = options.find(argv[1]);
+		auto it{options.find(argv[1])};
 		if (it != options.end())
 			runFile(argv[2], it->second);
 		else
@@ -368,7 +366,7 @@ int main(int argc, const char* argv[])
 	}
 	else if (argc == 2)
 	{
-		auto it = options.find(argv[1]);
+		auto it{options.find(argv[1])};
 		if (it != options.end())
 			repl(it->second);
 		else

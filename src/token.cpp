@@ -1,12 +1,6 @@
 #include "../include/token.h"
 #include "../include/common.h"
 
-Token::Token() :
-    text{}, line{0}, position{0}, type{TOK_EOF}
-{
-    content.s = nullptr;
-}
-
 Token::Token(
     TokenType type,
     std::string_view text,
@@ -14,12 +8,12 @@ Token::Token(
     ui16 line,
     ui8 position
 ) :
-    text(text), content(content), line(line),
-    position(position), type(type) {}
+    text{text}, content{content}, line{line},
+    position{position}, type{type} {}
 
 Token::Token(const Token& other) noexcept :
-    text(other.text), line(other.line), position(other.position),
-    type(other.type)
+    text{other.text}, line{other.line}, position{other.position},
+    type{other.type}
 {
     this->content.i = other.content.i;
 }
@@ -39,8 +33,8 @@ Token& Token::operator=(const Token& other) noexcept
 }
 
 Token::Token(Token&& other) noexcept :
-    text(other.text), line(other.line), position(other.position),
-    type(other.type)
+    text{other.text}, line{other.line}, position{other.position},
+    type{other.type}
 {
     this->content.i = other.content.i;
     other.type = TOK_EOF; // Invalidate the other token.

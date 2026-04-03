@@ -9,8 +9,8 @@
 
 LexError::LexError(char c, ui16 line, ui8 position,
     std::string_view message) :
-	errorChar(c), line(line), position(position),
-    message(message) {}
+	errorChar{c}, line{line}, position{position},
+    message{message} {}
 
 void LexError::report() const
 {
@@ -30,7 +30,7 @@ void LexError::report() const
 
 CompileError::CompileError(const Token& token,
     const std::string& message) :
-	token(token), message(message) {}
+	token{token}, message{message} {}
 
 void CompileError::report() const
 {
@@ -48,7 +48,7 @@ void CompileError::report() const
 
 RuntimeError::RuntimeError(const Token& token,
     const std::string& message) :
-    token(token), message(message) {}
+    token{token}, message{message} {}
 
 void RuntimeError::report() const
 {

@@ -6,17 +6,17 @@
 class Parser
 {
     private:
-        StmtVec program;
-        Token previousTok;
-        Token currentTok;
-        vT::const_iterator it;
-        bool inMatch, inFunc, fall; // For structures.
-        bool syntaxError, semanticError; // We are currently in an error state.
+        StmtVec program{};
+        Token previousTok{};
+        Token currentTok{};
+        vT::const_iterator it{};
+        bool inMatch{false}, inFunc{false}, fall{false};    // For structures.
+        bool syntaxError{false}, semanticError{false};      // We are currently in an error state.
 
         // Utilities.
 
         void nextTok();
-        bool checkTok(TokenType type);
+        bool checkTok(TokenType type) const;
         bool consumeTok(TokenType type);
         template<typename... Type>
         bool consumeToks(Type... toks);
@@ -80,11 +80,10 @@ class Parser
         ExprUP comprehension();
         ExprUP list();
         ExprUP primary();
-    
+
     public:
         bool hitError{false};
         int errorCount{0}; // So it can be modified directly.
 
-        Parser();
         StmtVec& parseToAST(const vT& tokens);
 };

@@ -30,10 +30,10 @@ bool starts_with(std::string_view str, std::string_view prefix)
 static std::vector<std::string_view>
 split(const std::string_view& str, std::string_view delim)
 {
-    std::vector<std::string_view> result;
-    size_t start = 0;
+    std::vector<std::string_view> result{};
+    size_t start{0};
 
-    for (size_t found = str.find(delim);
+    for (size_t found{str.find(delim)};
 		found != std::string_view::npos;
 		found = str.find(delim, start))
     {
@@ -47,7 +47,7 @@ split(const std::string_view& str, std::string_view delim)
 
 std::array<i64, 3> constructRange(std::string_view tokText)
 {
-	auto parts = split(tokText, "..");
+	auto parts{split(tokText, "..")};
 	auto transform = [](const std::string_view& text) -> i64 {
 		i64 ret = 0;
 		for (char c : text)
@@ -61,7 +61,7 @@ std::array<i64, 3> constructRange(std::string_view tokText)
 		return ret;
 	};
 
-	std::array<i64, 3> nums;
+	std::array<i64, 3> nums{};
 	nums[0] = transform(parts[0]);
 	nums[1] = transform(parts[1]);
 	nums[2] = ((parts.size() == 3) ? transform(parts[2]) : 1);
@@ -70,7 +70,7 @@ std::array<i64, 3> constructRange(std::string_view tokText)
 
 std::string normalizeNewlines(const std::string_view& sv)
 {
-	std::string str(sv);
+	std::string str{sv};
 	str.erase(std::remove_if(str.begin(), str.end(),
 	[](char c){
         return (c == '\r');

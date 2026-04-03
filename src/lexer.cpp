@@ -19,12 +19,12 @@
 			errorCount++;                                       \
 			return;                                             \
 		}                                                       \
-		LexError(__VA_ARGS__).report();                         \
+		LexError{__VA_ARGS__}.report();                         \
 		errorCount++;                                           \
 		return;                                                 \
 	} while (false)
 
-static std::unordered_map<std::string_view, TokenType> keywords = {
+static const std::unordered_map<std::string_view, TokenType> keywords{
 	{"int", TOK_INT},		{"dec", TOK_DEC},		{"boolean", TOK_BOOL},
 	{"string", TOK_STRING},	{"func", TOK_FUNC},		{"array", TOK_ARRAY},
 	{"table", TOK_TABLE},	{"class", TOK_CLASS},	{"any",	TOK_ANY},
@@ -39,7 +39,7 @@ static std::unordered_map<std::string_view, TokenType> keywords = {
 	{"def", TOK_DEF},		{"fields", TOK_FIELDS},	{"in", TOK_IN}
 };
 
-inline void Lexer::setUp(const std::string_view& code)
+void Lexer::setUp(const std::string_view& code)
 {
 	start = code.data();
 	current = start;
@@ -54,12 +54,12 @@ inline void Lexer::setUp(const std::string_view& code)
 	stream.reserve(code.size() / AVG_TOK_SIZE);
 }
 
-inline bool Lexer::hitEnd()
+bool Lexer::hitEnd() const
 {
 	return (current >= end);
 }
 
-inline char Lexer::advance()
+char Lexer::advance()
 {
 	if (!hitEnd())
 	{
@@ -77,14 +77,14 @@ inline char Lexer::advance()
 	return EOF;
 }
 
-inline bool Lexer::checkChar(char c)
+bool Lexer::checkChar(char c) const
 {
 	if (!hitEnd())
 		return (*current == c);
 	return false;
 }
 
-inline bool Lexer::consumeChar(char c)
+bool Lexer::consumeChar(char c)
 {
 	if (checkChar(c))
 	{
@@ -95,29 +95,29 @@ inline bool Lexer::consumeChar(char c)
 	return false;
 }
 
-inline void Lexer::consumeChars(int count /* = 1 */)
+void Lexer::consumeChars(int count /* = 1 */)
 {
-	for (int i = 0; i < count; i++)
+	for (int i{0}; i < count; i++)
 		advance();
 }
 
-inline char Lexer::peekChar(int distance /* = 0 */)
+char Lexer::peekChar(int distance /* = 0 */) const
 {
 	if (current + distance < end)
 		return current[distance];
 	return EOF;
 }
 
-inline char Lexer::previousChar(int distance /* = 0 */)
+char Lexer::previousChar(int distance /* = 0 */) const
 {
 	if (current - distance - 1 > start)
 		return current[- distance - 1];
 	return EOF;
 }
 
-i64 Lexer::intValue(std::string_view text)
+i64 Lexer::intValue(std::string_view text) const
 {
-	i64 ret = 0;
+	i64 ret{0};
 	for (char c : text)
 	{
 		if (isdigit(c))
@@ -129,14 +129,14 @@ i64 Lexer::intValue(std::string_view text)
 	return ret;
 }
 
-double Lexer::decValue(std::string_view text)
+double Lexer::decValue(std::string_view text) const
 {
-	double ret = 0;
-	const auto* it = text.begin();
-	const auto* end = text.end();
+	double ret{0.0};
+	const auto* it{text.begin()};
+	const auto* end{text.end()};
 	for (; it < end; it++)
 	{
-		char c = *it;
+		char c{*it};
 		if (isdigit(c))
 			ret = (ret * 10) + (c - '0');
 		else if (c != '\'')
@@ -145,10 +145,10 @@ double Lexer::decValue(std::string_view text)
 
 	it++; // Skip the '.'.
 
-	double div = (double) 1 / 10;
+	double div{(double) 1 / 10};
 	for (; it < end; it++)
 	{
-		char c = *it;
+		char c{*it};
 		ret += (c - '0') * div;
 		div /= 10;
 	}
@@ -156,16 +156,16 @@ double Lexer::decValue(std::string_view text)
 	return ret;
 }
 
-inline bool Lexer::boolValue(TokenType type)
+bool Lexer::boolValue(TokenType type) const
 {
 	return (type == TOK_TRUE);
 }
 
 void Lexer::makeToken(TokenType type)
 {
-	std::string_view text(start, current - start);
+	std::string_view text{start, current - start};
 
-	Value value;
+	Value value{};
 	if (IS_LITERAL_TOK(type))
 	{
 		switch (type)
@@ -213,7 +213,7 @@ void Lexer::rangeToken()
 
 void Lexer::numToken()
 {
-	TokenType type;
+	TokenType type{};
 	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
 		advance();
 
@@ -256,8 +256,8 @@ void Lexer::stringToken()
 void Lexer::multiStringToken()
 {
 	// Before processing the quote.
-	ui16 tempLine = line;
-	ui8 tempColumn = column - 1; // Step back across the opening `.
+	ui16 tempLine{line};
+	ui8 tempColumn{column - 1}; // Step back across the opening `.
 	
 	while ((peekChar() != '`') && !hitEnd())
 		advance();
@@ -279,20 +279,21 @@ TokenType Lexer::identifierType()
 	if (current - start < 2)
 		return TOK_IDENTIFIER;
 	
-	std::string_view text(start, current - start);
-	auto it = keywords.find(text);
+	std::string_view text{start, current - start};
+	auto it{keywords.find(text)};
 	if (it != keywords.end())
 	{
 		if (it->second == TOK_CLASS)
 			state.inClass = true;
 		return it->second;
 	}
+
 	return TOK_IDENTIFIER;
 }
 
 void Lexer::identifierToken()
 {
-	char c = peekChar();
+	char c{peekChar()};
 	while ((isalnum(c) || c == '_') && !hitEnd())
 	{
 		advance();
@@ -301,9 +302,9 @@ void Lexer::identifierToken()
 	makeToken(identifierType());
 }
 
-bool Lexer::matchSequence(char c, int length)
+bool Lexer::matchSequence(char c, int length) const
 {
-	for (int i = 0; i < length; i++)
+	for (int i{0}; i < length; i++)
 	{
 		if (peekChar(i) != c)
 			return false;
@@ -332,8 +333,8 @@ bool Lexer::checkHyperComment()
 			hitError = true;
 			if (errorCount < COMPILE_ERROR_MAX)
 			{
-				LexError(peekChar(), line, column + 1,
-					"Unterminated nested comment.").report();
+				LexError{peekChar(), line, column + 1,
+					"Unterminated nested comment."}.report();
 			}
 			else if (errorCount == COMPILE_ERROR_MAX)
 				CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
@@ -345,7 +346,7 @@ bool Lexer::checkHyperComment()
 		return false;
 }
 
-inline void Lexer::conditionalToken(char c, TokenType two, TokenType one)
+void Lexer::conditionalToken(char c, TokenType two, TokenType one)
 {
 	if (consumeChar(c))
 		makeToken(two);
@@ -356,7 +357,7 @@ inline void Lexer::conditionalToken(char c, TokenType two, TokenType one)
 void Lexer::singleToken()
 {
 	start = current;
-	char c = advance();
+	char c{advance()};
 	
 	switch (c)
 	{
@@ -517,7 +518,7 @@ void Lexer::singleToken()
 	}
 }
 
-vT& Lexer::tokenize(std::string_view code)
+vT& Lexer::tokenize(const std::string_view code)
 {
 	setUp(code);
 	while (!hitEnd())

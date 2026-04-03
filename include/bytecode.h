@@ -12,8 +12,8 @@ class VM;
 class ByteCode
 {
     private:
-        vByte block;
-        vObj pool;
+        vByte block{};
+        vObj pool{};
 
         void addByte(ui8 byte);
         template<typename... Bytes>
@@ -28,7 +28,7 @@ class ByteCode
         void clearPool();
 
     public:
-        ByteCode();
+        ByteCode() = default;
         ByteCode(const vByte& block);
         ByteCode(const vByte& block, const vObj& pool);
 

@@ -74,7 +74,7 @@ class Object
         void clean();
 
     public:
-        ObjType type;
+        ObjType type{};
         union Value {
             i64         intVal;
             double      decVal;
@@ -212,8 +212,8 @@ TYPE_LIST
 
 struct HeapObj
 {
-    ObjType type;
-    int refCount;
+    ObjType type{};
+    int refCount{0};
 
     HeapObj();
     HeapObj(ObjType type);
@@ -222,9 +222,9 @@ struct HeapObj
 
 struct Cell
 {
-    Object* location;
-    Object obj;
-    int refCount;
+    Object* location{};
+    Object obj{};
+    int refCount{0};
 
     Cell(Object* location);
     void close();
@@ -232,10 +232,10 @@ struct Cell
 
 struct Function : public HeapObj
 {
-    char* name;
-    const ByteCode code;
-    const ui8 argCount;
-    const bool lambda;
+    const char* name{};
+    const ByteCode code{};
+    const ui8 argCount{};
+    const bool lambda{};
 
     Function(const ByteCode& code, const ui8 argCount);
     Function(
@@ -252,8 +252,8 @@ struct Function : public HeapObj
 
 struct Closure : public HeapObj
 {
-    Function* function;
-    Array<Cell*> cells;
+    Function* function{};
+    Array<Cell*> cells{};
 
     Closure(Function* function);
     ~Closure();
@@ -265,7 +265,7 @@ struct Closure : public HeapObj
 
 struct String : public HeapObj
 {
-    std::string str;
+    std::string str{};
 
     String(const std::string& str);
     String(const std::string_view& view);
@@ -280,9 +280,9 @@ struct String : public HeapObj
 
 struct Range : public HeapObj
 {
-    const i64 start;
-    const i64 stop;
-    const i64 step;
+    const i64 start{};
+    const i64 stop{};
+    const i64 step{};
 
     Range(const std::array<i64, 3>& limits);
 
@@ -296,7 +296,7 @@ struct Range : public HeapObj
 
 struct List : public HeapObj
 {
-    Array<Object> array;
+    Array<Object> array{};
 
     List(ui32 size);
 
@@ -308,12 +308,12 @@ struct List : public HeapObj
 
 struct Table : public HeapObj
 {
-    linearTable<Object, Object> table;
+    linearTable<Object, Object> table{};
 };
 
 struct Tuple : public HeapObj
 {
-    Array<Object> entries;
+    Array<Object> entries{};
 
     Tuple();
     Tuple(ui32 size);
@@ -326,10 +326,10 @@ struct Tuple : public HeapObj
 
 struct StringIter
 {
-    String* obj;
-    const char* begin;
+    String* obj{};
+    const char* begin{};
 
-    StringIter();
+    StringIter() = default;
     StringIter(String* obj);
     StringIter(const StringIter&) = delete;
     StringIter& operator=(const StringIter&) = delete;
@@ -343,10 +343,10 @@ struct StringIter
 
 struct RangeIter
 {
-    Range* obj;
-    i64 val;
+    Range* obj{};
+    i64 val{};
 
-    RangeIter();
+    RangeIter() = default;
     RangeIter(Range* obj);
     RangeIter(const RangeIter&) = delete;
     RangeIter& operator=(const RangeIter&) = delete;
@@ -360,10 +360,10 @@ struct RangeIter
 
 struct ListIter
 {
-    List* obj;
-    Array<Object>::iterator it;
+    List* obj{};
+    Array<Object>::iterator it{};
 
-    ListIter();
+    ListIter() = default;
     ListIter(List* obj);
     ListIter(const ListIter&) = delete;
     ListIter& operator=(const ListIter&) = delete;
@@ -383,7 +383,7 @@ struct ObjIter
         ListIter
     >;
 
-    Iter iter;
+    Iter iter{};
 
     ObjIter() = default;
     ObjIter(Object& obj);
@@ -411,15 +411,16 @@ struct CustomDealloc
 
 struct TypeMismatch
 {    
-    const std::string message;
-    const ObjType expect;
-    const ObjType actual;
+    const std::string message{};
+    const ObjType expect{};
+    const ObjType actual{};
 
     TypeMismatch(
         const std::string& message,
         const ObjType expect,
         const ObjType actual
     );
+
     void report();
 };
 

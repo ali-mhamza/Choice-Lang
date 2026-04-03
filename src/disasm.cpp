@@ -10,11 +10,10 @@
 #define PRINT_FULL_OFFSET 1
 
 Disassembler::Disassembler(const ByteCode& code) :
-	code(code), ip(code.block.begin()),
-	start(code.block.begin()), topLevel(true),
-	inVM(true) {}
+	code{code}, ip{code.block.begin()},
+	start{code.block.begin()} {}
 
-void Disassembler::printOpcode(std::string_view opName)
+void Disassembler::printOpcode(std::string_view opName) const
 {
 	#if PRINT_FULL_OFFSET
 		CH_PRINT("{:0>4} {:<15} ", ip - start, opName);
@@ -24,7 +23,7 @@ void Disassembler::printOpcode(std::string_view opName)
 	#endif
 }
 
-void Disassembler::disFunction(const Function& func)
+void Disassembler::disFunction(const Function& func) const
 {
 	if (func.lambda)
 		CH_PRINT("\n===== [start] <lambda> =====\n\n");
@@ -34,7 +33,7 @@ void Disassembler::disFunction(const Function& func)
 	CH_PRINT("(args: {}, ", func.argCount);
 	CH_PRINT("constants: {})", func.code.pool.size());
 	CH_PRINT("\n\n");
-	Disassembler miniDis(func.code);
+	Disassembler miniDis{func.code};
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
 
@@ -44,7 +43,7 @@ void Disassembler::disFunction(const Function& func)
 		CH_PRINT("\n====== [end] func {} ======\n\n", func.name);
 }
 
-void Disassembler::printOperValue(const Object& oper)
+void Disassembler::printOperValue(const Object& oper) const
 {
 	CH_PRINT("'{}' {}\n",
 		oper.printVal(), oper.printType());
@@ -54,28 +53,28 @@ void Disassembler::printOperValue(const Object& oper)
 		disFunction(*(AS_FUNC(oper)));
 }
 
-ui8 Disassembler::restoreByte()
+ui8 Disassembler::restoreByte() const
 {
 	return ip[1];
 }
 
-ui16 Disassembler::restoreShort()
+ui16 Disassembler::restoreShort() const
 {
-	ui16 value = static_cast<ui16>(
+	ui16 value{static_cast<ui16>(
 		(ip[1] << 8) | (ip[2])
-	);
+	)};
 
 	return value;
 }
 
-ui32 Disassembler::restoreLong()
+ui32 Disassembler::restoreLong() const
 {
-	ui32 value = static_cast<ui32>(
+	ui32 value{static_cast<ui32>(
 		(ip[1] << 24)
 		| (ip[2] << 16)
 		| (ip[3] << 8)
 		| ip[4]
-	);
+	)};
 
 	return value;
 }
@@ -92,7 +91,7 @@ void Disassembler::doubleOper(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	Opcode op = static_cast<Opcode>(byte);
+	Opcode op{static_cast<Opcode>(byte)};
 	if (op == OP_GET_CELL)
 		CH_PRINT("R[{}] C[{}]\n", ip[1], ip[2]);
 	else if (op == OP_SET_CELL)
@@ -113,7 +112,7 @@ void Disassembler::loadOp()
 	{
 		case OP_BYTE_OPER:
 		{
-			ui8 operand = restoreByte();
+			ui8 operand{restoreByte()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 2;
@@ -121,7 +120,7 @@ void Disassembler::loadOp()
 		}
 		case OP_SHORT_OPER:
 		{
-			ui16 operand = restoreShort();
+			ui16 operand{restoreShort()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 3;
@@ -129,7 +128,7 @@ void Disassembler::loadOp()
 		}
 		case OP_LONG_OPER:
 		{
-			ui32 operand = restoreLong();
+			ui32 operand{restoreLong()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 5;
@@ -146,11 +145,12 @@ void Disassembler::jumpOp(ui8 byte, int sign)
 	printOpcode(opNames[byte]);
 	if ((byte == OP_JUMP_TRUE) || (byte == OP_JUMP_FALSE))
 	{
-		ui8 reg = restoreByte();
+		ui8 reg{restoreByte()};
 		ip++;
 		CH_PRINT("R[{}] ", reg);
 	}
-	ui16 jump = restoreShort();
+
+	ui16 jump{restoreShort()};
 	ip += 3;
 	CH_PRINT("-> {}\n", ip - start + (sign * jump));
 }
@@ -158,16 +158,16 @@ void Disassembler::jumpOp(ui8 byte, int sign)
 void Disassembler::callOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
-	ui8 callee = restoreByte();
+	ui8 callee{restoreByte()};
 	ip++;
-	ui8 start = restoreByte();
+	ui8 start{restoreByte()};
 	ip++;
-	ui8 count = restoreByte();
+	ui8 count{restoreByte()};
 	ip += 2;
 
 	if (byte == OP_CALL_NAT)
 	{
-		std::string_view func = Natives::funcNames[callee];
+		std::string_view func{Natives::funcNames[callee]};
 		CH_PRINT("'{}' ({}) R[{}]\n", func, count, start);
 	}
 	else
@@ -194,7 +194,7 @@ void Disassembler::iterOp(ui8 byte)
 	else if (static_cast<Opcode>(byte) == OP_UPDATE_ITER)
 	{
 		ip += 2;
-		ui16 jump = restoreShort();
+		ui16 jump{restoreShort()};
 		ip += 3;
 		CH_PRINT("R[{}] R[{}] -> {}\n", ip[-4], ip[-3],
 			ip - start - jump);
@@ -205,16 +205,16 @@ void Disassembler::collectionOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	ui8 reg = restoreByte();
+	ui8 reg{restoreByte()};
 	ip++;
 
 	if ((static_cast<Opcode>(byte) == OP_EXT_LIST)
 		|| (static_cast<Opcode>(byte) == OP_EXT_TUPLE))
 	{
-		ui8 startReg = restoreByte();
+		ui8 startReg{restoreByte()};
 		ip++;
 
-		ui8 count = restoreByte();
+		ui8 count{restoreByte()};
 		ip += 2;
 
 		CH_PRINT("R[{}] R[{}] ({})\n", reg, startReg, count);
@@ -229,7 +229,7 @@ void Disassembler::collectionOp(ui8 byte)
 void Disassembler::captureOp(ui8 byte)
 {
 	printOpcode(opNames[byte]);
-	ui8 funcReg = restoreByte();
+	ui8 funcReg{restoreByte()};
 	ip++;
 
 	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
@@ -297,14 +297,14 @@ void Disassembler::disassembleOp(ui8 byte)
 void Disassembler::disassembleCode()
 {
 	inVM = false;
-	auto end = code.block.end();
+	auto end{code.block.end()};
 	if (topLevel)
 	{
 		if ((file != "") && (ip < end)) // ip < end -> We have some bytecode to print.
 			CH_PRINT("=== CODE [{}] ===\n", file);
 		CH_PRINT("Bytes: {}\n", code.block.size());
 	}
-	int opers = 0;
+	int opers{0};
 	while (ip < end)
 	{
 		disassembleOp(*ip);

@@ -28,7 +28,7 @@ using vBit = vByte::const_iterator;
 
 std::string readFile(const char* fileName)
 {
-	std::ifstream file(fileName);
+	std::ifstream file{fileName};
 	if (file.fail())
 	{
 		CH_PRINT(stderr, "Failed to open file.\n");
@@ -37,9 +37,9 @@ std::string readFile(const char* fileName)
 	
 	if (file.is_open())
 	{
-		std::stringstream buffer;
+		std::stringstream buffer{};
 		buffer << file.rdbuf();
-		std::string fileString = buffer.str();
+		std::string fileString{buffer.str()};
 		file.close();
 		return fileString;
 	}
@@ -59,23 +59,23 @@ static Size reconstructBytes(vBit& it, const vBit& end)
 {
 	(void) end; // In case we don't use it.	
 
-	ui64 value = 0;
-	size_t size = sizeof(Size);
-	for (size_t i = 0; i < size; i++)
+	ui64 value{0};
+	constexpr size_t size{sizeof(Size)};
+	for (size_t i{0}; i < size; i++)
 	{
 		CHECK_EOF();
 		value = (value << CHAR_BIT) | *(it++);
 	}
 	it--;
-	Size* temp = reinterpret_cast<Size*>(&value);
+	Size* temp{reinterpret_cast<Size*>(&value)};
 	return *temp;
 }
 
 static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 {
-	ui64 codeSize = reconstructBytes<ui64>(it, end);
+	ui64 codeSize{reconstructBytes<ui64>(it, end)};
 	it++;
-	ui64 poolSize = reconstructBytes<ui64>(it, end);
+	ui64 poolSize{reconstructBytes<ui64>(it, end)};
 	it++;
 
 	vByte bytes(codeSize);
@@ -93,13 +93,13 @@ static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 	}
 	it--;
 
-	return ByteCode(bytes, reconstructPool(pool));
+	return ByteCode{bytes, reconstructPool(pool)};
 }
 
 static Object reconstructFunc(vBit& it, const vBit& end)
 {
 	CHECK_EOF();
-	std::string name;
+	std::string name{};
 	while (static_cast<char>(*it) != '\0')
 	{
 		name.push_back(static_cast<char>(*it));
@@ -109,24 +109,24 @@ static Object reconstructFunc(vBit& it, const vBit& end)
 
 	++it;
 	CHECK_EOF();
-	ui8 argCount = *it;
+	ui8 argCount{*it};
 
 	++it;
 	CHECK_EOF();
-	bool lambda = static_cast<bool>(*it);
+	bool lambda{static_cast<bool>(*it)};
 
 	if (lambda)
 	{
-		return Object(CH_ALLOC(Function, reconstructByteCode(++it, end),
+		return Object{CH_ALLOC(Function, reconstructByteCode(++it, end),
 			argCount)
-		);
+		};
 	}
 	else
 	{
-		return Object(CH_ALLOC(Function, name,
+		return Object{CH_ALLOC(Function, name,
 			reconstructByteCode(++it, end),
 			argCount)
-		);
+		};
 	}
 }
 
@@ -135,7 +135,7 @@ static Object reconstructString(vBit& it, const vBit& end)
 	(void) end; // In case we don't use it.
 
 	CHECK_EOF();
-	std::string str;
+	std::string str{};
 	while (static_cast<char>(*it) != '\0')
 	{
 		str.push_back(static_cast<char>(*it));
@@ -143,12 +143,12 @@ static Object reconstructString(vBit& it, const vBit& end)
 		CHECK_EOF();
 	}
 
-	return Object(CH_ALLOC(String, str));
+	return Object{CH_ALLOC(String, str)};
 }
 
 static Object reconstructRange(vBit& it, const vBit& end)
 {
-	std::array<i64, 3> array;
+	std::array<i64, 3> array{};
 	for (int i = 0; i < 3; i++)
 	{
 		CHECK_EOF();
@@ -161,16 +161,16 @@ static Object reconstructRange(vBit& it, const vBit& end)
 	}
 
 	it--;
-	return Object(CH_ALLOC(Range, array));
+	return Object{CH_ALLOC(Range, array)};
 }
 
 vObj reconstructPool(const vByte& poolBytes)
 {
-	vObj pool;
+	vObj pool{};
 
-	for (auto it = poolBytes.begin(); it < poolBytes.end(); it++)
+	for (auto it{poolBytes.begin()}; it < poolBytes.end(); it++)
 	{
-		ObjType type = static_cast<ObjType>(*it);
+		ObjType type{static_cast<ObjType>(*it)};
 		switch (type)
 		{
 			case OBJ_INT:
@@ -219,7 +219,7 @@ static void handleFileLength(std::ifstream& fileIn, size_t expected)
 
 static void readMagic(std::ifstream& fileIn)
 {
-	std::array<char, 6> magic;
+	std::array<char, 6> magic{};
 	fileIn.read(magic.data(), sizeof(magic));
 	handleFileLength(fileIn, sizeof(magic));
 	if (strncmp(magic.data(), "choice", 6) != 0)
@@ -231,7 +231,7 @@ static void readMagic(std::ifstream& fileIn)
 
 static void readVersionNum(std::ifstream& fileIn)
 {
-	std::array<char, 3> num;
+	std::array<char, 3> num{};
 	fileIn.read(num.data(), sizeof(num));
 	handleFileLength(fileIn, sizeof(num));
 }
@@ -240,14 +240,14 @@ ByteCode readCache(std::ifstream& fileIn)
 {
 	if (fileIn.is_open())
 	{
-		std::string fileName;	ui8 nameLength;
-		vByte codeBytes;		ui64 codeLength;
-		vByte poolBytes;		ui64 poolLength;
+		std::string fileName{};	ui8 nameLength{};
+		vByte codeBytes{};		ui64 codeLength{};
+		vByte poolBytes{};		ui64 poolLength{};
 
 		readMagic(fileIn);
 		readVersionNum(fileIn);
 
-		int ch = fileIn.get();
+		int ch{fileIn.get()};
 		if (ch == -1) // EOF.
 			eofError();
 		nameLength = static_cast<ui8>(ch);
@@ -266,9 +266,9 @@ ByteCode readCache(std::ifstream& fileIn)
 		file = fileName;
 
 		#if defined(DEBUG)
-			constexpr auto maxSize = static_cast<ui64>(
+			constexpr auto maxSize{static_cast<ui64>(
 				std::numeric_limits<std::streamsize>::max()
-			);
+			)};
 			CH_ASSERT(
 				(codeLength < maxSize) && (poolLength < maxSize),
 				"File serialization did not bounds-check bytecode "
@@ -283,7 +283,7 @@ ByteCode readCache(std::ifstream& fileIn)
 		handleFileLength(fileIn, poolLength);
 
 		fileIn.close();
-		return ByteCode(codeBytes, reconstructPool(poolBytes));
+		return ByteCode{codeBytes, reconstructPool(poolBytes)};
 	}
 
 	CH_PRINT(stderr, "File is closed.\n");
@@ -292,24 +292,24 @@ ByteCode readCache(std::ifstream& fileIn)
 
 void optionShowTokens(const vT& tokens)
 {
-	TokenPrinter(tokens).printTokens();
+	TokenPrinter{tokens}.printTokens();
 }
 
 void optionShowBytes(const ByteCode& chunk)
 {
-	Disassembler(chunk).disassembleCode();
+	Disassembler{chunk}.disassembleCode();
 }
 
 void optionCacheBytes(const ByteCode& chunk, const char* fileName)
 {
-	std::filesystem::path filePath(fileName);
+	std::filesystem::path filePath{fileName};
 	filePath.replace_extension(".bch");
-	std::ofstream cacheFile(filePath.filename().c_str(), std::ios::binary);
+	std::ofstream cacheFile{filePath.filename().c_str(), std::ios::binary};
 	chunk.cacheStream(cacheFile);
 }
 
 void optionLoad(const char* fileName)
-{	
+{
 	if (!ends_with(fileName, ".bch"))
 	{
 		CH_PRINT(stderr, "Invalid bytecode file.\n");
@@ -318,16 +318,16 @@ void optionLoad(const char* fileName)
 
 	external = true;
 
-	std::ifstream program(fileName, std::ios::binary);
+	std::ifstream program{fileName, std::ios::binary};
 	if (program.fail())
 	{
 		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
 
-	ByteCode chunk = readCache(program);
-	Function* script = CH_ALLOC(Function, chunk, 0);
-	VM().executeCode(script);
+	ByteCode chunk{readCache(program)};
+	Function* script{CH_ALLOC(Function, chunk, 0)};
+	VM{}.executeCode(script);
 
 	#if !CH_USE_ALLOC
 		delete script;
@@ -344,18 +344,18 @@ void optionDis(const char* fileName)
 
 	external = true;
 
-	std::ifstream program(fileName, std::ios::binary);
+	std::ifstream program{fileName, std::ios::binary};
 	if (program.fail())
 	{
 		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
 
-	ByteCode chunk = readCache(program);
-	Disassembler(chunk).disassembleCode();
+	ByteCode chunk{readCache(program)};
+	Disassembler{chunk}.disassembleCode();
 }
 
-bool fileNameCheck(std::string_view fileName)
+bool fileNameCheck(const std::string_view fileName)
 {
 	return (ends_with(fileName, ".ch") || ends_with(fileName, ".bch"));
 }

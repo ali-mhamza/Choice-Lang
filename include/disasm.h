@@ -9,22 +9,22 @@ class VM;
 class Disassembler
 {
     private:
-        const ByteCode& code;
-        vBit ip;
-        vBit start;
+        const ByteCode& code{};
+        vBit ip{};
+        const vBit start{};
         // Whether or not we are disassembling the top-level script.
-        bool topLevel;
+        bool topLevel{true};
         // Whether we are disassembling code directly or during
         // VM execution.
-        bool inVM;
+        bool inVM{true};
 
-        void printOpcode(std::string_view opName);
-        void printOperValue(const Object& oper);
-        void disFunction(const Function& func);
+        void printOpcode(std::string_view opName) const;
+        void printOperValue(const Object& oper) const;
+        void disFunction(const Function& func) const;
 
-        ui8 restoreByte();
-        ui16 restoreShort();
-        ui32 restoreLong();
+        ui8 restoreByte() const;
+        ui16 restoreShort() const;
+        ui32 restoreLong() const;
 
         void singleOper(ui8 byte);
         void doubleOper(ui8 byte);

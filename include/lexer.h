@@ -5,17 +5,17 @@
 
 struct ClassState
 {
-    bool inClass;
-    ui8 braceCount;
+    bool inClass{};
+    ui8 braceCount{};
 };
 
 class Lexer
 {
     private:
-        const char* start{nullptr};
-        const char* current{nullptr};
-        const char* end{nullptr};
-        vT stream;
+        const char* start{};
+        const char* current{};
+        const char* end{};
+        vT stream{};
         ui16 line{1};
         ui8 column{1};
         ClassState state{ false, 0 };
@@ -27,24 +27,24 @@ class Lexer
         // Prepares our lexer state.
         void setUp(const std::string_view& code);
         // Check if we've reached the end.
-        bool hitEnd();
+        bool hitEnd() const;
         // Move to next character.
         char advance();
         // Check next character.
-        bool checkChar(char c);
+        bool checkChar(char c) const;
         // Only advance if char matches.
         bool consumeChar(char c);
         void consumeChars(int count = 1);
-        char peekChar(int distance = 0);
-        char previousChar(int distance = 0);
+        char peekChar(int distance = 0) const;
+        char previousChar(int distance = 0) const;
         TokenType identifierType();
-        bool matchSequence(char c, int length);
+        bool matchSequence(char c, int length) const;
 
         /* Value conversion methods. */
 
-        i64 intValue(std::string_view text);
-        double decValue(std::string_view text);
-        bool boolValue(TokenType type);
+        i64 intValue(std::string_view text) const;
+        double decValue(std::string_view text) const;
+        bool boolValue(TokenType type) const;
 
         /* Token makers. */
 
@@ -61,8 +61,8 @@ class Lexer
         // Largely inspired by similar function in Wren source code.
         void conditionalToken(char c, TokenType two, TokenType one);
         void singleToken();
-    
+
     public:
         Lexer() = default;
-        vT& tokenize(std::string_view code);
+        vT& tokenize(const std::string_view code);
 };

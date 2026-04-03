@@ -38,7 +38,7 @@ namespace AST
 
         struct Stmt
         {
-            const StmtType type;
+            const StmtType type{};
 
             Stmt(StmtType type);
             virtual ~Stmt() = default;
@@ -46,9 +46,9 @@ namespace AST
 
         struct VarDecl : public Stmt
         {
-            const TokenType declType;
-            const Token name;
-            const ExprUP init;
+            const TokenType declType{};
+            const Token name{};
+            const ExprUP init{};
 
             VarDecl(
                 TokenType declType,
@@ -59,9 +59,9 @@ namespace AST
 
         struct FuncDecl : public Stmt
         {
-            const Token name;
-            const vT params;
-            const StmtUP body;
+            const Token name{};
+            const vT params{};
+            const StmtUP body{};
 
             FuncDecl(
                 const Token& name,
@@ -72,9 +72,9 @@ namespace AST
 
         struct ClassDecl : public Stmt
         {
-            const Token name;
-            const vT fields;
-            const StmtVec methods;
+            const Token name{};
+            const vT fields{};
+            const StmtVec methods{};
 
             ClassDecl(
                 const Token& name,
@@ -85,8 +85,8 @@ namespace AST
 
         struct IfStmt : public Stmt
         {
-            const ExprUP condition;
-            const StmtUP trueBranch, falseBranch;
+            const ExprUP condition{};
+            const StmtUP trueBranch{}, falseBranch{};
 
             IfStmt(
                 ExprUP& condition,
@@ -97,9 +97,9 @@ namespace AST
 
         struct WhileStmt : public Stmt
         {
-            const ExprUP condition;
-            const Token label;
-            const StmtUP body, elseClause;
+            const ExprUP condition{};
+            const Token label{};
+            const StmtUP body{}, elseClause{};
 
             WhileStmt(
                 ExprUP& condition,
@@ -111,11 +111,11 @@ namespace AST
 
         struct ForStmt : public Stmt
         {
-            const Token var;
-            const ExprUP iter; // Must be an iterable.
-            const ExprUP where;
-            const Token label;
-            const StmtUP body, elseClause;
+            const Token var{};
+            const ExprUP iter{}; // Must be an iterable.
+            const ExprUP where{};
+            const Token label{};
+            const StmtUP body{}, elseClause{};
 
             ForStmt(
                 const Token& var,
@@ -131,9 +131,9 @@ namespace AST
         {
             struct MatchCase
             {
-                ExprUP value; // Must be a literal (even if an iterable).
-                StmtUP body; // No declarations without a block.
-                bool fallthrough;
+                ExprUP value{}; // Must be a literal (even if an iterable).
+                StmtUP body{};  // No declarations without a block.
+                bool fallthrough{};
 
                 MatchCase(
                     ExprUP& value,
@@ -142,8 +142,8 @@ namespace AST
                 );
             };
 
-            const ExprUP matchValue;
-            const std::vector<MatchCase> cases;
+            const ExprUP matchValue{};
+            const std::vector<MatchCase> cases{};
 
             MatchStmt(
                 ExprUP& matchValue,
@@ -153,8 +153,8 @@ namespace AST
 
         struct RepeatStmt : public Stmt
         {
-            const ExprUP condition;
-            const StmtUP body; // Must be a block statement.
+            const ExprUP condition{};
+            const StmtUP body{}; // Must be a block statement.
 
             RepeatStmt(
                 ExprUP& condition,
@@ -164,8 +164,8 @@ namespace AST
 
         struct ReturnStmt : public Stmt
         {
-            const Token keyword;
-            const ExprUP expr;
+            const Token keyword{};
+            const ExprUP expr{};
 
             ReturnStmt(
                 const Token& keyword,
@@ -175,14 +175,14 @@ namespace AST
 
         struct BreakStmt : public Stmt
         {
-            const Token label;
+            const Token label{};
 
             BreakStmt(const Token& label);
         };
 
         struct ContinueStmt : public Stmt
         {
-            const Token label;
+            const Token label{};
 
             ContinueStmt(const Token& label);
         };
@@ -194,14 +194,14 @@ namespace AST
 
         struct ExprStmt : public Stmt
         {
-            const ExprUP expr;
+            const ExprUP expr{};
 
             ExprStmt(ExprUP expr);
         };
 
         struct BlockStmt : public Stmt
         {
-            const StmtVec block;
+            const StmtVec block{};
 
             BlockStmt(StmtVec& block);
         };
@@ -230,7 +230,7 @@ namespace AST
 
         struct Expr
         {
-            const ExprType type;
+            const ExprType type{};
 
             Expr(ExprType type);
             virtual ~Expr() = default;
@@ -238,16 +238,16 @@ namespace AST
 
         struct TupleExpr : public Expr
         {
-            const ExprVec entries;
+            const ExprVec entries{};
 
             TupleExpr(ExprVec& entries);
         };
 
         struct AssignExpr : public Expr
         {
-            const ExprUP target;
-            const Token oper;
-            const ExprUP value;
+            const ExprUP target{};
+            const Token oper{};
+            const ExprUP value{};
 
             AssignExpr(
                 ExprUP& target,
@@ -258,9 +258,9 @@ namespace AST
 
         struct LogicExpr : public Expr
         {
-            const ExprUP left;
-            const TokenType oper;
-            const ExprUP right;
+            const ExprUP left{};
+            const TokenType oper{};
+            const ExprUP right{};
 
             LogicExpr(
                 ExprUP& left,
@@ -271,9 +271,9 @@ namespace AST
 
         struct CompareExpr : public Expr
         {
-            const ExprUP left;
-            const TokenType oper;
-            const ExprUP right;
+            const ExprUP left{};
+            const TokenType oper{};
+            const ExprUP right{};
 
             CompareExpr(
                 ExprUP& left,
@@ -284,9 +284,9 @@ namespace AST
 
         struct BitExpr : public Expr
         {
-            const ExprUP left;
-            const TokenType oper;
-            const ExprUP right;
+            const ExprUP left{};
+            const TokenType oper{};
+            const ExprUP right{};
 
             BitExpr(
                 ExprUP& left,
@@ -297,9 +297,9 @@ namespace AST
 
         struct ShiftExpr : public Expr
         {
-            const ExprUP left;
-            const TokenType oper;
-            const ExprUP right;
+            const ExprUP left{};
+            const TokenType oper{};
+            const ExprUP right{};
 
             ShiftExpr(
                 ExprUP& left,
@@ -310,9 +310,9 @@ namespace AST
 
         struct BinaryExpr : public Expr
         {
-            const ExprUP left;
-            const TokenType oper;
-            const ExprUP right;
+            const ExprUP left{};
+            const TokenType oper{};
+            const ExprUP right{};
 
             BinaryExpr(
                 ExprUP& left,
@@ -323,12 +323,12 @@ namespace AST
 
         struct UnaryExpr : public Expr
         {
-            const Token oper;
-            const ExprUP expr;
+            const Token oper{};
+            const ExprUP expr{};
             // Whether or not it evaluates to the previous
             // value in the register (like with post-increment/
             // decrement operators) or the new value.
-            const bool prev;
+            const bool prev{};
 
             UnaryExpr(
                 const Token& oper,
@@ -339,10 +339,10 @@ namespace AST
 
         struct CallExpr : public Expr
         {
-            const ExprUP callee;
-            const ExprVec args;
-            const bool builtin;
-            const Token rightParen; // For error reporting.
+            const ExprUP callee{};
+            const ExprVec args{};
+            const bool builtin{};
+            const Token rightParen{}; // For error reporting.
 
             CallExpr(
                 ExprUP& callee,
@@ -354,7 +354,7 @@ namespace AST
 
         struct IfExpr : public Expr
         {
-            const ExprUP condition, trueExpr, falseExpr;
+            const ExprUP condition{}, trueExpr{}, falseExpr{};
 
             IfExpr(
                 ExprUP& condition,
@@ -365,8 +365,8 @@ namespace AST
 
         struct LambdaExpr : public Expr
         {
-            const vT params;
-            const StmtUP body;
+            const vT params{};
+            const StmtUP body{};
 
             LambdaExpr(
                 const vT& params,
@@ -376,10 +376,10 @@ namespace AST
 
         struct ComprehensionExpr : public Expr
         {
-            const Token var;
-            const ExprUP iter; // Must be an iterable.
-            const ExprUP where;
-            const ExprUP expr;
+            const Token var{};
+            const ExprUP iter{}; // Must be an iterable.
+            const ExprUP where{};
+            const ExprUP expr{};
 
             ComprehensionExpr(
                 const Token& var,
@@ -391,21 +391,21 @@ namespace AST
 
         struct ListExpr : public Expr
         {
-            const ExprVec entries;
+            const ExprVec entries{};
 
             ListExpr(ExprVec& entries);
         };
 
         struct VarExpr : public Expr
         {
-            const Token name;
+            const Token name{};
 
             VarExpr(const Token& name);
         };
 
         struct LiteralExpr : public Expr
         {
-            const Token value;
+            const Token value{};
 
             LiteralExpr(const Token& value);
         };

@@ -117,7 +117,7 @@
 			}															\
 		} while (false)
 #else
-	#define CH_ALLOC(type, ...) new type(__VA_ARGS__)
+	#define CH_ALLOC(type, ...) new type{__VA_ARGS__}
 #endif
 
 // Unreachable points.
