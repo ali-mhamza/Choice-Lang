@@ -47,7 +47,7 @@ constexpr bool setVar{false};
 
 ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     scopeCompiler{comp},
-    depth{comp == nullptr ? 0 : comp->depth + 1}
+    depth{static_cast<ui8>(comp == nullptr ? 0 : comp->depth + 1)}
 {
     if (depth == 0) // Global scope compiler.
     {
@@ -117,7 +117,7 @@ ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
     // Check if variable is local first.
     for (ui8 i{0}; i <= scope; i++)
     {
-        VarEntry entry{token.text, scope - i};
+        VarEntry entry{token.text, static_cast<ui8>(scope - i)};
         ui8* slot{varLocations->get(entry)};
         if (slot != nullptr)
         {

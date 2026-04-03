@@ -4,9 +4,11 @@
 #include "../include/error.h"
 #include "../include/token.h"
 #include <cctype>				// For isdigit, isalpha, is alnum.
-#include <cstdio>				// For EOF.
 #include <string_view>
 #include <unordered_map>		// For keywords map.
+
+#undef EOF
+#define EOF static_cast<char>(-1)
 
 #undef REPORT_ERROR
 #define REPORT_ERROR(...)                                       \
@@ -163,7 +165,8 @@ bool Lexer::boolValue(TokenType type) const
 
 void Lexer::makeToken(TokenType type)
 {
-	std::string_view text{start, current - start};
+	using sizeT = std::string_view::size_type;
+	std::string_view text{start, static_cast<sizeT>(current - start)};
 
 	Value value{};
 	if (IS_LITERAL_TOK(type))
@@ -188,7 +191,8 @@ void Lexer::rangeToken()
 {
 	if (!isdigit(peekChar()))
 	{
-		REPORT_ERROR(peekChar(), line, column + 1, // Check column value here.
+		 // Check column value here.
+		REPORT_ERROR(peekChar(), line, static_cast<ui8>(column + 1),
 			"Expecting range-end value after '..'.");
 	}
 
@@ -200,7 +204,8 @@ void Lexer::rangeToken()
 		consumeChars(2);
 		if (!isdigit(peekChar()))
 		{
-			REPORT_ERROR(peekChar(), line, column + 1, // Check column value here.
+			// Check column value here.
+			REPORT_ERROR(peekChar(), line, static_cast<ui8>(column + 1),
 				"Expecting skip value after '..'.");
 		}
 
@@ -240,7 +245,7 @@ void Lexer::stringToken()
 	{
 		if (peekChar() == '\n')
 		{
-			REPORT_ERROR(previousChar(), line, column + 1,
+			REPORT_ERROR(previousChar(), line, static_cast<ui8>(column + 1),
 				"Incorrect syntax for multi-line string.");
 		}
 		advance();
@@ -257,7 +262,8 @@ void Lexer::multiStringToken()
 {
 	// Before processing the quote.
 	ui16 tempLine{line};
-	ui8 tempColumn{column - 1}; // Step back across the opening `.
+	// Step back across the opening `.
+	ui8 tempColumn{static_cast<ui8>(column - 1)};
 	
 	while ((peekChar() != '`') && !hitEnd())
 		advance();
@@ -270,16 +276,19 @@ void Lexer::multiStringToken()
 
 	advance(); // Consume final `.
 
-	stream.emplace_back(TOK_STR_LIT, std::string_view(start, current - start),
-		Value(), tempLine, tempColumn);
+	stream.emplace_back(
+		TOK_STR_LIT,
+		std::string_view{start, static_cast<ui8>(current - start)},
+		Value{}, tempLine, tempColumn
+	);
 }
 
 TokenType Lexer::identifierType()
 {	
-	if (current - start < 2)
+	if (static_cast<ui8>(current - start) < 2)
 		return TOK_IDENTIFIER;
-	
-	std::string_view text{start, current - start};
+
+	std::string_view text{start, static_cast<ui8>(current - start)};
 	auto it{keywords.find(text)};
 	if (it != keywords.end())
 	{
@@ -333,7 +342,7 @@ bool Lexer::checkHyperComment()
 			hitError = true;
 			if (errorCount < COMPILE_ERROR_MAX)
 			{
-				LexError{peekChar(), line, column + 1,
+				LexError{peekChar(), line, static_cast<ui8>(column + 1),
 					"Unterminated nested comment."}.report();
 			}
 			else if (errorCount == COMPILE_ERROR_MAX)
@@ -512,8 +521,11 @@ void Lexer::singleToken()
 			else if (isalpha(c) || c == '_')
 				identifierToken();
 			else
+			{
 				// Column has been incremented, so we subtract 1.
-				REPORT_ERROR(c, line, column - 1, "Unrecognized token.");
+				REPORT_ERROR(c, line, static_cast<ui8>(column - 1),
+					"Unrecognized token.");
+			}
 		}
 	}
 }

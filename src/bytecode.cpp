@@ -11,10 +11,10 @@
 #include <utility>					// For std::move.
 
 ByteCode::ByteCode(const vByte& block) :
-	block{block} {}
+	block(block) {}
 
 ByteCode::ByteCode(const vByte& block, const vObj& pool) :
-	block{block}, pool{pool} {}
+	block(block), pool(pool) {}
 
 void ByteCode::addByte(ui8 byte)
 {

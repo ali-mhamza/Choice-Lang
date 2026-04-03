@@ -5,8 +5,8 @@
 
 struct VarEntry
 {
-    const std::string name{};
-    const ui8 scope{};
+    std::string name{};
+    ui8 scope{};
 
     VarEntry() = default;
     VarEntry(std::string_view name, ui8 scope);
