@@ -24,7 +24,6 @@ REPL_DIR = dependencies/replxx
 REPL_LIB = $(REPL_DIR)/libreplxx.a
 LIBS = -L$(REPL_DIR) -lreplxx
 
-AST = -D COMP_AST
 TYPE = -D TYPE
 OPT = -D OPT
 
@@ -58,24 +57,21 @@ all: $(NAME)
 $(NAME): $(OBJS) $(REPL_LIB)
 	@$(CXX) $(CXXFLAGS) $^ $(LIBS) -o $(NAME)
 
-ast: CXXFLAGS += $(AST)
-ast: $(NAME)
+type: CXXFLAGS += $(TYPE)
+type: all
 
-type: CXXFLAGS += $(AST) $(TYPE)
-type: $(NAME)
-
-opt: $(CXXFLAGS) += $(AST) $(OPT)
-opt: $(NAME)
+opt: $(CXXFLAGS) += $(OPT)
+opt: all
 
 # Assuming only AST version with this Makefile (for now).
 
 debug: CXXFLAGS += $(DEBUG_FLAGS)
 debug: NAME = $(DEBUG)
-debug: ast
+debug: all
 
 release: CXXFLAGS += $(RELEASE_FLAGS)
 release: NAME = $(RELEASE)
-release: ast
+release: all
 
 release-workflow: release test tidy
 
@@ -120,5 +116,5 @@ re: fclean all
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all ast type opt debug release release-workflow debug-workflow \
+.PHONY: all type opt debug release release-workflow debug-workflow \
 		test $(TEST_SUBDIRS) tidy clean-tidy clean fclean re
