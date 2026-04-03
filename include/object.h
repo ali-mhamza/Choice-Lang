@@ -410,7 +410,7 @@ struct CustomDealloc
 /* General type mismatch error class. */
 
 struct TypeMismatch
-{    
+{
     const std::string message{};
     const ObjType expect{};
     const ObjType actual{};
