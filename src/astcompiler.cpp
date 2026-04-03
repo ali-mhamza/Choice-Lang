@@ -1,5 +1,3 @@
-#ifdef COMP_AST
-
 #include "../include/astcompiler.h"
 #include "../include/astnodes.h"
 #include "../include/common.h"
@@ -1154,5 +1152,3 @@ Function* ASTCompiler::compile(const StmtVec& program)
 #undef DEF
 #undef COMPILE
 #undef REPORT_ERROR
-
-#endif

@@ -1,5 +1,3 @@
-#ifdef COMP_AST
-
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/token.h"
@@ -148,5 +146,3 @@ VarExpr::VarExpr(const Token& name) :
 LiteralExpr::LiteralExpr(const Token& value) :
     Expr{E_LITERAL_EXPR},
     value{value} {}
-
-#endif

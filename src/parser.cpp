@@ -1,5 +1,3 @@
-#ifdef COMP_AST
-
 #include "../include/parser.h"
 #include "../include/astnodes.h"
 #include "../include/common.h"
@@ -867,5 +865,3 @@ StmtVec& Parser::parseToAST(const vT& tokens)
     // nodes that parsed just fine.
     return program;
 }
-
-#endif

@@ -1,17 +1,12 @@
-#ifdef COMP_AST
-	#include "../include/astcompiler.h"
-	#include "../include/astnodes.h"
-	#include "../include/parser.h"
-#else
-	#include "../include/compiler.h"
-#endif
-
+#include "../include/astcompiler.h"
+#include "../include/astnodes.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/gen_alloc.h"
 #include "../include/lexer.h"
 #include "../include/main_utils.h"
 #include "../include/object.h"
+#include "../include/parser.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 
@@ -98,30 +93,24 @@ static inline vT& runLexer(const std::string_view source)
 
 static Function* runCompiler(const vT& tokens)
 {
-	#ifdef COMP_AST
-		static Parser parser{};
-		static ASTCompiler compiler{};
-		const StmtVec& program = parser.parseToAST(tokens);
+	static Parser parser{};
+	static ASTCompiler compiler{};
+	const StmtVec& program = parser.parseToAST(tokens);
 
-		#ifdef TYPE
-			// Perform type-checking here.
-		#endif
-
-		#ifdef OPT
-			// Optimize here.
-		#endif
-
-		// To stop after compilation if either hit an error.
-		compiler.hitError = parser.hitError;
-		// To not report too many errors when using an
-		// AST.
-		compiler.errorCount = parser.errorCount;
-		return compiler.compile(program);
-	#else
-		// Fix return value.
-		static Compiler compiler;
-		return compiler.compile(tokens);
+	#ifdef TYPE
+		// Perform type-checking here.
 	#endif
+
+	#ifdef OPT
+		// Optimize here.
+	#endif
+
+	// To stop after compilation if either hit an error.
+	compiler.hitError = parser.hitError;
+	// To not report too many errors when using an
+	// AST.
+	compiler.errorCount = parser.errorCount;
+	return compiler.compile(program);
 }
 
 // Optimization to run a cached bytecode
