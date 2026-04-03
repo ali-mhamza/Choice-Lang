@@ -131,11 +131,11 @@ i64 Lexer::intValue(std::string_view text) const
 double Lexer::decValue(std::string_view text) const
 {
 	double ret{0.0};
-	const auto* it{text.begin()};
-	const auto* end{text.end()};
+	auto it{text.begin()};
+	auto end{text.end()};
 	for (; it < end; it++)
 	{
-		char c{*it};
+		const char c{*it};
 		if (isdigit(c))
 			ret = (ret * 10) + (c - '0');
 		else if (c != '\'')
@@ -144,10 +144,10 @@ double Lexer::decValue(std::string_view text) const
 
 	it++; // Skip the '.'.
 
-	double div{(double) 1 / 10};
+	double div{1.0 / 10.0};
 	for (; it < end; it++)
 	{
-		char c{*it};
+		const char c{*it};
 		ret += (c - '0') * div;
 		div /= 10;
 	}

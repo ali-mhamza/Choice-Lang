@@ -425,3 +425,4 @@ struct TypeMismatch
 };
 
 #undef TYPE_LIST
+#define NULL 0

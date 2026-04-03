@@ -14,7 +14,7 @@ class LinearAlloc
     private:
         using Arena = void;
 
-        const Arena* start{};
+        Arena* const start{};
         Arena* arena{};
         size_t used{0};
         const size_t cap{};

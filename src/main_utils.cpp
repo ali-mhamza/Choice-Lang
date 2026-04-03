@@ -79,14 +79,14 @@ static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 	it++;
 
 	vByte bytes(codeSize);
-	for (ui64 i = 0; i < codeSize; i++)
+	for (ui64 i{0}; i < codeSize; i++)
 	{
 		CHECK_EOF();
 		bytes[i] = *(it++);
 	}
 
 	vByte pool(poolSize);
-	for (ui64 i = 0; i < poolSize; i++)
+	for (ui64 i{0}; i < poolSize; i++)
 	{
 		CHECK_EOF();
 		pool[i] = *(it++);
@@ -149,7 +149,7 @@ static Object reconstructString(vBit& it, const vBit& end)
 static Object reconstructRange(vBit& it, const vBit& end)
 {
 	std::array<i64, 3> array{};
-	for (int i = 0; i < 3; i++)
+	for (int i{0}; i < 3; i++)
 	{
 		CHECK_EOF();
 		array[i] = reconstructBytes<i64>(it, end);
