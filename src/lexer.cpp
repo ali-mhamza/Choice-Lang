@@ -477,7 +477,6 @@ void Lexer::singleToken()
 		// Whitespace.
 		
 		case ' ':
-		case '\r':
 		case '\n':
 			break;
 		// Open to change.

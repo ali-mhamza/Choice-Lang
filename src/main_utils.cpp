@@ -1,21 +1,25 @@
 #include "../include/main_utils.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
-#include "../include/disasm.h"			// For optionShowBytes() function.
+#include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
-#include "../include/tokprinter.h"		// For optionShowTokens() function.
-#include "../include/utils.h"			// For ends_with(), starts_with(), constructRange() helper functions.
-#include "../include/vm.h"				// For optionLoad() function.
-#include <array>						// For reconstructRange() helper function.
+#include "../include/token.h"
+#include "../include/tokprinter.h"
+#include "../include/utils.h"			// For helper functions.
+#include "../include/vm.h"
+#include <algorithm>
+#include <array>
+#include <cctype>						// For isspace().
 #include <climits>						// For CHAR_BIT.
 #include <cstdio>						// For stderr.
 #include <cstdlib>						// For exit().
-#include <cstring>						// For strncmp() in readMagic() helper function.
-#include <filesystem>					// For path in optionCacheBytes() function.
+#include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <sstream>						// For stringstream in readFile() helper function.
 #include <string>
+#include <string_view>
 #include <vector>
 
 #if defined(DEBUG)
@@ -34,7 +38,7 @@ std::string readFile(const char* fileName)
 		CH_PRINT(stderr, "Failed to open file.\n");
 		exit(66);
 	}
-	
+
 	if (file.is_open())
 	{
 		std::stringstream buffer{};
@@ -46,6 +50,15 @@ std::string readFile(const char* fileName)
 
 	CH_PRINT(stderr, "File is closed.\n");
 	exit(66);
+}
+
+void normalizeInput(std::string& input)
+{
+	input.erase(std::remove_if(input.begin(), input.end(),
+	[](char c) -> bool {
+		return (isspace(c) && (c != ' ')
+				&& (c != '\n') && (c != '\t'));
+    }), input.end());
 }
 
 static inline void eofError()

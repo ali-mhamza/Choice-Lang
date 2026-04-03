@@ -16,6 +16,7 @@
 #endif
 
 std::string readFile(const char* fileName);
+void normalizeInput(std::string& input);
 vObj reconstructPool(const vByte& poolBytes);
 ByteCode readCache(std::ifstream& fileIn);
 void optionShowTokens(const vT& tokens);

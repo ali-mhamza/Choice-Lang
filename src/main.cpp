@@ -205,6 +205,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#endif
 
 	std::string code{readFile(fileName)};
+	normalizeInput(code);
 	vT& tokens{runLexer(code)};
 	if (option == EMIT_TOKENS)
 	{
@@ -314,6 +315,7 @@ static void repl(ArgvOption option = EXECUTE)
 				rx.history_add(line);
 			#endif
 
+			normalizeInput(line);
 			vT& tokens{runLexer(line)};
 			if (option == EMIT_TOKENS)
 				optionShowTokens(tokens);

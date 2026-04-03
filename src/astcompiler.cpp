@@ -198,6 +198,47 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
     }
 }
 
+static int parseEscapeSequence(char c)
+{
+	switch (c)
+	{
+		case 'n':	return '\n';
+		case 't':	return '\t';
+		case 'r':	return '\r';
+		case '\\':	return '\\';
+		case '"':	return '"';
+		default:	return -1;
+	}
+}
+
+static std::string parseStringToken(const Token& token)
+{
+	using sizeT = std::string_view::size_type;
+
+	std::string str{};
+	auto size{token.text.size() - 2};
+	const auto& text{token.text.substr(1, size)};
+	str.reserve(size);
+
+	for (sizeT i{0}; i < size; i++)
+	{
+		if ((text[i] == '\\') && (i < size - 1))
+		{
+			int ret{parseEscapeSequence(text[i + 1])};
+			if (ret != -1)
+			{
+				str.push_back(static_cast<char>(ret));
+				i++;
+				continue;
+			}
+		}
+
+		str.push_back(text[i]);
+	}
+
+    return str;
+}
+
 DEF(VarDecl)
 {
     LocalInfo localInfo{getScopeLocal(node->name)};
@@ -1039,11 +1080,6 @@ DEF(VarExpr)
 
 DEF(LiteralExpr)
 {
-    #define GET_STR(tok)                                \
-        normalizeNewlines(                              \
-            (tok).text.substr(1, (tok).text.size() - 2) \
-        )
-
     const Token& tok{node->value};
 
     if (tok.type == TOK_NUM)
@@ -1062,7 +1098,7 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj{CH_ALLOC(String, GET_STR(tok))};
+        Object obj{CH_ALLOC(String, parseStringToken(tok))};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
