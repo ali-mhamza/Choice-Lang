@@ -238,13 +238,22 @@ void Lexer::numToken()
 
 void Lexer::stringToken()
 {
-	while ((peekChar() != '"') && !hitEnd())
+	int escapeCharCount{0};
+	while (!hitEnd())
 	{
-		if (peekChar() == '\n')
+		char c{peekChar()};
+		if ((c == '"') && (escapeCharCount % 2 == 0))
+			break;
+		if (c == '\n')
 		{
 			REPORT_ERROR(previousChar(), line, static_cast<ui8>(column + 1),
 				"Incorrect syntax for multi-line string.");
 		}
+
+		if (c == '\\')
+			escapeCharCount++;
+		else
+			escapeCharCount = 0;
 		advance();
 	}
 
