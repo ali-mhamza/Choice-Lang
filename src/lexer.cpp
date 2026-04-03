@@ -15,13 +15,10 @@
 	do {                                                        \
 		hitError = true;                                        \
 		if (errorCount > LEX_ERROR_MAX) return;                 \
-		else if (errorCount == LEX_ERROR_MAX)                   \
-		{                                                       \
-			CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");  \
-			errorCount++;                                       \
-			return;                                             \
-		}                                                       \
-		LexError{__VA_ARGS__}.report();                         \
+		if (errorCount == LEX_ERROR_MAX)                   		\
+			CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");		\
+		else													\
+			LexError{__VA_ARGS__}.report();                     \
 		errorCount++;                                           \
 		return;                                                 \
 	} while (false)

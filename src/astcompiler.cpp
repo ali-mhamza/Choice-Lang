@@ -29,12 +29,9 @@ using namespace AST::Expression;
         hitError = true;                                            \
         if (errorCount > COMPILE_ERROR_MAX) return;                 \
         if (errorCount == COMPILE_ERROR_MAX)                        \
-        {                                                           \
             CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-            errorCount++;                                           \
-            return;                                                 \
-        }                                                           \
-        CompileError{__VA_ARGS__}.report();                         \
+        else                                                        \
+            CompileError{__VA_ARGS__}.report();                     \
         errorCount++;                                               \
         return;                                                     \
     } while (false)

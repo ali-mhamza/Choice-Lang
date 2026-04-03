@@ -22,12 +22,9 @@ using namespace AST::Expression;
         if (syntaxError || (errorCount > COMPILE_ERROR_MAX))        \
             return nullptr;                                         \
         if (errorCount == COMPILE_ERROR_MAX)                        \
-        {                                                           \
             CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-            errorCount++;                                           \
-            return nullptr;                                         \
-        }                                                           \
-        CompileError{__VA_ARGS__}.report();                         \
+        else                                                        \
+            CompileError{__VA_ARGS__}.report();                     \
         syntaxError = true;                                         \
         errorCount++;                                               \
         return nullptr;                                             \
@@ -40,12 +37,9 @@ using namespace AST::Expression;
         if (semanticError || (errorCount > COMPILE_ERROR_MAX))      \
             return nullptr;                                         \
         if (errorCount == COMPILE_ERROR_MAX)                        \
-        {                                                           \
             CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-            errorCount++;                                           \
-            return nullptr;                                         \
-        }                                                           \
-        CompileError{__VA_ARGS__}.report();                         \
+        else                                                        \
+            CompileError{__VA_ARGS__}.report();                     \
         semanticError = true;                                       \
         errorCount++;                                               \
         return nullptr;                                             \
@@ -168,14 +162,23 @@ void Parser::matchType(std::string_view message /* = "" */)
 
 StmtUP Parser::declaration()
 {
+    StmtUP ret{nullptr};
     if (consumeTok(TOK_SEMICOLON)) // Empty statement.
-        return nullptr;
+        return ret;
     else if (consumeToks(TOK_MAKE, TOK_FIX))
-        return varDecl();
+        ret = varDecl();
     else if (consumeTok(TOK_FUNC))
-        return funDecl();
+        ret = funDecl();
     else
-        return statement();
+        ret = statement();
+
+    if (syntaxError || semanticError)
+    {
+        reset();
+        syntaxError = semanticError = false;
+    }
+
+    return ret;
 }
 
 StmtUP Parser::varDecl()
@@ -857,14 +860,7 @@ StmtVec& Parser::parseToAST(const vT& tokens)
     errorCount = 0;
 
     while (!checkTok(TOK_EOF))
-    {
         program.push_back(declaration());
-        if (syntaxError || semanticError)
-        {
-            reset();
-            syntaxError = semanticError = false;
-        }
-    }
 
     // Do not clear the AST nodes, even if errors occurred.
     // This allows the AST compiler to report errors on valid
