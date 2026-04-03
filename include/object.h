@@ -14,7 +14,9 @@ using Natives::FuncType;
 
 /* Type list macro. */
 
+#pragma push_macro("NULL")
 #undef NULL
+
 #define TYPE_LIST           \
     X(INT, intVal)          \
     X(DEC, decVal)          \
@@ -425,4 +427,4 @@ struct TypeMismatch
 };
 
 #undef TYPE_LIST
-#define NULL 0
+#pragma pop_macro("NULL")
