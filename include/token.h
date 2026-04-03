@@ -144,44 +144,26 @@ typedef union Value {
 	bool			b;
 } Value;
 
-class Lexer;
-class TokenPrinter;
-class Compiler; class AltCompiler;
-class CompileError; class RuntimeError;
-class VM;
-
-class Token
+struct Token
 {
-	private:
-		std::string_view text{};	// The actual text of the token.
-		Value content{};			// The literal's actual value.
-		ui16 line{};				// The line holding the token.
-		ui8 position{};				// The starting position of the token.
-		TokenType type{TOK_EOF};
+	std::string_view text{};	// The actual text of the token.
+	Value content{};			// The literal's actual value.
+	ui16 line{};				// The line holding the token.
+	ui8 position{};				// The starting position of the token.
+	TokenType type{TOK_EOF};
 
-	public:
-		Token() = default;
-		Token(
-			TokenType type,
-			std::string_view text,
-			Value content,
-			ui16 line,
-			ui8 position
-		);
-
-		Token(const Token& other) noexcept;
-		Token& operator=(const Token& other) noexcept;
-		Token(Token&& other) noexcept;
-		Token& operator=(Token&& other) noexcept;
-
-		friend class Lexer;
-		friend class TokenPrinter;
-		friend class Parser;
-		friend class Compiler;
-		friend class ASTCompiler;
-		friend class CompileError;
-		friend class RuntimeError;
-		friend class VM;
+	Token() = default;
+	Token(
+		TokenType type,
+		std::string_view text,
+		Value content,
+		ui16 line,
+		ui8 position
+	);
+	Token(const Token& other) noexcept;
+	Token& operator=(const Token& other) noexcept;
+	Token(Token&& other) noexcept;
+	Token& operator=(Token&& other) noexcept;
 };
 
 #define IS_LITERAL_TOK(type)	((TOK_NUM <= (type)) && ((type) <= TOK_NULL))
