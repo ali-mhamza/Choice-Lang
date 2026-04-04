@@ -235,8 +235,9 @@ std::string ASTCompiler::parseStringToken(const Token& token)
 	{
 		if ((*it == '\\') && (it < end - 1))
 		{
-            if (parseNumericSequence(str, it, end, errorMsg)
-                || (parseCharSequence(str, it)))
+            if (parseCharSequence(str, it, end)
+                || parseNumericSequence(str, it, end, errorMsg)
+                || parseUnicodeSequence(str, it, end, errorMsg))
             {
                 continue;
             }

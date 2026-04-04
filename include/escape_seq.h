@@ -9,7 +9,17 @@ using svIter = std::string_view::const_iterator;
 bool parseNumericSequence(
     std::string& str,
     svIter& it,
-    svIter end,
+    const svIter end,
     std::string& errorMsg
 );
-bool parseCharSequence(std::string& str, svIter& it);
+bool parseUnicodeSequence(
+    std::string& str,
+    svIter& it,
+    const svIter end,
+    std::string& errorMsg
+);
+bool parseCharSequence(
+    std::string& str,
+    svIter& it,
+    const svIter end
+);
