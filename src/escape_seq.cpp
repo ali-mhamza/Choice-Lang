@@ -302,7 +302,7 @@ bool parseUnicodeSequence(
     int count{consumeUnicodeSequence(it, end, errorMsg)};
     if (count == -1) return false;
 
-    ui32 value = strToHex(it, count);
+    ui32 value{strToHex(it, count)};
     it += count + 1; // Skip characters and closing brace.
     // Result outside unicode range.
     if ((value > fourByteMax)
