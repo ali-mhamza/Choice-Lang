@@ -138,12 +138,12 @@ enum TokenType : ui8
 };
 
 // Can hold a literal of any needed size.
-typedef union Value {
+union Value {
 	void*			s; // For NULL exclusively.
 	i64				i;
 	double			d;
 	bool			b;
-} Value;
+};
 
 struct Token
 {
