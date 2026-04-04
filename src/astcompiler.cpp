@@ -3,17 +3,21 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/error.h"
+#include "../include/escape_seq.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include "../include/token.h"
 #include "../include/utils.h"
-#include <climits>
+#include <cctype>
+#include <limits>
 #include <vector>
 
 using namespace AST::Statement;
 using namespace AST::Expression;
+
+/* General macros. */
 
 #define DEF(type) void ASTCompiler::compile##type(const type* node)
 #define COMPILE(type)                                   \
@@ -34,11 +38,23 @@ using namespace AST::Expression;
         return;                                                     \
     } while (false)
 
+#define REPORT_ERROR_NO_RETURN(...)                                 \
+    do {                                                            \
+        hitError = true;                                            \
+        if (errorCount == COMPILE_ERROR_MAX)                        \
+            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
+        else if (errorCount < COMPILE_ERROR_MAX)                    \
+            CompileError{__VA_ARGS__}.report();                     \
+        errorCount++;                                               \
+    } while (false)
+
 constexpr bool accessFix{false};
 constexpr bool accessVar{true};
 
 constexpr bool getVar{true};
 constexpr bool setVar{false};
+
+/* Constructors/destructors. */
 
 ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     scopeCompiler{comp},
@@ -52,6 +68,8 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
 }
 
 ASTCompiler::~ASTCompiler() = default;
+
+/* Compilation helpers. */
 
 void ASTCompiler::addVariableOp(
     bool type,
@@ -198,46 +216,45 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
     }
 }
 
-static int parseEscapeSequence(char c)
-{
-	switch (c)
-	{
-		case 'n':	return '\n';
-		case 't':	return '\t';
-		case 'r':	return '\r';
-		case '\\':	return '\\';
-		case '"':	return '"';
-		default:	return -1;
-	}
-}
+/* String helper. */
 
-static std::string parseStringToken(const Token& token)
+std::string ASTCompiler::parseStringToken(const Token& token)
 {
-	using sizeT = std::string_view::size_type;
-
-	std::string str{};
 	auto size{token.text.size() - 2};
-	const auto& text{token.text.substr(1, size)};
+	const auto text{token.text.substr(1, size)};
+    auto it{text.begin()};
+    auto end{text.end()};
+
+    std::string str{};
 	str.reserve(size);
 
-	for (sizeT i{0}; i < size; i++)
+    std::string errorMsg{};
+    bool reportedError{false};
+
+	while (it < end)
 	{
-		if ((text[i] == '\\') && (i < size - 1))
+		if ((*it == '\\') && (it < end - 1))
 		{
-			int ret{parseEscapeSequence(text[i + 1])};
-			if (ret != -1)
-			{
-				str.push_back(static_cast<char>(ret));
-				i++;
-				continue;
-			}
+            if (parseNumericSequence(str, it, end, errorMsg)
+                || (parseCharSequence(str, it)))
+            {
+                continue;
+            }
+            else if (!reportedError && !errorMsg.empty())
+            {
+                REPORT_ERROR_NO_RETURN(token, errorMsg);
+                reportedError = true;
+            }
 		}
 
-		str.push_back(text[i]);
+		str.push_back(*it);
+        it++;
 	}
 
     return str;
 }
+
+/* AST node compilation functions. */
 
 DEF(VarDecl)
 {
@@ -1126,6 +1143,8 @@ DEF(LiteralExpr)
     #undef GET_STR
 }
 
+/* General compilation functions. */
+
 void ASTCompiler::compileExpr(const ExprUP& node)
 {
     if (node == nullptr) return;
@@ -1188,3 +1207,4 @@ Function* ASTCompiler::compile(const StmtVec& program)
 #undef DEF
 #undef COMPILE
 #undef REPORT_ERROR
+#undef REPORT_ERROR_NO_RETURN

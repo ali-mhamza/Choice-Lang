@@ -6,6 +6,7 @@
 #include "vartable.h"
 #include <memory>       // For std::unique_ptr.
 #include <stack>
+#include <string>
 #include <vector>
 
 class ASTCompiler
@@ -114,6 +115,7 @@ class ASTCompiler
 
         /* General helpers. */
 
+        std::string parseStringToken(const Token& token);
         // `patchBreaks`: True if we are to patch 'break' jumps.
         //                False otherwise.
         void patchLoopLabelJumps(const Token& label, bool patchBreaks);
