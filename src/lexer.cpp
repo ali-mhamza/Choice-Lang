@@ -121,8 +121,6 @@ i64 Lexer::intValue(std::string_view text) const
 	{
 		if (isdigit(c))
 			ret = (ret * 10) + (c - '0');
-		else if (c != '\'')
-			break;
 	}
 	
 	return ret;
@@ -138,8 +136,6 @@ double Lexer::decValue(std::string_view text) const
 		const char c{*it};
 		if (isdigit(c))
 			ret = (ret * 10) + (c - '0');
-		else if (c != '\'')
-			break;
 	}
 
 	it++; // Skip the '.'.
@@ -193,7 +189,7 @@ void Lexer::rangeToken()
 			"Expecting range-end value after '..'.");
 	}
 
-	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
+	while (isdigit(peekChar()) && !hitEnd())
 		advance();
 
 	if (matchSequence('.', 2))
@@ -206,7 +202,7 @@ void Lexer::rangeToken()
 				"Expecting skip value after '..'.");
 		}
 
-		while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
+		while (isdigit(peekChar()) && !hitEnd())
 			advance();
 	}
 
@@ -216,7 +212,7 @@ void Lexer::rangeToken()
 void Lexer::numToken()
 {
 	TokenType type{};
-	while ((isdigit(peekChar()) || peekChar() == '\'') && !hitEnd())
+	while (isdigit(peekChar()) && !hitEnd())
 		advance();
 
 	if (consumeChar('.'))
