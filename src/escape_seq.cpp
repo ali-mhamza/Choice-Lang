@@ -146,6 +146,7 @@ bool parseCharSequence(
 		case 'r':	c = '\r';   break;
 		case '\\':	c = '\\';   break;
 		case '"':	c = '"';    break;
+        case '`':   c = '`';    break;
 		default:	return false;
 	}
 
