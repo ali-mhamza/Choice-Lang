@@ -51,9 +51,9 @@ class Lexer
         void makeToken(TokenType type);
         void rangeToken();
         void numToken();
-        void stringToken();
-        // For multi-line strings.
-        void multiStringToken();
+        // `raw`: True if string is a raw string; false otherwise.
+        void stringToken(bool raw);
+        void multiStringToken(bool raw); // For multi-line strings.
         void identifierToken();
         // For nested comments with ###.
         // Returns true if nested comment was hit, false otherwise.

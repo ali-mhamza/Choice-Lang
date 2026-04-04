@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+#define NEWLINE_REPLACEMENT "<NL>"
+
 TokenPrinter::TokenPrinter(const vT& tokens) :
     tokens{tokens} {}
 
@@ -24,16 +26,10 @@ static std::string formatMultiLineString(const std::string_view& sv)
 {
     std::string newStr{sv};
 
-    // Clear any unwanted whitespace characters.
-    newStr.erase(std::remove_if(newStr.begin(), newStr.end(),
-    [](char c){
-        return ((c == '\r') || (c == '\f') || (c == '\v'));
-    }), newStr.end());
-
     auto it{newStr.find('\n')};
     while (it != newStr.npos)
     {
-        newStr.replace(it, 1, "\\n");
+        newStr.replace(it, 1, NEWLINE_REPLACEMENT);
         it = newStr.find('\n', it + 1);
     }
 
@@ -54,6 +50,11 @@ void TokenPrinter::printValue(const Token& token) const
                 token.text.substr(1, token.text.size() - 2)
             ));
             break;
+        case TOK_RAW_STR:
+            CH_PRINT("{}", formatMultiLineString(
+                token.text.substr(2, token.text.size() - 3)
+            ));
+            break;
         case TOK_TRUE:      CH_PRINT("true");                   break;
         case TOK_FALSE:     CH_PRINT("false");                  break;
         case TOK_NULL:      CH_PRINT("{}", token.content.s);    break;
@@ -67,7 +68,7 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
 
     "TOK_NUM", "TOK_NUM_DEC", "TOK_RANGE", "TOK_STR_LIT",
-    "TOK_TRUE", "TOK_FALSE", "TOK_NULL",
+    "TOK_RAW_STR", "TOK_TRUE", "TOK_FALSE", "TOK_NULL",
 
     "TOK_INT", "TOK_DEC", "TOK_BOOL", "TOK_STRING",
     "TOK_FUNC", "TOK_ARRAY", "TOK_TABLE", "TOK_ANY", "TOK_CLASS",
@@ -107,7 +108,7 @@ void TokenPrinter::printToken(const Token& token) const
         std::string format{CH_STR("({}:{})", token.line, token.position)};
         CH_PRINT("{:<10}", format);
 
-        if (token.type != TOK_STR_LIT)
+        if ((token.type != TOK_STR_LIT) && (token.type != TOK_RAW_STR))
             CH_PRINT("'{}' ", token.text);
         else
             CH_PRINT("'{}' ", formatMultiLineString(token.text));

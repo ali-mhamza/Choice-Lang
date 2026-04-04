@@ -1098,6 +1098,9 @@ DEF(VarExpr)
 
 DEF(LiteralExpr)
 {
+    #define GET_RAW_STR(tok) \
+        std::string{tok.text.substr(2, tok.text.size() - 3)}
+
     const Token& tok{node->value};
 
     if (tok.type == TOK_NUM)
@@ -1117,6 +1120,13 @@ DEF(LiteralExpr)
     else if (tok.type == TOK_STR_LIT)
     {
         Object obj{CH_ALLOC(String, parseStringToken(tok))};
+        code.loadRegConst(obj, previousReg);
+        reserveReg();
+    }
+
+    else if (tok.type == TOK_RAW_STR)
+    {
+        Object obj{CH_ALLOC(String, GET_RAW_STR(tok))};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }

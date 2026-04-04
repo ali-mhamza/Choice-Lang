@@ -22,6 +22,7 @@ enum TokenType : ui8
 	TOK_NUM_DEC,		// 1.23
 	TOK_RANGE,			// 1..10..2
 	TOK_STR_LIT,		// "Hello, world!"
+	TOK_RAW_STR,		// "Hello,\tworld!\n"
 	TOK_TRUE,			// true
 	TOK_FALSE,			// false
 	TOK_NULL,           // null

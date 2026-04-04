@@ -236,7 +236,7 @@ void Lexer::numToken()
 	makeToken(type);
 }
 
-void Lexer::stringToken()
+void Lexer::stringToken(bool raw)
 {
 	int escapeCharCount{0};
 	while (!hitEnd())
@@ -261,10 +261,10 @@ void Lexer::stringToken()
 		REPORT_ERROR(EOF, line, 0, "Unterminated string."); // Column is irrelevant.
 
 	advance(); // Consume final ".
-	makeToken(TOK_STR_LIT);
+	makeToken(raw ? TOK_RAW_STR : TOK_STR_LIT);
 }
 
-void Lexer::multiStringToken()
+void Lexer::multiStringToken(bool raw)
 {
 	// Before processing the quote.
 	ui16 tempLine{line};
@@ -283,7 +283,7 @@ void Lexer::multiStringToken()
 	advance(); // Consume final `.
 
 	stream.emplace_back(
-		TOK_STR_LIT,
+		raw ? TOK_RAW_STR : TOK_STR_LIT,
 		std::string_view{start, static_cast<ui8>(current - start)},
 		Value{}, tempLine, tempColumn
 	);
@@ -478,10 +478,10 @@ void Lexer::singleToken()
 			break;
 		}
 		
-		// Strings.
+		// Strings (raw string in default case below).
 
-		case '"':	stringToken();		break;
-		case '`':	multiStringToken();	break;
+		case '"':	stringToken(false);			break;
+		case '`':	multiStringToken(false);	break;
 
 		// Whitespace.
 		
@@ -489,7 +489,9 @@ void Lexer::singleToken()
 		case '\n':
 			break;
 		// Open to change.
-		case '\t':	column += TAB_SIZE - 1; break;
+		case '\t':
+			column += TAB_SIZE - 1;
+			break;
 
 		// Multi-line comment.
 
@@ -521,7 +523,11 @@ void Lexer::singleToken()
 
 		default:
 		{
-			if (isdigit(c))
+			if ((c == 'r') && consumeChar('"'))
+				stringToken(true);
+			else if ((c == 'r') && consumeChar('`'))
+				multiStringToken(true);
+			else if (isdigit(c))
 				numToken();
 			else if (isalpha(c) || c == '_')
 				identifierToken();
