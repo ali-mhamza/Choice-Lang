@@ -1,6 +1,6 @@
 #include "../include/lexer.h"
-#include "../include/common.h"	// For CH_PRINT, fixed-size integer types.
-#include "../include/config.h"	// For LEX_ERROR_MAX, AVG_TOK_SIZE constants.
+#include "../include/common.h"
+#include "../include/config.h"
 #include "../include/error.h"
 #include "../include/token.h"
 #include <cctype>				// For isdigit, isalpha, is alnum.

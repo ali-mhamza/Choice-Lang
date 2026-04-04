@@ -1,4 +1,4 @@
-#include "common.h"     // For i64 in constructRange() function.
+#include "common.h"
 #include <array>
 #include <string>
 #include <string_view>
