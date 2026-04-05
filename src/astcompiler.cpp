@@ -893,7 +893,7 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
     // We then increment/decrement the second register:
     // [x][x + 1/x - 1]
     // We then store the new value in the variable's location:
-    // [x + 1/x - 1][.][.][...] -> [...][x][x + 1/x - 1]
+    // [x + 1/x - 1][...][...][x][x + 1/x - 1]
     // For post-increment, we move the value in the second
     // register into the first one:
     // [x + 1/x - 1][x + 1/x - 1]
