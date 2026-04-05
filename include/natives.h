@@ -23,6 +23,7 @@ namespace Natives
         FUNC_CLOCK,
         FUNC_RANGE,
         FUNC_READ,
+        FUNC_QUIT,
         NUM_FUNCS
     };
 
@@ -34,6 +35,7 @@ namespace Natives
     void clock(iter it, ui8 args, const Token& error);
     void range(iter it, ui8 args, const Token& error);
     void read(iter it, ui8 args, const Token& error);
+    void quit(iter it, ui8 args, const Token& error);
 
     extern const std::array<NativeFunc, NUM_FUNCS> functions;
     extern const std::array<const char*, NUM_FUNCS> funcNames;

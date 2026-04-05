@@ -8,7 +8,8 @@
 #include "../include/object.h"
 #include <array>
 #include <chrono>
-#include <cstdio> // For fflush.
+#include <cstdio>   // For fflush.
+#include <cstdlib>  // For exit().
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -19,13 +20,13 @@ const std::array<Natives::NativeFunc,
 Natives::FuncType::NUM_FUNCS> Natives::functions{
     Natives::print, Natives::println, Natives::format,
     Natives::type, Natives::len, Natives::clock,
-    Natives::range, Natives::read
+    Natives::range, Natives::read, Natives::quit
 };
 
 const std::array<const char*,
 Natives::FuncType::NUM_FUNCS> Natives::funcNames{
     "print", "println", "format", "type", "len",
-    "clock", "range", "read"
+    "clock", "range", "read", "quit"
 };
 
 const std::unordered_map<std::string_view,
@@ -37,7 +38,8 @@ const std::unordered_map<std::string_view,
     {"len", Natives::FUNC_LEN},
     {"clock", Natives::FUNC_CLOCK},
     {"range", Natives::FUNC_RANGE},
-    {"read", Natives::FUNC_READ}
+    {"read", Natives::FUNC_READ},
+    {"quit", Natives::FUNC_QUIT}
 };
 
 void Natives::print(Natives::iter it, ui8 args, const Token& error)
@@ -264,4 +266,19 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
     std::string input{};
     std::getline(std::cin, input);
     it[-1] = Object{CH_ALLOC(String, input)};
+}
+
+void Natives::quit(Natives::iter it, ui8 args, const Token& error)
+{
+    if (args > 1)
+    {
+        throw RuntimeError(error,
+            CH_STR("Expect 0 or 1 arguments but found {}.", args)
+        );
+    }
+    if ((args == 1) && !IS_INT(it[0]))
+        throw RuntimeError(error, "Argument must be an integer.");
+
+    exit((args == 0) ? 0 : AS_INT(it[0]));
+    // No return value.
 }
