@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"     // For vT, fixed-size integer types.
 #include "token.h"
+#include <string>
 #include <string_view>
 
 class Lexer
@@ -47,8 +48,11 @@ class Lexer
 
         /* Value conversion methods. */
 
-        i64 intValue(std::string_view text) const;
-        double decValue(std::string_view text) const;
+        // `dec`: True if parsing a floating-point value; false otherwise.
+        std::string formatNumber(const std::string_view text, bool dec);
+
+        i64 intValue(std::string_view text);
+        double decValue(std::string_view text);
         bool boolValue(TokenType type) const;
 
         /* Token makers. */

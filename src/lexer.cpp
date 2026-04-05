@@ -8,6 +8,8 @@
 #include "../include/token.h"
 #include "../include/utils.h"
 #include <cctype>				// For isdigit, isalpha, is alnum.
+#include <cstring>				// For strchr.
+#include <string>
 #include <string_view>
 #include <unordered_map>		// For keywords map.
 
@@ -25,6 +27,16 @@
 			LexError{__VA_ARGS__}.report();                     \
 		errorCount++;                                           \
 		return;                                                 \
+	} while (false)
+
+#define REPORT_ERROR_NO_RETURN(...)								\
+	do {                                                        \
+		hitError = true;                                        \
+		if (errorCount == LEX_ERROR_MAX)                   		\
+			CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");		\
+		else if (errorCount < LEX_ERROR_MAX)					\
+			LexError{__VA_ARGS__}.report();                     \
+		errorCount++;                                           \
 	} while (false)
 
 static const std::unordered_map<std::string_view, TokenType> keywords{
@@ -157,16 +169,8 @@ bool Lexer::checkHyperComment()
 			consumeChars(3);
 		else
 		{
-			// Must report manually since we return a value below.
-			hitError = true;
-			if (errorCount < COMPILE_ERROR_MAX)
-			{
-				LexError{peekChar(), line, static_cast<ui8>(column + 1),
-					"Unterminated nested comment."}.report();
-			}
-			else if (errorCount == COMPILE_ERROR_MAX)
-				CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
-			errorCount++;
+			REPORT_ERROR_NO_RETURN(peekChar(), line, static_cast<ui8>(column + 1),
+				"Unterminated nested comment.");
 		}
 		return true;
 	}
@@ -219,7 +223,45 @@ bool Lexer::checkNumericLiteral(char start)
 	return false;
 }
 
-i64 Lexer::intValue(std::string_view text) const
+std::string Lexer::formatNumber(const std::string_view text, bool dec)
+{
+	ui8 textSize{static_cast<ui8>(text.size())};
+	ui8 columnStart{static_cast<ui8>(column - textSize)};
+	const char* allowedChars{".+-"};
+
+	std::string str{};
+	str.reserve(textSize);
+
+	ui8 i{0};
+	if (starts_with(text, "0b") || starts_with(text, "0o")
+		|| starts_with(text, "0x"))
+	{
+		i += 2;
+	}
+
+	auto isValidChar = [dec](char c) -> bool {
+		// Either a digit, or a hex digit.
+		// Exception: 'e' suffix in floating-point values.
+		return (isdigit(c) || (isHex(c) && !dec));
+	};
+
+	for (; i < textSize; i++, columnStart++)
+	{
+		const char c{text[i]};
+		if (isalnum(c) || (strchr(allowedChars, c) != nullptr))
+			str.push_back(text[i]);
+		else if ((c == '\'') && ((i == 0) || (i == textSize - 1) ||
+				!isValidChar(text[i - 1]) || !isValidChar(text[i + 1])))
+		{
+			REPORT_ERROR_NO_RETURN(c, line, columnStart,
+				"Invalid use of digit separator.");
+		}
+	}
+
+	return str;
+}
+
+i64 Lexer::intValue(std::string_view text)
 {
 	i64 ret{};
 	int baseValue{};
@@ -232,19 +274,37 @@ i64 Lexer::intValue(std::string_view text) const
 		case HEX:	baseValue = 16;	break;
 	}
 
-	const char* start = text.data();
-	if (base != DEC) start += 2; // Skip the 0{} at the beginning.
-	// Assume no errors for now.
-	fast_float::from_chars(start, text.data() + text.size(),
-		ret, baseValue);
+	std::string formatted{formatNumber(text, false)};
+	auto answer{fast_float::from_chars(formatted.data(),
+		formatted.data() + formatted.size(), ret, baseValue)};
+
+	if (!answer)
+	{
+		REPORT_ERROR_NO_RETURN(
+			text.back(), line, static_cast<ui8>(column - 1),
+			"Failed to parse numeric literal."
+		);
+	}
+
 	return ret;
 }
 
-double Lexer::decValue(std::string_view text) const
+double Lexer::decValue(std::string_view text)
 {
 	double ret{};
-	// Assume no errors for now.
-	fast_float::from_chars(text.data(), text.data() + text.size(), ret);
+
+	std::string formatted{formatNumber(text, true)};
+	auto answer{fast_float::from_chars(formatted.data(),
+		formatted.data() + formatted.size(), ret)};
+
+	if (!answer)
+	{
+		REPORT_ERROR_NO_RETURN(
+			text.back(), line, static_cast<ui8>(column - 1),
+			"Failed to parse floating-point literal."
+		);
+	}
+
 	return ret;
 }
 
@@ -280,7 +340,7 @@ void Lexer::makeToken(TokenType type)
 void Lexer::numToken()
 {
 	TokenType type{TOK_NUM};
-	while (isdigit(peekChar()) && !hitEnd())
+	while ((isdigit(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 		advance();
 
 	if (peekChar() == '.')
@@ -292,7 +352,7 @@ void Lexer::numToken()
 		}
 
 		advance(); // Skip the single '.'.
-		while (isdigit(peekChar()) && !hitEnd())
+		while ((isdigit(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 			advance();
 		type = TOK_NUM_DEC;
 	}
@@ -305,12 +365,9 @@ void Lexer::numToken()
 				"Invalid character for scientific notation.");
 		}
 		if (!isdigit(peekChar()))
-		{
-			REPORT_ERROR(peekChar(), line, column,
-				"Expect exponent.");
-		}
+			REPORT_ERROR(peekChar(), line, column, "Expect exponent.");
 
-		while (isdigit(peekChar()) && !hitEnd())
+		while ((isdigit(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 			advance();
 		type = TOK_NUM_DEC;
 	}
@@ -341,7 +398,7 @@ void Lexer::numericToken(bool (*check)(char))
 		REPORT_ERROR(peekChar(), line, column, sv);
 	}
 
-	while (check(peekChar()) && !hitEnd())
+	while ((check(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 		advance();
 	if (!hitEnd() && isalnum(peekChar()))
 	{
