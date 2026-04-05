@@ -422,7 +422,7 @@ void VM::callFunc(const Object& callee, ui8 start, ui8 argCount)
 void VM::callNative(const Object& callee, ui8 start, ui8 argCount)
 {
     auto* func{Natives::functions[AS_NATIVE(callee)]};
-    (*func)(&registers[start], argCount, Token());
+    func(&registers[start], argCount, Token());
 }
 
 void VM::callObj(const Object& callee, ui8 start, ui8 argCount)
