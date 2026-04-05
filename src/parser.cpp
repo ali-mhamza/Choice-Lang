@@ -850,7 +850,7 @@ StmtVec& Parser::parseToAST(const vT& tokens)
 {
     program.clear(); // In case we want to reuse the parser.
     if (tokens.empty()) return program;
-    
+
     it = tokens.begin();
     currentTok = tokens[0];
     syntaxError = false;
