@@ -1,6 +1,7 @@
 #include "../include/escape_seq.h"
 #include "../include/common.h"
 #include "../include/error.h"
+#include "../include/utils.h"
 #include <array>
 #include <string>
 #include <string_view>
@@ -34,38 +35,6 @@ struct NumParseRules
     bool (*check)(char);
     ui8 (*convert)(char);
 };
-
-static inline bool isBinary(char c)
-{
-    return ((c == '0') || (c == '1'));
-}
-
-static inline bool isOctal(char c)
-{
-    return ((c >= '0') && (c <= '7'));
-}
-
-static inline bool isHex(char c)
-{
-    return isxdigit(c);
-}
-
-static inline ui8 fromBinary(char c)
-{
-    return (c - '0');
-}
-
-static inline ui8 fromOctal(char c)
-{
-    return (c - '0');
-}
-
-static inline ui8 fromHex(char c)
-{
-    if (isdigit(c)) return (c - '0');
-    if (isupper(c)) return (c - 'A' + 10);
-    return (c - 'a' + 10);
-}
 
 static inline ui32 strToHex(const svIter it, int count)
 {

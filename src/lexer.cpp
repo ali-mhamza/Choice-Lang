@@ -1,8 +1,12 @@
 #include "../include/lexer.h"
+
+#include "fast_float.h"
+
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/error.h"
 #include "../include/token.h"
+#include "../include/utils.h"
 #include <cctype>				// For isdigit, isalpha, is alnum.
 #include <string_view>
 #include <unordered_map>		// For keywords map.
@@ -113,40 +117,134 @@ char Lexer::previousChar(int distance /* = 0 */) const
 	return EOF;
 }
 
+TokenType Lexer::identifierType()
+{	
+	if (static_cast<ui8>(current - start) < 2)
+		return TOK_IDENTIFIER;
+
+	std::string_view text{start, static_cast<ui8>(current - start)};
+	auto it{keywords.find(text)};
+	if (it != keywords.end())
+		return it->second;
+
+	return TOK_IDENTIFIER;
+}
+
+bool Lexer::matchSequence(char c, int length) const
+{
+	for (int i{0}; i < length; i++)
+	{
+		if (peekChar(i) != c)
+			return false;
+	}
+
+	return true;
+}
+
+bool Lexer::checkHyperComment()
+{
+	// Check for hyper-comment.
+	if (matchSequence('#', 2)) // We already consumed one.
+	{
+		// Skip the remaining ##.
+		advance(); advance();
+
+		while (!matchSequence('#', 3) && !hitEnd())
+			advance();
+
+		// Check for closing ###.
+		if (matchSequence('#', 3))
+			consumeChars(3);
+		else
+		{
+			// Must report manually since we return a value below.
+			hitError = true;
+			if (errorCount < COMPILE_ERROR_MAX)
+			{
+				LexError{peekChar(), line, static_cast<ui8>(column + 1),
+					"Unterminated nested comment."}.report();
+			}
+			else if (errorCount == COMPILE_ERROR_MAX)
+				CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
+			errorCount++;
+		}
+		return true;
+	}
+	else
+		return false;
+}
+
+bool Lexer::checkRawString(char start)
+{
+	if ((start == 'r') && consumeChar('"'))
+	{
+		stringToken(true);
+		return true;
+	}
+	else if ((start == 'r') && consumeChar('`'))
+	{
+		multiStringToken(true);
+		return true;
+	}
+
+	return false;
+}
+
+bool Lexer::checkNumericLiteral(char start)
+{
+	if (start != '0') return false;
+
+	if (consumeChar('b'))
+	{
+		base = BIN;
+		numericToken(isBinary);
+		base = DEC;
+		return true;
+	}
+	else if (consumeChar('o'))
+	{
+		base = OCT;
+		numericToken(isOctal);
+		base = DEC;
+		return true;
+	}
+	else if (consumeChar('x'))
+	{
+		base = HEX;
+		numericToken(isHex);
+		base = DEC;
+		return true;
+	}
+
+	return false;
+}
+
 i64 Lexer::intValue(std::string_view text) const
 {
-	i64 ret{0};
-	for (char c : text)
+	i64 ret{};
+	int baseValue{};
+
+	switch (base)
 	{
-		if (isdigit(c))
-			ret = (ret * 10) + (c - '0');
+		case DEC:	baseValue = 10;	break;
+		case BIN:	baseValue = 2;	break;
+		case OCT:	baseValue = 8;	break;
+		case HEX:	baseValue = 16;	break;
 	}
-	
+
+	const char* start = text.data();
+	if (base != DEC) start += 2; // Skip the 0{} at the beginning.
+	// Assume no errors for now.
+	fast_float::from_chars(start, text.data() + text.size(),
+		ret, baseValue);
 	return ret;
 }
 
 double Lexer::decValue(std::string_view text) const
 {
-	double ret{0.0};
-	auto it{text.begin()};
-	auto end{text.end()};
-	for (; it < end; it++)
-	{
-		const char c{*it};
-		if (isdigit(c))
-			ret = (ret * 10) + (c - '0');
-	}
-
-	it++; // Skip the '.'.
-
-	double div{1.0 / 10.0};
-	for (; it < end; it++)
-	{
-		const char c{*it};
-		ret += (c - '0') * div;
-		div /= 10;
-	}
-	
+	double ret{};
+	// Assume no errors for now.
+	fast_float::from_chars(text.data(), text.data() + text.size(), ret);
 	return ret;
 }
 
@@ -210,7 +308,7 @@ void Lexer::rangeToken()
 
 void Lexer::numToken()
 {
-	TokenType type{};
+	TokenType type{TOK_NUM};
 	while (isdigit(peekChar()) && !hitEnd())
 		advance();
 
@@ -225,10 +323,59 @@ void Lexer::numToken()
 			advance();
 		type = TOK_NUM_DEC;
 	}
-	else
-		type = TOK_NUM;
+
+	if (consumeChar('e'))
+	{
+		if (!consumeChar('-') && !consumeChar('+') && !isdigit(peekChar()))
+		{
+			REPORT_ERROR(peekChar(), line, column,
+				"Invalid character for scientific notation.");
+		}
+		if (!isdigit(peekChar()))
+		{
+			REPORT_ERROR(peekChar(), line, column,
+				"Expect exponent.");
+		}
+
+		while (isdigit(peekChar()) && !hitEnd())
+			advance();
+		type = TOK_NUM_DEC;
+	}
 
 	makeToken(type);
+}
+
+void Lexer::numericToken(bool (*check)(char))
+{
+	if (!check(peekChar()))
+	{
+		std::string_view sv{};
+		switch (base)
+		{
+			case BIN:
+				sv = "Expect binary digit after '0b' prefix.";
+				break;
+			case OCT:
+				sv = "Expect octal digit after '0o' prefix.";
+				break;
+			case HEX:
+				sv = "Expect hexadecimal digit after '0x' prefix.";
+				break;
+			default:
+				CH_UNREACHABLE();
+		}
+
+		REPORT_ERROR(peekChar(), line, column, sv);
+	}
+
+	while (check(peekChar()) && !hitEnd())
+		advance();
+	if (!hitEnd() && isalnum(peekChar()))
+	{
+		REPORT_ERROR(peekChar(), line, column,
+			"Invalid character for numeric literal.");
+	}
+	makeToken(TOK_NUM);
 }
 
 void Lexer::stringToken(bool raw)
@@ -284,23 +431,6 @@ void Lexer::multiStringToken(bool raw)
 	);
 }
 
-TokenType Lexer::identifierType()
-{	
-	if (static_cast<ui8>(current - start) < 2)
-		return TOK_IDENTIFIER;
-
-	std::string_view text{start, static_cast<ui8>(current - start)};
-	auto it{keywords.find(text)};
-	if (it != keywords.end())
-	{
-		if (it->second == TOK_CLASS)
-			state.inClass = true;
-		return it->second;
-	}
-
-	return TOK_IDENTIFIER;
-}
-
 void Lexer::identifierToken()
 {
 	char c{peekChar()};
@@ -310,50 +440,6 @@ void Lexer::identifierToken()
 		c = peekChar();
 	}
 	makeToken(identifierType());
-}
-
-bool Lexer::matchSequence(char c, int length) const
-{
-	for (int i{0}; i < length; i++)
-	{
-		if (peekChar(i) != c)
-			return false;
-	}
-
-	return true;
-}
-
-bool Lexer::checkHyperComment()
-{
-	// Check for hyper-comment.
-	if (matchSequence('#', 2)) // We already consumed one.
-	{
-		// Skip the remaining ##.
-		advance(); advance();
-
-		while (!matchSequence('#', 3) && !hitEnd())
-			advance();
-
-		// Check for closing ###.
-		if (matchSequence('#', 3))
-			consumeChars(3);
-		else
-		{
-			// Must report manually since we return a value below.
-			hitError = true;
-			if (errorCount < COMPILE_ERROR_MAX)
-			{
-				LexError{peekChar(), line, static_cast<ui8>(column + 1),
-					"Unterminated nested comment."}.report();
-			}
-			else if (errorCount == COMPILE_ERROR_MAX)
-				CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
-			errorCount++;
-		}
-		return true;
-	}
-	else
-		return false;
 }
 
 void Lexer::conditionalToken(char c, TokenType two, TokenType one)
@@ -491,10 +577,8 @@ void Lexer::singleToken()
 
 		default:
 		{
-			if ((c == 'r') && consumeChar('"'))
-				stringToken(true);
-			else if ((c == 'r') && consumeChar('`'))
-				multiStringToken(true);
+			if (checkRawString(c) || checkNumericLiteral(c))
+				break;
 			else if (isdigit(c))
 				numToken();
 			else if (isalpha(c) || c == '_')

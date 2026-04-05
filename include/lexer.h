@@ -6,13 +6,17 @@
 class Lexer
 {
     private:
+        enum NumBase { DEC, BIN, OCT, HEX };
+
         const char* start{};
         const char* current{};
         const char* end{};
+
         vT stream{};
         ui16 line{1};
         ui8 column{1};
-        ClassState state{ false, 0 };
+        NumBase base{DEC};
+
         bool hitError{false};
         int errorCount{0};
 
@@ -31,8 +35,15 @@ class Lexer
         void consumeChars(int count = 1);
         char peekChar(int distance = 0) const;
         char previousChar(int distance = 0) const;
+
         TokenType identifierType();
         bool matchSequence(char c, int length) const;
+
+        // For nested comments with ###.
+        // Returns true if nested comment was hit, false otherwise.
+        bool checkHyperComment();
+        bool checkRawString(char start);
+        bool checkNumericLiteral(char start);
 
         /* Value conversion methods. */
 
@@ -45,13 +56,12 @@ class Lexer
         void makeToken(TokenType type);
         void rangeToken();
         void numToken();
+        // Binary, octal, and hexadecimal literals.
+        void numericToken(bool (*check)(char));
         // `raw`: True if string is a raw string; false otherwise.
         void stringToken(bool raw);
         void multiStringToken(bool raw); // For multi-line strings.
         void identifierToken();
-        // For nested comments with ###.
-        // Returns true if nested comment was hit, false otherwise.
-        bool checkHyperComment();
         // Largely inspired by similar function in Wren source code.
         void conditionalToken(char c, TokenType two, TokenType one);
         void singleToken();

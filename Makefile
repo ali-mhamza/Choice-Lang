@@ -1,6 +1,7 @@
 CXX = g++
 INCLUDES =	-Idependencies/personal \
 			-Idependencies/fmt \
+			-Idependencies/fast_float \
 			-Idependencies/replxx -Idependencies/replxx/include
 CXX_STANDARD = -std=c++17
 
