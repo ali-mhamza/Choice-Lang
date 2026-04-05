@@ -46,7 +46,6 @@ void Lexer::setUp(const std::string_view& code)
 
 	line = 1;
 	column = 1;
-	state = {false, 0};
 	hitError = false;
 
 	stream.clear();
@@ -372,31 +371,17 @@ void Lexer::singleToken()
 	
 	switch (c)
 	{
-		case '[': makeToken(TOK_LEFT_BRACKET);	break;
-		case ']': makeToken(TOK_RIGHT_BRACKET);	break;
-		case '(': makeToken(TOK_LEFT_PAREN);	break;
-		case ')': makeToken(TOK_RIGHT_PAREN);	break;
-		case '{':
-		{
-			if (state.inClass) state.braceCount++;
-			makeToken(TOK_LEFT_BRACE);
-			break;
-		}
-		case '}':
-		{
-			if (state.inClass)
-			{
-				state.braceCount--;
-				state.inClass = !(state.braceCount == 0);
-			}
-			makeToken(TOK_RIGHT_BRACE);
-			break;
-		}
-		case ';':	makeToken(TOK_SEMICOLON);	break;
-		case ',':	makeToken(TOK_COMMA);		break;
-		case ':':	makeToken(TOK_COLON);		break;
-		case '.':	makeToken(TOK_DOT);			break;
-		case '?':	makeToken(TOK_QMARK);		break;
+		case '[': 	makeToken(TOK_LEFT_BRACKET);	break;
+		case ']': 	makeToken(TOK_RIGHT_BRACKET);	break;
+		case '(': 	makeToken(TOK_LEFT_PAREN);		break;
+		case ')': 	makeToken(TOK_RIGHT_PAREN);		break;
+		case '{': 	makeToken(TOK_LEFT_BRACE);		break;
+		case '}': 	makeToken(TOK_RIGHT_BRACE);		break;
+		case ';':	makeToken(TOK_SEMICOLON);		break;
+		case ',':	makeToken(TOK_COMMA);			break;
+		case ':':	makeToken(TOK_COLON);			break;
+		case '.':	makeToken(TOK_DOT);				break;
+		case '?':	makeToken(TOK_QMARK);			break;
 
 		case '+':
 		{
@@ -502,19 +487,6 @@ void Lexer::singleToken()
 				REPORT_ERROR(EOF, line, 0, "Unterminated comment.");
 			advance();
 			break;
-		}
-
-		case '_':
-		{
-			if (state.inClass && consumeChar('_'))
-			{
-				makeToken(TOK_UNDER_UNDER);
-				break;
-			}
-			CH_FALLTHROUGH();
-			// No break since we interpret it
-			// as the first character in an
-			// identifier instead.
 		}
 
 		default:

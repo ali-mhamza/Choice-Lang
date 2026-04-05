@@ -3,12 +3,6 @@
 #include "token.h"
 #include <string_view>
 
-struct ClassState
-{
-    bool inClass{};
-    ui8 braceCount{};
-};
-
 class Lexer
 {
     private:
