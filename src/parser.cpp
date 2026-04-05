@@ -853,6 +853,7 @@ StmtVec& Parser::parseToAST(const vT& tokens)
 
     it = tokens.begin();
     currentTok = tokens[0];
+    hitError = false;
     syntaxError = false;
     semanticError = false;
     errorCount = 0;
