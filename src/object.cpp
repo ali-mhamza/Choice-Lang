@@ -191,12 +191,26 @@ bool Object::in(const Object& other) const
     }
 }
 
+static std::string doubleToStr(double d)
+{
+    auto output{CH_STR("{:.6f}", d)};
+
+    while (output.back() == '0')
+        output.pop_back();
+
+    // Remove the '.' if no decimals to print.
+    if (output.back() == '.')
+        output.pop_back();
+
+    return output;
+}
+
 std::string Object::printVal() const
 {
     switch (type)
     {
         case OBJ_INT:       return std::to_string(AS_INT(*this));
-        case OBJ_DEC:       return std::to_string(AS_DEC(*this));
+        case OBJ_DEC:       return doubleToStr(AS_DEC(*this));
         case OBJ_BOOL:      return (AS_BOOL(*this) ? "true" : "false");
         case OBJ_NULL:      return "null";
         case OBJ_TYPE:      return std::string(objTypes[AS_TYPE(*this)]);
