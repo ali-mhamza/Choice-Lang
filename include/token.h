@@ -15,7 +15,7 @@ enum TokenType : ui8
 	TOK_SEMICOLON,		// ;
 	TOK_COMMA,          // ,
 	TOK_QMARK,			// ?
-	
+
 	/* Literals. */
 
 	TOK_NUM,			// 123 (default)
