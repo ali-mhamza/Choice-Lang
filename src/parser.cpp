@@ -529,29 +529,17 @@ ExprUP Parser::expression()
 
 ExprUP Parser::assignment()
 {
-    ExprUP target{range()};
+    ExprUP target{logicOr()};
     if (IS_ASSIGN_TOK(currentTok.type))
     {
         nextTok();
         Token oper{previousTok};
         if ((target == nullptr) || (target->type != E_VAR_EXPR)) // Temporary.
             REPORT_SEMANTIC(previousTok, "Invalid assignment target.");
-        target = std::make_unique<AssignExpr>(target, oper, expression());
+        target = std::make_unique<AssignExpr>(target, oper, logicOr());
     }
 
     return target;
-}
-
-ExprUP Parser::range()
-{
-    ExprUP expr{logicOr()};
-    if (consumeTok(TOK_DOT_DOT))
-    {
-        TokenType oper{previousTok.type};
-        expr = std::make_unique<BinaryExpr>(expr, oper, logicOr());
-    }
-
-    return expr;
 }
 
 ExprUP Parser::logicOr()
@@ -592,13 +580,25 @@ ExprUP Parser::equality()
 
 ExprUP Parser::comparison()
 {
-    ExprUP expr{bitOr()};
+    ExprUP expr{range()};
     while (consumeToks(TOK_GT, TOK_GT_EQ, TOK_LT, TOK_LT_EQ, TOK_IN)
             || (consumeTok(TOK_NOT) && checkTok(TOK_IN)))
     {
         TokenType oper{previousTok.type};
         if (oper == TOK_NOT) nextTok();
-        expr = std::make_unique<CompareExpr>(expr, oper, bitOr());
+        expr = std::make_unique<CompareExpr>(expr, oper, range());
+    }
+
+    return expr;
+}
+
+ExprUP Parser::range()
+{
+    ExprUP expr{bitOr()};
+    if (consumeTok(TOK_DOT_DOT))
+    {
+        TokenType oper{previousTok.type};
+        expr = std::make_unique<BinaryExpr>(expr, oper, bitOr());
     }
 
     return expr;
