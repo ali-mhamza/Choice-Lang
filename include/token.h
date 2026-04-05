@@ -20,7 +20,6 @@ enum TokenType : ui8
 
 	TOK_NUM,			// 123 (default)
 	TOK_NUM_DEC,		// 1.23
-	TOK_RANGE,			// 1..10..2
 	TOK_STR_LIT,		// "Hello, world!"
 	TOK_RAW_STR,		// "Hello,\tworld!\n"
 	TOK_TRUE,			// true
@@ -102,6 +101,10 @@ enum TokenType : ui8
 	TOK_TILDE,          // ~
 	TOK_LEFT_SHIFT,		// <<
 	TOK_RIGHT_SHIFT,	// >>
+
+	/* Range operator. */
+
+	TOK_DOT_DOT,		// ..
 
 	/* Compound assignment operators. */
 

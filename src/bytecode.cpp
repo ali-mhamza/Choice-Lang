@@ -160,10 +160,6 @@ ui64 ByteCode::countPool() const
 					// Added type byte (1) and null byte (1).
 					count += AS_STRING(obj)->str.size() + 2 * sizeof(ui8);
 					break;
-				case OBJ_RANGE:
-					// Added type byte (1) and three i64 (3 * 8) values.
-					count += sizeof(ui8) + 3 * sizeof(i64);
-					break;
 				default:
 					CH_UNREACHABLE();
 			}

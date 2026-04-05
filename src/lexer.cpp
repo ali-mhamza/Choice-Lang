@@ -277,48 +277,21 @@ void Lexer::makeToken(TokenType type)
 		column - static_cast<ui8>(current - start));
 }
 
-void Lexer::rangeToken()
-{
-	if (!isdigit(peekChar()))
-	{
-		 // Check column value here.
-		REPORT_ERROR(peekChar(), line, static_cast<ui8>(column + 1),
-			"Expecting range-end value after '..'.");
-	}
-
-	while (isdigit(peekChar()) && !hitEnd())
-		advance();
-
-	if (matchSequence('.', 2))
-	{
-		consumeChars(2);
-		if (!isdigit(peekChar()))
-		{
-			// Check column value here.
-			REPORT_ERROR(peekChar(), line, static_cast<ui8>(column + 1),
-				"Expecting skip value after '..'.");
-		}
-
-		while (isdigit(peekChar()) && !hitEnd())
-			advance();
-	}
-
-	makeToken(TOK_RANGE);
-}
-
 void Lexer::numToken()
 {
 	TokenType type{TOK_NUM};
 	while (isdigit(peekChar()) && !hitEnd())
 		advance();
 
-	if (consumeChar('.'))
+	if (peekChar() == '.')
 	{
-		if (consumeChar('.'))
+		if (peekChar(1) == '.') // Range (1..2), not a decimal (1.2).
 		{
-			rangeToken();
+			makeToken(type);
 			return;
 		}
+
+		advance(); // Skip the single '.'.
 		while (isdigit(peekChar()) && !hitEnd())
 			advance();
 		type = TOK_NUM_DEC;
@@ -466,7 +439,6 @@ void Lexer::singleToken()
 		case ';':	makeToken(TOK_SEMICOLON);		break;
 		case ',':	makeToken(TOK_COMMA);			break;
 		case ':':	makeToken(TOK_COLON);			break;
-		case '.':	makeToken(TOK_DOT);				break;
 		case '?':	makeToken(TOK_QMARK);			break;
 
 		case '+':
@@ -509,6 +481,7 @@ void Lexer::singleToken()
 		case '%':	conditionalToken('=', TOK_PERCENT_EQ, TOK_PERCENT);	break;
 		case '^':	conditionalToken('=', TOK_UARROW_EQ, TOK_UARROW);	break;
 		case '~':	conditionalToken('=', TOK_TILDE_EQ, TOK_TILDE);		break;
+		case '.':	conditionalToken('.', TOK_DOT_DOT, TOK_DOT);		break;
 		case '=':	conditionalToken('=', TOK_EQ_EQ, TOK_EQUAL);		break;
 		case '!':	conditionalToken('=', TOK_BANG_EQ, TOK_BANG);		break;
 		case '>':

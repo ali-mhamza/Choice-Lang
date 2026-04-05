@@ -54,7 +54,6 @@ class Lexer
         /* Token makers. */
 
         void makeToken(TokenType type);
-        void rangeToken();
         void numToken();
         // Binary, octal, and hexadecimal literals.
         void numericToken(bool (*check)(char));

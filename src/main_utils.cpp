@@ -159,24 +159,6 @@ static Object reconstructString(vBit& it, const vBit& end)
 	return Object{CH_ALLOC(String, str)};
 }
 
-static Object reconstructRange(vBit& it, const vBit& end)
-{
-	std::array<i64, 3> array{};
-	for (int i{0}; i < 3; i++)
-	{
-		CHECK_EOF();
-		array[i] = reconstructBytes<i64>(it, end);
-		// reconstructBytes decrements the iterator once done
-		// to account for the extra increment for the last loop
-		// iteration.
-		// This undoes that to actually move the iterator forward.
-		it++;
-	}
-
-	it--;
-	return Object{CH_ALLOC(Range, array)};
-}
-
 vObj reconstructPool(const vByte& poolBytes)
 {
 	vObj pool{};
@@ -197,9 +179,6 @@ vObj reconstructPool(const vByte& poolBytes)
 				break;
 			case OBJ_STRING:
 				pool.emplace_back(reconstructString(++it, poolBytes.end()));
-				break;
-			case OBJ_RANGE:
-				pool.emplace_back(reconstructRange(++it, poolBytes.end()));
 				break;
 			default:
 			{

@@ -11,17 +11,6 @@
 TokenPrinter::TokenPrinter(const vT& tokens) :
     tokens{tokens} {}
 
-static std::string removeDigitSeps(const std::string_view& sv)
-{
-    std::string newStr{sv};
-    newStr.erase(std::remove_if(newStr.begin(), newStr.end(),
-    [](char c){
-        return (c == '\'');
-    }), newStr.end());
-
-    return newStr;
-}
-
 static std::string formatMultiLineString(const std::string_view& sv)
 {
     std::string newStr{sv};
@@ -42,9 +31,6 @@ void TokenPrinter::printValue(const Token& token) const
     {
         case TOK_NUM:       CH_PRINT("{}", token.content.i);    break;
         case TOK_NUM_DEC:   CH_PRINT("{}", token.content.d);    break;
-        case TOK_RANGE:
-            CH_PRINT("{}", removeDigitSeps(token.text));
-            break;
         case TOK_STR_LIT:
             CH_PRINT("{}", formatMultiLineString(
                 token.text.substr(1, token.text.size() - 2)
@@ -67,8 +53,8 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_RIGHT_PAREN", "TOK_LEFT_BRACE", "TOK_RIGHT_BRACE",
     "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
 
-    "TOK_NUM", "TOK_NUM_DEC", "TOK_RANGE", "TOK_STR_LIT",
-    "TOK_RAW_STR", "TOK_TRUE", "TOK_FALSE", "TOK_NULL",
+    "TOK_NUM", "TOK_NUM_DEC", "TOK_STR_LIT", "TOK_RAW_STR",
+    "TOK_TRUE", "TOK_FALSE", "TOK_NULL",
 
     "TOK_INT", "TOK_DEC", "TOK_BOOL", "TOK_STRING",
     "TOK_FUNC", "TOK_ARRAY", "TOK_TABLE", "TOK_ANY", "TOK_CLASS",
@@ -88,6 +74,8 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
 
     "TOK_AMP", "TOK_BAR", "TOK_UARROW", "TOK_TILDE",
     "TOK_LEFT_SHIFT", "TOK_RIGHT_SHIFT",
+
+    "TOK_DOT_DOT",
 
     "TOK_PLUS_EQ", "TOK_MINUS_EQ", "TOK_STAR_EQ", "TOK_SLASH_EQ",
 	"TOK_PERCENT_EQ", "TOK_STAR_STAR_EQ", "TOK_AMP_EQ", "TOK_BAR_EQ",

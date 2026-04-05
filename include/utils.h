@@ -1,11 +1,13 @@
 #include "common.h"
-#include <array>
-#include <string>
 #include <string_view>
+#include <vector>
 
 bool ends_with(const std::string_view str, const std::string_view suffix);
 bool starts_with(const std::string_view str, const std::string_view prefix);
-std::array<i64, 3> constructRange(const std::string_view tokText);
+std::vector<std::string_view> split(
+    const std::string_view& str,
+    std::string_view delim
+);
 
 static inline bool isBinary(char c)
 {

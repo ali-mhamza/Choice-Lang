@@ -293,7 +293,6 @@ struct Range : public HeapObj
 
     i64 length() const;
     std::string printVal() const;
-    void emit(std::ofstream& os) const;
 };
 
 struct List : public HeapObj

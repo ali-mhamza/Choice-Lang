@@ -529,7 +529,7 @@ ExprUP Parser::expression()
 
 ExprUP Parser::assignment()
 {
-    ExprUP target{logicOr()};
+    ExprUP target{range()};
     if (IS_ASSIGN_TOK(currentTok.type))
     {
         nextTok();
@@ -540,6 +540,18 @@ ExprUP Parser::assignment()
     }
 
     return target;
+}
+
+ExprUP Parser::range()
+{
+    ExprUP expr{logicOr()};
+    if (consumeTok(TOK_DOT_DOT))
+    {
+        TokenType oper{previousTok.type};
+        expr = std::make_unique<BinaryExpr>(expr, oper, logicOr());
+    }
+
+    return expr;
 }
 
 ExprUP Parser::logicOr()

@@ -1,16 +1,11 @@
 #include "../include/utils.h"
 #include "../include/common.h"
-#include <algorithm>	// For std::remove_if.
-#include <array>
-#include <cctype>		// For isdigit().
 #include <cstddef> 		// For size_t.
-#include <string>
 #include <string_view>
 #include <vector>
 
 // Credit for ends_with and starts_with: Pavel P.
 // Source: https://stackoverflow.com/questions/874134/.
-
 bool ends_with(std::string_view str, std::string_view suffix)
 {
     return (str.size() >= suffix.size()
@@ -26,9 +21,10 @@ bool starts_with(std::string_view str, std::string_view prefix)
 
 // Partial credit for split: Shubham Agrawal.
 // Source: https://stackoverflow.com/questions/14265581/.
-
-static std::vector<std::string_view>
-split(const std::string_view& str, std::string_view delim)
+std::vector<std::string_view> split(
+	const std::string_view& str,
+	std::string_view delim
+)
 {
     std::vector<std::string_view> result{};
     size_t start{0};
@@ -43,27 +39,4 @@ split(const std::string_view& str, std::string_view delim)
     if (start != str.size())
         result.emplace_back(str.data() + start, str.size() - start);
     return result;      
-}
-
-std::array<i64, 3> constructRange(std::string_view tokText)
-{
-	auto parts{split(tokText, "..")};
-	auto transform = [](const std::string_view& text) -> i64 {
-		i64 ret = 0;
-		for (char c : text)
-		{
-			if (isdigit(c))
-				ret = (ret * 10) + (c - '0');
-			else if (c != '\'')
-				break;
-		}
-		
-		return ret;
-	};
-
-	std::array<i64, 3> nums{};
-	nums[0] = transform(parts[0]);
-	nums[1] = transform(parts[1]);
-	nums[2] = ((parts.size() == 3) ? transform(parts[2]) : 1);
-	return nums;
 }

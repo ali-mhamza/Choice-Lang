@@ -84,6 +84,7 @@ class VM
 
         Object loadOper();
         Object concatStrings(const Object& str1, const Object& str2);
+        Object makeRange(const Object& start, const Object& stop);
         Object arithOper(Opcode op, ui8 firstOper);
         Object compareOper(Opcode op, ui8 firstOper); // No variables get modified, so no offset.
         Object bitOper(Opcode op, ui8 firstOper);

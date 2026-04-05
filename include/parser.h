@@ -61,6 +61,7 @@ class Parser
         ExprUP tuple();
         ExprUP expression();
         ExprUP assignment();
+        ExprUP range();
         ExprUP logicOr();
         ExprUP logicAnd();
         ExprUP equality();

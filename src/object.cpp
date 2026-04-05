@@ -263,7 +263,6 @@ void Object::emit(std::ofstream& os) const
         case OBJ_FUNC:
         case OBJ_LAMBDA:    AS_FUNC(*this)->emit(os);                 break;
         case OBJ_STRING:    AS_STRING(*this)->emit(os);               break;
-        case OBJ_RANGE:     AS_RANGE(*this)->emit(os);                break;
         default: break;
     }
 }
@@ -486,14 +485,6 @@ std::string Range::printVal() const
     if (step != 1)
         str += CH_STR("..{}", step);
     return str;
-}
-
-void Range::emit(std::ofstream& os) const
-{
-    os.put(static_cast<char>(type));
-    emitBytes(os, OBJ_INVALID, start);
-    emitBytes(os, OBJ_INVALID, stop);
-    emitBytes(os, OBJ_INVALID, step);
 }
 
 List::List(ui32 size) :

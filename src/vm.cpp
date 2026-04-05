@@ -9,6 +9,7 @@
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <utility> // For std::move.
@@ -173,10 +174,25 @@ inline Object VM::loadOper()
     }
 }
 
-inline Object VM::concatStrings(const Object& str1, const Object& str2)
+Object VM::concatStrings(const Object& str1, const Object& str2)
 {
     std::string concat{AS_STRING(str1)->str + AS_STRING(str2)->str};
     return CH_ALLOC(String, concat);
+}
+
+Object VM::makeRange(const Object& start, const Object& stop)
+{
+    if (!IS_INT(start) || !IS_INT(stop))
+    {
+        throw TypeMismatch(
+            "Can only construct ranges from integer values.",
+            OBJ_INT,
+            IS_INT(start) ? stop.type : start.type
+        );
+    }
+
+    std::array<i64, 3> nums{AS_INT(start), AS_INT(stop), 1};
+    return CH_ALLOC(Range, nums);
 }
 
 Object VM::arithOper(Opcode oper, ui8 firstOper)
@@ -702,6 +718,15 @@ void VM::executeOp(Opcode op)
             auto& array{AS_LIST(registers[listReg])->array};
             for (ui8 i{0}; i < count; i++)
                 array.push(registers[startReg + i]);
+            DISPATCH();
+        }
+
+        CASE(OP_RANGE):
+        {
+            Object& start{registers[readByte()]};
+            Object& stop{registers[readByte()]};
+
+            start = makeRange(start, stop);
             DISPATCH();
         }
 

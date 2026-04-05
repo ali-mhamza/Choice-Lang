@@ -863,6 +863,7 @@ DEF(BinaryExpr)
         case TOK_SLASH:     op = OP_DIV;    break;
         case TOK_PERCENT:   op = OP_MOD;    break;
         case TOK_STAR_STAR: op = OP_POWER;  break;
+        case TOK_DOT_DOT:   op = OP_RANGE;  break;
         default: CH_UNREACHABLE();
     }
 
@@ -1127,13 +1128,6 @@ DEF(LiteralExpr)
     else if (tok.type == TOK_RAW_STR)
     {
         Object obj{CH_ALLOC(String, GET_RAW_STR(tok))};
-        code.loadRegConst(obj, previousReg);
-        reserveReg();
-    }
-
-    else if (tok.type == TOK_RANGE)
-    {
-        Object obj{CH_ALLOC(Range, constructRange(tok.text))};
         code.loadRegConst(obj, previousReg);
         reserveReg();
     }
