@@ -154,8 +154,6 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
             throw RuntimeError(error, "Too few format arguments.");
         }
 
-        // TODO (possibly): detect if user passed too *many* arguments.
-        // fmt does not throw any error in that case.
     #else
         result = defaultFormat(it, args, error);
     #endif
