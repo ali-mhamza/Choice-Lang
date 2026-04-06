@@ -422,10 +422,7 @@ void Lexer::stringToken(bool raw)
 				"Incorrect syntax for multi-line string.");
 		}
 
-		if (c == '\\')
-			escapeCharCount++;
-		else
-			escapeCharCount = 0;
+		escapeCharCount = ((c == '\\') ? escapeCharCount + 1 : 0);
 		advance();
 	}
 
@@ -442,9 +439,17 @@ void Lexer::multiStringToken(bool raw)
 	ui16 tempLine{line};
 	// Step back across the opening `.
 	ui8 tempColumn{static_cast<ui8>(column - 1)};
-	
-	while ((peekChar() != '`') && !hitEnd())
+
+	int escapeCharCount{0};
+	while (!hitEnd())
+	{
+		char c{peekChar()};
+		if ((c == '`') && (escapeCharCount % 2 == 0))
+			break;
+
+		escapeCharCount = ((c == '\\') ? escapeCharCount + 1 : 0);
 		advance();
+	}
 
 	if (hitEnd())
 	{
