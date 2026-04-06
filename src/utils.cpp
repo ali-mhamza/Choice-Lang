@@ -5,6 +5,7 @@
 
 // Credit for ends_with and starts_with: Pavel P.
 // Source: https://stackoverflow.com/questions/874134/.
+
 bool ends_with(std::string_view str, std::string_view suffix)
 {
     return (str.size() >= suffix.size()
@@ -20,12 +21,9 @@ bool starts_with(std::string_view str, std::string_view prefix)
 
 // Partial credit for split: Shubham Agrawal.
 // Source: https://stackoverflow.com/questions/14265581/.
-std::vector<std::string_view> split(
-	const std::string_view& str,
-	std::string_view delim
-)
+std::vector<std::string> split(std::string_view str, std::string_view delim)
 {
-    std::vector<std::string_view> result{};
+    std::vector<std::string> result{};
     size_t start{0};
 
     for (size_t found{str.find(delim)};

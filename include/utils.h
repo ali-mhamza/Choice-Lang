@@ -4,10 +4,7 @@
 
 bool ends_with(const std::string_view str, const std::string_view suffix);
 bool starts_with(const std::string_view str, const std::string_view prefix);
-std::vector<std::string_view> split(
-    const std::string_view& str,
-    std::string_view delim
-);
+std::vector<std::string> split(std::string_view str, std::string_view delim);
 
 static inline bool isBinary(char c)
 {
