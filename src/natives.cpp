@@ -8,8 +8,9 @@
 #include "../include/object.h"
 #include <array>
 #include <chrono>
-#include <cstdio>   // For fflush.
+#include <cstdio>   // For fflush().
 #include <cstdlib>  // For exit().
+#include <cctype>   // For toupper().
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -149,9 +150,12 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
         {
             result = fmt::vformat(str, store);
         }
-        catch (std::runtime_error&) // Formatting error (too few arguments).
+        catch (std::runtime_error& err) // Formatting error.
         {
-            throw RuntimeError(error, "Too few format arguments.");
+            auto msg{err.what()};
+            throw RuntimeError(error,
+                CH_STR("{:c}{}.", toupper(msg[0]), &msg[1])
+            );
         }
 
     #else
