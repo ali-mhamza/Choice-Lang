@@ -4,7 +4,6 @@
 #include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
-#include "../include/token.h"
 #include "../include/tokprinter.h"
 #include "../include/utils.h"			// For helper functions.
 #include "../include/vm.h"
@@ -17,6 +16,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <sstream>						// For stringstream in readFile() helper function.
 #include <string>
 #include <string_view>

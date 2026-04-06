@@ -11,7 +11,7 @@
 #include "../include/token.h"
 #include "../include/utils.h"
 #include <cctype>
-#include <limits>
+#include <climits> // For CHAR_BIT.
 #include <vector>
 
 using namespace AST::Statement;
@@ -1100,7 +1100,7 @@ DEF(VarExpr)
 DEF(LiteralExpr)
 {
     #define GET_RAW_STR(tok) \
-        std::string{tok.text.substr(2, tok.text.size() - 3)}
+        std::string{(tok).text.substr(2, (tok).text.size() - 3)}
 
     const Token& tok{node->value};
 

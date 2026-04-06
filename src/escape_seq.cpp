@@ -1,10 +1,9 @@
 #include "../include/escape_seq.h"
 #include "../include/common.h"
-#include "../include/error.h"
 #include "../include/utils.h"
 #include <array>
+#include <limits> // For std::numeric_limits().
 #include <string>
-#include <string_view>
 
 // Set to 1 if missing arguments for \b, \o,
 // or \x in a string should be an error.

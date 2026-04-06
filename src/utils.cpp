@@ -1,6 +1,5 @@
 #include "../include/utils.h"
-#include "../include/common.h"
-#include <cstddef> 		// For size_t.
+#include <cstddef> // For size_t.
 #include <string_view>
 #include <vector>
 

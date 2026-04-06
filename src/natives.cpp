@@ -279,6 +279,7 @@ void Natives::quit(Natives::iter it, ui8 args, const Token& error)
     if ((args == 1) && !IS_INT(it[0]))
         throw RuntimeError(error, "Argument must be an integer.");
 
-    exit((args == 0) ? 0 : AS_INT(it[0]));
+    ui8 exitCode = ((args == 0) ? 0 : (AS_INT(it[0]) & 0xff));
+    exit(exitCode);
     // No return value.
 }

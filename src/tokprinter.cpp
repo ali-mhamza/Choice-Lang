@@ -1,7 +1,6 @@
 #include "../include/tokprinter.h"
 #include "../include/common.h"
 #include "../include/token.h"
-#include <algorithm>
 #include <array>
 #include <string>
 #include <string_view>

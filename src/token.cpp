@@ -1,5 +1,6 @@
 #include "../include/token.h"
 #include "../include/common.h"
+#include <string_view>
 
 Token::Token(
     TokenType type,

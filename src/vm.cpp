@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint> // For INT64_MIN.
 #include <cstring>
 #include <utility> // For std::move.
 
