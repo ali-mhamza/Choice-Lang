@@ -1,5 +1,5 @@
 #include "../include/error.h"
-#include "../include/common.h"  // For CH_PRINT macro, fixed-size integer types.
+#include "../include/common.h"
 #include "../include/token.h"
 #include <cstdio>               // For stderr.
 #include <string>
