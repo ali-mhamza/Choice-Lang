@@ -273,7 +273,7 @@ bool parseUnicodeSequence(
 
     ui32 value{strToHex(it, count)};
     it += count + 1; // Skip characters and closing brace.
-    // Result outside unicode range.
+    // Result outside unicode range (5).
     if ((value > fourByteMax)
         || ((value >= surrogateRangeStart) && (value <= surrogateRangeEnd)))
     {
