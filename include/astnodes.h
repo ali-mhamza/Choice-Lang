@@ -154,10 +154,12 @@ namespace AST
         struct RepeatStmt : public Stmt
         {
             const ExprUP condition{};
+            const Token& label{};
             const StmtUP body{}; // Must be a block statement.
 
             RepeatStmt(
                 ExprUP& condition,
+                const Token& label,
                 StmtUP& body
             );
         };

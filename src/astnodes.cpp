@@ -50,9 +50,9 @@ MatchStmt::MatchStmt(ExprUP& matchValue, std::vector<MatchCase>& cases) :
     Stmt{S_MATCH_STMT},
     matchValue{std::move(matchValue)}, cases{std::move(cases)} {}
 
-RepeatStmt::RepeatStmt(ExprUP& condition, StmtUP& body) :
+RepeatStmt::RepeatStmt(ExprUP& condition, const Token& label, StmtUP& body) :
     Stmt{S_REPEAT_STMT},
-    condition{std::move(condition)}, body{std::move(body)} {}
+    condition{std::move(condition)}, label{label}, body{std::move(body)} {}
 
 ReturnStmt::ReturnStmt(const Token& keyword, ExprUP& expr) :
     Stmt{S_RETURN_STMT},

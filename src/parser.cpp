@@ -439,6 +439,10 @@ StmtUP Parser::matchStmt()
 
 StmtUP Parser::repeatStmt()
 {
+    Token label{};
+    if (consumeTok(TOK_IDENTIFIER))
+        label = previousTok;
+
     MATCH_TOK(TOK_LEFT_BRACE, "Expect '{' before 'repeat' block.");
     if (previousTok.type != TOK_LEFT_BRACE) return nullptr;
 
@@ -449,7 +453,7 @@ StmtUP Parser::repeatStmt()
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after 'until' condition.");
     MATCH_TOK(TOK_SEMICOLON, "Expect ';' after repeat-until block.");
 
-    return std::make_unique<RepeatStmt>(condition, body);
+    return std::make_unique<RepeatStmt>(condition, label, body);
 }
 
 StmtUP Parser::returnStmt()

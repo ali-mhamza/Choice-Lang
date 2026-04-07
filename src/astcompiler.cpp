@@ -424,16 +424,22 @@ DEF(WhileStmt)
     freeReg();
     compileStmt(node->body);
 
+    // Patch current scope "continue" jumps.
     for (ui64 jump : continues)
         code.patchJump(jump);
+
+    // Patch nested scope "continue" jumps.
     patchLoopLabelJumps(node->label, false);
     code.addLoop(loopStart);
 
     code.patchJump(falseJump);
     compileStmt(node->elseClause); // Will do nothing if elseClause == nullptr.
 
+    // Patch current scope "break" jumps.
     for (ui64 jump : breaks)
         code.patchJump(jump);
+
+    // Patch nested scope "break" jumps.
     patchLoopLabelJumps(node->label, true);
 
     breakJumps = prevBreaks;
@@ -463,8 +469,11 @@ void ASTCompiler::forLoopHelper(
 
     if (whereJump != 0)
         code.patchJump(whereJump);
+    // Patch current scope "continue" jumps.
     for (ui64 jump : *continueJumps)
         code.patchJump(jump);
+
+    // Patch nested scope "continue" jumps.
     patchLoopLabelJumps(node->label, false);
 
     constexpr int UPDATE_ITER_OP_SIZE{5};
@@ -478,8 +487,11 @@ void ASTCompiler::forLoopHelper(
     code.patchJump(failJump);
     compileStmt(node->elseClause); // Will do nothing if elseClause == nullptr.
 
+    // Patch current scope "break" jumps.
     for (ui64 jump : *breakJumps)
         code.patchJump(jump);
+
+    // Patch nested scope "break" jumps.
     patchLoopLabelJumps(node->label, true);
 }
 
@@ -549,7 +561,7 @@ void ASTCompiler::matchCaseHelper(
     else if (empty) // Default fallthrough with empty match blocks.
         emptyJump = code.addJump(OP_JUMP);
     else
-        this->endJumps->push_back(code.addJump(OP_JUMP));
+        endJumps->push_back(code.addJump(OP_JUMP));
 
     code.patchJump(falseJump);
 }
@@ -561,12 +573,12 @@ DEF(MatchStmt)
 
     std::vector<ui64> jumps{};
     auto* prevEndJumps{endJumps};
-    this->endJumps = &jumps;
+    endJumps = &jumps;
 
     ui64 fallJump{0}; // Invalid jump offset value.
     ui64 emptyJump{0};
 
-    for (const MatchStmt::MatchCase& checkCase : node->cases)
+    for (const auto& checkCase : node->cases)
     {
         if (checkCase.value != nullptr)
             matchCaseHelper(checkCase, matchReg, fallJump, emptyJump);
@@ -578,11 +590,25 @@ DEF(MatchStmt)
         code.patchJump(jump);
     freeReg(); // Remove the match value.
 
-    this->endJumps = prevEndJumps;
+    endJumps = prevEndJumps;
 }
 
 DEF(RepeatStmt)
 {
+    if (node->label.type != TOK_EOF)
+    {
+        breakLabels->add(node->label.text, {});
+        continueLabels->add(node->label.text, {});
+    }    
+
+    std::vector<ui64> breaks{};
+    auto* prevBreaks{breakJumps};
+    breakJumps = &breaks;
+
+    std::vector<ui64> continues{};
+    auto* prevContinues{continueJumps};
+    continueJumps = &continues;
+
     ui64 loopStart{code.getLoopStart()};
     compileStmt(node->body);
 
@@ -591,8 +617,24 @@ DEF(RepeatStmt)
     ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
 
+    // Patch current scope "continue" jumps.
+    for (ui64 jump : continues)
+        code.patchJump(jump);
+
+    // Patch nested scope "continue" jumps.
+    patchLoopLabelJumps(node->label, false);
     code.addLoop(loopStart);
     code.patchJump(trueJump);
+
+    // Patch current scope "break" jumps.
+    for (ui64 jump : breaks)
+        code.patchJump(jump);
+
+    // Patch nested scope "break" jumps.
+    patchLoopLabelJumps(node->label, true);
+
+    breakJumps = prevBreaks;
+    continueJumps = prevContinues;
 }
 
 DEF(ReturnStmt)
