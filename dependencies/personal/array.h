@@ -1,6 +1,8 @@
 #pragma once
 #include <cstddef>
+#include <cstring>
 #include <stdexcept>
+#include <type_traits>
 
 #define TEMP template<typename T>
 
@@ -12,6 +14,11 @@ class Array
         size_t _count;
         size_t _capacity;
 
+        static constexpr size_t defaultSize = 8;
+        static constexpr size_t growFactor = 2;
+
+        // Shift cannot be larger than end - start.
+        void copy(T* dest, size_t start, size_t end, int shift = 0);
         void shift(int shift, size_t start = 0);
 
     public:
@@ -29,13 +36,14 @@ class Array
         inline const T& operator[](size_t index) const; // index < count.
         bool operator==(const Array& other) const;
 
-        // Utility.
-        void grow();
+        void resize(size_t size);
         // This does not reallocate to a larger array.
         // It simply increases the capacity field as *if*
         // we were actually growing the array.
         // Use with care.
         inline void increaseCapacity();
+        // General resizing utility (doubles or initializes size).
+        void grow();
 
         void push(const T& element);
         int position(const T& element);
@@ -114,12 +122,9 @@ Array<T>::Array() :
     _capacity(0) {}
 
 TEMP
-Array<T>::Array(size_t size)
-{
-    entries = new T[size];
-    _count = 0; // No elements used at time of construction.
-    _capacity = size;
-}
+Array<T>::Array(size_t size) :
+    entries(new T[size]), _count(0), // No elements used at time of construction.
+    _capacity(size) {}
 
 TEMP
 Array<T>::Array(const Array<T>& other) noexcept :
@@ -218,22 +223,51 @@ bool Array<T>::operator==(const Array<T>& other) const
 }
 
 TEMP
-void Array<T>::grow()
+void Array<T>::copy(T* dest, size_t start, size_t end, int shift)
 {
-    _capacity = (_capacity == 0 ? 8 : _capacity * 2);
-    T* newEntries = new T[_capacity];
-    for (size_t i = 0; i < _count; i++)
-        newEntries[i] = std::move(entries[i]);
-    delete[] entries;
-    this->entries = newEntries;
-    // this->count does not change.
-    // newEntries goes out of scope here.
+    if constexpr (std::is_trivially_copyable_v<T>)
+    {
+        std::memcpy(
+            dest + start + shift,
+            entries + start,
+            (end - start) * sizeof(T)
+        );
+    }
+    else if constexpr (std::is_nothrow_move_assignable_v<T>)
+    {
+        for (size_t i = start; i < end; i++)
+            dest[i + shift] = std::move(entries[i]);
+    }
+    else
+    {
+        for (size_t i = start; i < end; i++)
+            dest[i + shift] = entries[i];
+    }
+}
+
+TEMP
+void Array<T>::resize(size_t size)
+{
+    while (_capacity < size)
+        grow();
 }
 
 TEMP
 inline void Array<T>::increaseCapacity()
 {
-    _capacity = (_capacity == 0 ? 8 : _capacity * 2);
+    _capacity = (_capacity == 0 ? defaultSize : _capacity * growFactor);
+}
+
+TEMP
+void Array<T>::grow()
+{
+    increaseCapacity();
+    T* newEntries = new T[_capacity];
+    copy(newEntries, 0, _count);
+    delete[] entries;
+    this->entries = newEntries;
+    // this->count does not change.
+    // newEntries goes out of scope here.
 }
 
 TEMP
@@ -278,10 +312,7 @@ void Array<T>::shift(int shift, size_t start)
     if (start >= _count)
         return; // Throw error?
 
-    // Shift might be large, so we
-    // repeatedly grow until capacity is enough.
-    while (_capacity < _count + shift)
-        grow();
+    resize(_count + shift);
     
     // To avoid data corruption, we make a
     // new internal array.
@@ -291,11 +322,8 @@ void Array<T>::shift(int shift, size_t start)
     // will deallocate the memory we just "filled up".
 
     T* newEntries = new T[_capacity];
-    for (size_t i = 0; i < start; i++)
-        newEntries[i] = this->entries[i];
-    
-    for (size_t i = start; i < _count; i++)
-        newEntries[i + shift] = this->entries[i];
+    copy(newEntries, 0, start);
+    copy(newEntries, start, _count, shift);
     delete[] this->entries;
     this->entries = newEntries;
     // Only increment count when we fill the
