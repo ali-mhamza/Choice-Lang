@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"     // For vByte, vObj, fixed-size integer types.
+#include "common.h"
 #include "opcodes.h"
 #include <fstream>      // For cacheStream() method.
 #include <vector>
