@@ -78,10 +78,6 @@ class VM
             void copyObject(Object& dest, const Object& src);
         #endif
 
-        // keepGlobal: Do not clear the global scope
-        // (when an error is hit, unwind to the global scope).
-        void clearScopes(bool keepGlobal);
-
         Object loadOper();
         Object concatStrings(const Object& str1, const Object& str2);
         Object makeRange(const Object& start, const Object& stop);
@@ -103,7 +99,7 @@ class VM
         #endif
 
         void executeOp(Opcode op);
-    
+
     public:
         VM();
         ~VM();

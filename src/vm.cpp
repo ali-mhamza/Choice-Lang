@@ -148,16 +148,6 @@ inline void VM::closeCells(Object* limit)
     }
 #endif
 
-inline void VM::clearScopes(bool keepGlobal)
-{
-    if (frames.size() == 0) return;
-
-    if (keepGlobal)
-        frames.resize(1);
-    else
-        frames.clear();
-}
-
 inline Object VM::loadOper()
 {
     switch (ui8 oper = readByte())
@@ -946,19 +936,18 @@ void VM::executeCode(Function* script)
     catch (TypeMismatch& error)
     {
         error.report();
-        clearScopes(true); // Escape all nested calls.
     }
     catch (RuntimeError& error)
     {
         error.report();
-        clearScopes(true);
     }
 
     #if WATCH_EXEC
         this->dis = nullptr;
     #endif
 
-    clearScopes(false); // Clear all function scopes (including global script).
+    frames.clear();
+    scopeStarts.clear();
 }
 
 /* FuncContext logic. */
