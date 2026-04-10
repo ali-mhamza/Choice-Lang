@@ -241,6 +241,8 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     }
     if (!IS_INT(it[0]) || !IS_INT(it[1]) || ((args == 3) && !IS_INT(it[2])))
         throw RuntimeError(error, "Arguments must be integers.");
+    if ((args == 3) && (AS_INT(it[2]) == 0))
+        throw RuntimeError(error, "Cannot have a step size of zero.");
 
     std::array<i64, 3> limits{AS_INT(it[0]), AS_INT(it[1]), 1};
     if (args == 3)
