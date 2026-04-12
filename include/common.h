@@ -152,7 +152,7 @@ using ui64      = uint64_t;
 
 using Hash      = uint32_t;
 
-class Token;
+struct Token;
 class Object;
 using vT    	= std::vector<Token>;
 using vByte 	= std::vector<ui8>;
