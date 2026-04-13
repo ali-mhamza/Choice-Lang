@@ -223,13 +223,14 @@ bool Lexer::checkNumericLiteral(char start)
 	return false;
 }
 
-std::string Lexer::formatNumber(const std::string_view text, bool dec)
+std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 {
 	ui8 textSize{static_cast<ui8>(text.size())};
 	ui8 columnStart{static_cast<ui8>(column - textSize)};
 	const char* allowedChars{".+-"};
 
-	std::string str{};
+	static std::string str{};
+	str.clear();
 	str.reserve(textSize);
 
 	ui8 i{0};
@@ -274,7 +275,7 @@ i64 Lexer::intValue(std::string_view text)
 		case HEX:	baseValue = 16;	break;
 	}
 
-	std::string formatted{formatNumber(text, false)};
+	const std::string& formatted{formatNumber(text, false)};
 	auto answer{fast_float::from_chars(formatted.data(),
 		formatted.data() + formatted.size(), ret, baseValue)};
 
@@ -293,7 +294,7 @@ double Lexer::decValue(std::string_view text)
 {
 	double ret{};
 
-	std::string formatted{formatNumber(text, true)};
+	const std::string& formatted{formatNumber(text, true)};
 	auto answer{fast_float::from_chars(formatted.data(),
 		formatted.data() + formatted.size(), ret)};
 

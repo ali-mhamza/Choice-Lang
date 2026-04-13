@@ -49,7 +49,7 @@ class Lexer
         /* Value conversion methods. */
 
         // `dec`: True if parsing a floating-point value; false otherwise.
-        std::string formatNumber(const std::string_view text, bool dec);
+        std::string& formatNumber(const std::string_view text, bool dec);
 
         i64 intValue(std::string_view text);
         double decValue(std::string_view text);
