@@ -104,7 +104,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 
 	OP_LOAD_R,			// Load a constant into a register.
 	OP_MOVE_R,			// Move a register's value into another register.
-	OP_PRINT_VALID,		// Print the result of an expression, except calls to void (non-returning) functions.
+	OP_PRINT_VALID,		// Print the result of an expression (with exceptions).
 	TOTAL_OPS
 };
 
