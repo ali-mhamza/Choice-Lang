@@ -9,7 +9,7 @@
     #define WATCH_REG   0
 #endif
 
-#define COPY_INLINE 1
+#define COPY_INLINE 0
 
 class Disassembler;
 

@@ -73,7 +73,9 @@ struct ObjIter;
 class Object
 {
     private:
-        void clean();
+        #if !CH_USE_ALLOC
+            void clean();
+        #endif
 
     public:
         ObjType type{};
@@ -97,11 +99,14 @@ class Object
         Object();
         template<typename T>
         Object(T val);
-        Object(const Object& other) noexcept;
-        Object& operator=(const Object& other) noexcept;
-        Object(Object&& other) noexcept;
-        Object& operator=(Object&& other) noexcept;
-        ~Object();
+
+        #if !CH_USE_ALLOC
+            Object(const Object& other) noexcept;
+            Object& operator=(const Object& other) noexcept;
+            Object(Object&& other) noexcept;
+            Object& operator=(Object&& other) noexcept;
+            ~Object();
+        #endif
 
         bool operator==(const Object& other) const;
         bool operator>(const Object& other) const;

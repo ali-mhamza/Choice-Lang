@@ -35,6 +35,8 @@ Object::Object() :
     AS_INT(*this) = 0;
 }
 
+#if !CH_USE_ALLOC
+
 void Object::clean()
 {
     #if !CH_USE_ALLOC
@@ -115,6 +117,8 @@ Object::~Object()
 {
     clean();
 }
+
+#endif
 
 bool Object::operator==(const Object& other) const
 {
