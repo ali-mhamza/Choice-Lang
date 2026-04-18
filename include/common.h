@@ -104,18 +104,22 @@
 
 	#define CH_ALLOC(type, ...) allocator.alloc<type, CustomDealloc<type>>(__VA_ARGS__)
 
-	#define CH_ASSERT_MEM(expr, msg, arena)								\
-		do {															\
-			if (expr)													\
-				break;													\
-			else														\
-			{															\
-				CH_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",			\
-					(__FILE__), (__func__), (__LINE__), msg);			\
-				free(arena);                                            \
-				exit(EXIT_FAILURE);										\
-			}															\
-		} while (false)
+	#if defined(DEBUG)
+		#define CH_ASSERT_MEM(expr, msg, arena)								\
+			do {															\
+				if (expr)													\
+					break;													\
+				else														\
+				{															\
+					CH_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",			\
+						(__FILE__), (__func__), (__LINE__), msg);			\
+					free(arena);                                            \
+					exit(EXIT_FAILURE);										\
+				}															\
+			} while (false)
+	#else
+		#define CH_ASSERT_MEM(expr, msg, arena)
+	#endif /* defined(DEBUG) */
 #else
 	#define CH_ALLOC(type, ...) new type{__VA_ARGS__}
 #endif
