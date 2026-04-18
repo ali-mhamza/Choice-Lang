@@ -43,7 +43,7 @@ struct AllocPair
 
 struct DefaultDealloc
 {
-    void operator()(void* mem) {}
+    void operator()(void* mem) { (void) mem; }
 };
 
 #endif
