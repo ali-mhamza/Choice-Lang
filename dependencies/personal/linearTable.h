@@ -9,7 +9,9 @@
 #include "entryStruct.h"
 #include "hashFunctions.h"
 #include <cstdint>
-#include <iostream> // For debugging.
+#include <iostream>
+#include <tuple>
+#include <type_traits>
 
 #define KVHTEMP             template<typename Key, typename Value, typename HashFunc>
 #define KVHTEMP_DEFAULT     template<typename Key, typename Value, typename HashFunc = Hasher<Key>>
@@ -28,6 +30,53 @@ struct Hasher
         return hashKey(key, size);
     }
 };
+
+template<typename Key, typename Value>
+struct Pair
+{
+    EKV* entry;
+    const Key* first;
+    Value* second;
+
+    Pair(EKV* entry) :
+        entry(entry), first(&(entry->key)), second(&(entry->value)) {}
+};
+
+template<typename Key, typename Value>
+struct std::tuple_size<Pair<Key, Value>> : std::integral_constant<size_t, 2> {};
+
+template<typename Key, typename Value, size_t I>
+struct std::tuple_element<I, Pair<Key, Value>>
+{
+    using type = std::conditional_t<I == 0, const Key, Value>;
+};
+
+template<size_t I, typename Key, typename Value>
+decltype(auto) get(Pair<Key, Value>& pair)
+{
+    if constexpr (I == 0)
+        return static_cast<const Key&>(*(pair.first));
+    else
+        return static_cast<Value&>(*(pair.second));
+}
+
+template<size_t I, typename Key, typename Value>
+decltype(auto) get(const Pair<Key, Value>& pair)
+{
+    if constexpr (I == 0)
+        return static_cast<const Key&>(*(pair.first));
+    else
+        return static_cast<const Value&>(*(pair.second));
+}
+
+template<size_t I, typename Key, typename Value>
+decltype(auto) get(Pair<Key, Value>&& pair)
+{
+    if constexpr (I == 0)
+        return static_cast<const Key&&>(*(pair.first));
+    else
+        return static_cast<Value&&>(*(pair.second));
+}
 
 KVHTEMP_DEFAULT
 class linearTable
@@ -51,7 +100,7 @@ class linearTable
         EKV& findSlot(const Key& key, size_t* pos);
         // Adds a key with no value.
         EKV& emptyAdd(const Key& key);
-    
+
     public:
         linearTable();
         linearTable(const linearTable& other);
@@ -65,9 +114,61 @@ class linearTable
         void remove(const Key& key);
         void merge(const linearTable& other);
         size_t size();
+        void clear();
 
         // For debugging.
         void printTable();
+
+        using IterPair = Pair<Key, Value>;
+
+        class iterator
+        {
+            private:
+                EKV* ptr;
+                EKV* end;
+                IterPair pair;
+
+            public:
+                iterator() = default;
+                iterator(EKV* ptr, EKV* end);
+                iterator(const iterator& other);
+                iterator& operator=(const iterator& other);
+
+                IterPair& operator*();
+                IterPair* operator->();
+                iterator& operator++();
+                iterator& operator++(int);
+                bool operator==(const iterator& other) const;
+                bool operator!=(const iterator& other) const;
+        };
+
+        class const_iterator
+        {
+            private:
+                EKV* ptr;
+                EKV* end;
+                IterPair pair;
+
+            public:
+                const_iterator() = default;
+                const_iterator(const EKV* ptr, const EKV* end);
+                const_iterator(const const_iterator& other);
+                const_iterator& operator=(const const_iterator& other);
+
+                const IterPair& operator*() const;
+                const IterPair* operator->() const;
+                const_iterator& operator++();
+                const_iterator& operator++(int);
+                bool operator==(const const_iterator& other) const;
+                bool operator!=(const const_iterator& other) const;
+        };
+
+        [[nodiscard]] iterator begin() noexcept;
+        [[nodiscard]] iterator end() noexcept;
+        [[nodiscard]] const_iterator begin() const noexcept;
+        [[nodiscard]] const_iterator end() const noexcept;
+        [[nodiscard]] const_iterator cbegin() const noexcept;
+        [[nodiscard]] const_iterator cend() const noexcept;
 };
 
 KVHTEMP
@@ -276,6 +377,12 @@ size_t linearTable<Key, Value, HashFunc>::size()
 }
 
 KVHTEMP
+void linearTable<Key, Value, HashFunc>::clear()
+{
+    entries.clear();
+}
+
+KVHTEMP
 void linearTable<Key, Value, HashFunc>::printTable()
 {
     size_t cap = entries.capacity();
@@ -296,3 +403,192 @@ void linearTable<Key, Value, HashFunc>::printTable()
         }
     }
 }
+
+// Iterator implementation.
+
+#define tableIter       linearTable<Key, Value, HashFunc>::iterator
+
+KVHTEMP
+tableIter::iterator(EKV* ptr, EKV* end) :
+    ptr(ptr), end(end), pair(ptr) {}
+
+KVHTEMP
+tableIter::iterator(const tableIter& other) :
+    ptr(other.ptr), end(other.end), pair(other.pair) {}
+
+KVHTEMP
+typename tableIter& tableIter::operator=(const tableIter& other)
+{
+    this->ptr = other.ptr;
+    this->end = other.end;
+    this->pair = other.pair;
+    return *this;
+}
+
+KVHTEMP
+typename linearTable<Key, Value, HashFunc>::IterPair&
+tableIter::operator*()
+{
+    return pair;
+}
+
+KVHTEMP
+typename linearTable<Key, Value, HashFunc>::IterPair*
+tableIter::operator->()
+{
+    return &pair;
+}
+
+KVHTEMP
+typename tableIter& tableIter::operator++()
+{
+    ++ptr;
+    while ((ptr != end) && (ptr->state != VALID))
+        ++ptr;
+    pair = Pair(ptr);
+    return *this;
+}
+
+KVHTEMP
+typename tableIter& tableIter::operator++(int)
+{
+    ptr++;
+    while ((ptr != end) && (ptr->state != VALID))
+        ptr++;
+    pair = Pair(ptr);
+    return *this;
+}
+
+KVHTEMP
+bool tableIter::operator==(const tableIter& other) const
+{
+    return (this->ptr == other.ptr);
+}
+
+KVHTEMP
+bool tableIter::operator!=(const tableIter& other) const
+{
+    return (this->ptr != other.ptr);
+}
+
+KVHTEMP
+typename tableIter linearTable<Key, Value, HashFunc>::begin() noexcept
+{
+    EKV* ptr = &(entries.front());
+    EKV* end = ptr + entries.capacity();
+
+    while ((ptr != end) && (ptr->state != VALID))
+        ptr++;
+    return tableIter(ptr, end);
+}
+
+KVHTEMP
+typename tableIter linearTable<Key, Value, HashFunc>::end() noexcept
+{
+    EKV* end = &(entries.front()) + entries.capacity();
+    return tableIter(end, end);
+}
+
+// Const iterator implementation.
+
+#define constTableIter  linearTable<Key, Value, HashFunc>::const_iterator
+
+KVHTEMP
+constTableIter::const_iterator(const EKV* ptr, const EKV* end) :
+    ptr(ptr), end(end), pair(ptr) {}
+
+KVHTEMP
+constTableIter::const_iterator(const constTableIter& other) :
+    ptr(other.ptr), end(other.end), pair(other.pair) {}
+
+KVHTEMP
+typename constTableIter& constTableIter::operator=(const constTableIter& other)
+{
+    this->ptr = other.ptr;
+    this->end = other.end;
+    this->pair = other.pair;
+    return *this;
+}
+
+KVHTEMP
+const typename linearTable<Key, Value, HashFunc>::IterPair&
+constTableIter::operator*() const
+{
+    return pair;
+}
+
+KVHTEMP
+const typename linearTable<Key, Value, HashFunc>::IterPair*
+constTableIter::operator->() const
+{
+    return &pair;
+}
+
+KVHTEMP
+typename constTableIter& constTableIter::operator++()
+{
+    ++ptr;
+    while ((ptr != end) && (ptr->state != VALID))
+        ++ptr;
+    pair = Pair(ptr);
+    return *this;
+}
+
+KVHTEMP
+typename constTableIter& constTableIter::operator++(int)
+{
+    ptr++;
+    while ((ptr != end) && (ptr->state != VALID))
+        ptr++;
+    pair = Pair(ptr);
+    return *this;
+}
+
+KVHTEMP
+bool constTableIter::operator==(const constTableIter& other) const
+{
+    return (this->ptr == other.ptr);
+}
+
+KVHTEMP
+bool constTableIter::operator!=(const constTableIter& other) const
+{
+    return (this->ptr != other.ptr);
+}
+
+KVHTEMP
+typename constTableIter linearTable<Key, Value, HashFunc>::begin()
+const noexcept
+{
+    return cbegin();
+}
+
+KVHTEMP
+typename constTableIter linearTable<Key, Value, HashFunc>::end()
+const noexcept
+{
+    return cend();
+}
+
+KVHTEMP
+typename constTableIter linearTable<Key, Value, HashFunc>::cbegin()
+const noexcept
+{
+    EKV* ptr = &(entries.front());
+    EKV* end = ptr + entries.capacity();
+
+    while ((ptr != end) && (ptr->state != VALID))
+        ptr++;
+    return constTableIter(ptr, end);
+}
+
+KVHTEMP
+typename constTableIter linearTable<Key, Value, HashFunc>::cend()
+const noexcept
+{
+    EKV* end = &(entries.front()) + entries.capacity();
+    return constTableIter(end, end);
+}
+
+#undef tableIter
+#undef constTableIter
