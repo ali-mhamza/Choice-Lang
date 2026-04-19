@@ -390,6 +390,7 @@ inline void Array<T>::clear()
     _count = 0;
     _capacity = 0;
     delete[] entries;
+    entries = nullptr; // In case clear() is called again.
 }
 
 TEMP
@@ -549,13 +550,13 @@ bool arrIter::operator!=(const arrIter& other) const
 TEMP
 typename arrIter Array<T>::begin() noexcept
 {
-    return iterator(&front());
+    return iterator(entries);
 }
 
 TEMP
 typename arrIter Array<T>::end() noexcept
 {
-    return iterator(&back());
+    return iterator(entries + _count);
 }
 
 // Const iterator implementation.
@@ -639,25 +640,25 @@ bool constArrIter::operator!=(const const_iterator& other) const
 TEMP
 typename constArrIter Array<T>::begin() const noexcept
 {
-    return const_iterator(&front());
+    return const_iterator(entries);
 }
 
 TEMP
 typename constArrIter Array<T>::end() const noexcept
 {
-    return const_iterator(&back());
+    return const_iterator(entries + _count);
 }
 
 TEMP
 typename constArrIter Array<T>::cbegin() const noexcept
 {
-    return const_iterator(&front());
+    return const_iterator(entries);
 }
 
 TEMP
 typename constArrIter Array<T>::cend() const noexcept
 {
-    return const_iterator(&back());
+    return const_iterator(entries + _count);
 }
 
 #undef arrIter
