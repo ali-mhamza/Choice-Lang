@@ -356,7 +356,7 @@ Closure::Closure(Function* function) :
 
 Closure::~Closure()
 {
-    #if !USE_ALLOC
+    #if !CH_USE_ALLOC
         for (Cell* cell : cells)
         {
             cell->refCount--;
