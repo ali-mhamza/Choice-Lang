@@ -224,6 +224,9 @@ bool Array<T>::operator==(const Array<T>& other) const
 TEMP
 void Array<T>::copy(T* dest, size_t start, size_t end, int shift)
 {
+    if ((entries == nullptr) || (end - start > _count))
+        return;
+
     if constexpr (std::is_trivially_copyable_v<T>)
     {
         std::memcpy(
