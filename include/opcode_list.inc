@@ -1,10 +1,3 @@
-#ifndef LABEL
-#define LABEL(op, state)
-#endif
-
-#define ENABLE  1
-#define DISABLE 0
-
 LABEL(OP_NEG_TWO, DISABLE)
 LABEL(OP_NEG_ONE, DISABLE)
 LABEL(OP_ZERO, DISABLE)

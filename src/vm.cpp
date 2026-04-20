@@ -543,7 +543,7 @@ void VM::executeOp(Opcode op)
             #define LABEL_DISABLE(op)   &&CASE_NO_REACH
 
             #define LABEL(op, state) LABEL_##state(op),
-            #include "../include/opcode_list.h"
+            #include "../include/opcode_list.inc"
             &&CASE_NO_REACH
             #undef LABEL
         };

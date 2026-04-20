@@ -111,35 +111,7 @@ enum Opcode : ui8 // Each opcode is a single byte.
 #define IS_VALID_OP(op)	(((op) >= OP_NEG_TWO) && ((op) < TOTAL_OPS))
 
 constexpr std::array<std::string_view, TOTAL_OPS> opNames{
-	"OP_NEG_TWO", "OP_NEG_ONE", "OP_ZERO", "OP_ONE",
-	"OP_TWO", "OP_TRUE", "OP_FALSE", "OP_NULL",
-
-	"OP_ADD", "OP_SUB", "OP_MULT", "OP_DIV", "OP_POWER",
-	"OP_MOD", "OP_NEG", "OP_INCR", "OP_DECR",
-
-	"OP_EQUAL", "OP_GT", "OP_LT", "OP_IN", "OP_NOT",
-
-	"OP_AND", "OP_OR", "OP_COMP", "OP_XOR",
-    "OP_SHIFT_R", "OP_SHIFT_L",
-
-	"OP_GET_GLOBAL", "OP_SET_GLOBAL",
-	"OP_GET_CELL", "OP_SET_CELL",
-	"OP_GET_LOCAL", "OP_SET_LOCAL",
-
-	"OP_LIST", "OP_EXT_LIST",
-	"OP_TABLE", "OP_RANGE",
-	"OP_TUPLE", "OP_EXT_TUPLE",
-
-	"OP_CALL_NAT", "OP_CALL_DEF", "OP_RETURN", "OP_VOID",
-
-	"OP_CLOSURE", "OP_CAPTURE_VAL", "OP_CAPTURE_CELL",
-
-	"OP_MAKE_ITER", "OP_UPDATE_ITER",
-
-	"OP_JUMP", "OP_JUMP_TRUE", "OP_JUMP_FALSE", "OP_LOOP",
-	"OP_BYTE_OPER", "OP_SHORT_OPER", "OP_LONG_OPER",
-
-	"OP_ENTER_SCOPE", "OP_EXIT_SCOPE",
-
-	"OP_LOAD_R", "OP_MOVE_R", "OP_PRINT_VALID"
+	#define LABEL(name, ...) #name,
+	#include "opcode_list.inc"
+	#undef LABEL
 };
