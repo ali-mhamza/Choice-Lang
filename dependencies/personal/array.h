@@ -1,4 +1,5 @@
 #pragma once
+#include "generics.h"
 #include <cstddef>
 #include <cstring>
 #include <stdexcept>
@@ -46,13 +47,18 @@ class Array
         void grow();
 
         void push(const T& element);
-        int position(const T& element);
         void insert(const T& element, size_t index);
         T erase(size_t index);
         void remove(const T& element);
         inline T pop();
         inline void popn(size_t n);
         inline void clear();
+
+        int find(const T& element) const;
+        template<typename Pred>
+        int find_first_if(Pred p) const;
+        template<typename Pred>
+        int find_last_if(Pred p) const;
 
         [[nodiscard]] inline size_t count() const;
         [[nodiscard]] inline size_t capacity() const;
@@ -281,12 +287,61 @@ void Array<T>::push(const T& element)
 }
 
 TEMP
-int Array<T>::position(const T& element)
+int Array<T>::find(const T& element) const
+{   
+    static_assert(has_equal_v<T>, "Type is not comparable.");
+
+    if constexpr (can_compare_v<T>)
+    {
+        if (_count == 0) return -1;
+
+        size_t min = 0, max = _count - 1;
+        while (min <= max)
+        {
+            size_t mid = min + (max - min) / 2;
+            if (entries[mid] == element)
+                return (int) mid;
+            else if (entries[mid] < element)
+                min = mid + 1;
+            else
+                max = mid - 1;
+        }
+
+        return -1;
+    }
+    else
+    {
+        for (size_t i = 0; i < _count; i++)
+        {
+            if (entries[i] == element)
+                return (int) i;
+        }
+
+        return -1;
+    }
+}
+
+TEMP
+template<typename Pred>
+int Array<T>::find_first_if(Pred p) const
 {
     for (size_t i = 0; i < _count; i++)
     {
-        if (entries[i] == element)
-            return (int) i;
+        if (p(entries[i]))
+            return i;
+    }
+
+    return -1;
+}
+
+TEMP
+template<typename Pred>
+int Array<T>::find_last_if(Pred p) const
+{
+    for (size_t i = 0; i < _count; i++)
+    {
+        if (p(entries[_count - i - 1]))
+            return i;
     }
 
     return -1;
@@ -364,7 +419,7 @@ T Array<T>::erase(size_t index)
 TEMP
 void Array<T>::remove(const T& element)
 {
-    int index = position(element);
+    int index = find(element);
     if (index == -1)
         return;
 
