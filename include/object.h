@@ -48,6 +48,7 @@ enum ObjType
 
     // Used in TypeMismatch errors.
     OBJ_NUM,
+    OBJ_COMPARABLE,
     NUM_TYPES,
     OBJ_INVALID,
 };
@@ -205,6 +206,8 @@ TYPE_LIST
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
 // Object is iterable.
 #define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
+// Object can be compared with <, >, or == operators.
+#define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type == OBJ_STRING))
 // Object data is stored in-line within the object as a payload.
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_ITER(obj))
 // Object is a valid, initialized object.

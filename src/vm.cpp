@@ -261,12 +261,12 @@ Object VM::compareOper(Opcode op, ui8 firstOper)
     const Object& b{registers[readByte()]};
 
     if (((op == OP_GT) || (op == OP_LT))
-        && (!IS_NUM(a) || !IS_NUM(b)))
+        && (!IS_COMPARABLE(a) || !IS_COMPARABLE(b)))
     {
         throw TypeMismatch(
-            "Cannot compare non-numeric values.",
-            OBJ_NUM,
-            IS_NUM(a) ? b.type : a.type
+            "Cannot compare given values.",
+            OBJ_COMPARABLE,
+            IS_COMPARABLE(a) ? b.type : a.type
         );
     }
 

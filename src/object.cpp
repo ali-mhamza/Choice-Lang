@@ -24,7 +24,7 @@ constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
     "Function", "Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table", "Tuple",
-    "Iterable", "Num"
+    "Iterable", "Num", "Comparable"
 };
 
 /* Object. */
@@ -145,16 +145,32 @@ bool Object::operator==(const Object& other) const
 
 bool Object::operator>(const Object& other) const
 {
-    CH_ASSERT(IS_NUM(*this) && IS_NUM(other),
-        "Invalid operand types passed to operator.");
-    return AS_NUM(*this) > AS_NUM(other);
+    if (IS_NUM(*this) && IS_NUM(other))
+        return AS_NUM(*this) > AS_NUM(other);
+    else if (IS_STRING(*this) && IS_STRING(other))
+    {
+        const auto& str1{AS_STRING(*this)->str};
+        const auto& str2{AS_STRING(other)->str};
+        return (str1.compare(str2) > 0);
+    }
+
+    CH_ASSERT(false, "Invalid operand types passed to operator.");
+    CH_UNREACHABLE(); // Remains in release builds.
 }
 
 bool Object::operator<(const Object& other) const
 {
-    CH_ASSERT(IS_NUM(*this) && IS_NUM(other),
-        "Invalid operand types passed to operator.");
-    return AS_NUM(*this) < AS_NUM(other);
+    if (IS_NUM(*this) && IS_NUM(other))
+        return AS_NUM(*this) < AS_NUM(other);
+    else if (IS_STRING(*this) && IS_STRING(other))
+    {
+        const auto& str1{AS_STRING(*this)->str};
+        const auto& str2{AS_STRING(other)->str};
+        return (str1.compare(str2) < 0);
+    }
+
+    CH_ASSERT(false, "Invalid operand types passed to operator.");
+    CH_UNREACHABLE();
 }
 
 bool Object::in(const Object& other) const
@@ -785,7 +801,7 @@ void TypeMismatch::report()
         "Invalid object type for error reporting.");
 
     CH_PRINT(stderr,
-        "Type mismatch: Expected type ({}) but found ({}) instead.\n",
+        "Type mismatch: Expected ({}) but found ({}) instead.\n",
         objTypes[expect], objTypes[actual]
     );
     CH_PRINT(stderr, "{:>15}{}\n", "", message);
