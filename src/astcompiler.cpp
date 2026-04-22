@@ -1187,7 +1187,7 @@ DEF(LiteralExpr)
         reserveReg();
     }
 
-    #undef GET_STR
+    #undef GET_RAW_STR
 }
 
 /* General compilation functions. */
@@ -1195,7 +1195,7 @@ DEF(LiteralExpr)
 void ASTCompiler::compileExpr(const ExprUP& node)
 {
     if (node == nullptr) return;
-    
+
     switch (node->type)
     {
         case E_TUPLE_EXPR:      COMPILE(TupleExpr);         break;
