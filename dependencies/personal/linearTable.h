@@ -1,7 +1,8 @@
 /*  This hash table has a basic implementation of open addressing to deal with hash collisions.
 *   It uses linear probing (rather than quadratic probing or similar alternatives) to traverse through the array upon
 *   collisions.
-*   Deletions are dealt with using tombstones rather than back-shifting (or other methods), and the main structure  *   is an AOS (array of structs).
+*   Deletions are dealt with using tombstones rather than back-shifting (or other methods), and the main structure is an
+*   AOS (array of structs).
 */
 
 #pragma once
@@ -359,15 +360,12 @@ void linearTable<Key, Value, HashFunc>::remove(const Key& key)
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::merge(const linearTable<Key, Value, HashFunc>& other)
+void linearTable<Key, Value, HashFunc>::merge(
+    const linearTable<Key, Value, HashFunc>& other
+)
 {
-    size_t capacity = other.entries.capacity();
-    for (size_t i = 0; i < capacity; i++)
-    {
-        EKV entry = other.entries.slot(i);
-        if (entry.state == VALID)
-            add(entry.key, entry.value);
-    }
+    for (const auto& [key, value] : other)
+        this->add(key, value);
 }
 
 KVHTEMP
