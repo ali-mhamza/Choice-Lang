@@ -8,7 +8,7 @@ CXX_STANDARD = -std=c++17
 # fmt: Compile as header-only library.
 # replxx: Compile and link as static library (no DLL).
 DEFINES = -D FMT_HEADER_ONLY -D REPLXX_STATIC
-CH_ALLOCATOR = -D CH_USE_ALLOC=1 -D 'CH_ALLOC_SIZE=MiB(10)' -D CH_LINEAR_ALLOC
+CH_ALLOCATOR = -D CH_USE_ALLOC=1 -D 'CH_ALLOC_SIZE=MiB(1)' -D CH_LINEAR_ALLOC
 DEFINES += $(CH_ALLOCATOR)
 
 DEBUG_FLAGS = -g -O0 -fno-omit-frame-pointer -fsanitize=address,undefined -D DEBUG
