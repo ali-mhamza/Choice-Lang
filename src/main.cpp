@@ -237,6 +237,11 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 		auto time{duration_cast<microseconds>(end - begin)};
 		CH_PRINT("Time: {:.6f}\n",
 			static_cast<long double>(time.count()) / 1000000);
+
+		#if CH_USE_ALLOC
+			CH_PRINT("Total memory from allocator: {} bytes\n",
+				allocator.allocatedMemory());
+		#endif /* CH_USE_ALLOC */
 	#endif
 
 	#if !CH_USE_ALLOC

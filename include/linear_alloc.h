@@ -32,6 +32,10 @@ class LinearAlloc
         template<typename ObjT, typename Dealloc = DefaultDealloc,
         typename... Args>
         ObjT* alloc(Args&&... args) noexcept;
+
+        #if defined(DEBUG)
+            size_t allocatedMemory();
+        #endif
 };
 
 template<typename ObjT, typename Dealloc, typename... Args>

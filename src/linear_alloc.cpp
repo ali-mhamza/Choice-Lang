@@ -25,4 +25,12 @@ LinearAlloc::~LinearAlloc()
     free(start);
 }
 
+#if defined(DEBUG)
+    size_t LinearAlloc::allocatedMemory()
+    {
+        // Used memory + initial offset.
+        return used + (AS_BYTES(arena) - AS_BYTES(start));
+    }
+#endif
+
 #endif
