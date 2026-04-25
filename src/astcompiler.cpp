@@ -636,14 +636,14 @@ DEF(RepeatStmt)
     ui64 loopStart{code.getLoopStart()};
     compileStmt(node->body);
 
+    // Patch current scope "continue" jumps.
+    for (ui64 jump : continues)
+        code.patchJump(jump);
+
     ui8 reg{previousReg};
     compileExpr(node->condition);
     ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
-
-    // Patch current scope "continue" jumps.
-    for (ui64 jump : continues)
-        code.patchJump(jump);
 
     // Patch nested scope "continue" jumps.
     patchLoopLabelJumps(node->label, false);
