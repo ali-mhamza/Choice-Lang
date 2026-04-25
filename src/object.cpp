@@ -783,7 +783,7 @@ bool ObjIter::next(Object& var)
     return ret;
 }
 
-/* Type Mismatch Error Class.*/
+/* Type mismatch error class.*/
 
 TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
     ObjType actual) :
