@@ -1047,7 +1047,7 @@ DEF(CallExpr)
     // function object.
     // For built-ins, we place the return value in the empty register
     // reserved above.
-    previousReg -= size;
+    previousReg = argsStart;
 }
 
 DEF(IfExpr)
