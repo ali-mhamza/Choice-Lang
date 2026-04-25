@@ -304,12 +304,15 @@ void ASTCompiler::funcBodyHelper(
 )
 {
     ASTCompiler miniCompiler{this};
+    // The number of "parameter" tokens that aren't identifiers.
+    ui8 removeCount{0};
     for (auto it{params.begin()}; it != params.end(); it++)
     {
         bool access{accessVar};
         if (it->type == TOK_FIX)
         {
             access = accessFix;
+            removeCount++;
             it++;
         }
 
@@ -330,7 +333,7 @@ void ASTCompiler::funcBodyHelper(
         this->hitError = true;
 
     Object func{};
-    ui8 arity{static_cast<ui8>(params.size())};
+    ui8 arity{static_cast<ui8>(params.size() - removeCount)};
     if (name.empty()) // Compiling a lambda.
         func = CH_ALLOC(Function, funcCode, arity);
     else
