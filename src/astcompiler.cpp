@@ -107,6 +107,13 @@ void ASTCompiler::defVar(const std::string& name, ui8 reg, bool access)
     if (scope != 0) varScopes.top().push_back(name);
 }
 
+void ASTCompiler::removeVar(const std::string& name, ui8 reg)
+{
+    varLocations->remove({ name, scope });
+    varAccess->remove(reg);
+    if (scope != 0) varScopes.top().pop_back();
+}
+
 bool ASTCompiler::getAccess(ui8 reg) const
 {
     bool* ret{varAccess->get(reg)};
@@ -281,12 +288,14 @@ DEF(VarDecl)
             + "' is already defined in this scope.");
     }
 
+    std::string varName{node->name.text};
     ui8 varSlot{previousReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
-    defVar(std::string(node->name.text), varSlot,
+    defVar(varName, varSlot,
         node->declType == TOK_MAKE ? accessVar : accessFix);
 
+    bool inError{hitError};
     if (node->init != nullptr)
         compileExpr(node->init);
     else
@@ -294,6 +303,8 @@ DEF(VarDecl)
         code.loadReg(varSlot, OP_NULL);
         reserveReg();
     }
+
+    if (!inError && hitError) removeVar(varName, varSlot);
 }
 
 void ASTCompiler::funcBodyHelper(
@@ -388,7 +399,9 @@ DEF(FuncDecl)
         reserveReg();
     }
 
+    bool inError{hitError};
     funcBodyHelper(node->params, node->body, varSlot, name);
+    if (!inError && hitError) removeVar(name, varSlot);
 }
 
 DEF(ClassDecl) { (void) node; }

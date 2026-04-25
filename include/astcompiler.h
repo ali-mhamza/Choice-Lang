@@ -86,6 +86,12 @@ class ASTCompiler
         // state.
         void defVar(const std::string& name, ui8 reg, bool access);
 
+        // Undefine a variable originally declared in the current scope.
+        // Used as a primitive "rollback" if we hit an error during a
+        // declaration.
+        // Must always be called (if it is called at all) *after* defVar.
+        void removeVar(const std::string& name, ui8 reg);
+
         // Check if variable at register `reg` is mutable.
         bool getAccess(ui8 reg) const;
 
