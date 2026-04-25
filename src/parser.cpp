@@ -221,6 +221,7 @@ StmtUP Parser::funcBodyHelper(bool lambda, vT& params, bool skipParams)
         if (!checkTok(lambda ? TOK_BAR : TOK_RIGHT_PAREN))
         {
             do {
+                if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
                 MATCH_TOK(TOK_IDENTIFIER, "Expect parameter name.");
                 params.emplace_back(previousTok);
             } while (consumeTok(TOK_COMMA));

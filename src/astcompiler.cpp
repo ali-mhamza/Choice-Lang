@@ -304,13 +304,21 @@ void ASTCompiler::funcBodyHelper(
 )
 {
     ASTCompiler miniCompiler{this};
-    for (const Token& param : params)
+    for (auto it{params.begin()}; it != params.end(); it++)
     {
+        bool access{accessVar};
+        if (it->type == TOK_FIX)
+        {
+            access = accessFix;
+            it++;
+        }
+
+        const Token& param{*it};
         ui8 reg{miniCompiler.previousReg};
         LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
             REPORT_ERROR(param, "Parameter with the same name already in use.");
-        miniCompiler.defVar(std::string(param.text), reg, accessVar);
+        miniCompiler.defVar(std::string(param.text), reg, access);
         miniCompiler.reserveReg();
     }
     miniCompiler.compileStmt(body);
