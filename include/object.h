@@ -33,6 +33,7 @@ using Natives::FuncType;
     X(RANGE, rangeVal)      \
     X(LIST, listVal)        \
     X(TABLE, tableVal)      \
+    X(REF, refVal)          \
     /* Used in function return values. */   \
     X(TUPLE, tupleVal)      \
     /* Used in for-loops. */                \
@@ -64,6 +65,7 @@ struct String;
 struct Range;
 struct List;
 struct Table;
+struct Cell;
 struct Tuple;
 struct HeapObj;
 struct ObjIter;
@@ -92,6 +94,7 @@ class Object
             Range*      rangeVal;
             List*       listVal;
             Table*      tableVal;
+            Cell*       refVal;
             Tuple*      tupleVal;
             HeapObj*    heapVal;
             ObjIter*    iterVal;
@@ -230,7 +233,7 @@ struct HeapObj
     virtual ~HeapObj() = default;
 };
 
-struct Cell
+struct Cell : HeapObj
 {
     Object* location{};
     Object obj{};

@@ -1150,6 +1150,26 @@ DEF(ListExpr)
     if (count > 0) emitList();
 }
 
+DEF(ReferenceExpr)
+{
+    VarInfo info{resolveVariable(node->name)};
+    if (!info.found)
+    {
+        REPORT_ERROR(node->name, "Cannot construct reference " \
+            "to undefined variable '" + std::string(node->name.text) + "'.");
+    }
+
+    // Should add a warning here if the variable is immutable.
+    // Since we don't have immutable references (and all our copies
+    // are cheap shallow copies), it's most often the case that using
+    // a reference here is with the intention of modifying the variable.
+    // Since this cannot be determined with certainty, stick to a warning.
+
+    code.addOp(OP_MAKE_REF, previousReg, static_cast<ui8>(info.type),
+        info.slot);
+    reserveReg();
+}
+
 DEF(VarExpr)
 {
     VarInfo info{resolveVariable(node->name)};
@@ -1235,6 +1255,7 @@ void ASTCompiler::compileExpr(const ExprUP& node)
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
         case E_COMPREHEN_EXPR:  COMPILE(ComprehensionExpr); break;
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
+        case E_REF_EXPR:        COMPILE(ReferenceExpr);     break;
         case E_VAR_EXPR:        COMPILE(VarExpr);           break;
         case E_LITERAL_EXPR:    COMPILE(LiteralExpr);       break;
     }

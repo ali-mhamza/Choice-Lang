@@ -23,8 +23,9 @@ using Natives::funcNames;
 constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
     "Function", "Function", "Lambda", "BigInt",
-    "BigDec", "String", "Range", "List", "Table", "Tuple",
-    "Iterable", "Num", "Comparable"
+    "BigDec", "String", "Range", "List", "Table",
+    "", // References take the type of the contained object.
+    "Tuple", "Iterable", "Num", "Comparable"
 };
 
 /* Object. */
@@ -303,6 +304,7 @@ HeapObj::HeapObj(ObjType type) :
     type{type} {}
 
 Cell::Cell(Object* location) :
+    HeapObj{OBJ_REF},
     location{location} {}
 
 void Cell::close()

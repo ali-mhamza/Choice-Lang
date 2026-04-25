@@ -37,6 +37,8 @@ class Disassembler
         void collectionOp(ui8 byte);
         // For closure captures.
         void captureOp(ui8 byte);
+        // For OP_MAKE_REF.
+        void referenceOp();
     
     public:
         Disassembler(const ByteCode& code);

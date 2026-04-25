@@ -226,6 +226,7 @@ namespace AST
             E_LAMBDA_EXPR,
             E_COMPREHEN_EXPR,
             E_LIST_EXPR,
+            E_REF_EXPR,
             E_VAR_EXPR,
             E_LITERAL_EXPR
         };
@@ -396,6 +397,13 @@ namespace AST
             const ExprVec entries{};
 
             ListExpr(ExprVec& entries);
+        };
+
+        struct ReferenceExpr : public Expr
+        {
+            const Token name{};
+
+            ReferenceExpr(const Token& name);
         };
 
         struct VarExpr : public Expr

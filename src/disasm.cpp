@@ -239,6 +239,32 @@ void Disassembler::captureOp(ui8 byte)
 	ip += 2;
 }
 
+void Disassembler::referenceOp()
+{
+    // Mimicking the compiler.
+    enum VarType : ui8 { GLOBAL, CELL, LOCAL };
+
+	printOpcode(opNames[OP_MAKE_REF]);
+	ui8 reg{restoreByte()};
+
+	ip++;
+	CH_PRINT("R[{}] ", reg);
+
+	VarType type{static_cast<VarType>(restoreByte())};
+	ip++;
+	ui8 target{restoreByte()};
+
+	switch (type)
+	{
+		case GLOBAL:	CH_PRINT("GLOBAL ");	break;
+		case CELL:		CH_PRINT("CELL ");		break;
+		case LOCAL:		CH_PRINT("LOCAL ");		break;
+	}
+
+	CH_PRINT("R[{}]\n", target);
+	ip += 2;
+}
+
 void Disassembler::disassembleOp(ui8 byte)
 {
 	switch (byte)
@@ -273,6 +299,9 @@ void Disassembler::disassembleOp(ui8 byte)
 			break;
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
 			captureOp(byte);
+			break;
+		case OP_MAKE_REF:
+			referenceOp();
 			break;
 		case OP_EXIT_SCOPE:
 		{

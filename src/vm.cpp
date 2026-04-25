@@ -148,23 +148,6 @@ inline void VM::closeCells(Object* limit)
     }
 #endif
 
-inline Object VM::loadOper()
-{
-    switch (ui8 oper = readByte())
-    {
-        case OP_NEG_TWO:    case OP_NEG_ONE:    case OP_ZERO:
-        case OP_ONE:        case OP_TWO:
-            return i64(oper) - 2;
-        case OP_TRUE:       return true;
-        case OP_FALSE:      return false;
-        case OP_NULL:       return nullptr;
-        case OP_BYTE_OPER:  return pool[readByte()];
-        case OP_SHORT_OPER: return pool[readShort()];
-        case OP_LONG_OPER:  return pool[readLong()];
-        default: CH_UNREACHABLE();
-    }
-}
-
 Object VM::concatStrings(const Object& str1, const Object& str2)
 {
     std::string concat{AS_STRING(str1)->str + AS_STRING(str2)->str};
@@ -184,6 +167,50 @@ Object VM::makeRange(const Object& start, const Object& stop)
 
     std::array<i64, 3> nums{AS_INT(start), AS_INT(stop), 1};
     return CH_ALLOC(Range, nums);
+}
+
+Object VM::makeReference()
+{
+    // Mimicking the compiler.
+    enum VarType : ui8 { GLOBAL, CELL, LOCAL };
+
+    VarType type{static_cast<VarType>(readByte())};
+    ui8 index{readByte()};
+    Object* addr{};
+
+    switch (type)
+    {
+        case GLOBAL:
+            addr = &globalRegisters[index];
+            break;
+        case CELL:
+            addr = currentClosure->cells[index]->location;
+            break;
+        case LOCAL:
+            addr = &registers[index];
+            break;
+        default:
+            CH_UNREACHABLE();
+    }
+
+    return CH_ALLOC(Cell, addr);
+}
+
+inline Object VM::loadOper()
+{
+    switch (ui8 oper = readByte())
+    {
+        case OP_NEG_TWO:    case OP_NEG_ONE:    case OP_ZERO:
+        case OP_ONE:        case OP_TWO:
+            return i64(oper) - 2;
+        case OP_TRUE:       return true;
+        case OP_FALSE:      return false;
+        case OP_NULL:       return nullptr;
+        case OP_BYTE_OPER:  return pool[readByte()];
+        case OP_SHORT_OPER: return pool[readShort()];
+        case OP_LONG_OPER:  return pool[readLong()];
+        default: CH_UNREACHABLE();
+    }
 }
 
 Object VM::arithOper(Opcode oper, ui8 firstOper)
@@ -652,7 +679,13 @@ void VM::executeOp(Opcode op)
             ui8 dest{readByte()};
             ui8 src{readByte()};
 
-            COPY(registers[dest], globalRegisters[src]);
+            if (IS_REF(registers[dest]))
+            {
+                Cell* cell{AS_REF(registers[dest])};
+                COPY(*(cell->location), globalRegisters[src]);
+            }
+            else
+                COPY(registers[dest], globalRegisters[src]);
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -661,7 +694,13 @@ void VM::executeOp(Opcode op)
             ui8 dest{readByte()};
             ui8 src{readByte()};
 
-            COPY(globalRegisters[dest], registers[src]);
+            if (IS_REF(registers[src]))
+            {
+                Cell* cell{AS_REF(registers[src])};
+                COPY(globalRegisters[dest], *(cell->location));
+            }
+            else
+                COPY(globalRegisters[dest], registers[src]);
             DISPATCH();
         }
 
@@ -669,8 +708,15 @@ void VM::executeOp(Opcode op)
         {
             ui8 dest{readByte()};
             ui8 src{readByte()};
+            Object& obj{*(currentClosure->cells[src]->location)};
 
-            COPY(registers[dest], *(currentClosure->cells[src]->location));
+            if (IS_REF(obj))
+            {
+                Cell* cell{AS_REF(obj)};
+                COPY(registers[dest], *(cell->location));
+            }
+            else
+                COPY(registers[dest], obj);
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -678,8 +724,15 @@ void VM::executeOp(Opcode op)
         {
             ui8 dest{readByte()};
             ui8 src{readByte()};
+            Object& obj{*(currentClosure->cells[dest]->location)};
 
-            COPY(*(currentClosure->cells[dest]->location), registers[src]);
+            if (IS_REF(obj))
+            {
+                Cell* cell{AS_REF(obj)};
+                COPY(*(cell->location), registers[src]);
+            }
+            else
+                COPY(obj, registers[src]);
             DISPATCH();
         }
 
@@ -688,8 +741,15 @@ void VM::executeOp(Opcode op)
         {
             ui8 dest{readByte()};
             ui8 src{readByte()};
+            Object* destObj{&registers[dest]};
+            Object* srcObj{&registers[src]};
 
-            COPY(registers[dest], registers[src]);
+            if (IS_REF(*destObj))
+                destObj = AS_REF(*destObj)->location;
+            if (IS_REF(*srcObj))
+                srcObj = AS_REF(*srcObj)->location;
+
+            COPY(*destObj, *srcObj);
             SET_REGSLOT_MAX(dest, src);
             DISPATCH();
         }
@@ -868,6 +928,13 @@ void VM::executeOp(Opcode op)
             ui8 index{readByte()};
 
             closure->addCell(currentClosure->cells[index]);
+            DISPATCH();
+        }
+
+        CASE(OP_MAKE_REF):
+        {
+            ui8 slot{readByte()};
+            registers[slot] = makeReference();
             DISPATCH();
         }
 

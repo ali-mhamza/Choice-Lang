@@ -731,6 +731,13 @@ ExprUP Parser::call()
         while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
         {
             do {
+                if (consumeTok(TOK_STAR))
+                {
+                    MATCH_TOK(TOK_IDENTIFIER, "Expect reference name.");
+                    args.push_back(std::make_unique<ReferenceExpr>(previousTok));
+                    continue;
+                }
+
                 args.push_back(expression());
             } while (consumeTok(TOK_COMMA));
         }
