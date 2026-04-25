@@ -48,7 +48,7 @@ class VM
         const ui8* ip{};
         const ui8* end{};
 
-        static constexpr size_t regSize = 4096;
+        static constexpr size_t regSize{4096};
         Object* globalRegisters{new Object[regSize]};
         Object* registers{globalRegisters};
         const Object* pool{};
