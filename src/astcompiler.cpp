@@ -222,6 +222,10 @@ std::string ASTCompiler::parseStringToken(const Token& token)
     std::string errorMsg{};
     bool reportedError{false};
 
+    // Skip leading or trailing newlines.
+    if (*it == '\n') it++;
+    if (*(end - 1) == '\n') end--;
+
 	while (it < end)
 	{
 		if ((*it == '\\') && (it < end - 1))
@@ -1177,11 +1181,20 @@ DEF(VarExpr)
     reserveReg();
 }
 
+static std::string getRawString(const std::string_view& text)
+{
+    size_t start{sizeof("r\"") - 1};
+    size_t sizeOffset{start + sizeof("\"") - 1};
+
+    // Skip leading or trailing newlines.
+    if (text[start] == '\n') start++;
+    if (text[text.size() - 2] == '\n') sizeOffset++;
+
+    return std::string{text.substr(start, text.size() - sizeOffset)};
+}
+
 DEF(LiteralExpr)
 {
-    #define GET_RAW_STR(tok) \
-        std::string{(tok).text.substr(2, (tok).text.size() - 3)}
-
     const Token& tok{node->value};
 
     if (tok.type == TOK_NUM)
@@ -1207,7 +1220,7 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_RAW_STR)
     {
-        Object obj{CH_ALLOC(String, GET_RAW_STR(tok))};
+        Object obj{CH_ALLOC(String, getRawString(tok.text))};
         code.loadRegConst(obj, nextReg);
         reserveReg();
     }
