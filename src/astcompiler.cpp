@@ -63,7 +63,7 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     if (depth == 0) // Global scope compiler.
     {
         for (const auto* func : Natives::funcNames)
-            defVar(func, previousReg++, accessFix); // For now.
+            defVar(func, nextReg++, accessFix); // For now.
     }
 }
 
@@ -185,7 +185,7 @@ ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
 void ASTCompiler::pushScope()
 {
     scope++;
-    scopeStart = previousReg;
+    scopeStart = nextReg;
     varScopes.emplace();
     code.addOp(OP_ENTER_SCOPE, scopeStart);
 }
@@ -198,7 +198,7 @@ void ASTCompiler::popScope()
 
     varScopes.pop();
     scope--;
-    previousReg = scopeStart;
+    nextReg = scopeStart;
     code.addOp(OP_EXIT_SCOPE);
 }
 
@@ -271,7 +271,7 @@ DEF(VarDecl)
     {
         if (inRepl && (depth == 0) && (scope == 0))
         {
-            ui8 reg{previousReg};
+            ui8 reg{nextReg};
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
@@ -289,7 +289,7 @@ DEF(VarDecl)
     }
 
     std::string varName{node->name.text};
-    ui8 varSlot{previousReg};
+    ui8 varSlot{nextReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
     defVar(varName, varSlot,
@@ -328,7 +328,7 @@ void ASTCompiler::funcBodyHelper(
         }
 
         const Token& param{*it};
-        ui8 reg{miniCompiler.previousReg};
+        ui8 reg{miniCompiler.nextReg};
         LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
             REPORT_ERROR(param, "Parameter with the same name already in use.");
@@ -391,7 +391,7 @@ DEF(FuncDecl)
             "Too many parameters in function.");
     }
 
-    ui8 varSlot{redefined ? localInfo.slot : previousReg};
+    ui8 varSlot{redefined ? localInfo.slot : nextReg};
     std::string name{node->name.text};
     if (!redefined)
     {
@@ -408,7 +408,7 @@ DEF(ClassDecl) { (void) node; }
 
 DEF(IfStmt)
 {
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     compileExpr(node->condition);
     ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
@@ -427,7 +427,7 @@ DEF(IfStmt)
 
 DEF(WhileStmt)
 {
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     ui64 loopStart{code.getLoopStart()};
     if (node->label.type != TOK_EOF)
     {
@@ -483,7 +483,7 @@ void ASTCompiler::forLoopHelper(
     ui64 whereJump{0};
     if (node->where != nullptr)
     {
-        ui8 whereReg{previousReg};
+        ui8 whereReg{nextReg};
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
@@ -536,11 +536,11 @@ DEF(ForStmt)
     auto* prevContinues{continueJumps};
     continueJumps = &continues;
 
-    ui8 varReg{previousReg};
+    ui8 varReg{nextReg};
     defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
 
-    ui8 iterReg{previousReg};
+    ui8 iterReg{nextReg};
     compileExpr(node->iter);
 
     forLoopHelper(node, varReg, iterReg);
@@ -558,7 +558,7 @@ void ASTCompiler::matchCaseHelper(
     ui64& emptyJump
 )
 {
-    ui8 caseReg{previousReg};
+    ui8 caseReg{nextReg};
     compileExpr(checkCase.value);
     code.addOp(OP_EQUAL, caseReg, matchReg);
     ui64 falseJump{code.addJump(OP_JUMP_FALSE, caseReg)};
@@ -592,7 +592,7 @@ void ASTCompiler::matchCaseHelper(
 
 DEF(MatchStmt)
 {
-    ui8 matchReg{previousReg};
+    ui8 matchReg{nextReg};
     compileExpr(node->matchValue);
 
     std::vector<ui64> jumps{};
@@ -640,7 +640,7 @@ DEF(RepeatStmt)
     for (ui64 jump : continues)
         code.patchJump(jump);
 
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     compileExpr(node->condition);
     ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
@@ -663,7 +663,7 @@ DEF(RepeatStmt)
 
 DEF(ReturnStmt)
 {
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     if (node->expr != nullptr)
         compileExpr(node->expr);
     else
@@ -717,7 +717,7 @@ DEF(ExprStmt)
 {
     if (node->expr == nullptr) return;
     
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     compileExpr(node->expr);
     if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
         code.addOp(OP_PRINT_VALID, reg);
@@ -736,15 +736,15 @@ DEF(TupleExpr)
 {
     constexpr int TUPLE_GROUP{5};
     
-    ui8 tupleReg{previousReg};
+    ui8 tupleReg{nextReg};
     code.addOp(OP_TUPLE, tupleReg);
     reserveReg();
 
     ui8 count{0};
-    ui8 startReg{previousReg};
+    ui8 startReg{nextReg};
     auto emitTuple = [this, tupleReg, &count, startReg] {
         code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
-        previousReg = startReg;
+        nextReg = startReg;
         count = 0;
     };
 
@@ -763,11 +763,11 @@ void ASTCompiler::compoundAssign(
     const VarInfo& info
 )
 {
-    ui8 varReg{previousReg};
+    ui8 varReg{nextReg};
     addVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
-    ui8 valueReg{previousReg};
+    ui8 valueReg{nextReg};
     compileExpr(node->value);
 
     Opcode op{};
@@ -814,7 +814,7 @@ DEF(AssignExpr)
         return;
     }
 
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     compileExpr(node->value);
     addVariableOp(setVar, info, info.slot, reg);
 }
@@ -823,19 +823,19 @@ DEF(LogicExpr)
 {
     if ((node->oper == TOK_AMP_AMP) || (node->oper == TOK_AND)) // &&, and
     {
-        ui8 reg{previousReg};
+        ui8 reg{nextReg};
         compileExpr(node->left);
         ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
-        previousReg = reg;
+        nextReg = reg;
         compileExpr(node->right);
         code.patchJump(falseJump);
     }
     else if ((node->oper == TOK_BAR_BAR) || (node->oper == TOK_OR)) // ||, or
     {
-        ui8 reg{previousReg};
+        ui8 reg{nextReg};
         compileExpr(node->left);
         ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
-        previousReg = reg;
+        nextReg = reg;
         compileExpr(node->right);
         code.patchJump(trueJump);
     }
@@ -843,10 +843,10 @@ DEF(LogicExpr)
 
 DEF(CompareExpr)
 {
-    ui8 firstOper{previousReg};
+    ui8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{previousReg};
+    ui8 secondOper{nextReg};
     compileExpr(node->right);
 
     Opcode op{};
@@ -880,10 +880,10 @@ DEF(CompareExpr)
 
 DEF(BitExpr)
 {
-    ui8 firstOper{previousReg};
+    ui8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{previousReg};
+    ui8 secondOper{nextReg};
     compileExpr(node->right);
 
     Opcode op{};
@@ -901,10 +901,10 @@ DEF(BitExpr)
 
 DEF(ShiftExpr)
 {
-    ui8 firstOper{previousReg};
+    ui8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{previousReg};
+    ui8 secondOper{nextReg};
     compileExpr(node->right);
 
     code.addOp(node->oper == TOK_RIGHT_SHIFT ?
@@ -914,10 +914,10 @@ DEF(ShiftExpr)
 
 DEF(BinaryExpr)
 {
-    ui8 firstOper{previousReg};
+    ui8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{previousReg};
+    ui8 secondOper{nextReg};
     compileExpr(node->right);
 
     Opcode op{};
@@ -969,18 +969,18 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
     // In both cases, the result ends up in the first register,
     // which is the only reserved register.
 
-    addVariableOp(getVar, info, previousReg, info.slot);
+    addVariableOp(getVar, info, nextReg, info.slot);
     reserveReg();
 
-    addVariableOp(getVar, info, previousReg, info.slot);
+    addVariableOp(getVar, info, nextReg, info.slot);
     code.addOp((node->oper.type == TOK_INCR ?
-        OP_INCR : OP_DECR), previousReg);
-    addVariableOp(setVar, info, info.slot, previousReg);
+        OP_INCR : OP_DECR), nextReg);
+    addVariableOp(setVar, info, info.slot, nextReg);
 
     if (!node->prev)
     {
-        code.addOp(OP_MOVE_R, static_cast<ui8>(previousReg - 1),
-            previousReg);
+        code.addOp(OP_MOVE_R, static_cast<ui8>(nextReg - 1),
+            nextReg);
     }
 }
 
@@ -992,7 +992,7 @@ DEF(UnaryExpr)
         return;
     }
 
-    ui8 firstOper{previousReg};
+    ui8 firstOper{nextReg};
     compileExpr(node->expr);
 
     Opcode op{};
@@ -1031,11 +1031,11 @@ DEF(CallExpr)
     }
     else
     {
-        location = previousReg;
+        location = nextReg;
         compileExpr(node->callee); // Will reserve a register.
     }
 
-    ui8 argsStart{previousReg};
+    ui8 argsStart{nextReg};
     for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
@@ -1047,22 +1047,22 @@ DEF(CallExpr)
     // function object.
     // For built-ins, we place the return value in the empty register
     // reserved above.
-    previousReg = argsStart;
+    nextReg = argsStart;
 }
 
 DEF(IfExpr)
 {
-    ui8 reg{previousReg};
+    ui8 reg{nextReg};
     compileExpr(node->condition);
     ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
 
-    ui8 current{previousReg};
+    ui8 current{nextReg};
     compileExpr(node->trueExpr);
     ui64 trueJump{code.addJump(OP_JUMP)};
     code.patchJump(falseJump);
 
-    previousReg = current;
+    nextReg = current;
     compileExpr(node->falseExpr);
     code.patchJump(trueJump);
 }
@@ -1075,23 +1075,23 @@ DEF(LambdaExpr)
             "Too many parameters in lambda.");
     }
 
-    funcBodyHelper(node->params, node->body, previousReg, 
+    funcBodyHelper(node->params, node->body, nextReg, 
         std::string());
     reserveReg();
 }
 
 DEF(ComprehensionExpr)
 {
-    ui8 listReg{previousReg};
+    ui8 listReg{nextReg};
     code.addOp(OP_LIST, listReg);
     reserveReg();
 
     pushScope();
-    ui8 varReg{previousReg};
+    ui8 varReg{nextReg};
     defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
 
-    ui8 iterReg{previousReg};
+    ui8 iterReg{nextReg};
     compileExpr(node->iter);
 
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
@@ -1101,13 +1101,13 @@ DEF(ComprehensionExpr)
     ui64 whereJump{0};
     if (node->where != nullptr)
     {
-        ui8 whereReg{previousReg};
+        ui8 whereReg{nextReg};
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
 
-    ui8 result{previousReg};
+    ui8 result{nextReg};
     compileExpr(node->expr);
     code.addOp(OP_EXT_LIST, listReg, result, ui8(1));
 
@@ -1128,15 +1128,15 @@ DEF(ComprehensionExpr)
 
 DEF(ListExpr)
 {
-    ui8 listReg{previousReg};
+    ui8 listReg{nextReg};
     code.addOp(OP_LIST, listReg);
     reserveReg();
 
     ui8 count{0};
-    ui8 startReg{previousReg};
+    ui8 startReg{nextReg};
     auto emitList = [this, listReg, &count, startReg] {
         code.addOp(OP_EXT_LIST, listReg, startReg, count);
-        previousReg = startReg;
+        nextReg = startReg;
         count = 0;
     };
 
@@ -1165,7 +1165,7 @@ DEF(ReferenceExpr)
     // a reference here is with the intention of modifying the variable.
     // Since this cannot be determined with certainty, stick to a warning.
 
-    code.addOp(OP_MAKE_REF, previousReg, static_cast<ui8>(info.type),
+    code.addOp(OP_MAKE_REF, nextReg, static_cast<ui8>(info.type),
         info.slot);
     reserveReg();
 }
@@ -1179,7 +1179,7 @@ DEF(VarExpr)
             + std::string(node->name.text) + "'.");
     }
 
-    addVariableOp(getVar, info, previousReg, info.slot);
+    addVariableOp(getVar, info, nextReg, info.slot);
     reserveReg();
 }
 
@@ -1193,41 +1193,41 @@ DEF(LiteralExpr)
     if (tok.type == TOK_NUM)
     {
         Object obj{tok.content.i};
-        code.loadRegConst(obj, previousReg);
+        code.loadRegConst(obj, nextReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_NUM_DEC)
     {
         Object obj{tok.content.d};
-        code.loadRegConst(obj, previousReg);
+        code.loadRegConst(obj, nextReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_STR_LIT)
     {
         Object obj{CH_ALLOC(String, parseStringToken(tok))};
-        code.loadRegConst(obj, previousReg);
+        code.loadRegConst(obj, nextReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RAW_STR)
     {
         Object obj{CH_ALLOC(String, GET_RAW_STR(tok))};
-        code.loadRegConst(obj, previousReg);
+        code.loadRegConst(obj, nextReg);
         reserveReg();
     }
 
     else if ((tok.type == TOK_TRUE) || (tok.type == TOK_FALSE))
     {
         bool value{tok.content.b};
-        code.loadReg(previousReg, (value ? OP_TRUE : OP_FALSE));
+        code.loadReg(nextReg, (value ? OP_TRUE : OP_FALSE));
         reserveReg();
     }
 
     else if (tok.type == TOK_NULL)
     {
-        code.loadReg(previousReg, OP_NULL);
+        code.loadReg(nextReg, OP_NULL);
         reserveReg();
     }
 
