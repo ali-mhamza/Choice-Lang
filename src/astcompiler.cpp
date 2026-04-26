@@ -212,6 +212,8 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 std::string ASTCompiler::parseStringToken(const Token& token)
 {
 	auto size{token.text.size() - 2};
+    if (size == 0) return std::string{}; // Empty string.
+
 	const auto text{token.text.substr(1, size)};
     auto it{text.begin()};
     auto end{text.end()};
@@ -223,10 +225,10 @@ std::string ASTCompiler::parseStringToken(const Token& token)
     bool reportedError{false};
 
     // Skip leading or trailing newlines.
-    if (*it == '\n') it++;
-    if (*(end - 1) == '\n') end--;
+    if (it[0] == '\n') it++;
+    if (end[-1] == '\n') end--;
 
-	while (it < end)
+	while (it != end)
 	{
 		if ((*it == '\\') && (it < end - 1))
 		{
@@ -1187,8 +1189,13 @@ static std::string getRawString(const std::string_view& text)
     size_t sizeOffset{start + sizeof("\"") - 1};
 
     // Skip leading or trailing newlines.
-    if (text[start] == '\n') start++;
-    if (text[text.size() - 2] == '\n') sizeOffset++;
+    if (text[start] == '\n')
+    {
+        start++;
+        sizeOffset++;
+    }
+    if (text[text.size() - 2] == '\n')
+        sizeOffset++;
 
     return std::string{text.substr(start, text.size() - sizeOffset)};
 }
