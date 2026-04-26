@@ -16,27 +16,11 @@
 #undef EOF
 #define EOF static_cast<char>(-1)
 
-#undef REPORT_ERROR
-#define REPORT_ERROR(...)                                       \
-	do {                                                        \
-		hitError = true;                                        \
-		if (errorCount > LEX_ERROR_MAX) return;                 \
-		if (errorCount == LEX_ERROR_MAX)                   		\
-			CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");		\
-		else													\
-			LexError{__VA_ARGS__}.report();                     \
-		errorCount++;                                           \
-		return;                                                 \
-	} while (false)
-
-#define REPORT_ERROR_NO_RETURN(...)								\
-	do {                                                        \
-		hitError = true;                                        \
-		if (errorCount == LEX_ERROR_MAX)                   		\
-			CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");		\
-		else if (errorCount < LEX_ERROR_MAX)					\
-			LexError{__VA_ARGS__}.report();                     \
-		errorCount++;                                           \
+#undef REPORT_RETURN
+#define REPORT_RETURN(...)         	\
+	do {                        	\
+		reportError(__VA_ARGS__);	\
+		return;                 	\
 	} while (false)
 
 static const std::unordered_map<std::string_view, TokenType> keywords{
@@ -169,7 +153,7 @@ bool Lexer::checkHyperComment()
 			consumeChars(3);
 		else
 		{
-			REPORT_ERROR_NO_RETURN(peekChar(), line, static_cast<ui8>(column + 1),
+			reportError(peekChar(), line, static_cast<ui8>(column + 1),
 				"Unterminated nested comment.");
 		}
 		return true;
@@ -223,6 +207,21 @@ bool Lexer::checkNumericLiteral(char start)
 	return false;
 }
 
+void Lexer::reportError(
+	const char c,
+	const ui16 line,
+	const ui8 position,
+	const std::string_view message
+)
+{
+	if (errorCount == LEX_ERROR_MAX)
+		CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
+	else if (errorCount < LEX_ERROR_MAX)
+		LexError{c, line, position, message}.report();
+	hitError = true;
+	errorCount++;
+}
+
 std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 {
 	ui8 textSize{static_cast<ui8>(text.size())};
@@ -254,8 +253,7 @@ std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 		else if ((c == '\'') && ((i == 0) || (i == textSize - 1) ||
 				!isValidChar(text[i - 1]) || !isValidChar(text[i + 1])))
 		{
-			REPORT_ERROR_NO_RETURN(c, line, columnStart,
-				"Invalid use of digit separator.");
+			reportError(c, line, columnStart, "Invalid use of digit separator.");
 		}
 	}
 
@@ -281,7 +279,7 @@ i64 Lexer::intValue(std::string_view text)
 
 	if (!answer)
 	{
-		REPORT_ERROR_NO_RETURN(
+		reportError(
 			text.back(), line, static_cast<ui8>(column - 1),
 			"Failed to parse numeric literal."
 		);
@@ -300,7 +298,7 @@ double Lexer::decValue(std::string_view text)
 
 	if (!answer)
 	{
-		REPORT_ERROR_NO_RETURN(
+		reportError(
 			text.back(), line, static_cast<ui8>(column - 1),
 			"Failed to parse floating-point literal."
 		);
@@ -362,11 +360,11 @@ void Lexer::numToken()
 	{
 		if (!consumeChar('-') && !consumeChar('+') && !isdigit(peekChar()))
 		{
-			REPORT_ERROR(peekChar(), line, column,
+			REPORT_RETURN(peekChar(), line, column,
 				"Invalid character for scientific notation.");
 		}
 		if (!isdigit(peekChar()))
-			REPORT_ERROR(peekChar(), line, column, "Expect exponent.");
+			REPORT_RETURN(peekChar(), line, column, "Expect exponent.");
 
 		while ((isdigit(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 			advance();
@@ -396,14 +394,14 @@ void Lexer::numericToken(bool (*check)(char))
 				CH_UNREACHABLE();
 		}
 
-		REPORT_ERROR(peekChar(), line, column, sv);
+		REPORT_RETURN(peekChar(), line, column, sv);
 	}
 
 	while ((check(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 		advance();
 	if (!hitEnd() && isalnum(peekChar()))
 	{
-		REPORT_ERROR(peekChar(), line, column,
+		REPORT_RETURN(peekChar(), line, column,
 			"Invalid character for numeric literal.");
 	}
 	makeToken(TOK_NUM);
@@ -419,7 +417,7 @@ void Lexer::stringToken(bool raw)
 			break;
 		if (c == '\n')
 		{
-			REPORT_ERROR(previousChar(), line, static_cast<ui8>(column + 1),
+			REPORT_RETURN(previousChar(), line, static_cast<ui8>(column + 1),
 				"Incorrect syntax for multi-line string.");
 		}
 
@@ -428,7 +426,7 @@ void Lexer::stringToken(bool raw)
 	}
 
 	if (hitEnd())
-		REPORT_ERROR(EOF, line, 0, "Unterminated string."); // Column is irrelevant.
+		REPORT_RETURN(EOF, line, 0, "Unterminated string."); // Column is irrelevant.
 
 	advance(); // Consume final ".
 	makeToken(raw ? TOK_RAW_STR : TOK_STR_LIT);
@@ -454,7 +452,7 @@ void Lexer::multiStringToken(bool raw)
 
 	if (hitEnd())
 	{
-		REPORT_ERROR(EOF, line, 0, // Column is irrelevant.
+		REPORT_RETURN(EOF, line, 0, // Column is irrelevant.
 			"Unterminated multi-line string.");
 	}
 
@@ -606,7 +604,7 @@ void Lexer::singleToken()
 			while ((peekChar() != '#') && !hitEnd())
 				advance();
 			if (hitEnd())
-				REPORT_ERROR(EOF, line, 0, "Unterminated comment.");
+				REPORT_RETURN(EOF, line, 0, "Unterminated comment.");
 			advance();
 			break;
 		}
@@ -622,7 +620,7 @@ void Lexer::singleToken()
 			else
 			{
 				// Column has been incremented, so we subtract 1.
-				REPORT_ERROR(c, line, static_cast<ui8>(column - 1),
+				REPORT_RETURN(c, line, static_cast<ui8>(column - 1),
 					"Unrecognized token.");
 			}
 		}

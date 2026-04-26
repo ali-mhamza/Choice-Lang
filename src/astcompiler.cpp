@@ -26,26 +26,10 @@ using namespace AST::Expression;
         compile##type(ptr);                             \
     } while (false)
 
-#define REPORT_ERROR(...)                                           \
-    do {                                                            \
-        hitError = true;                                            \
-        if (errorCount > COMPILE_ERROR_MAX) return;                 \
-        if (errorCount == COMPILE_ERROR_MAX)                        \
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-        else                                                        \
-            CompileError{__VA_ARGS__}.report();                     \
-        errorCount++;                                               \
-        return;                                                     \
-    } while (false)
-
-#define REPORT_ERROR_NO_RETURN(...)                                 \
-    do {                                                            \
-        hitError = true;                                            \
-        if (errorCount == COMPILE_ERROR_MAX)                        \
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-        else if (errorCount < COMPILE_ERROR_MAX)                    \
-            CompileError{__VA_ARGS__}.report();                     \
-        errorCount++;                                               \
+#define REPORT_ERROR(...)           \
+    do {                            \
+        reportError(__VA_ARGS__);   \
+        return;                     \
     } while (false)
 
 constexpr bool accessFix{false};
@@ -250,7 +234,7 @@ std::string ASTCompiler::parseStringToken(const Token& token)
             }
             else if (!reportedError && !errorMsg.empty())
             {
-                REPORT_ERROR_NO_RETURN(token, errorMsg);
+                reportError(token, errorMsg);
                 reportedError = true;
             }
 		}
@@ -260,6 +244,16 @@ std::string ASTCompiler::parseStringToken(const Token& token)
 	}
 
     return str;
+}
+
+void ASTCompiler::reportError(const Token& token, std::string_view message)
+{
+    if (errorCount == COMPILE_ERROR_MAX)
+        CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+    else if (errorCount < COMPILE_ERROR_MAX)
+        CompileError{token, std::string{message}}.report();
+    hitError = true;
+    errorCount++;
 }
 
 /* AST node compilation functions. */

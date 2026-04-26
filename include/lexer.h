@@ -46,6 +46,13 @@ class Lexer
         bool checkRawString(char start);
         bool checkNumericLiteral(char start);
 
+        void reportError(
+            const char c,
+			const ui16 line,
+			const ui8 position,
+			const std::string_view message
+        );
+
         /* Value conversion methods. */
 
         // `dec`: True if parsing a floating-point value; false otherwise.

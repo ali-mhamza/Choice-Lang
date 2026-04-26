@@ -13,36 +13,16 @@
 using namespace AST::Statement;
 using namespace AST::Expression;
 
-#undef REPORT_SYNTAX
-#define REPORT_SYNTAX(...)                                          \
-    do {                                                            \
-        hitError = true;                                            \
-        if (syntaxError || (errorCount > COMPILE_ERROR_MAX))        \
-            return nullptr;                                         \
-        if (errorCount == COMPILE_ERROR_MAX)                        \
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-        else                                                        \
-            CompileError{__VA_ARGS__}.report();                     \
-        syntaxError = true;                                         \
-        errorCount++;                                               \
-        return nullptr;                                             \
+#define REPORT_SYNTAX(...)          \
+    do {                            \
+        reportSyntax(__VA_ARGS__);  \
+        return nullptr;             \
     } while (false)
-
-#undef REPORT_SEMANTIC
-#define REPORT_SEMANTIC(...)                                        \
-    do {                                                            \
-        hitError = true;                                            \
-        if (semanticError || (errorCount > COMPILE_ERROR_MAX))      \
-            return nullptr;                                         \
-        if (errorCount == COMPILE_ERROR_MAX)                        \
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");       \
-        else                                                        \
-            CompileError{__VA_ARGS__}.report();                     \
-        semanticError = true;                                       \
-        errorCount++;                                               \
-        return nullptr;                                             \
+#define REPORT_SEMANTIC(...)            \
+    do {                                \
+        reportSemantic(__VA_ARGS__);    \
+        return nullptr;                 \
     } while (false)
-
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
 
@@ -87,15 +67,7 @@ bool Parser::matchError(TokenType type, std::string_view message)
 {
     if (!consumeTok(type))
     {
-        hitError = true;
-        if (!syntaxError && (errorCount < COMPILE_ERROR_MAX))
-        {
-            CompileError{currentTok, std::string{message}}.report();
-            semanticError = true;
-        }
-        else if (errorCount == COMPILE_ERROR_MAX)
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-        errorCount++;
+        reportSyntax(currentTok, message);
         return false;
     }
 
@@ -112,6 +84,12 @@ bool Parser::consumeType()
     }
 
     return false;
+}
+
+void Parser::matchType(std::string_view message /* = "" */)
+{
+    if (!consumeType())
+        reportSyntax(currentTok, message);
 }
 
 void Parser::reset()
@@ -141,21 +119,36 @@ void Parser::reset()
     }
 }
 
-void Parser::matchType(std::string_view message /* = "" */)
+void Parser::reportSyntax(
+    const Token& token,
+    std::string_view message
+)
 {
-    // Must report manually since function is void.
-    if (!consumeType())
-    {
-        hitError = true;
-        if (!syntaxError && (errorCount < COMPILE_ERROR_MAX))
-        {
-            CompileError{currentTok, std::string{message}}.report();
-            syntaxError = true;
-        }
-        else if (errorCount == COMPILE_ERROR_MAX)
-            CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-        errorCount++;
-    }
+    hitError = true;
+    if (syntaxError || (errorCount > COMPILE_ERROR_MAX))
+        return;
+    if (errorCount == COMPILE_ERROR_MAX)
+        CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+    else
+        CompileError{token, std::string{message}}.report();
+    syntaxError = true;
+    errorCount++;
+}
+
+void Parser::reportSemantic(
+    const Token& token,
+    std::string_view message
+)
+{
+    hitError = true;
+    if (semanticError || (errorCount > COMPILE_ERROR_MAX))
+        return;
+    if (errorCount == COMPILE_ERROR_MAX)
+        CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+    else
+        CompileError{token, std::string{message}}.report();
+    semanticError = true;
+    errorCount++;
 }
 
 StmtUP Parser::declaration()
@@ -386,10 +379,7 @@ StmtUP Parser::matchStmt()
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
         if (static_cast<int>(cases.size()) == MATCH_CASES_MAX)
-        {
-            REPORT_SEMANTIC(currentTok,
-                "Too many cases in match-is structure.");
-        }
+            REPORT_SEMANTIC(currentTok, "Too many cases in match-is structure.");
 
         MATCH_TOK(TOK_IS, "Expect 'is' before case value.");
         ExprUP value{};
@@ -715,7 +705,8 @@ ExprUP Parser::call()
     if ((currentTok.type == TOK_BANG) && (expr != nullptr)
         && (expr->type != E_VAR_EXPR))
     {
-        REPORT_SEMANTIC(currentTok, "Built-in functions must be called by name.");
+        REPORT_SEMANTIC(currentTok,
+            "Built-in functions must be called by name.");
     }
 
     if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
@@ -865,9 +856,8 @@ ExprUP Parser::primary()
 
     else if (type == TOK_LEFT_BRACKET)
         return list();
-    
+
     REPORT_SYNTAX(previousTok, "Invalid token in current position.");
-    return nullptr;
 }
 
 StmtVec& Parser::parseToAST(const vT& tokens)

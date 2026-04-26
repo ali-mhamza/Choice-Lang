@@ -1,6 +1,6 @@
 #pragma once
 #include "astnodes.h"
-#include "common.h"     // For vT.
+#include "common.h"
 #include <string_view>
 
 class Parser
@@ -25,6 +25,8 @@ class Parser
         void matchType(std::string_view message = "");
         // Bring the compiler back to a proper state.
         void reset();
+        void reportSyntax(const Token& token, std::string_view message);
+        void reportSemantic(const Token& token, std::string_view message);
 
         // Recursive descent parsing functions.
 
