@@ -168,7 +168,7 @@ void Disassembler::callOp(ui8 byte)
 	if (byte == OP_CALL_NAT)
 	{
 		std::string_view func{Natives::funcNames[callee]};
-		CH_PRINT("'{}' ({}) R[{}]\n", func, count, start);
+		CH_PRINT("'{}' R[{}] ({})\n", func, start, count);
 	}
 	else
 	{
@@ -178,7 +178,7 @@ void Disassembler::callOp(ui8 byte)
 		// at runtime, we cannot display any information about the
 		// function besides its expected location when only
 		// disassembling bytecode.
-		CH_PRINT("F[{}] ({}) R[{}]\n", callee, count, start);
+		CH_PRINT("F[{}] R[{}] ({})\n", callee, start, count);
 	}
 }
 
