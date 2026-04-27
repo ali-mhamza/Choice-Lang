@@ -292,6 +292,12 @@ void optionShowBytes(const ByteCode& chunk)
 
 void optionCacheBytes(const ByteCode& chunk, const char* fileName)
 {
+	if (chunk.codeSize() == 0)
+	{
+		CH_PRINT("No code generated -> no cache file generated.\n");
+		return;
+	}
+
 	std::filesystem::path filePath{fileName};
 	filePath.replace_extension(".bch");
 	std::ofstream cacheFile{filePath.filename().c_str(), std::ios::binary};
