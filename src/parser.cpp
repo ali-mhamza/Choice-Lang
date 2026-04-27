@@ -830,6 +830,22 @@ ExprUP Parser::list()
     return std::make_unique<ListExpr>(entries);
 }
 
+ExprUP Parser::formatString()
+{
+    ExprVec parts{};
+    parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
+    while (!consumeTok(TOK_INTER_END))
+    {
+        if (consumeTok(TOK_INTER_PART))
+            parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
+        else
+            parts.emplace_back(expression());
+    }
+
+    parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
+    return std::make_unique<FormatExpr>(parts);
+}
+
 ExprUP Parser::primary()
 {
     nextTok();
@@ -840,6 +856,9 @@ ExprUP Parser::primary()
     
     else if (type == TOK_IDENTIFIER)
         return std::make_unique<VarExpr>(previousTok);
+
+    else if (IS_INTER_TOK(type))
+        return formatString();
     
     else if (type == TOK_LEFT_PAREN)
     {

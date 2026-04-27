@@ -24,22 +24,35 @@ static std::string formatMultiLineString(const std::string_view& sv)
     return newStr;
 }
 
+std::pair<size_t, size_t>
+TokenPrinter::stringTokenValues(TokenType type) const
+{
+    switch (type)
+    {
+        case TOK_STR_LIT:       return std::make_pair(1, 2);
+        case TOK_RAW_STR:       return std::make_pair(2, 3);
+        case TOK_INTER_START:   return std::make_pair(1, 1);
+        case TOK_INTER_PART:    return std::make_pair(0, 0);
+        case TOK_INTER_END:     return std::make_pair(0, 1);
+        default: CH_UNREACHABLE();
+    }
+}
+
 void TokenPrinter::printValue(const Token& token) const
 {
     switch (token.type)
     {
         case TOK_NUM:       CH_PRINT("{}", token.content.i);    break;
         case TOK_NUM_DEC:   CH_PRINT("{}", token.content.d);    break;
-        case TOK_STR_LIT:
+        case TOK_STR_LIT:       case TOK_RAW_STR:       case TOK_INTER_START:
+        case TOK_INTER_PART:    case TOK_INTER_END:
+        {
+            auto tokenPair{stringTokenValues(token.type)};
             CH_PRINT("{}", formatMultiLineString(
-                token.text.substr(1, token.text.size() - 2)
+                token.text.substr(tokenPair.first, token.text.size() - tokenPair.second)
             ));
             break;
-        case TOK_RAW_STR:
-            CH_PRINT("{}", formatMultiLineString(
-                token.text.substr(2, token.text.size() - 3)
-            ));
-            break;
+        }
         case TOK_TRUE:      CH_PRINT("true");                   break;
         case TOK_FALSE:     CH_PRINT("false");                  break;
         case TOK_NULL:      CH_PRINT("{}", token.content.s);    break;
@@ -53,7 +66,8 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_SEMICOLON", "TOK_COMMA", "TOK_QMARK",
 
     "TOK_NUM", "TOK_NUM_DEC", "TOK_STR_LIT", "TOK_RAW_STR",
-    "TOK_TRUE", "TOK_FALSE", "TOK_NULL",
+    "TOK_TRUE", "TOK_FALSE", "TOK_NULL", "TOK_INTER_START",
+    "TOK_INTER_PART", "TOK_INTER_END",
 
     "TOK_INT", "TOK_DEC", "TOK_BOOL", "TOK_STRING",
     "TOK_FUNC", "TOK_ARRAY", "TOK_TABLE", "TOK_ANY", "TOK_CLASS",
@@ -100,7 +114,7 @@ void TokenPrinter::printToken(const Token& token) const
         else
             CH_PRINT("'{}' ", formatMultiLineString(token.text));
 
-        if (IS_LITERAL_TOK(token.type))
+        if (IS_LITERAL_TOK(token.type) || IS_INTER_TOK(token.type))
             printValue(token);
     }
     

@@ -72,6 +72,8 @@ enum Opcode : ui8 // Each opcode is a single byte.
 
 	OP_RANGE,			// Create a range from two integers.
 
+	OP_FORMAT_STR,		// Create a formatted string from multiple parts.
+
 	OP_TUPLE,			// Create a tuple.
 	OP_EXT_TUPLE,		// Extend a tuple with additional elements.
 

@@ -228,6 +228,8 @@ namespace AST
             E_LIST_EXPR,
             E_REF_EXPR,
             E_VAR_EXPR,
+            E_STR_PART_EXPR,
+            E_FORMAT_EXPR,
             E_LITERAL_EXPR
         };
 
@@ -411,6 +413,21 @@ namespace AST
             const Token name{};
 
             VarExpr(const Token& name);
+        };
+
+        struct StringPartExpr : public Expr
+        {
+            const Token part{};
+
+            StringPartExpr(const Token& part);
+        };
+
+        // Format strings/string interpolation.
+        struct FormatExpr : public Expr
+        {
+            ExprVec parts;
+
+            FormatExpr(ExprVec& parts);
         };
 
         struct LiteralExpr : public Expr

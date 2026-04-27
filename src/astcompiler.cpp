@@ -209,12 +209,16 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
 /* String helper. */
 
-std::string ASTCompiler::parseStringToken(const Token& token)
+std::string ASTCompiler::parseStringToken(
+    const Token& token,
+    size_t start,
+    size_t offset
+)
 {
-	auto size{token.text.size() - 2};
+	auto size{token.text.size() - offset};
     if (size == 0) return std::string{}; // Empty string.
 
-	const auto text{token.text.substr(1, size)};
+	const auto text{token.text.substr(start, size)};
     auto it{text.begin()};
     auto end{text.end()};
 
@@ -228,7 +232,8 @@ std::string ASTCompiler::parseStringToken(const Token& token)
     if (it[0] == '\n') it++;
     if (end[-1] == '\n') end--;
 
-	while (it != end)
+    // Keep as inequality check in case 'end' becomes before 'it'.
+	while (it < end)
 	{
 		if ((*it == '\\') && (it < end - 1))
 		{
@@ -1183,6 +1188,45 @@ DEF(VarExpr)
     reserveReg();
 }
 
+DEF(StringPartExpr)
+{
+    size_t start{};
+    size_t offset{};
+
+    switch (node->part.type)
+    {
+        case TOK_INTER_START:
+            start = 1, offset = 1;
+            break;
+        case TOK_INTER_PART:
+            start = 0, offset = 0;
+            break;
+        case TOK_INTER_END:
+            start = 0, offset = 1;
+            break;
+        default:
+            CH_UNREACHABLE();
+    }
+
+    Object obj{CH_ALLOC(String, parseStringToken(node->part, start, offset))};
+    code.loadRegConst(obj, nextReg);
+    reserveReg();
+}
+
+DEF(FormatExpr)
+{
+    ui8 partsBegin{nextReg};
+    for (const ExprUP& part : node->parts)
+        compileExpr(part);
+
+    code.addOp(OP_FORMAT_STR, partsBegin,
+        static_cast<ui8>(node->parts.size()));
+
+    // Free all registers except first one (containing the
+    // final string).
+    nextReg = partsBegin + 1;
+}
+
 static std::string getRawString(const std::string_view& text)
 {
     size_t start{sizeof("r\"") - 1};
@@ -1220,7 +1264,7 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj{CH_ALLOC(String, parseStringToken(tok))};
+        Object obj{CH_ALLOC(String, parseStringToken(tok, 1, 2))};
         code.loadRegConst(obj, nextReg);
         reserveReg();
     }
@@ -1271,6 +1315,8 @@ void ASTCompiler::compileExpr(const ExprUP& node)
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
         case E_REF_EXPR:        COMPILE(ReferenceExpr);     break;
         case E_VAR_EXPR:        COMPILE(VarExpr);           break;
+        case E_STR_PART_EXPR:   COMPILE(StringPartExpr);    break;
+        case E_FORMAT_EXPR:     COMPILE(FormatExpr);        break;
         case E_LITERAL_EXPR:    COMPILE(LiteralExpr);       break;
     }
 }

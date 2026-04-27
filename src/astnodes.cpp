@@ -147,6 +147,14 @@ VarExpr::VarExpr(const Token& name) :
     Expr{E_VAR_EXPR},
     name{name} {}
 
+StringPartExpr::StringPartExpr(const Token& part) :
+    Expr{E_STR_PART_EXPR},
+    part{part} {}
+
+FormatExpr::FormatExpr(ExprVec& parts) :
+    Expr{E_FORMAT_EXPR},
+    parts{std::move(parts)} {}
+
 LiteralExpr::LiteralExpr(const Token& value) :
     Expr{E_LITERAL_EXPR},
     value{value} {}

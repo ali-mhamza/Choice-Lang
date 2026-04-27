@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdint> // For INT64_MIN.
 #include <cstring>
+#include <string>
 #include <utility> // For std::move.
 
 #if COPY_INLINE
@@ -780,6 +781,24 @@ void VM::executeOp(Opcode op)
             start = makeRange(start, stop);
             DISPATCH();
         }
+        CASE(OP_FORMAT_STR):
+        {
+            // Artificial block scope since the std::string
+            // destructor will not be called if 'goto' is
+            // used (the block scope calls all destructors when it
+            // ends before 'goto' is reached).
+
+            {
+                std::string str{};
+                ui8 index{readByte()};
+                ui8 count{readByte()};
+
+                for (ui8 i{0}; i < count; i++)
+                    str += registers[index + i].printVal();
+                registers[index] = CH_ALLOC(String, str);
+            }
+            DISPATCH();
+        }
 
         CASE(OP_TUPLE):
         {
@@ -902,7 +921,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             // To avoid reallocating the return value each time.
-            static auto ret{Object{CH_ALLOC(Tuple)}};
+            static Object ret{CH_ALLOC(Tuple)};
             registers[readByte()] = ret;
             DISPATCH();
         }

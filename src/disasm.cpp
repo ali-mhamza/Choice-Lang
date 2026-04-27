@@ -245,14 +245,16 @@ void Disassembler::referenceOp()
     enum VarType : ui8 { GLOBAL, CELL, LOCAL };
 
 	printOpcode(opNames[OP_MAKE_REF]);
-	ui8 reg{restoreByte()};
 
+	ui8 reg{restoreByte()};
 	ip++;
 	CH_PRINT("R[{}] ", reg);
 
 	VarType type{static_cast<VarType>(restoreByte())};
 	ip++;
+
 	ui8 target{restoreByte()};
+	ip += 2;
 
 	switch (type)
 	{
@@ -262,7 +264,19 @@ void Disassembler::referenceOp()
 	}
 
 	CH_PRINT("R[{}]\n", target);
+}
+
+void Disassembler::formatOp()
+{
+	printOpcode(opNames[OP_FORMAT_STR]);
+
+	ui8 reg{restoreByte()};
+	ip++;
+
+	ui8 count{restoreByte()};
 	ip += 2;
+
+	CH_PRINT("R[{}] ({})\n", reg, count);
 }
 
 void Disassembler::disassembleOp(ui8 byte)
@@ -302,6 +316,9 @@ void Disassembler::disassembleOp(ui8 byte)
 			break;
 		case OP_MAKE_REF:
 			referenceOp();
+			break;
+		case OP_FORMAT_STR:
+			formatOp();
 			break;
 		case OP_EXIT_SCOPE:
 		{

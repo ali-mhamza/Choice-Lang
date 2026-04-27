@@ -82,6 +82,7 @@ class Parser
         ExprUP lambda(bool skipParams);
         ExprUP comprehension();
         ExprUP list();
+        ExprUP formatString();
         ExprUP primary();
 
     public:

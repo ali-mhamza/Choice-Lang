@@ -122,10 +122,15 @@ class ASTCompiler
 
         /* General helpers. */
 
-        // `patchBreaks`: True if we are to patch 'break' jumps.
-        //                False otherwise.
+        // `patchBreaks` - True if we are to patch 'break' jumps.
+        //                 False otherwise.
         void patchLoopLabelJumps(const Token& label, bool patchBreaks);
-        std::string parseStringToken(const Token& token);
+        // `offset` - Number of characters to subtract from the size.
+        std::string parseStringToken(
+            const Token& token,
+            size_t start,
+            size_t offset
+        );
         void reportError(const Token& token, std::string_view message);
 
         /* Declarations. */
@@ -189,6 +194,8 @@ class ASTCompiler
         DECL_EXPR(ListExpr);
         DECL_EXPR(ReferenceExpr);
         DECL_EXPR(VarExpr);
+        DECL_EXPR(StringPartExpr);
+        DECL_EXPR(FormatExpr);
         DECL_EXPR(LiteralExpr);
 
         /* Primary compilation functions. */

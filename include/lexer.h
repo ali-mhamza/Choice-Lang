@@ -33,9 +33,9 @@ class Lexer
         bool checkChar(char c) const;
         // Only advance if char matches.
         bool consumeChar(char c);
-        void consumeChars(int count = 1);
-        char peekChar(int distance = 0) const;
-        char previousChar(int distance = 0) const;
+        void consumeChars(size_t count = 1);
+        char peekChar(size_t distance = 0) const;
+        char previousChar(size_t distance = 0) const;
 
         TokenType identifierType();
         bool matchSequence(char c, int length) const;
@@ -55,7 +55,7 @@ class Lexer
 
         /* Value conversion methods. */
 
-        // `dec`: True if parsing a floating-point value; false otherwise.
+        // `dec` - True if parsing a floating-point value; false otherwise.
         std::string& formatNumber(const std::string_view text, bool dec);
 
         i64 intValue(std::string_view text);
@@ -68,9 +68,14 @@ class Lexer
         void numToken();
         // Binary, octal, and hexadecimal literals.
         void numericToken(bool (*check)(char));
-        // `raw`: True if string is a raw string; false otherwise.
+        // `raw` - True if string is a raw string; false otherwise.
         void stringToken(bool raw);
-        void multiStringToken(bool raw); // For multi-line strings.
+        void multiLineStringToken(bool raw);
+        // Consumes a single %(...) parameter.
+        // Returns false on error; true otherwise.
+        bool formatParam();
+        // `endDelim` - " for regular strings, ` for multi-line strings.
+        void formatStringToken(char endDelim);
         void identifierToken();
         // Largely inspired by similar function in Wren source code.
         void conditionalToken(char c, TokenType two, TokenType one);

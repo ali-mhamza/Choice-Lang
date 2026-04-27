@@ -13,6 +13,8 @@ constexpr inline int TAB_SIZE{4};
 constexpr inline int AVG_TOK_SIZE{4};
 // Cut-off for errors in the lexer.
 constexpr inline int LEX_ERROR_MAX{10};
+// Maximum level of nesting for string interpolation.
+constexpr inline int INTERPOLATION_MAX{2};
 
 /* Compiler */
 

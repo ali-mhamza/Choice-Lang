@@ -39,6 +39,8 @@ class Disassembler
         void captureOp(ui8 byte);
         // For OP_MAKE_REF.
         void referenceOp();
+        // For OP_FORMAT_STR.
+        void formatOp();
     
     public:
         Disassembler(const ByteCode& code);

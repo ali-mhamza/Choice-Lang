@@ -21,10 +21,13 @@ enum TokenType : ui8
 	TOK_NUM,			// 123 (default)
 	TOK_NUM_DEC,		// 1.23
 	TOK_STR_LIT,		// "Hello, world!"
-	TOK_RAW_STR,		// "Hello,\tworld!\n"
+	TOK_RAW_STR,		// r"Hello,\tworld!\n"
 	TOK_TRUE,			// true
 	TOK_FALSE,			// false
 	TOK_NULL,           // null
+	TOK_INTER_START,	// ["Hello, ]%(NAME) is %(DISTANCE) away."
+	TOK_INTER_PART,		// "Hello, %(NAME)[ is ]%(DISTANCE) away."
+	TOK_INTER_END,		// "Hello, %(NAME) is %(DISTANCE)[ away."]
 
 	/* Keywords. */
 
@@ -171,6 +174,8 @@ struct Token
 };
 
 #define IS_LITERAL_TOK(type)	((TOK_NUM <= (type)) && ((type) <= TOK_NULL))
+// Token used in string interpolation.
+#define IS_INTER_TOK(type)		((TOK_INTER_START <= (type)) && ((type) <= TOK_INTER_END))
 #define IS_TYPE_TOK(type)		((TOK_INT <= (type)) && ((type) <= TOK_ANY))
 #define IS_ASSIGN_TOK(type)										\
 	(((type) == TOK_EQUAL)										\

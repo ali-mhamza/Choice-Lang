@@ -93,23 +93,23 @@ bool Lexer::consumeChar(char c)
 	return false;
 }
 
-void Lexer::consumeChars(int count /* = 1 */)
+void Lexer::consumeChars(size_t count /* = 1 */)
 {
-	for (int i{0}; i < count; i++)
+	for (size_t i{0}; i < count; i++)
 		advance();
 }
 
-char Lexer::peekChar(int distance /* = 0 */) const
+char Lexer::peekChar(size_t distance /* = 0 */) const
 {
 	if (current + distance < end)
 		return current[distance];
 	return EOF;
 }
 
-char Lexer::previousChar(int distance /* = 0 */) const
+char Lexer::previousChar(size_t distance /* = 0 */) const
 {
 	if (current - distance - 1 > start)
-		return current[- distance - 1];
+		return *(current - distance - 1);
 	return EOF;
 }
 
@@ -169,9 +169,10 @@ bool Lexer::checkRawString(char start)
 		stringToken(true);
 		return true;
 	}
-	else if ((start == 'r') && consumeChar('`'))
+
+	if ((start == 'r') && consumeChar('`'))
 	{
-		multiStringToken(true);
+		multiLineStringToken(true);
 		return true;
 	}
 
@@ -407,6 +408,9 @@ void Lexer::numericToken(bool (*check)(char))
 	makeToken(TOK_NUM);
 }
 
+#define FORMAT_PARAM(c) \
+	(((c) == '%') && (previousChar() != '\\') && (peekChar(1) == '('))
+
 void Lexer::stringToken(bool raw)
 {
 	int escapeCharCount{0};
@@ -415,7 +419,12 @@ void Lexer::stringToken(bool raw)
 		char c{peekChar()};
 		if ((c == '"') && (escapeCharCount % 2 == 0))
 			break;
-		if (c == '\n')
+		else if (!raw && FORMAT_PARAM(c))
+		{
+			formatStringToken('"');
+			return;
+		}
+		else if (c == '\n')
 		{
 			REPORT_RETURN(previousChar(), line, static_cast<ui8>(column + 1),
 				"Incorrect syntax for multi-line string.");
@@ -432,7 +441,7 @@ void Lexer::stringToken(bool raw)
 	makeToken(raw ? TOK_RAW_STR : TOK_STR_LIT);
 }
 
-void Lexer::multiStringToken(bool raw)
+void Lexer::multiLineStringToken(bool raw)
 {
 	// Before processing the quote.
 	ui16 tempLine{line};
@@ -445,6 +454,11 @@ void Lexer::multiStringToken(bool raw)
 		char c{peekChar()};
 		if ((c == '`') && (escapeCharCount % 2 == 0))
 			break;
+		else if (!raw && FORMAT_PARAM(c))
+		{
+			formatStringToken('`');
+			return;
+		}
 
 		escapeCharCount = ((c == '\\') ? escapeCharCount + 1 : 0);
 		advance();
@@ -465,6 +479,59 @@ void Lexer::multiStringToken(bool raw)
 	);
 }
 
+bool Lexer::formatParam()
+{
+	consumeChars(2); // Skip the %(.
+	while ((peekChar() != ')') && !hitEnd())
+		singleToken();
+
+	if (hitEnd())
+	{
+		reportError(EOF, line, -1, "Unterminated string interpolation.");
+		return false;
+	}
+
+	advance();
+	start = current; // Reset before scanning continues.
+	return true;
+}
+
+void Lexer::formatStringToken(char endDelim)
+{
+	static ui8 nestingDepth{0};
+
+	nestingDepth++;
+	if (nestingDepth > INTERPOLATION_MAX)
+	{
+		// Not an unrecoverable error, so we don't return yet.
+		reportError(peekChar(), line, column + 1,
+			"Maximum nesting level reached for string interpolation.");
+	}
+
+	makeToken(TOK_INTER_START);
+	if (!formatParam()) return;
+
+	nestingDepth--;
+	while ((peekChar() != endDelim) && !hitEnd())
+	{
+		if (FORMAT_PARAM(peekChar()))
+		{
+			makeToken(TOK_INTER_PART);
+			if (!formatParam())
+				return;
+		}
+		else
+			advance();
+	}
+
+	if (hitEnd())
+		REPORT_RETURN(EOF, line, -1, "Unterminated format string.");
+	advance();
+	makeToken(TOK_INTER_END);
+}
+
+#undef FORMAT_PARAM
+
 void Lexer::identifierToken()
 {
 	char c{peekChar()};
@@ -473,6 +540,7 @@ void Lexer::identifierToken()
 		advance();
 		c = peekChar();
 	}
+
 	makeToken(identifierType());
 }
 
@@ -578,14 +646,14 @@ void Lexer::singleToken()
 				conditionalToken('=', TOK_BAR_EQ, TOK_BAR);
 			break;
 		}
-		
+
 		// Strings (raw string in default case below).
 
-		case '"':	stringToken(false);			break;
-		case '`':	multiStringToken(false);	break;
+		case '"':	stringToken(false);				break;
+		case '`':	multiLineStringToken(false);	break;
 
 		// Whitespace.
-		
+
 		case ' ':
 		case '\n':
 			break;
