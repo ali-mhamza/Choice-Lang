@@ -369,7 +369,9 @@ Closure::Closure(Function* function) :
     HeapObj{OBJ_CLOSURE},
     function{function}
 {
-    function->refCount++;
+    #if !CH_USE_ALLOC
+        function->refCount++;
+    #endif
 }
 
 Closure::~Closure()
@@ -395,7 +397,9 @@ bool Closure::operator==(const Closure& other) const
 
 void Closure::addCell(Cell* cell)
 {
-    cell->refCount++;
+    #if !CH_USE_ALLOC
+        cell->refCount++;
+    #endif
     cells.push(cell);
 }
 

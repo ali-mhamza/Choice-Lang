@@ -226,18 +226,23 @@ TYPE_LIST
 struct HeapObj
 {
     ObjType type{};
-    int refCount{0};
+
+    #if !CH_USE_ALLOC
+        int refCount{0};
+    #endif
 
     HeapObj();
     HeapObj(ObjType type);
-    virtual ~HeapObj() = default;
+
+    #if !CH_USE_ALLOC
+        virtual ~HeapObj() = default;
+    #endif
 };
 
 struct Cell : HeapObj
 {
     Object* location{};
     Object obj{};
-    int refCount{0};
 
     Cell(Object* location);
     void close();
