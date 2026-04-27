@@ -722,6 +722,9 @@ ExprUP Parser::call()
         while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
         {
             do {
+                if (args.size() == CODE_MAX)
+                    REPORT_SEMANTIC(currentTok, "Too many arguments in function call.");
+
                 if (consumeTok(TOK_STAR))
                 {
                     MATCH_TOK(TOK_IDENTIFIER, "Expect reference name.");
