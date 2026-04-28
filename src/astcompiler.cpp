@@ -628,7 +628,7 @@ DEF(RepeatStmt)
     {
         breakLabels->add(node->label.text, {});
         continueLabels->add(node->label.text, {});
-    }    
+    }
 
     std::vector<ui64> breaks{};
     auto* prevBreaks{breakJumps};
