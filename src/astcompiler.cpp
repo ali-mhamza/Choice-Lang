@@ -257,6 +257,8 @@ std::string ASTCompiler::parseStringToken(
     return str;
 }
 
+/* Error reporting. */
+
 void ASTCompiler::reportError(const Token& token, std::string_view message)
 {
     if (errorCount == COMPILE_ERROR_MAX)
