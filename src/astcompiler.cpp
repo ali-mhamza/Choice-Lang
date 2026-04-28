@@ -644,14 +644,14 @@ DEF(RepeatStmt)
     // Patch current scope "continue" jumps.
     for (ui64 jump : continues)
         code.patchJump(jump);
+    // Patch nested scope "continue" jumps.
+    patchLoopLabelJumps(node->label, false);
 
     ui8 reg{nextReg};
     compileExpr(node->condition);
     ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
 
-    // Patch nested scope "continue" jumps.
-    patchLoopLabelJumps(node->label, false);
     code.addLoop(loopStart);
     code.patchJump(trueJump);
 
