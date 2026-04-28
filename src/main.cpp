@@ -285,7 +285,7 @@ static void repl(ArgvOption option = EXECUTE)
 		CH_PRINT(stderr, "Invalid command-line option for REPL mode.\n");
 		exit(64);
 	}
-	
+
 	file = "";
 	std::string line{};
 
