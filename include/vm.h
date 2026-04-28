@@ -84,7 +84,7 @@ class VM
 
         Object loadOper();
         Object arithOper(Opcode op, ui8 firstOper);
-        Object compareOper(Opcode op, ui8 firstOper); // No variables get modified, so no offset.
+        Object compareOper(Opcode op, ui8 firstOper);
         Object bitOper(Opcode op, ui8 firstOper);
         Object unaryOper(Opcode op, ui8 oper);
 
