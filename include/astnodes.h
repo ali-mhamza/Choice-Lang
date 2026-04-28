@@ -15,7 +15,7 @@ using StmtVec   = std::vector<StmtUP>;
 using ExprVec   = std::vector<ExprUP>;
 
 namespace AST
-{   
+{
     namespace Statement
     {
         enum StmtType : ui8
