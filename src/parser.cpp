@@ -393,13 +393,7 @@ StmtUP Parser::matchStmt()
         else
         {
             Token errorToken{currentTok};
-            value = primary();
-            // This is a bit too strict.
-            // Prohibits variables and even lists.
-            // Maybe just keep it as a general expression since the bytecode
-            // doesn't change.
-            if ((value == nullptr) || (value->type != E_LITERAL_EXPR))
-                REPORT_SEMANTIC(errorToken, "Case value must be a literal.");
+            value = expression();
         }
 
         MATCH_TOK(TOK_COLON, "Expect ':' before case body.");
