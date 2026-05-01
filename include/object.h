@@ -344,7 +344,7 @@ struct Tuple : public HeapObj
 struct StringIter
 {
     String* obj{};
-    const char* begin{};
+    ui64 pos;
 
     StringIter() = default;
     StringIter(String* obj);

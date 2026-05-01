@@ -103,7 +103,7 @@ Object& Object::operator=(Object&& other) noexcept
     if (this != &other)
     {
         clean();
-        
+
         this->type = other.type;
         this->as = other.as;
 
@@ -176,7 +176,7 @@ bool Object::operator<(const Object& other) const
 
 bool Object::in(const Object& other) const
 {
-    const Object& obj{*this};    
+    const Object& obj{*this};
 
     if (IS_STRING(obj) && IS_STRING(other))
     {
@@ -335,7 +335,7 @@ Function::Function(
     lambda{false} {}
 
 Function::~Function()
-{   
+{
     delete[] name;
 }
 
@@ -524,7 +524,7 @@ bool List::operator==(const List& other) const
 }
 
 bool List::contains(const Object& obj) const
-{   
+{
     for (const Object& entry : array)
     {
         if (entry == obj)
@@ -575,7 +575,7 @@ std::string Tuple::printVal() const
 /* Object iterator struct types. */
 
 StringIter::StringIter(String* obj) :
-    obj{obj}, begin{obj->str.c_str()}
+    obj{obj}, pos{0}
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -583,10 +583,9 @@ StringIter::StringIter(String* obj) :
 }
 
 StringIter::StringIter(StringIter&& other) noexcept :
-    obj{other.obj}, begin{other.begin}
+    obj{other.obj}, pos{other.pos}
 {
     other.obj = nullptr;
-    other.begin = nullptr; // Must split; pointers are of different types.
 }
 
 StringIter& StringIter::operator=(StringIter&& other) noexcept
@@ -594,10 +593,9 @@ StringIter& StringIter::operator=(StringIter&& other) noexcept
     if (this != &other)
     {
         this->obj = other.obj;
-        this->begin = other.begin;
+        this->pos = other.pos;
 
         other.obj = nullptr;
-        other.begin = nullptr;
     }
 
     return *this;
@@ -618,16 +616,15 @@ StringIter::~StringIter()
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
-    var = Object{CH_ALLOC(String, begin, 1)};
+    var = Object{CH_ALLOC(String, &(obj->str[pos]), 1)};
     return true;
 }
 
 bool StringIter::next(Object& var)
 {
-    begin++;
-    if (*begin == '\0')
+    if (++pos == obj->str.size())
         return false;
-    var = Object{CH_ALLOC(String, begin, 1)};
+    var = Object{CH_ALLOC(String, &(obj->str[pos]), 1)};
     return true;
 }
 
@@ -684,7 +681,7 @@ bool RangeIter::next(Object& var)
     if ((!reverse && (val > obj->stop))
         || (reverse && (val < obj->stop)))
     {
-        return false;   
+        return false;
     }
     AS_INT(var) = val;
     return true;
@@ -692,7 +689,7 @@ bool RangeIter::next(Object& var)
 
 ListIter::ListIter(List* obj) :
     obj{obj}
-{   
+{
     #if !CH_USE_ALLOC
         obj->refCount++;
     #endif
