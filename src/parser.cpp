@@ -729,6 +729,7 @@ ExprUP Parser::call()
                 args.push_back(expression());
             } while (consumeTok(TOK_COMMA));
         }
+
         MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' following function arguments.");
         return std::make_unique<CallExpr>(expr, args, builtin, previousTok);
     }
