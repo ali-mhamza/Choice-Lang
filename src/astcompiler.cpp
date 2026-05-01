@@ -1290,8 +1290,6 @@ DEF(LiteralExpr)
         code.loadReg(nextReg, OP_NULL);
         reserveReg();
     }
-
-    #undef GET_RAW_STR
 }
 
 /* General compilation functions. */
