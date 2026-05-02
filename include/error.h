@@ -6,17 +6,13 @@
 class LexError
 {
 	private:
-		const char errorChar{};
-		const ui16 line{};
-		const ui8 position{};
+		ui64 offset;
 		const std::string_view message{};
 
 	public:
 		LexError() = default;
 		LexError(
-			const char c,
-			const ui16 line,
-			const ui8 position,
+			ui64 offset,
 			const std::string_view message
 		);
 

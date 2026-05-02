@@ -1,14 +1,17 @@
 #include "../include/tokprinter.h"
 #include "../include/common.h"
+#include "../include/diagnostic.h"
 #include "../include/token.h"
 #include <array>
+#include <cstddef>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #define NEWLINE_REPLACEMENT "<NL>"
 
-TokenPrinter::TokenPrinter(const vT& tokens) :
-    tokens{tokens} {}
+TokenPrinter::TokenPrinter(SourceManager* manager, FileID id, const vT& tokens) :
+    manager{manager}, id{id}, tokens{tokens} {}
 
 static std::string formatMultiLineString(const std::string_view& sv)
 {
@@ -81,7 +84,7 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
 
     "TOK_PLUS", "TOK_MINUS", "TOK_STAR", "TOK_SLASH", "TOK_PERCENT",
     "TOK_STAR_STAR", "TOK_INCR", "TOK_DECR",
-    
+
     "TOK_EQ_EQ", "TOK_BANG_EQ","TOK_GT", "TOK_GT_EQ", "TOK_LT",
     "TOK_LT_EQ", "TOK_BANG", "TOK_AMP_AMP", "TOK_BAR_BAR",
 
@@ -106,7 +109,8 @@ void TokenPrinter::printToken(const Token& token) const
     CH_PRINT("{:<20}", typeStrings[token.type]);
     if (token.type != TOK_EOF)
     {
-        std::string format{CH_STR("({}:{})", token.line, token.position)};
+        const auto& [line, column, _] = manager->getLineColumn(id, token.byteOffset);
+        std::string format{CH_STR("({}:{})", line, column)};
         CH_PRINT("{:<10}", format);
 
         if ((token.type != TOK_STR_LIT) && (token.type != TOK_RAW_STR))
@@ -117,7 +121,7 @@ void TokenPrinter::printToken(const Token& token) const
         if (IS_LITERAL_TOK(token.type) || IS_INTER_TOK(token.type))
             printValue(token);
     }
-    
+
     CH_PRINT("\n");
 }
 

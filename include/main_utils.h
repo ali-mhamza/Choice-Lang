@@ -1,7 +1,8 @@
 #pragma once
 #include "bytecode.h"
-#include "common.h"     // For vObj, vByte, vT in multiple function signatures.
-#include <fstream>      // For ifstream in readCache.
+#include "common.h"
+#include "diagnostic.h"
+#include <fstream>
 #include <string>
 #include <string_view>
 
@@ -19,7 +20,7 @@ std::string readFile(const char* fileName);
 void normalizeInput(std::string& input);
 vObj reconstructPool(const vByte& poolBytes);
 ByteCode readCache(std::ifstream& fileIn);
-void optionShowTokens(const vT& tokens);
+void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens);
 void optionShowBytes(const ByteCode& chunk);
 void optionLoad(const char* fileName);
 void optionDis(const char* fileName);

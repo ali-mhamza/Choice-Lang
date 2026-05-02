@@ -1,6 +1,7 @@
 #include "../include/main_utils.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
+#include "../include/config.h"
 #include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
@@ -57,6 +58,14 @@ void normalizeInput(std::string& input)
 		return (isspace(c) && (c != ' ')
 				&& (c != '\n') && (c != '\t'));
     }), input.end());
+
+    auto it{input.find('\t')};
+    while (it != input.npos)
+    {
+		// Normalize all tabs with spaces.
+        input.replace(it, 1, std::string(TAB_SIZE, ' '));
+        it = input.find('\t', it + 1);
+    }
 }
 
 static inline void eofError()
@@ -68,7 +77,7 @@ static inline void eofError()
 template<typename Size>
 static Size reconstructBytes(vBit& it, const vBit& end)
 {
-	(void) end; // In case we don't use it.	
+	(void) end; // In case we don't use it.
 
 	ui64 value{0};
 	constexpr size_t size{sizeof(Size)};
@@ -280,9 +289,9 @@ ByteCode readCache(std::ifstream& fileIn)
 	exit(66);
 }
 
-void optionShowTokens(const vT& tokens)
+void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens)
 {
-	TokenPrinter{tokens}.printTokens();
+	TokenPrinter{manager, id, tokens}.printTokens();
 }
 
 void optionShowBytes(const ByteCode& chunk)

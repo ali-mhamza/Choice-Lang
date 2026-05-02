@@ -2,10 +2,8 @@
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/config.h"
-#include "../include/error.h"
 #include "../include/token.h"
 #include <memory>
-#include <string>
 #include <string_view>
 #include <utility> // For std::move.
 #include <vector>
@@ -25,6 +23,9 @@ using namespace AST::Expression;
     } while (false)
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
+
+Parser::Parser(DiagnosticEngine* engine) :
+    engine{engine} {}
 
 void Parser::nextTok()
 {
@@ -125,14 +126,18 @@ void Parser::reportSyntax(
 )
 {
     hitError = true;
-    if (syntaxError || (errorCount > COMPILE_ERROR_MAX))
-        return;
-    if (errorCount == COMPILE_ERROR_MAX)
-        CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-    else
-        CompileError{token, std::string{message}}.report();
+    // if (syntaxError || (errorCount > COMPILE_ERROR_MAX))
+    //     return;
+    // if (errorCount == COMPILE_ERROR_MAX)
+    //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+    // else
+    //     CompileError{token, std::string{message}}.report();
+    // syntaxError = true;
+    // errorCount++;
+    if (syntaxError) return;
     syntaxError = true;
-    errorCount++;
+
+    engine->recordError(id, GENERAL_ERROR, token, message);
 }
 
 void Parser::reportSemantic(
@@ -141,14 +146,17 @@ void Parser::reportSemantic(
 )
 {
     hitError = true;
-    if (semanticError || (errorCount > COMPILE_ERROR_MAX))
-        return;
-    if (errorCount == COMPILE_ERROR_MAX)
-        CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-    else
-        CompileError{token, std::string{message}}.report();
+    // if (semanticError || (errorCount > COMPILE_ERROR_MAX))
+    //     return;
+    // if (errorCount == COMPILE_ERROR_MAX)
+    //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+    // else
+    //     CompileError{token, std::string{message}}.report();
+    // semanticError = true;
+    // errorCount++;
+    if (semanticError) return;
     semanticError = true;
-    errorCount++;
+    engine->recordError(id, GENERAL_ERROR, token, message);
 }
 
 StmtUP Parser::declaration()
@@ -253,7 +261,7 @@ StmtUP Parser::funDecl()
 }
 
 StmtUP Parser::statement()
-{   
+{
     if (consumeTok(TOK_IF))
         return ifStmt();
     else if (consumeTok(TOK_WHILE))
@@ -365,7 +373,7 @@ StmtUP Parser::forStmt()
 }
 
 StmtUP Parser::matchStmt()
-{   
+{
     MATCH_TOK(TOK_LEFT_PAREN, "Expect '(' before match value.");
     ExprUP match{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "Expect ')' after match value.");
@@ -666,7 +674,7 @@ ExprUP Parser::product()
 }
 
 ExprUP Parser::unary()
-{    
+{
     if (consumeToks(TOK_INCR, TOK_DECR, TOK_MINUS,
         TOK_BANG, TOK_NOT, TOK_TILDE))
     {
@@ -818,7 +826,7 @@ ExprUP Parser::list()
     {
         if (consumeTok(TOK_FOR))
             return comprehension();
-        
+
         do {
             entries.emplace_back(expression());
         } while (consumeTok(TOK_COMMA));
@@ -851,13 +859,13 @@ ExprUP Parser::primary()
 
     if (IS_LITERAL_TOK(type))
         return std::make_unique<LiteralExpr>(previousTok);
-    
+
     else if (type == TOK_IDENTIFIER)
         return std::make_unique<VarExpr>(previousTok);
 
     else if (IS_INTER_TOK(type))
         return formatString();
-    
+
     else if (type == TOK_LEFT_PAREN)
     {
         ExprUP expr{expression()};
@@ -877,11 +885,12 @@ ExprUP Parser::primary()
     REPORT_SYNTAX(previousTok, "Invalid token in current position.");
 }
 
-StmtVec& Parser::parseToAST(const vT& tokens)
+StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
 {
     program.clear(); // In case we want to reuse the parser.
     if (tokens.empty()) return program;
 
+    this->id = id;
     it = tokens.begin();
     currentTok = tokens[0];
     hitError = false;

@@ -3,6 +3,7 @@
 
 #include "astnodes.h"
 #include "bytecode.h"
+#include "diagnostic.h"
 #include "vartable.h"
 #include <memory>       // For std::unique_ptr.
 #include <stack>
@@ -50,6 +51,8 @@ class ASTCompiler
 
         ByteCode code{};
         ASTCompiler* const scopeCompiler{};
+        FileID id{};
+        DiagnosticEngine* engine{};
 
         ui8 nextReg{0};
         ui8 scope{0};       // Our current block scope depth.
@@ -208,8 +211,8 @@ class ASTCompiler
         bool hitError{false};
         int errorCount{0};
 
-        ASTCompiler(ASTCompiler* comp = nullptr);
+        ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp = nullptr);
         ~ASTCompiler();
 
-        Function* compile(const StmtVec& program);
+        Function* compile(FileID id, const StmtVec& program);
 };

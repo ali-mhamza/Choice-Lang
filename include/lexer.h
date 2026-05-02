@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"     // For vT, fixed-size integer types.
+#include "diagnostic.h"
 #include "token.h"
 #include <string>
 #include <string_view>
@@ -9,13 +10,15 @@ class Lexer
     private:
         enum NumBase { DEC, BIN, OCT, HEX };
 
+        FileID id{};
+        DiagnosticEngine* engine{};
+
         const char* start{};
         const char* current{};
         const char* end{};
 
         vT stream{};
-        ui16 line{1};
-        ui8 column{1};
+        ui64 offset{0};
         NumBase base{DEC};
 
         bool hitError{false};
@@ -24,7 +27,7 @@ class Lexer
         /* Utilities. */
 
         // Prepares our lexer state.
-        void setUp(const std::string_view& code);
+        void setUp(FileID id, const std::string_view& code);
         // Check if we've reached the end.
         bool hitEnd() const;
         // Move to next character.
@@ -46,12 +49,7 @@ class Lexer
         bool checkRawString(char start);
         bool checkNumericLiteral(char start);
 
-        void reportError(
-            const char c,
-			const ui16 line,
-			const ui8 position,
-			const std::string_view message
-        );
+        void reportError(DiagCode code, ui64 offset, const std::string_view message = "");
 
         /* Value conversion methods. */
 
@@ -82,6 +80,6 @@ class Lexer
         void singleToken();
 
     public:
-        Lexer() = default;
-        vT& tokenize(const std::string_view code);
+        Lexer(DiagnosticEngine* engine);
+        vT& tokenize(FileID id, const std::string_view code);
 };

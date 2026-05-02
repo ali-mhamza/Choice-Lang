@@ -2,7 +2,7 @@
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/config.h"
-#include "../include/error.h"
+#include "../include/diagnostic.h"
 #include "../include/escape_seq.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
@@ -10,7 +10,6 @@
 #include "../include/opcodes.h"
 #include "../include/token.h"
 #include "../include/utils.h"
-#include <cctype>
 #include <climits> // For CHAR_BIT.
 #include <vector>
 
@@ -40,8 +39,8 @@ constexpr bool setVar{false};
 
 /* Constructors/destructors. */
 
-ASTCompiler::ASTCompiler(ASTCompiler* comp) :
-    scopeCompiler{comp},
+ASTCompiler::ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp) :
+    scopeCompiler{comp}, engine{engine},
     depth{static_cast<ui8>(comp == nullptr ? 0 : comp->depth + 1)}
 {
     if (depth == 0) // Global scope compiler.
@@ -49,6 +48,8 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
         for (const auto* func : Natives::funcNames)
             defVar(func, nextReg++, accessFix); // For now.
     }
+    else
+        this->id = scopeCompiler->id;
 }
 
 ASTCompiler::~ASTCompiler() = default;
@@ -261,12 +262,15 @@ std::string ASTCompiler::parseStringToken(
 
 void ASTCompiler::reportError(const Token& token, std::string_view message)
 {
-    if (errorCount == COMPILE_ERROR_MAX)
-        CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-    else if (errorCount < COMPILE_ERROR_MAX)
-        CompileError{token, std::string{message}}.report();
+    // if (errorCount == COMPILE_ERROR_MAX)
+    //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
+    // else if (errorCount < COMPILE_ERROR_MAX)
+    //     CompileError{token, std::string{message}}.report();
+    // hitError = true;
+    // errorCount++;
+
     hitError = true;
-    errorCount++;
+    engine->recordError(id, GENERAL_ERROR, token, message);
 }
 
 /* AST node compilation functions. */
@@ -321,7 +325,7 @@ void ASTCompiler::funcBodyHelper(
     const std::string& name
 )
 {
-    ASTCompiler miniCompiler{this};
+    ASTCompiler miniCompiler{engine, this};
     // The number of "parameter" tokens that aren't identifiers.
     ui8 removeCount{0};
     for (auto it{params.begin()}; it != params.end(); it++)
@@ -723,7 +727,7 @@ DEF(EndStmt)
 DEF(ExprStmt)
 {
     if (node->expr == nullptr) return;
-    
+
     ui8 reg{nextReg};
     compileExpr(node->expr);
     if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
@@ -742,7 +746,7 @@ DEF(BlockStmt)
 DEF(TupleExpr)
 {
     constexpr int TUPLE_GROUP{5};
-    
+
     ui8 tupleReg{nextReg};
     code.addOp(OP_TUPLE, tupleReg);
     reserveReg();
@@ -1082,7 +1086,7 @@ DEF(LambdaExpr)
             "Too many parameters in lambda.");
     }
 
-    funcBodyHelper(node->params, node->body, nextReg, 
+    funcBodyHelper(node->params, node->body, nextReg,
         std::string());
     reserveReg();
 }
@@ -1344,8 +1348,9 @@ void ASTCompiler::compileStmt(const StmtUP& node)
     }
 }
 
-Function* ASTCompiler::compile(const StmtVec& program)
+Function* ASTCompiler::compile(FileID id, const StmtVec& program)
 {
+    this->id = id;
     code.clear();
     // Inherit hitError and errorCount from parser.
 
@@ -1359,4 +1364,3 @@ Function* ASTCompiler::compile(const StmtVec& program)
 #undef DEF
 #undef COMPILE
 #undef REPORT_ERROR
-#undef REPORT_ERROR_NO_RETURN

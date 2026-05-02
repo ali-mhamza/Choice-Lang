@@ -145,18 +145,17 @@ enum TokenType : ui8
 
 // Can hold a literal of any needed size.
 union Value {
-	void*			s; // For NULL exclusively.
-	i64				i;
-	double			d;
-	bool			b;
+	void*	s; // For NULL exclusively.
+	i64		i;
+	double	d;
+	bool	b;
 };
 
 struct Token
 {
 	std::string_view text{};	// The actual text of the token.
 	Value content{};			// The literal's actual value.
-	ui16 line{};				// The line holding the token.
-	ui8 position{};				// The starting position of the token.
+	ui64 byteOffset;			// Byte offset into the source code for the start of the token.
 	TokenType type{TOK_EOF};
 
 	Token() = default;
@@ -164,8 +163,7 @@ struct Token
 		TokenType type,
 		std::string_view text,
 		Value content,
-		ui16 line,
-		ui8 position
+		ui64 offset
 	);
 	Token(const Token& other) noexcept;
 	Token& operator=(const Token& other) noexcept;

@@ -1,11 +1,14 @@
 #pragma once
 #include "common.h"
+#include "diagnostic.h"
 #include "token.h"
 #include <utility>
 
 class TokenPrinter
 {
     private:
+        SourceManager* manager{};
+        FileID id{};
         const vT& tokens{};
 
         // Returns the start index and length difference
@@ -13,8 +16,8 @@ class TokenPrinter
         std::pair<size_t, size_t> stringTokenValues(TokenType type) const;
         void printValue(const Token& token) const;
         void printToken(const Token& token) const;
-    
+
     public:
-        TokenPrinter(const vT& tokens);
+        TokenPrinter(SourceManager* manager, FileID id, const vT& tokens);
         void printTokens() const;
 };

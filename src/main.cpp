@@ -2,6 +2,7 @@
 #include "../include/astnodes.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
+#include "../include/diagnostic.h"
 #include "../include/gen_alloc.h"
 #include "../include/lexer.h"
 #include "../include/main_utils.h"
@@ -41,6 +42,9 @@
 	#define CLEAR_REPL_HISTORY	0
 #endif
 
+static SourceManager sourceManager{};
+static DiagnosticEngine diagEngine{&sourceManager};
+
 std::string file{};
 bool external{false};
 bool inRepl{false};
@@ -52,7 +56,7 @@ bool inRepl{false};
 
 enum ArgvOption : ui8
 {
-	// Show the tokens for the given 
+	// Show the tokens for the given
 	// script or REPL input.
 	EMIT_TOKENS,
 
@@ -85,17 +89,17 @@ static const std::unordered_map<std::string_view, ArgvOption> options{
 	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM}
 };
 
-static inline vT& runLexer(const std::string_view source)
+static inline vT& runLexer(FileID id, const std::string_view source)
 {
-	static Lexer lexer{};
-	return lexer.tokenize(source);
+	static Lexer lexer{&diagEngine};
+	return lexer.tokenize(id, source);
 }
 
-static Function* runCompiler(const vT& tokens)
+static Function* runCompiler(FileID id, const vT& tokens)
 {
-	static Parser parser{};
-	static ASTCompiler compiler{};
-	const StmtVec& program = parser.parseToAST(tokens);
+	static Parser parser{&diagEngine};
+	static ASTCompiler compiler{&diagEngine};
+	const StmtVec& program = parser.parseToAST(id, tokens);
 
 	#ifdef TYPE
 		// Perform type-checking here.
@@ -110,7 +114,7 @@ static Function* runCompiler(const vT& tokens)
 	// To not report too many errors when using an
 	// AST.
 	compiler.errorCount = parser.errorCount;
-	return compiler.compile(program);
+	return compiler.compile(id, program);
 }
 
 // Optimization to run a cached bytecode
@@ -133,7 +137,7 @@ static bool cacheOptimize(ArgvOption option)
 		{
 			if (option == CACHE_BYTECODE)
 				return true; // Nothing to do.
-			
+
 			std::ifstream code{cache};
 			ByteCode chunk{readCache(code)};
 
@@ -206,14 +210,17 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 
 	std::string code{readFile(fileName)};
 	normalizeInput(code);
-	vT& tokens{runLexer(code)};
+
+	FileID id{sourceManager.addFile(fileName, code)};
+
+	vT& tokens{runLexer(id, code)};
 	if (option == EMIT_TOKENS)
 	{
-		optionShowTokens(tokens);
+		optionShowTokens(&sourceManager, id, tokens);
 		return;
 	}
 
-	Function* script{runCompiler(tokens)};
+	Function* script{runCompiler(id, tokens)};
 
 	if (option == EMIT_BYTECODE)
 	{
@@ -231,6 +238,8 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#endif
 
 	VM{}.executeCode(script);
+
+	diagEngine.emitReports();
 
 	#if TIME_RUN || TIME_TOTAL
 		auto end{steady_clock::now()};
@@ -275,7 +284,7 @@ static void buildLine(std::string& line)
 }
 
 static void repl(ArgvOption option = EXECUTE)
-{	
+{
 	inRepl = true;
 
 	// All invalid options for REPL mode.
@@ -288,6 +297,7 @@ static void repl(ArgvOption option = EXECUTE)
 
 	file = "";
 	std::string line{};
+	FileID id{sourceManager.addFile(file, line)};
 
 	#if EXTERNAL_REPL
 		replxx::Replxx rx{};
@@ -321,12 +331,14 @@ static void repl(ArgvOption option = EXECUTE)
 			#endif
 
 			normalizeInput(line);
-			vT& tokens{runLexer(line)};
+			sourceManager.setFileContent(id, line);
+
+			vT& tokens{runLexer(id, line)};
 			if (option == EMIT_TOKENS)
-				optionShowTokens(tokens);
+				optionShowTokens(&sourceManager, id, tokens);
 			else
 			{
-				Function* script{runCompiler(tokens)};
+				Function* script{runCompiler(id, tokens)};
 				if (option == EMIT_BYTECODE)
 					optionShowBytes(script->code);
 				else
@@ -335,8 +347,9 @@ static void repl(ArgvOption option = EXECUTE)
 				#if !CH_USE_ALLOC
 					delete script;
 				#endif
-
 			}
+
+			diagEngine.emitReports();
 		}
 		else
 			break;

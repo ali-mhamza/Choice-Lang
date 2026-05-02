@@ -1,14 +1,18 @@
 #pragma once
 #include "astnodes.h"
 #include "common.h"
+#include "diagnostic.h"
 #include <string_view>
 
 class Parser
 {
     private:
         StmtVec program{};
-        Token previousTok{};
-        Token currentTok{};
+        FileID id{};
+        DiagnosticEngine* engine{};
+
+        Token previousTok{}, currentTok{};
+
         vT::const_iterator it{};
         bool inMatch{false}, inFunc{false}, fall{false};    // For structures.
         bool syntaxError{false}, semanticError{false};      // We are currently in an error state.
@@ -89,5 +93,6 @@ class Parser
         bool hitError{false};
         int errorCount{0}; // So it can be modified directly.
 
-        StmtVec& parseToAST(const vT& tokens);
+        Parser(DiagnosticEngine* engine);
+        StmtVec& parseToAST(FileID id, const vT& tokens);
 };

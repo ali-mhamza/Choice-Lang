@@ -16,6 +16,10 @@
 #undef EOF
 #define EOF static_cast<char>(-1)
 
+#define PREVIOUS_OFFSET	(offset - 1)
+#define CURRENT_OFFSET	(offset)
+#define NEXT_OFFSET		(offset + 1)
+
 #undef REPORT_RETURN
 #define REPORT_RETURN(...)         	\
 	do {                        	\
@@ -38,14 +42,17 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 	{"def", TOK_DEF},		{"fields", TOK_FIELDS},	{"in", TOK_IN}
 };
 
-void Lexer::setUp(const std::string_view& code)
+Lexer::Lexer(DiagnosticEngine* engine) :
+	engine{engine} {}
+
+void Lexer::setUp(FileID id, const std::string_view& code)
 {
+	this->id = id;
 	start = code.data();
 	current = start;
 	end = start + code.size();
 
-	line = 1;
-	column = 1;
+	offset = 0;
 	hitError = false;
 
 	stream.clear();
@@ -62,13 +69,7 @@ char Lexer::advance()
 	if (!hitEnd())
 	{
 		current++;
-		if (current[-1] == '\n')
-		{
-			line++;
-			column = 1;
-		}
-		else
-			column++;
+		offset++;
 		return current[-1];
 	}
 
@@ -114,7 +115,7 @@ char Lexer::previousChar(size_t distance /* = 0 */) const
 }
 
 TokenType Lexer::identifierType()
-{	
+{
 	if (static_cast<ui8>(current - start) < 2)
 		return TOK_IDENTIFIER;
 
@@ -152,10 +153,7 @@ bool Lexer::checkHyperComment()
 		if (matchSequence('#', 3))
 			consumeChars(3);
 		else
-		{
-			reportError(peekChar(), line, static_cast<ui8>(column + 1),
-				"Unterminated nested comment.");
-		}
+			reportError(UNTERMINATED_COMMENT, CURRENT_OFFSET);
 		return true;
 	}
 	else
@@ -208,25 +206,23 @@ bool Lexer::checkNumericLiteral(char start)
 	return false;
 }
 
-void Lexer::reportError(
-	const char c,
-	const ui16 line,
-	const ui8 position,
-	const std::string_view message
-)
+void Lexer::reportError(DiagCode code, ui64 offset, const std::string_view message)
 {
-	if (errorCount == LEX_ERROR_MAX)
-		CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
-	else if (errorCount < LEX_ERROR_MAX)
-		LexError{c, line, position, message}.report();
+	// if (errorCount == LEX_ERROR_MAX)
+	// 	CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
+	// else if (errorCount < LEX_ERROR_MAX)
+	// 	LexError{offset, message}.report();
+	// hitError = true;
+	// errorCount++;
+
 	hitError = true;
-	errorCount++;
+	engine->recordError(id, code, offset, std::string{message});
 }
 
 std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 {
 	ui8 textSize{static_cast<ui8>(text.size())};
-	ui8 columnStart{static_cast<ui8>(column - textSize)};
+	ui8 initOffset{static_cast<ui8>(offset - textSize)};
 	const char* allowedChars{".+-"};
 
 	static std::string str{};
@@ -246,7 +242,7 @@ std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 		return (isdigit(c) || (isHex(c) && !dec));
 	};
 
-	for (; i < textSize; i++, columnStart++)
+	for (; i < textSize; i++, initOffset++)
 	{
 		const char c{text[i]};
 		if (isalnum(c) || (strchr(allowedChars, c) != nullptr))
@@ -254,7 +250,7 @@ std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 		else if ((c == '\'') && ((i == 0) || (i == textSize - 1) ||
 				!isValidChar(text[i - 1]) || !isValidChar(text[i + 1])))
 		{
-			reportError(c, line, columnStart, "Invalid use of digit separator.");
+			reportError(INVALID_DIGIT_SEP, initOffset);
 		}
 	}
 
@@ -279,12 +275,7 @@ i64 Lexer::intValue(std::string_view text)
 		formatted.data() + formatted.size(), ret, baseValue)};
 
 	if (!answer)
-	{
-		reportError(
-			text.back(), line, static_cast<ui8>(column - 1),
-			"Failed to parse numeric literal."
-		);
-	}
+		reportError(NUMERIC_LIT_PARSE_FAIL, PREVIOUS_OFFSET);
 
 	return ret;
 }
@@ -298,12 +289,7 @@ double Lexer::decValue(std::string_view text)
 		formatted.data() + formatted.size(), ret)};
 
 	if (!answer)
-	{
-		reportError(
-			text.back(), line, static_cast<ui8>(column - 1),
-			"Failed to parse floating-point literal."
-		);
-	}
+		reportError(NUMERIC_LIT_PARSE_FAIL, PREVIOUS_OFFSET);
 
 	return ret;
 }
@@ -333,8 +319,7 @@ void Lexer::makeToken(TokenType type)
 		}
 	}
 
-	stream.emplace_back(type, text, value, line,
-		column - static_cast<ui8>(current - start));
+	stream.emplace_back(type, text, value, offset - text.size());
 }
 
 void Lexer::numToken()
@@ -360,12 +345,9 @@ void Lexer::numToken()
 	if (consumeChar('e'))
 	{
 		if (!consumeChar('-') && !consumeChar('+') && !isdigit(peekChar()))
-		{
-			REPORT_RETURN(peekChar(), line, column,
-				"Invalid character for scientific notation.");
-		}
+			REPORT_RETURN(INVALID_SCI_NOTATION, CURRENT_OFFSET);
 		if (!isdigit(peekChar()))
-			REPORT_RETURN(peekChar(), line, column, "Expect exponent.");
+			REPORT_RETURN(WRONG_CHAR_FOUND, CURRENT_OFFSET, "expect exponent");
 
 		while ((isdigit(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 			advance();
@@ -383,28 +365,25 @@ void Lexer::numericToken(bool (*check)(char))
 		switch (base)
 		{
 			case BIN:
-				sv = "Expect binary digit after '0b' prefix.";
+				sv = "expect binary digit after '0b' prefix";
 				break;
 			case OCT:
-				sv = "Expect octal digit after '0o' prefix.";
+				sv = "expect octal digit after '0o' prefix";
 				break;
 			case HEX:
-				sv = "Expect hexadecimal digit after '0x' prefix.";
+				sv = "expect hexadecimal digit after '0x' prefix";
 				break;
 			default:
 				CH_UNREACHABLE();
 		}
 
-		REPORT_RETURN(peekChar(), line, column, sv);
+		REPORT_RETURN(WRONG_CHAR_FOUND, CURRENT_OFFSET, sv);
 	}
 
 	while ((check(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 		advance();
 	if (!hitEnd() && isalnum(peekChar()))
-	{
-		REPORT_RETURN(peekChar(), line, column,
-			"Invalid character for numeric literal.");
-	}
+		REPORT_RETURN(INVALID_NUM_LIT_CHAR, CURRENT_OFFSET);
 	makeToken(TOK_NUM);
 }
 
@@ -425,17 +404,14 @@ void Lexer::stringToken(bool raw)
 			return;
 		}
 		else if (c == '\n')
-		{
-			REPORT_RETURN(previousChar(), line, static_cast<ui8>(column + 1),
-				"Incorrect syntax for multi-line string.");
-		}
+			REPORT_RETURN(WRONG_STRING_SYNTAX, NEXT_OFFSET);
 
 		escapeCharCount = ((c == '\\') ? escapeCharCount + 1 : 0);
 		advance();
 	}
 
 	if (hitEnd())
-		REPORT_RETURN(EOF, line, 0, "Unterminated string."); // Column is irrelevant.
+		REPORT_RETURN(UNTERMINATED_STRING, CURRENT_OFFSET);
 
 	advance(); // Consume final ".
 	makeToken(raw ? TOK_RAW_STR : TOK_STR_LIT);
@@ -443,10 +419,7 @@ void Lexer::stringToken(bool raw)
 
 void Lexer::multiLineStringToken(bool raw)
 {
-	// Before processing the quote.
-	ui16 tempLine{line};
-	// Step back across the opening `.
-	ui8 tempColumn{static_cast<ui8>(column - 1)};
+	ui64 tempOffset{offset - 1};
 
 	int escapeCharCount{0};
 	while (!hitEnd())
@@ -465,18 +438,11 @@ void Lexer::multiLineStringToken(bool raw)
 	}
 
 	if (hitEnd())
-	{
-		REPORT_RETURN(EOF, line, 0, // Column is irrelevant.
-			"Unterminated multi-line string.");
-	}
+		REPORT_RETURN(UNTERMINATED_STRING, tempOffset);
 
 	advance(); // Consume final `.
 
-	stream.emplace_back(
-		raw ? TOK_RAW_STR : TOK_STR_LIT,
-		std::string_view{start, static_cast<ui8>(current - start)},
-		Value{}, tempLine, tempColumn
-	);
+	makeToken(raw ? TOK_RAW_STR : TOK_STR_LIT);
 }
 
 bool Lexer::formatParam()
@@ -487,7 +453,7 @@ bool Lexer::formatParam()
 
 	if (hitEnd())
 	{
-		reportError(EOF, line, -1, "Unterminated string interpolation.");
+		reportError(UNTERMINATED_INTER, CURRENT_OFFSET);
 		return false;
 	}
 
@@ -504,8 +470,7 @@ void Lexer::formatStringToken(char endDelim)
 	if (nestingDepth > INTERPOLATION_MAX)
 	{
 		// Not an unrecoverable error, so we don't return yet.
-		reportError(peekChar(), line, column + 1,
-			"Maximum nesting level reached for string interpolation.");
+		reportError(HIT_INTER_NEST_MAX, CURRENT_OFFSET);
 	}
 
 	makeToken(TOK_INTER_START);
@@ -525,7 +490,7 @@ void Lexer::formatStringToken(char endDelim)
 	}
 
 	if (hitEnd())
-		REPORT_RETURN(EOF, line, -1, "Unterminated format string.");
+		REPORT_RETURN(UNTERMINATED_STRING, CURRENT_OFFSET);
 	advance();
 	makeToken(TOK_INTER_END);
 }
@@ -556,7 +521,7 @@ void Lexer::singleToken()
 {
 	start = current;
 	char c{advance()};
-	
+
 	switch (c)
 	{
 		case '[': 	makeToken(TOK_LEFT_BRACKET);	break;
@@ -657,10 +622,6 @@ void Lexer::singleToken()
 		case ' ':
 		case '\n':
 			break;
-		// Open to change.
-		case '\t':
-			column += TAB_SIZE - 1;
-			break;
 
 		// Multi-line comment.
 
@@ -672,7 +633,7 @@ void Lexer::singleToken()
 			while ((peekChar() != '#') && !hitEnd())
 				advance();
 			if (hitEnd())
-				REPORT_RETURN(EOF, line, 0, "Unterminated comment.");
+				REPORT_RETURN(UNTERMINATED_COMMENT, CURRENT_OFFSET);
 			advance();
 			break;
 		}
@@ -687,22 +648,25 @@ void Lexer::singleToken()
 				identifierToken();
 			else
 			{
-				// Column has been incremented, so we subtract 1.
-				REPORT_RETURN(c, line, static_cast<ui8>(column - 1),
-					"Unrecognized token.");
+				// Offset has been incremented, so we subtract 1.
+				REPORT_RETURN(UNRECOGNIZED_TOKEN, PREVIOUS_OFFSET);
 			}
 		}
 	}
 }
 
-vT& Lexer::tokenize(const std::string_view code)
+vT& Lexer::tokenize(FileID id, const std::string_view code)
 {
-	setUp(code);
+	setUp(id, code);
 	while (!hitEnd())
 		singleToken();
 	if (hitError)
 		stream.clear();
 	else
-		stream.emplace_back(); // Default is EOF token.
+	{
+		// The last token has a "length" of 1.
+		// (Extends one character beyond the end.)
+		stream.emplace_back(TOK_EOF, " ", Value{}, offset);
+	}
 	return stream;
 }

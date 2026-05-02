@@ -6,14 +6,12 @@ Token::Token(
     TokenType type,
     std::string_view text,
     Value content,
-    ui16 line,
-    ui8 position
+    ui64 offset
 ) :
-    text{text}, content{content}, line{line},
-    position{position}, type{type} {}
+    text{text}, content{content}, byteOffset{offset}, type{type} {}
 
 Token::Token(const Token& other) noexcept :
-    text{other.text}, line{other.line}, position{other.position},
+    text{other.text}, byteOffset{other.byteOffset},
     type{other.type}
 {
     this->content.i = other.content.i;
@@ -25,8 +23,7 @@ Token& Token::operator=(const Token& other) noexcept
     {
         this->text = other.text;
         this->content.i = other.content.i;
-        this->line = other.line;
-        this->position = other.position;
+        this->byteOffset = other.byteOffset;
         this->type = other.type;
     }
 
@@ -34,7 +31,7 @@ Token& Token::operator=(const Token& other) noexcept
 }
 
 Token::Token(Token&& other) noexcept :
-    text{other.text}, line{other.line}, position{other.position},
+    text{other.text}, byteOffset{other.byteOffset},
     type{other.type}
 {
     this->content.i = other.content.i;
@@ -47,8 +44,7 @@ Token& Token::operator=(Token&& other) noexcept
     {
         this->text = other.text;
         this->content.i = other.content.i;
-        this->line = other.line;
-        this->position = other.position;
+        this->byteOffset = other.byteOffset;
         this->type = other.type;
 
         other.type = TOK_EOF;
