@@ -104,7 +104,7 @@ bool parseCharSequence(
 )
 {
     // In case previous functions modify the iterator.
-    if (it >= end - 1) return false; 
+    if (it >= end - 1) return false;
 
     char c{};
     switch (it[1])
@@ -172,7 +172,7 @@ bool parseNumericSequence(
     std::string& errorMsg
 )
 {
-    if (it >= end - 1) return false;    
+    if (it >= end - 1) return false;
 
     NumParseRules rules{};
     switch (it[1])
@@ -181,7 +181,7 @@ bool parseNumericSequence(
         case 'o':   rules = OctalRules;     break;
         case 'x':   rules = HexRules;       break;
         default:    return false;
-    }    
+    }
 
     it += 2;
     if (!checkParseArgs(it, end, rules, errorMsg))
