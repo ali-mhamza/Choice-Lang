@@ -95,6 +95,8 @@ enum DiagCode : ui8
     HIT_SCOPE_MAX,
     // Too many parameters in function/lambda declaration.
     HIT_PARAM_MAX,
+    // Hit end of line or end of input unexpectedly.
+    UNEXPECTED_INPUT_END,
 
 
     /* Variable errors. */
@@ -287,7 +289,7 @@ class DiagnosticEngine
             FileID id,
             DiagCode code,
             const Token& token,
-            sv label
+            const std::string& label
         );
         void emitReports();
         // void recordWarning();

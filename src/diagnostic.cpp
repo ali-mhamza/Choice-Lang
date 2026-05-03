@@ -28,8 +28,9 @@ static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Control-flow Error", "Unused Warning", "Reference Warning"
 };
 
-static constexpr std::array<DiagnosticEntry, NUM_CODES - NUM_FAMILIES - 1> reportData{
+static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     // Syntax errors.
+    "",
 
     "General error.",
 
@@ -42,8 +43,10 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES - NUM_FAMILIES - 1> repor
     "Missing initializer for immutable variable.", "Unexpected token.",
     "Invalid token in current position.", "Maximum scope depth exceeded.",
     "Too many parameters in function/lambda declaration.",
+    "Unexpected end of input.",
 
     // Variable errors.
+    "",
 
     "Undefined variable.", "Undefined function called.",
     "Variable already defined in current scope.",
@@ -51,6 +54,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES - NUM_FAMILIES - 1> repor
     "Parameter with the same name already in use.",
 
     // Type errors.
+    "",
 
     "Failed to apply binary operator.", "Failed to apply unary operator.",
     "Object is not iterable.",
@@ -58,22 +62,27 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES - NUM_FAMILIES - 1> repor
     "Wrong argument type.", "Can only construct range object from integers.",
 
     // Value errors.
+    "",
 
     "Division by zero.", "Modulus with base zero.", "Shift value too large.",
 
     // Call errors.
+    "",
 
     "Object is not callable.", "No built-in found with given name.",
     "Function has no overload for given number of arguments.",
+    "Built-in (called with '!') must be called by name.",
     "Too many arguments in function call.",
 
     // Assign errors.
+    "",
 
     "Invalid assignment target.",
     "Invalid increment/decrement target.",
     "Cannot assign value to fixed-value variable.",
 
     // Control-flow errors.
+    "",
 
     "Loop label is not assigned to any active loop.",
     "Cannot use 'fallthrough' outside a match-is structure.",
@@ -85,10 +94,12 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES - NUM_FAMILIES - 1> repor
     "A conditional expression must have a false-case branch.",
 
     // Unused warnings.
+    "",
 
     "Unused variable.", "Expression result not used.", "Unreachable code segment.",
 
     // Constant reference warning.
+    "",
 
     "Reference created to fixed-value variable."
 };
@@ -219,7 +230,7 @@ void Diagnostic::displayReportTitle() const
 {
     DiagFamily family{getDiagCodeFamily()};
     DiagCode sectionMarker{getDiagCodeSection()};
-    DiagnosticEntry entry{reportData[code - 1]};
+    DiagnosticEntry entry{reportData[code]};
 
     if (isError)
     {
@@ -308,12 +319,12 @@ void DiagnosticEngine::recordError(
     FileID id,
     DiagCode code,
     const Token& token,
-    sv label
+    const std::string& label
 )
 {
     reports.push_back(Diagnostic{
         manager, true, id, token.byteOffset, token.text.size(),
-        code, std::string{label}
+        code, label
     });
 }
 
