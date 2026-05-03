@@ -206,7 +206,7 @@ bool Lexer::checkNumericLiteral(char start)
 	return false;
 }
 
-void Lexer::reportError(DiagCode code, ui64 offset, const std::string_view message)
+void Lexer::reportError(DiagCode code, ui64 offset, std::string_view message)
 {
 	// if (errorCount == LEX_ERROR_MAX)
 	// 	CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
@@ -216,6 +216,10 @@ void Lexer::reportError(DiagCode code, ui64 offset, const std::string_view messa
 	// errorCount++;
 
 	hitError = true;
+	// We did not find the expected character since we hit the end
+	// prematurely.
+	if ((code == WRONG_CHAR_FOUND) && (current[offset - this->offset] == '\0'))
+	    code = UNEXPECTED_INPUT_END;
 	engine->recordError(id, code, offset, std::string{message});
 }
 

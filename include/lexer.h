@@ -49,7 +49,7 @@ class Lexer
         bool checkRawString(char start);
         bool checkNumericLiteral(char start);
 
-        void reportError(DiagCode code, ui64 offset, const std::string_view message = "");
+        void reportError(DiagCode code, ui64 offset, std::string_view message = "");
 
         /* Value conversion methods. */
 
