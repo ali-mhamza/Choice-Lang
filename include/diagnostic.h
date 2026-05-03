@@ -99,6 +99,10 @@ enum DiagCode : ui8
     HIT_PARAM_MAX,
     // Hit end of line or end of input unexpectedly.
     UNEXPECTED_INPUT_END,
+    // Octal value in escape sequence is too large.
+    HIT_OCTAL_CHAR_MAX,
+    // Codepoint value is not within valid UTF-8 range.
+    INVALID_UTF_CODEPOINT,
 
 
     /* Variable errors. */

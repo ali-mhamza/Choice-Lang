@@ -43,7 +43,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Missing initializer for immutable variable.", "Unexpected token.",
     "Invalid token in current position.", "Maximum scope depth exceeded.",
     "Too many parameters in function/lambda declaration.",
-    "Unexpected end of input.",
+    "Unexpected end of input.", "Octal escape value too large.",
+    "Codepoint value outside valid UTF-8 range.",
 
     // Variable errors.
     "",
@@ -316,12 +317,23 @@ void DiagnosticEngine::recordError(
     FileID id,
     DiagCode code,
     ui64 byteOffset,
+    ui64 length,
     const std::string& label
 )
 {
     reports.push_back(Diagnostic{
-        manager, true, id, byteOffset, 1, code, label
+       manager, true, id, byteOffset, length, code, label
     });
+}
+
+void DiagnosticEngine::recordError(
+    FileID id,
+    DiagCode code,
+    ui64 byteOffset,
+    const std::string& label
+)
+{
+    recordError(id, code, byteOffset, 1, label);
 }
 
 void DiagnosticEngine::recordError(
@@ -331,10 +343,7 @@ void DiagnosticEngine::recordError(
     const std::string& label
 )
 {
-    reports.push_back(Diagnostic{
-        manager, true, id, token.byteOffset, token.text.size(),
-        code, label
-    });
+    recordError(id, code, token.byteOffset, token.text.size(), label);
 }
 
 void DiagnosticEngine::emitReports()

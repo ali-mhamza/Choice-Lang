@@ -11,6 +11,8 @@
 #include "../include/token.h"
 #include "../include/utils.h"
 #include <climits> // For CHAR_BIT.
+#include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace AST::Statement;
@@ -216,6 +218,12 @@ std::string ASTCompiler::parseStringToken(
     size_t offset
 )
 {
+    #define REPORT(CURRENT, OFF, LEN)                                       \
+        reportPartError(pair.first, token,                                  \
+            start + static_cast<ui64>((CURRENT) - text.begin() - (OFF)),    \
+            (LEN), pair.second                                              \
+        )                                                                   \
+
 	auto size{token.text.size() - offset};
     if (size == 0) return std::string{}; // Empty string.
 
@@ -226,29 +234,34 @@ std::string ASTCompiler::parseStringToken(
     std::string str{};
 	str.reserve(size);
 
-    std::string errorMsg{};
-    bool reportedError{false};
-
     // Skip leading or trailing newlines.
     if (it[0] == '\n') it++;
     if (end[-1] == '\n') end--;
 
+    bool reportedError{false};
+    ErrorPair pair{std::make_pair(static_cast<DiagCode>(0), "")};
+    auto current{it};
+
     // Keep as inequality check in case 'end' becomes before 'it'.
 	while (it < end)
 	{
+	    current = it;
 		if ((*it == '\\') && (it < end - 1))
 		{
             if (parseCharSequence(str, it, end)
-                || parseNumericSequence(str, it, end, errorMsg)
-                || parseUnicodeSequence(str, it, end, errorMsg))
+                || parseNumericSequence(str, it, end, pair)
+                || parseUnicodeSequence(str, it, end, pair))
             {
                 continue;
             }
-            else if (!reportedError && !errorMsg.empty())
+            else if (!reportedError && (static_cast<ui8>(pair.first) != 0))
             {
-                // Temporary until we can handle these messages
-                // correctly.
-                reportError(GENERAL_ERROR, token, errorMsg);
+                if (pair.first == HIT_OCTAL_CHAR_MAX)
+                    REPORT(it, 3, 3);
+                else if (pair.first == INVALID_UTF_CODEPOINT)
+                    REPORT(current + 3, 0, it - (current + 3) - 1);
+                else
+                    REPORT(it, 0, 1);
                 reportedError = true;
             }
 		}
@@ -258,6 +271,8 @@ std::string ASTCompiler::parseStringToken(
 	}
 
     return str;
+
+    #undef REPORT
 }
 
 /* Error reporting. */
@@ -276,7 +291,27 @@ void ASTCompiler::reportError(
     // errorCount++;
 
     hitError = true;
+    if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
+        code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
     engine->recordError(id, code, token, std::string{message});
+}
+
+void ASTCompiler::reportPartError(
+    DiagCode code,
+    const Token& token,
+    ui64 offset,
+    ui64 length,
+    std::string_view message
+)
+{
+    hitError = true;
+    if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
+        code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
+
+    engine->recordError(
+        id, code, token.byteOffset + offset, length,
+        std::string{message}
+    );
 }
 
 /* AST node compilation functions. */

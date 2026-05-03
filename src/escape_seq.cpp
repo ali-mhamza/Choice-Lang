@@ -76,6 +76,12 @@ static void encodeUTF8(std::string& str, ui32 value)
     str.append(buffer.data(), numBytes);
 }
 
+static bool setCode(DiagCode& code, DiagCode error)
+{
+    code = error;
+    return false;
+}
+
 static bool setError(std::string& error, const std::string& msg)
 {
     if (error.empty()) error = msg;
@@ -128,17 +134,17 @@ static bool checkParseArgs(
     const svIter it,
     const svIter end,
     const NumParseRules& rules,
-    std::string& errorMsg
+    ErrorPair& pair
 )
 {
     if ((it >= end) || !rules.check(*it))
     {
         #if MISSING_ARG_ERROR
-        if (errorMsg.empty())
-        {
-            errorMsg = CH_STR("Missing arguments for '\\{}' escape character.",
-                rules.escape);
-        }
+        setCode(pair.first, WRONG_CHAR_FOUND);
+        setError(
+            pair.second,
+            CH_STR("missing arguments for '\\{}' escape character", rules.escape)
+        );
         #endif
 
         return false;
@@ -169,7 +175,7 @@ bool parseNumericSequence(
     std::string& str,
     svIter& it,
     svIter end,
-    std::string& errorMsg
+    ErrorPair& pair
 )
 {
     if (it >= end - 1) return false;
@@ -184,15 +190,14 @@ bool parseNumericSequence(
     }
 
     it += 2;
-    if (!checkParseArgs(it, end, rules, errorMsg))
+    if (!checkParseArgs(it, end, rules, pair))
         return false;
 
     ui32 replace{parseEscapeString(it, end, rules)};
     if ((rules.escape == 'o') // Check only for octal.
         && (replace > std::numeric_limits<ui8>::max()))
     {
-        if (errorMsg.empty()) errorMsg = "Octal escape value too large.";
-        return false;
+        return setCode(pair.first, HIT_OCTAL_CHAR_MAX);
     }
 
     str.push_back(static_cast<char>(replace));
@@ -202,7 +207,7 @@ bool parseNumericSequence(
 static int consumeUnicodeSequence(
     svIter& it,
     svIter end,
-    std::string& errorMsg
+    ErrorPair& pair
 )
 {
     int count{0};
@@ -212,7 +217,8 @@ static int consumeUnicodeSequence(
         {
             if (it[count] != '}')
             {
-                setError(errorMsg, "Invalid hex digit in codepoint.");
+                setCode(pair.first, WRONG_CHAR_FOUND);
+                setError(pair.second, "invalid hex digit in codepoint");
                 return -1;
             }
 
@@ -222,8 +228,9 @@ static int consumeUnicodeSequence(
         {
             // More than 6 digits (3).
             it += 6;
-            setError(errorMsg,
-                "Too many digits for unicode character. Maximum is 6.");
+            setCode(pair.first, WRONG_CHAR_FOUND);
+            setError(pair.second,
+                "too many digits for unicode character; maximum is 6");
             return -1;
         }
     }
@@ -231,14 +238,16 @@ static int consumeUnicodeSequence(
     // Empty braces/no digits (2).
     if (count == 0)
     {
-        setError(errorMsg, "Expect hex digits after opening brace for '\\u'.");
+        setCode(pair.first, WRONG_CHAR_FOUND);
+        setError(pair.second, "expect hex digits after opening brace for '\\u'");
         return -1;
     }
     // No closing brace (4).
     if ((it + count == end) || (it[count] != '}'))
     {
         it += count;
-        setError(errorMsg, "Expect '}' after unicode sequence.");
+        setCode(pair.first, WRONG_CHAR_FOUND);
+        setError(pair.second, "expect '}' after unicode sequence");
         return -1;
     }
 
@@ -249,7 +258,7 @@ bool parseUnicodeSequence(
     std::string& str,
     svIter& it,
     const svIter end,
-    std::string& errorMsg
+    ErrorPair& pair
 )
 {
     if ((it >= end - 1) || (it[1] != 'u')) // Only lowercase 'u' for now.
@@ -265,11 +274,14 @@ bool parseUnicodeSequence(
     it += 2; // Skip \ and 'u'.
     // No braces (1).
     if ((it == end) || (*it != '{'))
-        return setError(errorMsg, "Expect '{' after '\\u'.");
+    {
+        setCode(pair.first, WRONG_CHAR_FOUND);
+        return setError(pair.second, "expect '{' after '\\u'");
+    }
 
     // Checks 2-4.
     it++; // Skip the {.
-    int count{consumeUnicodeSequence(it, end, errorMsg)};
+    int count{consumeUnicodeSequence(it, end, pair)};
     if (count == -1) return false;
 
     ui32 value{strToHex(it, count)};
@@ -278,7 +290,7 @@ bool parseUnicodeSequence(
     if ((value > fourByteMax)
         || ((value >= surrogateRangeStart) && (value <= surrogateRangeEnd)))
     {
-        return setError(errorMsg, "Codepoint value outside valid UTF-8 range.");
+        return setCode(pair.first, INVALID_UTF_CODEPOINT);
     }
 
     encodeUTF8(str, value);

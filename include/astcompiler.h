@@ -139,6 +139,15 @@ class ASTCompiler
             const Token& token,
             std::string_view message = ""
         );
+        // For specific cases were we want to report a specific
+        // part of a token for an error.
+        void reportPartError(
+            DiagCode code,
+            const Token& token,
+            ui64 offset, // With respect to start of token.
+            ui64 length,
+            std::string_view message = ""
+        );
 
         /* Declarations. */
 
