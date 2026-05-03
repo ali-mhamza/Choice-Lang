@@ -29,8 +29,16 @@ class Parser
         void matchType(std::string_view message = "");
         // Bring the compiler back to a proper state.
         void reset();
-        void reportSyntax(const Token& token, std::string_view message);
-        void reportSemantic(const Token& token, std::string_view message);
+        void reportSyntax(
+            DiagCode code,
+            const Token& token,
+            std::string_view message = ""
+        );
+        void reportSemantic(
+            DiagCode code,
+            const Token& token,
+            std::string_view message = ""
+        );
 
         // Recursive descent parsing functions.
 

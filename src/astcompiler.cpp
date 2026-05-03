@@ -270,7 +270,7 @@ void ASTCompiler::reportError(const Token& token, std::string_view message)
     // errorCount++;
 
     hitError = true;
-    engine->recordError(id, GENERAL_ERROR, token, message);
+    engine->recordError(id, GENERAL_ERROR, token, std::string{message});
 }
 
 /* AST node compilation functions. */
