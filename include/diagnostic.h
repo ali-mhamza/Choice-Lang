@@ -25,6 +25,8 @@ class SourceManager
         std::vector<FileData> sourceData;
         static FileID id;
 
+        void computeLineMarkers(FileData& data);
+
     public:
         SourceManager() = default;
         FileID addFile(const std::string& name, const std::string& content);
@@ -181,6 +183,8 @@ enum DiagCode : ui8
     INVALID_INCR_DECR_TARGET,
     // Variable is immutable (cannot be assigned to).
     ASSIGN_CONST_VARIABLE,
+    // Variable is immutable (cannot be incremented/decremented).
+    MOD_CONST_VARIABLE,
 
 
     /* Control-flow errors. */

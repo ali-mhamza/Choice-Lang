@@ -246,7 +246,9 @@ std::string ASTCompiler::parseStringToken(
             }
             else if (!reportedError && !errorMsg.empty())
             {
-                reportError(token, errorMsg);
+                // Temporary until we can handle these messages
+                // correctly.
+                reportError(GENERAL_ERROR, token, errorMsg);
                 reportedError = true;
             }
 		}
@@ -260,7 +262,11 @@ std::string ASTCompiler::parseStringToken(
 
 /* Error reporting. */
 
-void ASTCompiler::reportError(const Token& token, std::string_view message)
+void ASTCompiler::reportError(
+    DiagCode code,
+    const Token& token,
+    std::string_view message
+)
 {
     // if (errorCount == COMPILE_ERROR_MAX)
     //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
@@ -270,7 +276,7 @@ void ASTCompiler::reportError(const Token& token, std::string_view message)
     // errorCount++;
 
     hitError = true;
-    engine->recordError(id, GENERAL_ERROR, token, std::string{message});
+    engine->recordError(id, code, token, std::string{message});
 }
 
 /* AST node compilation functions. */
@@ -294,9 +300,7 @@ DEF(VarDecl)
             return;
         }
 
-        REPORT_ERROR(node->name,
-            "Variable '" + std::string(node->name.text)
-            + "' is already defined in this scope.");
+        REPORT_ERROR(VAR_ALREADY_DEFINED, node->name);
     }
 
     std::string varName{node->name.text};
@@ -342,7 +346,7 @@ void ASTCompiler::funcBodyHelper(
         ui8 reg{miniCompiler.nextReg};
         LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
-            REPORT_ERROR(param, "Parameter with the same name already in use.");
+            REPORT_ERROR(PARAM_ALREADY_DEFINED, param);
         miniCompiler.defVar(std::string(param.text), reg, access);
         miniCompiler.reserveReg();
     }
@@ -384,23 +388,16 @@ DEF(FuncDecl)
         if (inRepl && (depth == 0) && (scope == 0))
             redefined = true;
         else
-        {
-            REPORT_ERROR(node->name,
-                "Object '" + std::string(node->name.text)
-                + "' is already defined in this scope.");
-        }
+            REPORT_ERROR(FUNC_ALREADY_DEFINED, node->name);
     }
 
     // MAX_SCOPE_DEPTH involves block scopes as well.
     // Fix.
     if (depth + 1 == MAX_SCOPE_DEPTH)
-        REPORT_ERROR(node->name, "Maximum function scope depth reached.");
+        REPORT_ERROR(HIT_SCOPE_MAX, node->name);
 
     if (node->params.size() > PARAMETER_MAX)
-    {
-        REPORT_ERROR(node->params[PARAMETER_MAX],
-            "Too many parameters in function.");
-    }
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX]);
 
     ui8 varSlot{redefined ? localInfo.slot : nextReg};
     std::string name{node->name.text};
@@ -692,10 +689,7 @@ DEF(BreakStmt)
     {
         auto* vec{breakLabels->get(node->label.text)};
         if (vec == nullptr)
-        {
-            REPORT_ERROR(node->label,
-                "Break label is not assigned to any loop.");
-        }
+            REPORT_ERROR(INVALID_LOOP_LABEL, node->label);
         else
             vec->push_back(code.addJump(OP_JUMP));
     }
@@ -709,10 +703,7 @@ DEF(ContinueStmt)
     {
         auto* vec{continueLabels->get(node->label.text)};
         if (vec == nullptr)
-        {
-            REPORT_ERROR(node->label,
-                "Continue label is not assigned to any loop.");
-        }
+            REPORT_ERROR(INVALID_LOOP_LABEL, node->label);
         else
             vec->push_back(code.addJump(OP_JUMP));
     }
@@ -812,12 +803,9 @@ DEF(AssignExpr)
     VarInfo info{resolveVariable(temp->name)};
 
     if (!info.found)
-    {
-        REPORT_ERROR(temp->name, "Undefined variable '"
-            + std::string(temp->name.text) + "'.");
-    }
+        REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
     else if (info.access == accessFix)
-        REPORT_ERROR(node->oper, "Cannot assign to a fixed-value variable.");
+        REPORT_ERROR(ASSIGN_CONST_VARIABLE, node->oper);
 
     if (node->oper.type != TOK_EQUAL)
     {
@@ -954,17 +942,14 @@ DEF(BinaryExpr)
 void ASTCompiler::_crementExpr(const UnaryExpr* node)
 {
     if (node->expr->type != E_VAR_EXPR)
-        REPORT_ERROR(node->oper, "Invalid increment/decrement target.");
+        REPORT_ERROR(INVALID_INCR_DECR_TARGET, node->oper);
 
     auto* temp{static_cast<VarExpr*>(node->expr.get())};
     VarInfo info{resolveVariable(temp->name)};
     if (!info.found)
-    {
-        REPORT_ERROR(temp->name, "Undefined variable '"
-            + std::string(temp->name.text) + "'.");
-    }
+        REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
     else if (info.access == accessFix)
-        REPORT_ERROR(node->oper, "Cannot modify a fixed-value variable.");
+        REPORT_ERROR(MOD_CONST_VARIABLE, node->oper);
 
     // We copy the variable into two temporary register slots:
     // [x][.][.][.][...] -> [...][x][x]
@@ -1033,10 +1018,7 @@ DEF(CallExpr)
         auto* var{static_cast<VarExpr*>(node->callee.get())};
         auto find{Natives::builtins.find(var->name.text)};
         if (find == Natives::builtins.end())
-        {
-            REPORT_ERROR(var->name, "No builtin '"
-                + std::string(var->name.text) + "' function.");
-        }
+            REPORT_ERROR(BUILTIN_NOT_FOUND, var->name);
         location = static_cast<ui8>(find->second);
         reserveReg(); // Reserve a register in place of the function object.
     }
@@ -1081,10 +1063,7 @@ DEF(IfExpr)
 DEF(LambdaExpr)
 {
     if (node->params.size() > PARAMETER_MAX)
-    {
-        REPORT_ERROR(node->params[PARAMETER_MAX],
-            "Too many parameters in lambda.");
-    }
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX]);
 
     funcBodyHelper(node->params, node->body, nextReg,
         std::string());
@@ -1166,8 +1145,8 @@ DEF(ReferenceExpr)
     VarInfo info{resolveVariable(node->name)};
     if (!info.found)
     {
-        REPORT_ERROR(node->name, "Cannot construct reference " \
-            "to undefined variable '" + std::string(node->name.text) + "'.");
+        REPORT_ERROR(VAR_NOT_DEFINED, node->name,
+            "cannot construct reference to undefined variable");
     }
 
     // Should add a warning here if the variable is immutable.
@@ -1185,10 +1164,7 @@ DEF(VarExpr)
 {
     VarInfo info{resolveVariable(node->name)};
     if (!info.found)
-    {
-        REPORT_ERROR(node->name, "Undefined variable '"
-            + std::string(node->name.text) + "'.");
-    }
+        REPORT_ERROR(VAR_NOT_DEFINED, node->name);
 
     addVariableOp(getVar, info, nextReg, info.slot);
     reserveReg();

@@ -79,7 +79,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     "Invalid assignment target.",
     "Invalid increment/decrement target.",
-    "Cannot assign value to fixed-value variable.",
+    "Cannot assign value to a fixed-value variable.",
+    "Cannot modify a fixed-value variable.",
 
     // Control-flow errors.
     "",
@@ -106,23 +107,29 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
 FileID SourceManager::id{0};
 
+void SourceManager::computeLineMarkers(FileData& data)
+{
+    const auto& content{data.content};
+    auto& markers{data.lineMarkers};
+
+    ui64 pos{0};
+    while ((pos = content.find('\n', pos)) != std::string::npos)
+    {
+		markers.push_back(pos);
+		if (pos == data.content.size() - 1)
+			break;
+        // Skip the \n.
+		pos++;
+	}
+}
+
 FileID SourceManager::addFile(
     const std::string& name,
     const std::string& content
 )
 {
     FileData data{name, content, {}};
-
-    ui64 pos{0};
-    while ((pos = content.find('\n', pos)) != std::string::npos)
-    {
-		data.lineMarkers.push_back(pos);
-		if (pos == content.size() - 1)
-			break;
-        // Skip the \n.
-		pos++;
-	}
-
+    computeLineMarkers(data);
     sourceData.push_back(data);
     id++;
     return id - 1;
@@ -135,6 +142,8 @@ FileID SourceManager::addFile(
 void SourceManager::setFileContent(FileID id, const std::string& content)
 {
     sourceData[id].content = content;
+    sourceData[id].lineMarkers.clear();
+    computeLineMarkers(sourceData[id]);
 }
 
 std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(

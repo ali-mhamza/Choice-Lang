@@ -134,7 +134,11 @@ class ASTCompiler
             size_t start,
             size_t offset
         );
-        void reportError(const Token& token, std::string_view message);
+        void reportError(
+            DiagCode code,
+            const Token& token,
+            std::string_view message = ""
+        );
 
         /* Declarations. */
 
