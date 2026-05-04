@@ -1,7 +1,7 @@
 #pragma once
 #include "common.h"
 #include "opcodes.h"
-#include <fstream>      // For cacheStream() method.
+#include <fstream>
 #include <vector>
 
 class Disassembler;
