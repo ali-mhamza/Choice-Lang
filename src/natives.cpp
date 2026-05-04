@@ -7,10 +7,10 @@
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include <array>
+#include <cctype>
 #include <chrono>
-#include <cstdio>   // For fflush().
-#include <cstdlib>  // For exit().
-#include <cctype>   // For toupper().
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -213,7 +213,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
 }
 
 void Natives::clock(Natives::iter it, ui8 args, const Token& error)
-{   
+{
     if (args != 0)
     {
         throw RuntimeError(error,
