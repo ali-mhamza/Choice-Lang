@@ -214,17 +214,6 @@ std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(
 //     return std::make_pair(start, end - start);
 // }
 
-DiagCode Diagnostic::getDiagCodeSection() const
-{
-    for (const auto& familyMarker : families)
-    {
-        if (code > familyMarker)
-            return familyMarker;
-    }
-
-    CH_UNREACHABLE();
-}
-
 DiagFamily Diagnostic::getDiagCodeFamily() const
 {
     for (ui8 i{0}; i < NUM_FAMILIES; i++)
@@ -239,19 +228,18 @@ DiagFamily Diagnostic::getDiagCodeFamily() const
 void Diagnostic::displayReportTitle() const
 {
     DiagFamily family{getDiagCodeFamily()};
-    DiagCode sectionMarker{getDiagCodeSection()};
     DiagnosticEntry entry{reportData[code]};
 
     if (isError)
     {
         CH_PRINT(stderr, "{}{} [E{:0>4}]{}: ", RED, familyTitles[family],
-            static_cast<ui8>(code - sectionMarker), NORMAL);
+            static_cast<ui8>(code - family), NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
     else
     {
         CH_PRINT(stderr, "{}{} [W{:0>4}]{}: ", YELLOW, familyTitles[family],
-            static_cast<ui8>(code - sectionMarker), NORMAL);
+            static_cast<ui8>(code - family), NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
 }

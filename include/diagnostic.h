@@ -256,7 +256,6 @@ struct Diagnostic
     // getDiagCodeSection() helps to identify the opcode integer
     // equivalent.
 
-    DiagCode getDiagCodeSection() const;
     DiagFamily getDiagCodeFamily() const;
     void displayReportTitle() const;
     // void displayNoteHelp(
