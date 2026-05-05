@@ -119,15 +119,22 @@ static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 static Object reconstructFunc(vBit& it, const vBit& end)
 {
 	CHECK_EOF();
+	ui8 nameLen{*(it++)};
 	std::string name{};
-	while (static_cast<char>(*it) != '\0')
+
+	if (nameLen != 0)
 	{
-		name.push_back(static_cast<char>(*it));
-		it++;
-		CHECK_EOF();
+    	name.resize(nameLen);
+
+    	#if defined(DEBUG)
+       	if (it + nameLen > end)
+       	    eofError();
+    	#endif
+
+    	for (ui8 i{0}; i < nameLen; i++)
+    	    name[i] = static_cast<char>(*(it++));
 	}
 
-	++it;
 	CHECK_EOF();
 	ui8 argCount{*it};
 
@@ -182,6 +189,7 @@ vObj reconstructPool(const vByte& poolBytes)
 				pool.emplace_back(reconstructBytes<double>(++it, poolBytes.end()));
 				break;
 			case OBJ_FUNC:
+			case OBJ_LAMBDA:
 				pool.emplace_back(reconstructFunc(++it, poolBytes.end()));
 				break;
 			case OBJ_STRING:

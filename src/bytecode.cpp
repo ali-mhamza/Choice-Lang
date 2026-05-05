@@ -147,9 +147,10 @@ ui64 ByteCode::countPool() const
 				case OBJ_LAMBDA:
 				{
 					const Function& func{*(AS_FUNC(obj))};
-					// Added type byte (1) and null byte (1)
+					if (func.name != nullptr) count += strlen(func.name);
+					// Added type byte (1) and name length byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
-					count += strlen(func.name) + 4 * sizeof(ui8);
+					count += 4 * sizeof(ui8);
 					// Added code size and pool size values,
 					// as well as the actual sizes of the code and pool.
 					count += 2 * sizeof(ui64) + func.code.codeSize()

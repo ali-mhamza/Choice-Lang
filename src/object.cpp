@@ -10,6 +10,7 @@
 #include <cstdio>   // For stderr.
 #include <cstring>
 #include <fstream>
+#include <ios>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -347,8 +348,14 @@ bool Function::operator==(const Function& other) const
 void Function::emit(std::ofstream& os) const
 {
     os.put(static_cast<char>(type));
-    if (name != nullptr) os.write(name, strlen(name));
-    os.put('\0');
+    if (name != nullptr)
+    {
+        ui64 len{strlen(name)};
+        os.put(static_cast<char>(len));
+        os.write(name, static_cast<std::streamsize>(len));
+    }
+    else
+        os.put(static_cast<char>(0));
 
     os.put(static_cast<char>(argCount));
     os.put(static_cast<char>(lambda));
