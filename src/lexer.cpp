@@ -341,6 +341,11 @@ void Lexer::numToken()
 		}
 
 		advance(); // Skip the single '.'.
+		if (!isdigit(peekChar()))
+		{
+		    REPORT_RETURN(WRONG_CHAR_FOUND, CURRENT_OFFSET,
+				"expect digit after decimal point");
+		}
 		while ((isdigit(peekChar()) || (peekChar() == '\'')) && !hitEnd())
 			advance();
 		type = TOK_NUM_DEC;
