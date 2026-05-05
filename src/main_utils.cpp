@@ -29,6 +29,9 @@
 static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");
 using vBit = vByte::const_iterator;
 
+static constexpr std::string_view CH_FILE_EXT{".ch"};
+static constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
+
 std::string readFile(const char* fileName)
 {
 	std::ifstream file{fileName};
@@ -316,14 +319,14 @@ void optionCacheBytes(const ByteCode& chunk, const char* fileName)
 	}
 
 	std::filesystem::path filePath{fileName};
-	filePath.replace_extension(".bch");
+	filePath.replace_extension(CH_BYTECODE_EXT);
 	std::ofstream cacheFile{filePath.filename().c_str(), std::ios::binary};
 	chunk.cacheStream(cacheFile);
 }
 
 void optionLoad(const char* fileName)
 {
-	if (!ends_with(fileName, ".bch"))
+	if (!ends_with(fileName, CH_BYTECODE_EXT))
 	{
 		CH_PRINT(stderr, "Invalid bytecode file.\n");
 		exit(65);
@@ -349,7 +352,7 @@ void optionLoad(const char* fileName)
 
 void optionDis(const char* fileName)
 {
-	if (!ends_with(fileName, ".bch"))
+	if (!ends_with(fileName, CH_BYTECODE_EXT))
 	{
 		CH_PRINT(stderr, "Invalid bytecode file.\n");
 		exit(65);
@@ -370,5 +373,5 @@ void optionDis(const char* fileName)
 
 bool fileNameCheck(const std::string_view fileName)
 {
-	return (ends_with(fileName, ".ch") || ends_with(fileName, ".bch"));
+	return (ends_with(fileName, CH_FILE_EXT) || ends_with(fileName, CH_BYTECODE_EXT));
 }
