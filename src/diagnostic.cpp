@@ -286,7 +286,7 @@ void Diagnostic::report() const
     }
 
     sv file{manager->getFile(id)};
-    if (file.empty()) file = "<repl>";
+    if (file.empty()) file = "<script>";
 
     CH_PRINT(stderr, "  --> {} ({}:{})\n", file, lineNo,
         start);
