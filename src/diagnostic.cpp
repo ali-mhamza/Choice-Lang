@@ -3,13 +3,12 @@
 #include "../include/common.h"
 #include "../include/utils.h"
 #include "../include/token.h"
-#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <string>
 #include <string_view>
 #include <tuple>
-// #include <utility>
+#include <utility>
 
 static constexpr sv RED{"\033[31m"};
 static constexpr sv YELLOW{"\033[33m"};
@@ -298,24 +297,24 @@ void Diagnostic::report() const
 DiagnosticEngine::DiagnosticEngine(SourceManager* manager) :
     manager{manager} {}
 
-void DiagnosticEngine::explain(sv errorCode)
+std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
 {
     #define IS_VALID_CODE(code) (((code) >= 0) && ((code) < NUM_CODES))
 
     constexpr ui64 codeLength{5};
     constexpr ui8 warningStart{static_cast<ui8>(UNUSED_VARIABLE)};
-    bool isError{starts_with(errorCode, "E")};
-    bool isWarning{starts_with(errorCode, "W")};
+    bool isError{starts_with(code, "E")};
+    bool isWarning{starts_with(code, "W")};
 
-    if ((!isError && !isWarning) || (errorCode.size() != 5))
+    if ((!isError && !isWarning) || (code.size() != 5))
     {
         CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
-        return;
+        return std::make_pair(false, static_cast<DiagCode>(0));
     }
 
     ui8 explainCode{};
-    auto result{fast_float::from_chars(errorCode.data() + 1,
-        errorCode.data() + codeLength, explainCode)};
+    auto result{fast_float::from_chars(code.data() + 1,
+        code.data() + codeLength, explainCode)};
 
     // Codes start from 1, but the enum starts from 0.
     explainCode--;
@@ -324,14 +323,20 @@ void DiagnosticEngine::explain(sv errorCode)
     if (!result || !IS_VALID_CODE(explainCode))
     {
         CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
-        return;
+        return std::make_pair(false, static_cast<DiagCode>(0));
     }
 
-    DiagFamily family{
-        Diagnostic::getDiagCodeFamily(static_cast<DiagCode>(explainCode))
-    };
-    CH_PRINT("Code: {}.\n", errorCode);
-    CH_PRINT("Message: {}\n", reportData[explainCode]);
+    return std::make_pair(true, static_cast<DiagCode>(explainCode));
+}
+
+void DiagnosticEngine::explain(sv code)
+{
+    auto pair{validateCode(code)};
+    if (!pair.first) return;
+
+    DiagFamily family{Diagnostic::getDiagCodeFamily(pair.second)};
+    CH_PRINT("Code:     {}.\n", code);
+    CH_PRINT("Message:  {}\n", reportData[pair.second]);
     CH_PRINT("Category: {}.\n", familyTitles[family]);
 }
 

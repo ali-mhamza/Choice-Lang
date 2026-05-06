@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 using sv = std::string_view;
@@ -253,10 +254,12 @@ class DiagnosticEngine
         SourceManager* manager;
         std::vector<Diagnostic> reports{};
 
+        std::pair<bool, DiagCode> validateCode(sv code);
+
     public:
         DiagnosticEngine(SourceManager* manager);
         inline bool hasReports() const { return !reports.empty(); }
-        void explain(sv errorCode);
+        void explain(sv code);
 
         // Primitive error-reporting helper.
         void recordError(
