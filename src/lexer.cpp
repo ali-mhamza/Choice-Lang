@@ -116,10 +116,10 @@ char Lexer::previousChar(size_t distance /* = 0 */) const
 
 TokenType Lexer::identifierType()
 {
-	if (static_cast<ui8>(current - start) < 2)
+	if (static_cast<u8>(current - start) < 2)
 		return TOK_IDENTIFIER;
 
-	std::string_view text{start, static_cast<ui8>(current - start)};
+	std::string_view text{start, static_cast<u8>(current - start)};
 	auto it{keywords.find(text)};
 	if (it != keywords.end())
 		return it->second;
@@ -206,7 +206,7 @@ bool Lexer::checkNumericLiteral(char start)
 	return false;
 }
 
-void Lexer::reportError(DiagCode code, ui64 offset, std::string_view message)
+void Lexer::reportError(DiagCode code, u64 offset, std::string_view message)
 {
 	// if (errorCount == LEX_ERROR_MAX)
 	// 	CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
@@ -225,15 +225,15 @@ void Lexer::reportError(DiagCode code, ui64 offset, std::string_view message)
 
 std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 {
-	ui8 textSize{static_cast<ui8>(text.size())};
-	ui8 initOffset{static_cast<ui8>(offset - textSize)};
+	u8 textSize{static_cast<u8>(text.size())};
+	u8 initOffset{static_cast<u8>(offset - textSize)};
 	const char* allowedChars{".+-"};
 
 	static std::string str{};
 	str.clear();
 	str.reserve(textSize);
 
-	ui8 i{0};
+	u8 i{0};
 	if (starts_with(text, "0b") || starts_with(text, "0o")
 		|| starts_with(text, "0x"))
 	{
@@ -428,7 +428,7 @@ void Lexer::stringToken(bool raw)
 
 void Lexer::multiLineStringToken(bool raw)
 {
-	ui64 tempOffset{offset - 1};
+	u64 tempOffset{offset - 1};
 
 	int escapeCharCount{0};
 	while (!hitEnd())
@@ -473,7 +473,7 @@ bool Lexer::formatParam()
 
 void Lexer::formatStringToken(char endDelim)
 {
-	static ui8 nestingDepth{0};
+	static u8 nestingDepth{0};
 
 	nestingDepth++;
 	if (nestingDepth > INTERPOLATION_MAX)

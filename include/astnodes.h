@@ -18,7 +18,7 @@ namespace AST
 {
     namespace Statement
     {
-        enum StmtType : ui8
+        enum StmtType : u8
         {
             S_VAR_DECL,
             S_FUNC_DECL,
@@ -211,7 +211,7 @@ namespace AST
 
     namespace Expression
     {
-        enum ExprType : ui8
+        enum ExprType : u8
         {
             E_TUPLE_EXPR,
             E_ASSIGN_EXPR,

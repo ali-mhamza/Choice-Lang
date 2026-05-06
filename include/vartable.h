@@ -1,15 +1,15 @@
 #pragma once
-#include "common.h"     // For Hash, ui8.
+#include "common.h"
 #include <string>
 #include <string_view>
 
 struct VarEntry
 {
     std::string name{};
-    ui8 scope{};
+    u8 scope{};
 
     VarEntry() = default;
-    VarEntry(std::string_view name, ui8 scope);
+    VarEntry(std::string_view name, u8 scope);
     bool operator==(const VarEntry& other) const;
 };
 

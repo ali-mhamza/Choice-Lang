@@ -269,7 +269,7 @@ static void emitBytes(std::ofstream& os, ObjType type, T value)
     if (type != OBJ_INVALID)
         os.put(static_cast<char>(type));
     constexpr size_t size{sizeof(T)};
-    ui64* asBytes{reinterpret_cast<ui64*>(&value)};
+    u64* asBytes{reinterpret_cast<u64*>(&value)};
     std::array<char, size> bytes{};
     for (size_t i = 0; i < size; i++)
         bytes[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & CODE_MAX;
@@ -314,7 +314,7 @@ void Cell::close()
     location = &obj;
 }
 
-Function::Function(const ByteCode& code, const ui8 argCount) :
+Function::Function(const ByteCode& code, const u8 argCount) :
     HeapObj{OBJ_LAMBDA},
     name{nullptr}, code{code}, argCount{argCount}, lambda{true} {}
 
@@ -330,7 +330,7 @@ static char* choiceStrdup(const char* str)
 Function::Function(
     const std::string& name,
     const ByteCode& code,
-    const ui8 argCount
+    const u8 argCount
 ) : HeapObj{OBJ_FUNC},
     name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
     lambda{false} {}
@@ -350,7 +350,7 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(type));
     if (name != nullptr)
     {
-        ui64 len{strlen(name)};
+        u64 len{strlen(name)};
         os.put(static_cast<char>(len));
         os.write(name, static_cast<std::streamsize>(len));
     }
@@ -361,8 +361,8 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(lambda));
 
     const vByte& block{code.block};
-    emitBytes<ui64>(os, OBJ_INVALID, block.size());
-    emitBytes<ui64>(os, OBJ_INVALID, code.countPool());
+    emitBytes<u64>(os, OBJ_INVALID, block.size());
+    emitBytes<u64>(os, OBJ_INVALID, code.countPool());
     os.write(reinterpret_cast<const char*>(block.data()),
 		block.size());
 
@@ -520,7 +520,7 @@ std::string Range::printVal() const
     return str;
 }
 
-List::List(ui32 size) :
+List::List(u32 size) :
     HeapObj{OBJ_LIST},
     array{size} {}
 
@@ -559,7 +559,7 @@ std::string List::printVal() const
 Tuple::Tuple() :
     HeapObj{OBJ_TUPLE} {}
 
-Tuple::Tuple(ui32 size) :
+Tuple::Tuple(u32 size) :
     HeapObj{OBJ_TUPLE},
     entries{size} {}
 

@@ -11,13 +11,13 @@
 #include <vector>
 
 using sv = std::string_view;
-using FileID = ui64;
+using FileID = u64;
 
 struct FileData
 {
     std::string fileName;
     std::string content;
-    std::vector<ui64> lineMarkers{};
+    std::vector<u64> lineMarkers{};
 };
 
 class SourceManager
@@ -33,10 +33,10 @@ class SourceManager
         FileID addFile(const std::string& name, const std::string& content);
         void setFileContent(FileID id, const std::string& content);
         const std::string& getFile(FileID id) { return sourceData[id].fileName; }
-        std::tuple<ui64, ui64, sv> getLineColumn(FileID id, ui64 offset);
+        std::tuple<u64, u64, sv> getLineColumn(FileID id, u64 offset);
 };
 
-enum DiagFamily : ui8
+enum DiagFamily : u8
 {
     // Errors.
 
@@ -56,7 +56,7 @@ enum DiagFamily : ui8
     NUM_FAMILIES
 };
 
-enum DiagCode : ui8
+enum DiagCode : u8
 {
     /* Syntax Errors */
 
@@ -224,7 +224,7 @@ struct Diagnostic
     SourceManager* manager;
     bool isError{};
     FileID id;
-    ui64 byteOffset{}, length{};
+    u64 byteOffset{}, length{};
 
     DiagCode code{};
     std::string label{};
@@ -241,7 +241,7 @@ struct Diagnostic
     void displayReportTitle() const;
     // void displayNoteHelp(
     //     const sv& lineStr,
-    //     const ui64& lineNo,
+    //     const u64& lineNo,
     //     const std::string& gap
     // ) const;
 
@@ -265,8 +265,8 @@ class DiagnosticEngine
         void recordError(
             FileID id,
             DiagCode code,
-            ui64 byteOffset,
-            ui64 length,
+            u64 byteOffset,
+            u64 length,
             const std::string& label
         );
 
@@ -274,7 +274,7 @@ class DiagnosticEngine
         void recordError(
             FileID id,
             DiagCode code,
-            ui64 byteOffset,
+            u64 byteOffset,
             const std::string& label
         );
 

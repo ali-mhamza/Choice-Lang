@@ -2,7 +2,7 @@
 #include "common.h"		// For fixed-size integer types.
 #include <string_view>
 
-enum TokenType : ui8
+enum TokenType : u8
 {
 	/* Characters. */
 
@@ -155,7 +155,7 @@ struct Token
 {
 	std::string_view text{};	// The actual text of the token.
 	Value content{};			// The literal's actual value.
-	ui64 byteOffset;			// Byte offset into the source code for the start of the token.
+	u64 byteOffset;			    // Byte offset into the source code for the start of the token.
 	TokenType type{TOK_EOF};
 
 	Token() = default;
@@ -163,7 +163,7 @@ struct Token
 		TokenType type,
 		std::string_view text,
 		Value content,
-		ui64 offset
+		u64 offset
 	);
 	Token(const Token& other) noexcept;
 	Token& operator=(const Token& other) noexcept;

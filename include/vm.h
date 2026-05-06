@@ -23,7 +23,7 @@ class VM
                 Function* function{};
                 Closure* closure{};
                 Object* regStart{};
-                const ui8* ip{};
+                const u8* ip{};
 
                 #if WATCH_EXEC
                 Disassembler* dis;
@@ -33,7 +33,7 @@ class VM
             Function* function{};
             Closure* closure{};
             Object* regStart{};
-            const ui8* ip{};
+            const u8* ip{};
 
             #if WATCH_EXEC
             Disassembler* dis;
@@ -45,8 +45,8 @@ class VM
 
         Function* currentFunc{};
         Closure* currentClosure{};
-        const ui8* ip{};
-        const ui8* end{};
+        const u8* ip{};
+        const u8* end{};
 
         static constexpr size_t regSize{4096};
         Object* globalRegisters{new Object[regSize]};
@@ -58,7 +58,7 @@ class VM
         std::vector<Cell*> activeCells{};
 
         #if WATCH_REG
-        ui8 regSlot{};
+        u8 regSlot{};
         #endif
 
         #if WATCH_EXEC
@@ -67,12 +67,12 @@ class VM
 
         // Utilities.
 
-        ui8 readByte();
-        ui16 readShort();
-        ui32 readLong();
+        u8 readByte();
+        u16 readShort();
+        u32 readLong();
 
         bool isTruthy(const Object& obj);
-        Cell* captureValue(ui8 slot);
+        Cell* captureValue(u8 slot);
         void closeCells(Object* limit);
         #if COPY_INLINE
             void copyObject(Object& dest, const Object& src);
@@ -83,14 +83,14 @@ class VM
         Object makeReference();
 
         Object loadOper();
-        Object arithOper(Opcode op, ui8 firstOper);
-        Object compareOper(Opcode op, ui8 firstOper);
-        Object bitOper(Opcode op, ui8 firstOper);
-        Object unaryOper(Opcode op, ui8 oper);
+        Object arithOper(Opcode op, u8 firstOper);
+        Object compareOper(Opcode op, u8 firstOper);
+        Object bitOper(Opcode op, u8 firstOper);
+        Object unaryOper(Opcode op, u8 oper);
 
-        void callFunc(const Object& callee, ui8 start, ui8 argCount);
-        void callNative(const Object& callee, ui8 start, ui8 argCount);
-        void callObj(const Object& callee, ui8 start, ui8 argCount);
+        void callFunc(const Object& callee, u8 start, u8 argCount);
+        void callNative(const Object& callee, u8 start, u8 argCount);
+        void callObj(const Object& callee, u8 start, u8 argCount);
         void restoreData();
 
         void startIter();

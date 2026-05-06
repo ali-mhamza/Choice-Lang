@@ -104,7 +104,7 @@ void SourceManager::computeLineMarkers(FileData& data)
     const auto& content{data.content};
     auto& markers{data.lineMarkers};
 
-    ui64 pos{0};
+    u64 pos{0};
     while ((pos = content.find('\n', pos)) != std::string::npos)
     {
 		markers.push_back(pos);
@@ -138,13 +138,13 @@ void SourceManager::setFileContent(FileID id, const std::string& content)
     computeLineMarkers(sourceData[id]);
 }
 
-std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(
+std::tuple<u64, u64, sv> SourceManager::getLineColumn(
     FileID id,
-    ui64 offset
+    u64 offset
 )
 {
     const FileData& data{sourceData[id]};
-    ui64 line{1};
+    u64 line{1};
     if (!data.lineMarkers.empty())
     {
         for (const auto& pos : data.lineMarkers)
@@ -155,23 +155,23 @@ std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(
         }
     }
 
-    ui64 lineStart{
+    u64 lineStart{
         (line == 1) ? 0 : data.lineMarkers[line - 2] + 1
     };
-    ui64 lineEnd{};
+    u64 lineEnd{};
 
     if (data.lineMarkers.empty() || (offset > data.lineMarkers.back()))
         lineEnd = data.content.size() - 1;
     else
         lineEnd = data.lineMarkers[line - 1] - 1;
 
-    ui64 column{offset - lineStart + 1};
+    u64 column{offset - lineStart + 1};
     sv lineStr{&(data.content[lineStart]), lineEnd - lineStart + 1};
 
     return std::make_tuple(line, column, lineStr);
 }
 
-// static std::pair<ui64, ui64> getChangeSpan(sv a, sv b)
+// static std::pair<u64, u64> getChangeSpan(sv a, sv b)
 // {
 //     if (a.empty() || b.empty())
 //         return std::make_pair(0, 0);
@@ -186,9 +186,9 @@ std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(
 //         bIter++;
 //     }
 
-//     ui64 start{static_cast<ui64>(bIter - b.begin())};
+//     u64 start{static_cast<u64>(bIter - b.begin())};
 
-//     ui64 end{b.size()};
+//     u64 end{b.size()};
 //     aIter = a.end() - 1;
 //     bIter = b.end() - 1;
 //     while (*aIter == *bIter)
@@ -207,7 +207,7 @@ std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(
 
 DiagFamily Diagnostic::getDiagCodeFamily(DiagCode code)
 {
-    for (ui8 i{0}; i < NUM_FAMILIES; i++)
+    for (u8 i{0}; i < NUM_FAMILIES; i++)
     {
         if (code <= familyMarkers[i])
             return static_cast<DiagFamily>(i);
@@ -229,20 +229,20 @@ void Diagnostic::displayReportTitle() const
     if (isError)
     {
         CH_PRINT(stderr, "{}{} [E{:0>4}]{}: ", RED, familyTitles[family],
-            static_cast<ui8>(code) + 1, NORMAL);
+            static_cast<u8>(code) + 1, NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
     else
     {
         CH_PRINT(stderr, "{}{} [W{:0>4}]{}: ", YELLOW, familyTitles[family],
-            static_cast<ui8>(code) + 1, NORMAL);
+            static_cast<u8>(code) + 1, NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
 }
 
 // void Diagnostic::displayNoteHelp(
 //     const sv& lineStr,
-//     const ui64& lineNo,
+//     const u64& lineNo,
 //     const std::string& gap
 // ) const
 // {
@@ -301,8 +301,8 @@ std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
 {
     #define IS_VALID_CODE(code) (((code) >= 0) && ((code) < NUM_CODES))
 
-    constexpr ui64 codeLength{5};
-    constexpr ui8 warningStart{static_cast<ui8>(UNUSED_VARIABLE)};
+    constexpr u64 codeLength{5};
+    constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
     bool isError{starts_with(code, "E")};
     bool isWarning{starts_with(code, "W")};
 
@@ -312,7 +312,7 @@ std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
         return std::make_pair(false, static_cast<DiagCode>(0));
     }
 
-    ui8 explainCode{};
+    u8 explainCode{};
     auto result{fast_float::from_chars(code.data() + 1,
         code.data() + codeLength, explainCode)};
 
@@ -343,8 +343,8 @@ void DiagnosticEngine::explain(sv code)
 void DiagnosticEngine::recordError(
     FileID id,
     DiagCode code,
-    ui64 byteOffset,
-    ui64 length,
+    u64 byteOffset,
+    u64 length,
     const std::string& label
 )
 {
@@ -356,7 +356,7 @@ void DiagnosticEngine::recordError(
 void DiagnosticEngine::recordError(
     FileID id,
     DiagCode code,
-    ui64 byteOffset,
+    u64 byteOffset,
     const std::string& label
 )
 {

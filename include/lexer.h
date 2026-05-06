@@ -8,7 +8,7 @@
 class Lexer
 {
     private:
-        enum NumBase { DEC, BIN, OCT, HEX };
+        enum NumBase : u8 { DEC, BIN, OCT, HEX };
 
         FileID id{};
         DiagnosticEngine* engine{};
@@ -18,7 +18,7 @@ class Lexer
         const char* end{};
 
         vT stream{};
-        ui64 offset{0};
+        u64 offset{0};
         NumBase base{DEC};
 
         bool hitError{false};
@@ -49,7 +49,7 @@ class Lexer
         bool checkRawString(char start);
         bool checkNumericLiteral(char start);
 
-        void reportError(DiagCode code, ui64 offset, std::string_view message = "");
+        void reportError(DiagCode code, u64 offset, std::string_view message = "");
 
         /* Value conversion methods. */
 

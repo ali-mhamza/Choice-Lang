@@ -3,34 +3,6 @@
 #include <string>
 #include <string_view>
 
-class LexError
-{
-	private:
-		ui64 offset;
-		const std::string_view message{};
-
-	public:
-		LexError() = default;
-		LexError(
-			ui64 offset,
-			const std::string_view message
-		);
-
-		void report() const;
-};
-
-class CompileError
-{
-	private:
-		const Token token{};
-		const std::string message{};
-
-	public:
-		CompileError(const Token& token, const std::string& message);
-
-		void report() const;
-};
-
 class RuntimeError
 {
 	private:

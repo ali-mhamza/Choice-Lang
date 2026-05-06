@@ -43,7 +43,7 @@ using Natives::FuncType;
 
 #define X(TYPE, field) OBJ_##TYPE,
 
-enum ObjType
+enum ObjType : u8
 {
     TYPE_LIST
 
@@ -218,7 +218,7 @@ TYPE_LIST
 
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
-#define AS_UINT(obj)        (static_cast<ui64>(AS_INT(obj)))
+#define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
 
 /* Heap-allocated object structs. */
@@ -252,14 +252,14 @@ struct Function : public HeapObj
 {
     const char* name{};
     const ByteCode code{};
-    const ui8 argCount{};
+    const u8 argCount{};
     const bool lambda{};
 
-    Function(const ByteCode& code, const ui8 argCount);
+    Function(const ByteCode& code, const u8 argCount);
     Function(
         const std::string& name,
         const ByteCode& code,
-        const ui8 argCount
+        const u8 argCount
     );
     ~Function();
 
@@ -315,7 +315,7 @@ struct List : public HeapObj
 {
     Array<Object> array{};
 
-    List(ui32 size);
+    List(u32 size);
 
     bool operator==(const List& other) const;
     bool contains(const Object& obj) const;
@@ -333,7 +333,7 @@ struct Tuple : public HeapObj
     Array<Object> entries{};
 
     Tuple();
-    Tuple(ui32 size);
+    Tuple(u32 size);
 
     std::string printVal() const;
 };
@@ -344,7 +344,7 @@ struct Tuple : public HeapObj
 struct StringIter
 {
     String* obj{};
-    ui64 pos;
+    u64 pos;
 
     StringIter() = default;
     StringIter(String* obj);

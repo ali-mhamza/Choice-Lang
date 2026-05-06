@@ -54,7 +54,7 @@ bool inRepl{false};
 	LinearAlloc allocator{CH_ALLOC_SIZE};
 #endif
 
-enum ArgvOption : ui8
+enum ArgvOption : u8
 {
 	// Show the tokens for the given
 	// script or REPL input.

@@ -19,13 +19,13 @@ class ASTCompiler
         void compile##type(const AST::Expression::type* node)
 
     private:
-        enum VarType : ui8 { GLOBAL, CELL, LOCAL };
+        enum VarType : u8 { GLOBAL, CELL, LOCAL };
         struct VarInfo
         {
             // Whether or not the variable was found.
             bool found{};
             // The slot/cell index of the variable.
-            ui8 slot{0};
+            u8 slot{0};
 
             // Variable location type.
             VarType type{};
@@ -40,12 +40,12 @@ class ASTCompiler
         struct LocalInfo
         {
             bool found{};
-            ui8 slot{0};
+            u8 slot{0};
         };
 
         struct CellInfo
         {
-            ui8 slot{};
+            u8 slot{};
             bool inCell{};
         };
 
@@ -54,14 +54,14 @@ class ASTCompiler
         FileID id{};
         DiagnosticEngine* engine{};
 
-        ui8 nextReg{0};
-        ui8 scope{0};       // Our current block scope depth.
-        ui8 scopeStart{0};  // To mark the initial register for a new scope (to pop to on exit).
-        const ui8 depth{};  // Our current function scope depth.
+        u8 nextReg{0};
+        u8 scope{0};       // Our current block scope depth.
+        u8 scopeStart{0};  // To mark the initial register for a new scope (to pop to on exit).
+        const u8 depth{};  // Our current function scope depth.
 
-        using varTable = linearTable<VarEntry, ui8, VarHasher>;
-        using accessTable = linearTable<ui8, bool>;
-        using labelTable = linearTable<std::string_view, std::vector<ui64>>;
+        using varTable = linearTable<VarEntry, u8, VarHasher>;
+        using accessTable = linearTable<u8, bool>;
+        using labelTable = linearTable<std::string_view, std::vector<u64>>;
 
         std::stack<std::vector<std::string>> varScopes{};
         const std::unique_ptr<varTable> varLocations{new varTable};
@@ -70,34 +70,29 @@ class ASTCompiler
         const std::unique_ptr<labelTable> continueLabels{new labelTable};
 
         std::vector<CellInfo> captures{};
-        linearTable<std::string, ui8> captureNames{};
+        linearTable<std::string, u8> captureNames{};
 
-        std::vector<ui64>* endJumps{};
-        std::vector<ui64>* breakJumps{};
-        std::vector<ui64>* continueJumps{};
+        std::vector<u64>* endJumps{};
+        std::vector<u64>* breakJumps{};
+        std::vector<u64>* continueJumps{};
 
         /* Variables. */
 
         // Emit an appropriate get or set instruction.
-        void addVariableOp(
-            bool type,
-            const VarInfo& info,
-            ui8 dest,
-            ui8 src
-        );
+        void addVariableOp(bool type, const VarInfo& info, u8 dest, u8 src);
 
         // Define a variable with a register location and mutability
         // state.
-        void defVar(const std::string& name, ui8 reg, bool access);
+        void defVar(const std::string& name, u8 reg, bool access);
 
         // Undefine a variable originally declared in the current scope.
         // Used as a primitive "rollback" if we hit an error during a
         // declaration.
         // Must always be called (if it is called at all) *after* defVar.
-        void removeVar(const std::string& name, ui8 reg);
+        void removeVar(const std::string& name, u8 reg);
 
         // Check if variable at register `reg` is mutable.
-        bool getAccess(ui8 reg) const;
+        bool getAccess(u8 reg) const;
 
         // Check if variable is already defined in local scope
         // (for declaration compiling helpers).
@@ -111,7 +106,7 @@ class ASTCompiler
         // Returns the cell index for the new capture, if a capture is made.
         // Otherwise returns the variable's already-used cell index, or its
         // register slot if it should not be captured.
-        ui8 captureVariable(const Token& token, const VarInfo& info);
+        u8 captureVariable(const Token& token, const VarInfo& info);
 
         /* Variable scoping. */
 
@@ -128,24 +123,27 @@ class ASTCompiler
         // `patchBreaks` - True if we are to patch 'break' jumps.
         //                 False otherwise.
         void patchLoopLabelJumps(const Token& label, bool patchBreaks);
+
         // `offset` - Number of characters to subtract from the size.
         std::string parseStringToken(
             const Token& token,
             size_t start,
             size_t offset
         );
+
         void reportError(
             DiagCode code,
             const Token& token,
             std::string_view message = ""
         );
+
         // For specific cases were we want to report a specific
         // part of a token for an error.
         void reportPartError(
             DiagCode code,
             const Token& token,
-            ui64 offset, // With respect to start of token.
-            ui64 length,
+            u64 offset, // With respect to start of token.
+            u64 length,
             std::string_view message = ""
         );
 
@@ -155,7 +153,7 @@ class ASTCompiler
         void funcBodyHelper(
             const vT& params,
             const StmtUP& body,
-            const ui8 funcReg,
+            const u8 funcReg,
             const std::string& name
         );
         DECL_STMT(FuncDecl);
@@ -167,15 +165,15 @@ class ASTCompiler
         DECL_STMT(WhileStmt);
         void forLoopHelper(
             const AST::Statement::ForStmt* node,
-            const ui8 varReg,
-            const ui8 iterReg
+            const u8 varReg,
+            const u8 iterReg
         );
         DECL_STMT(ForStmt);
         void matchCaseHelper(
             const AST::Statement::MatchStmt::MatchCase& checkCase,
-            const ui8 matchReg,
-            ui64& fallJump,
-            ui64& emptyJump
+            const u8 matchReg,
+            u64& fallJump,
+            u64& emptyJump
         );
         DECL_STMT(MatchStmt);
         DECL_STMT(RepeatStmt);

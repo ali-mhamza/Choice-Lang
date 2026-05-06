@@ -22,29 +22,29 @@ class Disassembler
         void printOperValue(const Object& oper) const;
         void disFunction(const Function& func) const;
 
-        ui8 restoreByte() const;
-        ui16 restoreShort() const;
-        ui32 restoreLong() const;
+        u8 restoreByte() const;
+        u16 restoreShort() const;
+        u32 restoreLong() const;
 
-        void singleOper(ui8 byte);
-        void doubleOper(ui8 byte);
+        void singleOper(u8 byte);
+        void doubleOper(u8 byte);
         void loadOp();
         // `sign`: positive to jump forward, negative otherwise.
-        void jumpOp(ui8 byte, int sign);
-        void callOp(ui8 byte);
-        void iterOp(ui8 byte);
+        void jumpOp(u8 byte, int sign);
+        void callOp(u8 byte);
+        void iterOp(u8 byte);
         // Currently: lists and tuples.
-        void collectionOp(ui8 byte);
+        void collectionOp(u8 byte);
         // For closure captures.
-        void captureOp(ui8 byte);
+        void captureOp(u8 byte);
         // For OP_MAKE_REF.
         void referenceOp();
         // For OP_FORMAT_STR.
         void formatOp();
-    
+
     public:
         Disassembler(const ByteCode& code);
-        void disassembleOp(ui8 byte);
+        void disassembleOp(u8 byte);
         void disassembleCode();
 
         friend class VM;

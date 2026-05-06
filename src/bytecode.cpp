@@ -16,18 +16,18 @@ ByteCode::ByteCode(const vByte& block) :
 ByteCode::ByteCode(const vByte& block, const vObj& pool) :
 	block(block), pool(pool) {}
 
-void ByteCode::addByte(ui8 byte)
+void ByteCode::addByte(u8 byte)
 {
 	block.push_back(byte);
 }
 
-void ByteCode::addShort(ui16 bytes)
+void ByteCode::addShort(u16 bytes)
 {
 	addByte((bytes >> 8) & 0xff);
 	addByte(bytes & 0xff);
 }
 
-void ByteCode::addLong(ui32 bytes)
+void ByteCode::addLong(u32 bytes)
 {
 	addByte((bytes >> 24) & 0xff);
 	addByte((bytes >> 16) & 0xff);
@@ -37,29 +37,29 @@ void ByteCode::addLong(ui32 bytes)
 
 void ByteCode::addOp(Opcode op)
 {
-	addByte(static_cast<ui8>(op));
+	addByte(static_cast<u8>(op));
 }
 
-ui64 ByteCode::addJump(Opcode op, i16 reg)
+u64 ByteCode::addJump(Opcode op, i16 reg)
 {
 	if (reg == -1)
-		addByte(static_cast<ui8>(op));
+		addByte(static_cast<u8>(op));
 	else
-		addBytes(static_cast<ui8>(op), static_cast<ui8>(reg));
-	ui64 offset{block.size()};
+		addBytes(static_cast<u8>(op), static_cast<u8>(reg));
+	u64 offset{block.size()};
 	block.emplace_back();
 	block.emplace_back();
 	return offset;
 }
 
-void ByteCode::patchJump(ui64 offset)
+void ByteCode::patchJump(u64 offset)
 {
 	// We've skipped the 2 jump bytes.
-	ui64 diff{block.size() - offset - 2};
+	u64 diff{block.size() - offset - 2};
 	if (diff <= BYTE_JUMP_MAX)
 	{
-		block[offset] = static_cast<ui8>((diff >> 8) & 0xff);
-		block[offset + 1] = static_cast<ui8>(diff & 0xff);
+		block[offset] = static_cast<u8>((diff >> 8) & 0xff);
+		block[offset + 1] = static_cast<u8>(diff & 0xff);
 	}
 	else
 	{
@@ -68,7 +68,7 @@ void ByteCode::patchJump(ui64 offset)
 	}
 }
 
-void ByteCode::addLoop(ui64 start)
+void ByteCode::addLoop(u64 start)
 {
 	// We jump back the difference from our opcode to the
 	// start, plus 2 more for the decoded offset bytes,
@@ -76,28 +76,28 @@ void ByteCode::addLoop(ui64 start)
 	// *after* the two bytes by the time we've decoded the
 	// offset.
 
-	ui16 diff{static_cast<ui16>(block.size() - start + 3)};
+	u16 diff{static_cast<u16>(block.size() - start + 3)};
 	addByte(OP_LOOP);
-	addByte(static_cast<ui8>((diff >> 8) & 0xff));
-	addByte(static_cast<ui8>(diff & 0xff));
+	addByte(static_cast<u8>((diff >> 8) & 0xff));
+	addByte(static_cast<u8>(diff & 0xff));
 }
 
-void ByteCode::loadReg(ui8 reg, ui8 op)
+void ByteCode::loadReg(u8 reg, u8 op)
 {
-	addBytes(static_cast<ui8>(OP_LOAD_R), reg, op);
+	addBytes(static_cast<u8>(OP_LOAD_R), reg, op);
 }
 
 #define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
 
-void ByteCode::loadRegConst(Object& constant, ui8 reg)
+void ByteCode::loadRegConst(Object& constant, u8 reg)
 {
-	addBytes(static_cast<ui8>(OP_LOAD_R), reg); // Destination first.
+	addBytes(static_cast<u8>(OP_LOAD_R), reg); // Destination first.
 
 	if (IS_INT(constant))
 	{
 		if (IS_SMALL(constant.as.intVal))
 		{
-			addByte(static_cast<ui8>(constant.as.intVal + 2));
+			addByte(static_cast<u8>(constant.as.intVal + 2));
 			return;
 		}
 	}
@@ -106,7 +106,7 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 		if (IS_SMALL(constant.as.decVal)
 			&& (fmod(constant.as.decVal, 1.0) == 0.0))
 		{
-			addByte(static_cast<ui8>(constant.as.decVal + 2));
+			addByte(static_cast<u8>(constant.as.decVal + 2));
 			return;
 		}
 	}
@@ -117,23 +117,23 @@ void ByteCode::loadRegConst(Object& constant, ui8 reg)
 	if (size - 1 < (1 << 8))
 	{
 		addByte(OP_BYTE_OPER);
-		addByte(static_cast<ui8>(size - 1));
+		addByte(static_cast<u8>(size - 1));
 	}
 	else if (size - 1 < (1 << 16))
 	{
 		addByte(OP_SHORT_OPER);
-		addShort(static_cast<ui16>(size - 1));
+		addShort(static_cast<u16>(size - 1));
 	}
 	else
 	{
 		addByte(OP_LONG_OPER);
-		addLong(static_cast<ui32>(size - 1));
+		addLong(static_cast<u32>(size - 1));
 	}
 }
 
-ui64 ByteCode::countPool() const
+u64 ByteCode::countPool() const
 {
-	ui64 count{0};
+	u64 count{0};
 
 	for (const Object& obj : pool)
 	{
@@ -150,16 +150,16 @@ ui64 ByteCode::countPool() const
 					if (func.name != nullptr) count += strlen(func.name);
 					// Added type byte (1) and name length byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
-					count += 4 * sizeof(ui8);
+					count += 4 * sizeof(u8);
 					// Added code size and pool size values,
 					// as well as the actual sizes of the code and pool.
-					count += 2 * sizeof(ui64) + func.code.codeSize()
+					count += 2 * sizeof(u64) + func.code.codeSize()
 						+ func.code.countPool();
 					break;
 				}
 				case OBJ_STRING:
 					// Added type byte (1) and null byte (1).
-					count += AS_STRING(obj)->str.size() + 2 * sizeof(ui8);
+					count += AS_STRING(obj)->str.size() + 2 * sizeof(u8);
 					break;
 				default:
 					CH_UNREACHABLE();
@@ -184,17 +184,17 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	os.put(static_cast<char>(file.size()));
 
 	// Bytecode length.
-	ui64 codeSize{block.size()};
+	u64 codeSize{block.size()};
 	os.write(reinterpret_cast<const char*>(&codeSize),
-		sizeof(ui64));
+		sizeof(u64));
 
 	// Constant pool length.
-	ui64 poolSize{countPool()};
+	u64 poolSize{countPool()};
 	os.write(reinterpret_cast<const char*>(&poolSize),
-		sizeof(ui64));
+		sizeof(u64));
 
-	ui64 fileSize{file.size()};
-	constexpr auto maxSize{static_cast<ui64>(
+	u64 fileSize{file.size()};
+	constexpr auto maxSize{static_cast<u64>(
 		std::numeric_limits<std::streamsize>::max()
 	)};
 	// Check to avoid narrowing conversions below.

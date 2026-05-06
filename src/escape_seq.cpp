@@ -13,32 +13,32 @@
 
 // For unicode.
 
-constexpr ui32 oneByteMax{0x7f};
-constexpr ui32 twoByteMax{0x7ff};
-constexpr ui32 threeByteMax{0xffff};
-constexpr ui32 fourByteMax{0x10ffff};
+constexpr u32 oneByteMax{0x7f};
+constexpr u32 twoByteMax{0x7ff};
+constexpr u32 threeByteMax{0xffff};
+constexpr u32 fourByteMax{0x10ffff};
 
 // Surrogate range for UTF-16.
 // No valid UTF-8 value in this range (inclusive).
-constexpr ui32 surrogateRangeStart{0xd800};
-constexpr ui32 surrogateRangeEnd{0xdfff};
+constexpr u32 surrogateRangeStart{0xd800};
+constexpr u32 surrogateRangeEnd{0xdfff};
 
-constexpr ui8 commonByteStart{1 << 7};
-constexpr ui8 lastSixBits{0x3f};
-constexpr ui8 remainingBits{0xff};
+constexpr u8 commonByteStart{1 << 7};
+constexpr u8 lastSixBits{0x3f};
+constexpr u8 remainingBits{0xff};
 
 struct NumParseRules
 {
     char escape{};
     int maxDigits{}, shift{};
     bool (*check)(char);
-    ui8 (*convert)(char);
+    u8 (*convert)(char);
 };
 
-static inline ui32 strToHex(const svIter it, int count)
+static inline u32 strToHex(const svIter it, int count)
 {
-	constexpr ui32 hexShift{4};
-    ui32 result{0};
+	constexpr u32 hexShift{4};
+    u32 result{0};
 	for (int i{0}; i < count; i++)
 		result = (result << hexShift) + fromHex(it[i]);
 
@@ -46,13 +46,13 @@ static inline ui32 strToHex(const svIter it, int count)
 }
 
 // Assume value in valid UTF-8 range.
-static void encodeUTF8(std::string& str, ui32 value)
+static void encodeUTF8(std::string& str, u32 value)
 {
-    constexpr ui32 utf8EncodeMax{4};
-    constexpr ui8 bitShiftMax{7};
+    constexpr u32 utf8EncodeMax{4};
+    constexpr u8 bitShiftMax{7};
 
     std::array<char, utf8EncodeMax> buffer{0};
-	ui8 numBytes{};
+	u8 numBytes{};
 	if (value > threeByteMax)       numBytes = 4;
 	else if (value > twoByteMax)    numBytes = 3;
 	else if (value > oneByteMax)    numBytes = 2;
@@ -62,14 +62,14 @@ static void encodeUTF8(std::string& str, ui32 value)
 		return;
 	}
 
-	for (ui8 i{static_cast<ui8>(numBytes - 1)}; i > 0; i--)
+	for (u8 i{static_cast<u8>(numBytes - 1)}; i > 0; i--)
 	{
 		buffer[i] |= commonByteStart | (value & lastSixBits);
 		value >>= 6;
 	}
 
-	ui8 start{0};
-	for (ui8 i{0}; i < numBytes; i++)
+	u8 start{0};
+	for (u8 i{0}; i < numBytes; i++)
 		start |= (1 << (bitShiftMax - i));
 
 	buffer[0] |= start | (value & remainingBits);
@@ -153,13 +153,13 @@ static bool checkParseArgs(
     return true;
 }
 
-static ui32 parseEscapeString(
+static u32 parseEscapeString(
     svIter& it,
     const svIter end,
     const NumParseRules& rules
 )
 {
-    ui32 replace{0};
+    u32 replace{0};
     int count{0};
     while ((it < end) && rules.check(*it) && (count < rules.maxDigits))
     {
@@ -193,9 +193,9 @@ bool parseNumericSequence(
     if (!checkParseArgs(it, end, rules, pair))
         return false;
 
-    ui32 replace{parseEscapeString(it, end, rules)};
+    u32 replace{parseEscapeString(it, end, rules)};
     if ((rules.escape == 'o') // Check only for octal.
-        && (replace > std::numeric_limits<ui8>::max()))
+        && (replace > std::numeric_limits<u8>::max()))
     {
         return setCode(pair.first, HIT_OCTAL_CHAR_MAX);
     }
@@ -284,7 +284,7 @@ bool parseUnicodeSequence(
     int count{consumeUnicodeSequence(it, end, pair)};
     if (count == -1) return false;
 
-    ui32 value{strToHex(it, count)};
+    u32 value{strToHex(it, count)};
     it += count + 1; // Skip characters and closing brace.
     // Result outside unicode range (5).
     if ((value > fourByteMax)

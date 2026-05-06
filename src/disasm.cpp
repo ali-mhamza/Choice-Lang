@@ -53,23 +53,23 @@ void Disassembler::printOperValue(const Object& oper) const
 		disFunction(*(AS_FUNC(oper)));
 }
 
-ui8 Disassembler::restoreByte() const
+u8 Disassembler::restoreByte() const
 {
 	return ip[1];
 }
 
-ui16 Disassembler::restoreShort() const
+u16 Disassembler::restoreShort() const
 {
-	ui16 value{static_cast<ui16>(
+	u16 value{static_cast<u16>(
 		(ip[1] << 8) | (ip[2])
 	)};
 
 	return value;
 }
 
-ui32 Disassembler::restoreLong() const
+u32 Disassembler::restoreLong() const
 {
-	ui32 value{static_cast<ui32>(
+	u32 value{static_cast<u32>(
 		(ip[1] << 24)
 		| (ip[2] << 16)
 		| (ip[3] << 8)
@@ -79,15 +79,15 @@ ui32 Disassembler::restoreLong() const
 	return value;
 }
 
-void Disassembler::singleOper(ui8 byte)
+void Disassembler::singleOper(u8 byte)
 {
 	printOpcode(opNames[byte]);
 	CH_PRINT("R[{}]\n", ip[1]);
-	
+
 	ip += 2;
 }
 
-void Disassembler::doubleOper(ui8 byte)
+void Disassembler::doubleOper(u8 byte)
 {
 	printOpcode(opNames[byte]);
 
@@ -112,7 +112,7 @@ void Disassembler::loadOp()
 	{
 		case OP_BYTE_OPER:
 		{
-			ui8 operand{restoreByte()};
+			u8 operand{restoreByte()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 2;
@@ -120,7 +120,7 @@ void Disassembler::loadOp()
 		}
 		case OP_SHORT_OPER:
 		{
-			ui16 operand{restoreShort()};
+			u16 operand{restoreShort()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 3;
@@ -128,7 +128,7 @@ void Disassembler::loadOp()
 		}
 		case OP_LONG_OPER:
 		{
-			ui32 operand{restoreLong()};
+			u32 operand{restoreLong()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(code.pool[operand]);
 			ip += 5;
@@ -140,29 +140,29 @@ void Disassembler::loadOp()
 	}
 }
 
-void Disassembler::jumpOp(ui8 byte, int sign)
+void Disassembler::jumpOp(u8 byte, int sign)
 {
 	printOpcode(opNames[byte]);
 	if ((byte == OP_JUMP_TRUE) || (byte == OP_JUMP_FALSE))
 	{
-		ui8 reg{restoreByte()};
+		u8 reg{restoreByte()};
 		ip++;
 		CH_PRINT("R[{}] ", reg);
 	}
 
-	ui16 jump{restoreShort()};
+	u16 jump{restoreShort()};
 	ip += 3;
 	CH_PRINT("-> {}\n", ip - start + (sign * jump));
 }
 
-void Disassembler::callOp(ui8 byte)
+void Disassembler::callOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
-	ui8 callee{restoreByte()};
+	u8 callee{restoreByte()};
 	ip++;
-	ui8 start{restoreByte()};
+	u8 start{restoreByte()};
 	ip++;
-	ui8 count{restoreByte()};
+	u8 count{restoreByte()};
 	ip += 2;
 
 	if (byte == OP_CALL_NAT)
@@ -182,7 +182,7 @@ void Disassembler::callOp(ui8 byte)
 	}
 }
 
-void Disassembler::iterOp(ui8 byte)
+void Disassembler::iterOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
 
@@ -194,27 +194,27 @@ void Disassembler::iterOp(ui8 byte)
 	else if (static_cast<Opcode>(byte) == OP_UPDATE_ITER)
 	{
 		ip += 2;
-		ui16 jump{restoreShort()};
+		u16 jump{restoreShort()};
 		ip += 3;
 		CH_PRINT("R[{}] R[{}] -> {}\n", ip[-4], ip[-3],
 			ip - start - jump);
 	}
 }
 
-void Disassembler::collectionOp(ui8 byte)
+void Disassembler::collectionOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	ui8 reg{restoreByte()};
+	u8 reg{restoreByte()};
 	ip++;
 
 	if ((static_cast<Opcode>(byte) == OP_EXT_LIST)
 		|| (static_cast<Opcode>(byte) == OP_EXT_TUPLE))
 	{
-		ui8 startReg{restoreByte()};
+		u8 startReg{restoreByte()};
 		ip++;
 
-		ui8 count{restoreByte()};
+		u8 count{restoreByte()};
 		ip += 2;
 
 		CH_PRINT("R[{}] R[{}] ({})\n", reg, startReg, count);
@@ -226,10 +226,10 @@ void Disassembler::collectionOp(ui8 byte)
 	}
 }
 
-void Disassembler::captureOp(ui8 byte)
+void Disassembler::captureOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
-	ui8 funcReg{restoreByte()};
+	u8 funcReg{restoreByte()};
 	ip++;
 
 	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
@@ -242,18 +242,18 @@ void Disassembler::captureOp(ui8 byte)
 void Disassembler::referenceOp()
 {
     // Mimicking the compiler.
-    enum VarType : ui8 { GLOBAL, CELL, LOCAL };
+    enum VarType : u8 { GLOBAL, CELL, LOCAL };
 
 	printOpcode(opNames[OP_MAKE_REF]);
 
-	ui8 reg{restoreByte()};
+	u8 reg{restoreByte()};
 	ip++;
 	CH_PRINT("R[{}] ", reg);
 
 	VarType type{static_cast<VarType>(restoreByte())};
 	ip++;
 
-	ui8 target{restoreByte()};
+	u8 target{restoreByte()};
 	ip += 2;
 
 	switch (type)
@@ -270,16 +270,16 @@ void Disassembler::formatOp()
 {
 	printOpcode(opNames[OP_FORMAT_STR]);
 
-	ui8 reg{restoreByte()};
+	u8 reg{restoreByte()};
 	ip++;
 
-	ui8 count{restoreByte()};
+	u8 count{restoreByte()};
 	ip += 2;
 
 	CH_PRINT("R[{}] ({})\n", reg, count);
 }
 
-void Disassembler::disassembleOp(ui8 byte)
+void Disassembler::disassembleOp(u8 byte)
 {
 	switch (byte)
 	{

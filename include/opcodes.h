@@ -1,9 +1,9 @@
 #pragma once
-#include "common.h"		// For ui8 in enum defintion.
+#include "common.h"		// For u8 in enum defintion.
 #include <array>
 #include <string_view>
 
-enum Opcode : ui8 // Each opcode is a single byte.
+enum Opcode : u8 // Each opcode is a single byte.
 {
 	/* Basic values. */
 

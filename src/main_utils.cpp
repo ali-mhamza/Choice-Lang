@@ -82,7 +82,7 @@ static Size reconstructBytes(vBit& it, const vBit& end)
 {
 	(void) end; // In case we don't use it.
 
-	ui64 value{0};
+	u64 value{0};
 	constexpr size_t size{sizeof(Size)};
 	for (size_t i{0}; i < size; i++)
 	{
@@ -96,20 +96,20 @@ static Size reconstructBytes(vBit& it, const vBit& end)
 
 static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 {
-	ui64 codeSize{reconstructBytes<ui64>(it, end)};
+	u64 codeSize{reconstructBytes<u64>(it, end)};
 	it++;
-	ui64 poolSize{reconstructBytes<ui64>(it, end)};
+	u64 poolSize{reconstructBytes<u64>(it, end)};
 	it++;
 
 	vByte bytes(codeSize);
-	for (ui64 i{0}; i < codeSize; i++)
+	for (u64 i{0}; i < codeSize; i++)
 	{
 		CHECK_EOF();
 		bytes[i] = *(it++);
 	}
 
 	vByte pool(poolSize);
-	for (ui64 i{0}; i < poolSize; i++)
+	for (u64 i{0}; i < poolSize; i++)
 	{
 		CHECK_EOF();
 		pool[i] = *(it++);
@@ -122,7 +122,7 @@ static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 static Object reconstructFunc(vBit& it, const vBit& end)
 {
 	CHECK_EOF();
-	ui8 nameLen{*(it++)};
+	u8 nameLen{*(it++)};
 	std::string name{};
 
 	if (nameLen != 0)
@@ -134,12 +134,12 @@ static Object reconstructFunc(vBit& it, const vBit& end)
        	    eofError();
     	#endif
 
-    	for (ui8 i{0}; i < nameLen; i++)
+    	for (u8 i{0}; i < nameLen; i++)
     	    name[i] = static_cast<char>(*(it++));
 	}
 
 	CHECK_EOF();
-	ui8 argCount{*it};
+	u8 argCount{*it};
 
 	++it;
 	CHECK_EOF();
@@ -203,7 +203,7 @@ vObj reconstructPool(const vByte& poolBytes)
 				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
 					CH_PRINT(stderr, "Error: byte is {}.\n",
-						static_cast<ui8>(type));
+						static_cast<u8>(type));
 					exit(65);
 				}
 			}
@@ -250,9 +250,9 @@ ByteCode readCache(std::ifstream& fileIn)
 {
 	if (fileIn.is_open())
 	{
-		std::string fileName{};	ui8 nameLength{};
-		vByte codeBytes{};		ui64 codeLength{};
-		vByte poolBytes{};		ui64 poolLength{};
+		std::string fileName{};	u8 nameLength{};
+		vByte codeBytes{};		u64 codeLength{};
+		vByte poolBytes{};		u64 poolLength{};
 
 		readMagic(fileIn);
 		readVersionNum(fileIn);
@@ -260,15 +260,15 @@ ByteCode readCache(std::ifstream& fileIn)
 		int ch{fileIn.get()};
 		if (ch == -1) // EOF.
 			eofError();
-		nameLength = static_cast<ui8>(ch);
+		nameLength = static_cast<u8>(ch);
 		fileName.resize(nameLength);
 
-		fileIn.read(reinterpret_cast<char*>(&codeLength), sizeof(ui64));
-		handleFileLength(fileIn, sizeof(ui64));
+		fileIn.read(reinterpret_cast<char*>(&codeLength), sizeof(u64));
+		handleFileLength(fileIn, sizeof(u64));
 		codeBytes.resize(codeLength);
 
-		fileIn.read(reinterpret_cast<char*>(&poolLength), sizeof(ui64));
-		handleFileLength(fileIn, sizeof(ui64));
+		fileIn.read(reinterpret_cast<char*>(&poolLength), sizeof(u64));
+		handleFileLength(fileIn, sizeof(u64));
 		poolBytes.resize(poolLength);
 
 		fileIn.read(reinterpret_cast<char*>(fileName.data()), nameLength);
@@ -276,7 +276,7 @@ ByteCode readCache(std::ifstream& fileIn)
 		file = fileName;
 
 		#if defined(DEBUG)
-			constexpr auto maxSize{static_cast<ui64>(
+			constexpr auto maxSize{static_cast<u64>(
 				std::numeric_limits<std::streamsize>::max()
 			)};
 			CH_ASSERT(

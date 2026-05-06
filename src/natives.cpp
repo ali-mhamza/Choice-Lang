@@ -43,11 +43,11 @@ const std::unordered_map<std::string_view,
     {"quit", Natives::FUNC_QUIT}
 };
 
-void Natives::print(Natives::iter it, ui8 args, const Token& error)
+void Natives::print(Natives::iter it, u8 args, const Token& error)
 {
     (void) error;
 
-    for (ui8 i{0}; i < args; i++)
+    for (u8 i{0}; i < args; i++)
     {
         switch (it[i].type)
         {
@@ -77,7 +77,7 @@ void Natives::print(Natives::iter it, ui8 args, const Token& error)
     it[-1] = ret;
 }
 
-void Natives::println(Natives::iter it, ui8 args, const Token& error)
+void Natives::println(Natives::iter it, u8 args, const Token& error)
 {
     print(it, args, error);
     if (!inRepl) CH_PRINT("\n");
@@ -85,13 +85,13 @@ void Natives::println(Natives::iter it, ui8 args, const Token& error)
 
 #if !defined(CH_USE_FMT_LIB)
     // Work in progress.
-    static std::string defaultFormat(Natives::iter it, ui8 args,
+    static std::string defaultFormat(Natives::iter it, u8 args,
         const Token& error)
     {
         using sizeT = std::string::size_type;
         const std::string& str{AS_STRING(it[0])->str};
         sizeT size{str.size()};
-        ui8 count{0};
+        u8 count{0};
 
         std::string newStr{};
         if (size != 0)
@@ -112,7 +112,7 @@ void Natives::println(Natives::iter it, ui8 args, const Token& error)
                 else
                 {
                     newStr.append(str, start, pos - start);
-                    if (++count > static_cast<ui8>(args - 1))
+                    if (++count > static_cast<u8>(args - 1))
                         throw RuntimeError(error, "Too few format arguments.");
 
                     newStr += it[count].printVal();
@@ -123,7 +123,7 @@ void Natives::println(Natives::iter it, ui8 args, const Token& error)
             }
         }
 
-        if (count < static_cast<ui8>(args - 1))
+        if (count < static_cast<u8>(args - 1))
             throw RuntimeError(error, "Too many format arguments.");
         if (newStr.empty()) newStr = str;
 
@@ -131,7 +131,7 @@ void Natives::println(Natives::iter it, ui8 args, const Token& error)
     }
 #endif
 
-void Natives::format(Natives::iter it, ui8 args, const Token& error)
+void Natives::format(Natives::iter it, u8 args, const Token& error)
 {
     if (args == 0)
         throw RuntimeError(error, "String argument not provided.");
@@ -142,7 +142,7 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
 
     #if defined(CH_USE_FMT_LIB)
         fmt_store store{};
-        for (ui8 i = 1; i < args; i++)
+        for (u8 i{1}; i < args; i++)
             store.push_back(it[i].printVal());
 
         const std::string& str{AS_STRING(it[0])->str};
@@ -165,7 +165,7 @@ void Natives::format(Natives::iter it, ui8 args, const Token& error)
     it[-1] = Object{CH_ALLOC(String, result)};
 }
 
-void Natives::type(Natives::iter it, ui8 args, const Token& error)
+void Natives::type(Natives::iter it, u8 args, const Token& error)
 {
     if (args != 1)
     {
@@ -177,7 +177,7 @@ void Natives::type(Natives::iter it, ui8 args, const Token& error)
     it[-1] = Object{it->type};
 }
 
-void Natives::len(Natives::iter it, ui8 args, const Token& error)
+void Natives::len(Natives::iter it, u8 args, const Token& error)
 {
     if (args != 1)
     {
@@ -212,7 +212,7 @@ void Natives::len(Natives::iter it, ui8 args, const Token& error)
     it[-1] = Object{len};
 }
 
-void Natives::clock(Natives::iter it, ui8 args, const Token& error)
+void Natives::clock(Natives::iter it, u8 args, const Token& error)
 {
     if (args != 0)
     {
@@ -231,7 +231,7 @@ void Natives::clock(Natives::iter it, ui8 args, const Token& error)
     it[-1] = Object{i64(ret.count())};
 }
 
-void Natives::range(Natives::iter it, ui8 args, const Token& error)
+void Natives::range(Natives::iter it, u8 args, const Token& error)
 {
     if ((args != 2) && (args != 3))
     {
@@ -250,7 +250,7 @@ void Natives::range(Natives::iter it, ui8 args, const Token& error)
     it[-1] = Object{CH_ALLOC(Range, limits)};
 }
 
-void Natives::read(Natives::iter it, ui8 args, const Token& error)
+void Natives::read(Natives::iter it, u8 args, const Token& error)
 {
     if (args > 1)
     {
@@ -272,7 +272,7 @@ void Natives::read(Natives::iter it, ui8 args, const Token& error)
     it[-1] = Object{CH_ALLOC(String, input)};
 }
 
-void Natives::quit(Natives::iter it, ui8 args, const Token& error)
+void Natives::quit(Natives::iter it, u8 args, const Token& error)
 {
     if (args > 1)
     {
@@ -283,7 +283,7 @@ void Natives::quit(Natives::iter it, ui8 args, const Token& error)
     if ((args == 1) && !IS_INT(it[0]))
         throw RuntimeError(error, "Argument must be an integer.");
 
-    ui8 exitCode = ((args == 0) ? 0 : (AS_INT(it[0]) & 0xff));
+    u8 exitCode = ((args == 0) ? 0 : (AS_INT(it[0]) & 0xff));
     exit(exitCode);
     // No return value.
 }

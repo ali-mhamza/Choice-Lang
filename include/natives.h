@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"         // For ui8 in NativeFunc type alias.
+#include "common.h"         // For u8 in NativeFunc type alias.
 #include "token.h"
 #include <array>
 #include <string_view>
@@ -11,9 +11,9 @@ namespace Natives
 {
     // using iter = vObj::const_iterator;
     using iter = Object*;
-    using NativeFunc = void (*)(iter, ui8, const Token&);
+    using NativeFunc = void (*)(iter, u8, const Token&);
 
-    enum FuncType
+    enum FuncType : u8
     {
         FUNC_PRINT,
         FUNC_PRINTLN,
@@ -27,15 +27,15 @@ namespace Natives
         NUM_FUNCS
     };
 
-    void print(iter it, ui8 args, const Token& error);
-    void println(iter it, ui8 args, const Token& error);
-    void format(iter it, ui8 args, const Token& error);
-    void type(iter it, ui8 args, const Token& error);
-    void len(iter it, ui8 args, const Token& error);
-    void clock(iter it, ui8 args, const Token& error);
-    void range(iter it, ui8 args, const Token& error);
-    void read(iter it, ui8 args, const Token& error);
-    void quit(iter it, ui8 args, const Token& error);
+    void print(iter it, u8 args, const Token& error);
+    void println(iter it, u8 args, const Token& error);
+    void format(iter it, u8 args, const Token& error);
+    void type(iter it, u8 args, const Token& error);
+    void len(iter it, u8 args, const Token& error);
+    void clock(iter it, u8 args, const Token& error);
+    void range(iter it, u8 args, const Token& error);
+    void read(iter it, u8 args, const Token& error);
+    void quit(iter it, u8 args, const Token& error);
 
     extern const std::array<NativeFunc, NUM_FUNCS> functions;
     extern const std::array<const char*, NUM_FUNCS> funcNames;

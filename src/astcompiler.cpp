@@ -43,7 +43,7 @@ constexpr bool setVar{false};
 
 ASTCompiler::ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp) :
     scopeCompiler{comp}, engine{engine},
-    depth{static_cast<ui8>(comp == nullptr ? 0 : comp->depth + 1)}
+    depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)}
 {
     if (depth == 0) // Global scope compiler.
     {
@@ -58,12 +58,7 @@ ASTCompiler::~ASTCompiler() = default;
 
 /* Compilation helpers. */
 
-void ASTCompiler::addVariableOp(
-    bool type,
-    const VarInfo& info,
-    ui8 dest,
-    ui8 src
-)
+void ASTCompiler::addVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
 {
     if (info.type == GLOBAL)
     {
@@ -87,21 +82,21 @@ void ASTCompiler::addVariableOp(
 // likely be destroyed soon after (if using the REPL),
 // and thus we must take ownership of the string first
 // to avoid invalidating the view.
-void ASTCompiler::defVar(const std::string& name, ui8 reg, bool access)
+void ASTCompiler::defVar(const std::string& name, u8 reg, bool access)
 {
     (*varLocations)[{ name, scope }] = reg;
     (*varAccess)[reg] = access;
     if (scope != 0) varScopes.top().push_back(name);
 }
 
-void ASTCompiler::removeVar(const std::string& name, ui8 reg)
+void ASTCompiler::removeVar(const std::string& name, u8 reg)
 {
     varLocations->remove({ name, scope });
     varAccess->remove(reg);
     if (scope != 0) varScopes.top().pop_back();
 }
 
-bool ASTCompiler::getAccess(ui8 reg) const
+bool ASTCompiler::getAccess(u8 reg) const
 {
     bool* ret{varAccess->get(reg)};
     CH_ASSERT(ret != nullptr,
@@ -112,7 +107,7 @@ bool ASTCompiler::getAccess(ui8 reg) const
 ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
 {
     VarEntry entry{token.text, scope};
-    ui8* slot{varLocations->get(entry)};
+    u8* slot{varLocations->get(entry)};
     if (slot != nullptr)
         return { true, *slot };
 
@@ -122,10 +117,10 @@ ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
 ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
 {
     // Check if variable is local first.
-    for (ui8 i{0}; i <= scope; i++)
+    for (u8 i{0}; i <= scope; i++)
     {
-        VarEntry entry{token.text, static_cast<ui8>(scope - i)};
-        ui8* slot{varLocations->get(entry)};
+        VarEntry entry{token.text, static_cast<u8>(scope - i)};
+        u8* slot{varLocations->get(entry)};
         if (slot != nullptr)
         {
             VarType type{LOCAL};
@@ -153,17 +148,17 @@ ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
     return { false };
 }
 
-ui8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
+u8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
 {
     if (info.type == GLOBAL)
         return info.slot;
 
     std::string name{token.text};
-    ui8* index{captureNames.get(name)};
+    u8* index{captureNames.get(name)};
     if (index != nullptr) // Already captured -> don't capture again.
         return *index;
 
-    ui8 cellIndex{static_cast<ui8>(captures.size())};
+    u8 cellIndex{static_cast<u8>(captures.size())};
     captureNames[name] = cellIndex;
     captures.push_back({ info.slot, info.inCell });
     return cellIndex;
@@ -196,7 +191,7 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
     if (patchBreaks)
     {
         auto* vec{breakLabels->get(label.text)};
-        for (ui64 jump : *vec)
+        for (u64 jump : *vec)
             code.patchJump(jump);
         // Breaks are always patched at the very end.
         breakLabels->remove(label.text);
@@ -205,7 +200,7 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
     else
     {
         auto* vec{continueLabels->get(label.text)};
-        for (ui64 jump : *vec)
+        for (u64 jump : *vec)
             code.patchJump(jump);
     }
 }
@@ -218,11 +213,11 @@ std::string ASTCompiler::parseStringToken(
     size_t offset
 )
 {
-    #define REPORT(CURRENT, OFF, LEN)                                       \
-        reportPartError(pair.first, token,                                  \
-            start + static_cast<ui64>((CURRENT) - text.begin() - (OFF)),    \
-            (LEN), pair.second                                              \
-        )                                                                   \
+    #define REPORT(CURRENT, OFF, LEN)                                   \
+        reportPartError(pair.first, token,                              \
+            start + static_cast<u64>((CURRENT) - text.begin() - (OFF)), \
+            (LEN), pair.second                                          \
+        )
 
 	auto size{token.text.size() - offset};
     if (size == 0) return std::string{}; // Empty string.
@@ -254,7 +249,7 @@ std::string ASTCompiler::parseStringToken(
             {
                 continue;
             }
-            else if (!reportedError && (static_cast<ui8>(pair.first) != 0))
+            else if (!reportedError && (static_cast<u8>(pair.first) != 0))
             {
                 if (pair.first == HIT_OCTAL_CHAR_MAX)
                     REPORT(it, 3, 3);
@@ -299,8 +294,8 @@ void ASTCompiler::reportError(
 void ASTCompiler::reportPartError(
     DiagCode code,
     const Token& token,
-    ui64 offset,
-    ui64 length,
+    u64 offset,
+    u64 length,
     std::string_view message
 )
 {
@@ -323,7 +318,7 @@ DEF(VarDecl)
     {
         if (inRepl && (depth == 0) && (scope == 0))
         {
-            ui8 reg{nextReg};
+            u8 reg{nextReg};
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
@@ -339,7 +334,7 @@ DEF(VarDecl)
     }
 
     std::string varName{node->name.text};
-    ui8 varSlot{nextReg};
+    u8 varSlot{nextReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
     defVar(varName, varSlot,
@@ -360,13 +355,13 @@ DEF(VarDecl)
 void ASTCompiler::funcBodyHelper(
     const vT& params,
     const StmtUP& body,
-    const ui8 funcReg,
+    const u8 funcReg,
     const std::string& name
 )
 {
     ASTCompiler miniCompiler{engine, this};
     // The number of "parameter" tokens that aren't identifiers.
-    ui8 removeCount{0};
+    u8 removeCount{0};
     for (auto it{params.begin()}; it != params.end(); it++)
     {
         bool access{accessVar};
@@ -378,7 +373,7 @@ void ASTCompiler::funcBodyHelper(
         }
 
         const Token& param{*it};
-        ui8 reg{miniCompiler.nextReg};
+        u8 reg{miniCompiler.nextReg};
         LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
             REPORT_ERROR(PARAM_ALREADY_DEFINED, param);
@@ -394,7 +389,7 @@ void ASTCompiler::funcBodyHelper(
         this->hitError = true;
 
     Object func{};
-    ui8 arity{static_cast<ui8>(params.size() - removeCount)};
+    u8 arity{static_cast<u8>(params.size() - removeCount)};
     if (name.empty()) // Compiling a lambda.
         func = CH_ALLOC(Function, funcCode, arity);
     else
@@ -434,7 +429,7 @@ DEF(FuncDecl)
     if (node->params.size() > PARAMETER_MAX)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX]);
 
-    ui8 varSlot{redefined ? localInfo.slot : nextReg};
+    u8 varSlot{redefined ? localInfo.slot : nextReg};
     std::string name{node->name.text};
     if (!redefined)
     {
@@ -451,14 +446,14 @@ DEF(ClassDecl) { (void) node; }
 
 DEF(IfStmt)
 {
-    ui8 reg{nextReg};
+    u8 reg{nextReg};
     compileExpr(node->condition);
-    ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
+    u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
     compileStmt(node->trueBranch);
     if (node->falseBranch != nullptr)
     {
-        ui64 trueJump{code.addJump(OP_JUMP)};
+        u64 trueJump{code.addJump(OP_JUMP)};
         code.patchJump(falseJump);
         if (node->falseBranch != nullptr)
             compileStmt(node->falseBranch);
@@ -470,29 +465,29 @@ DEF(IfStmt)
 
 DEF(WhileStmt)
 {
-    ui8 reg{nextReg};
-    ui64 loopStart{code.getLoopStart()};
+    u8 reg{nextReg};
+    u64 loopStart{code.getLoopStart()};
     if (node->label.type != TOK_EOF)
     {
         breakLabels->add(node->label.text, {});
         continueLabels->add(node->label.text, {});
     }
 
-    std::vector<ui64> breaks{};
+    std::vector<u64> breaks{};
     auto* prevBreaks{breakJumps};
     breakJumps = &breaks;
 
-    std::vector<ui64> continues{};
+    std::vector<u64> continues{};
     auto* prevContinues{continueJumps};
     continueJumps = &continues;
 
     compileExpr(node->condition);
-    ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
+    u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
     compileStmt(node->body);
 
     // Patch current scope "continue" jumps.
-    for (ui64 jump : continues)
+    for (u64 jump : continues)
         code.patchJump(jump);
 
     // Patch nested scope "continue" jumps.
@@ -503,7 +498,7 @@ DEF(WhileStmt)
     compileStmt(node->elseClause); // Will do nothing if elseClause == nullptr.
 
     // Patch current scope "break" jumps.
-    for (ui64 jump : breaks)
+    for (u64 jump : breaks)
         code.patchJump(jump);
 
     // Patch nested scope "break" jumps.
@@ -515,18 +510,18 @@ DEF(WhileStmt)
 
 void ASTCompiler::forLoopHelper(
     const ForStmt* node,
-    const ui8 varReg,
-    const ui8 iterReg
+    const u8 varReg,
+    const u8 iterReg
 )
 {
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
-    ui64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
+    u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
-    ui64 loopStart{code.getLoopStart()};
-    ui64 whereJump{0};
+    u64 loopStart{code.getLoopStart()};
+    u64 whereJump{0};
     if (node->where != nullptr)
     {
-        ui8 whereReg{nextReg};
+        u8 whereReg{nextReg};
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
@@ -537,25 +532,25 @@ void ASTCompiler::forLoopHelper(
     if (whereJump != 0)
         code.patchJump(whereJump);
     // Patch current scope "continue" jumps.
-    for (ui64 jump : *continueJumps)
+    for (u64 jump : *continueJumps)
         code.patchJump(jump);
 
     // Patch nested scope "continue" jumps.
     patchLoopLabelJumps(node->label, false);
 
     constexpr int UPDATE_ITER_OP_SIZE{5};
-    ui16 diff{static_cast<ui16>(code.codeSize() - loopStart
+    u16 diff{static_cast<u16>(code.codeSize() - loopStart
         + UPDATE_ITER_OP_SIZE)};
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
-        static_cast<ui8>((diff >> CHAR_BIT) & CODE_MAX),
-        static_cast<ui8>(diff & CODE_MAX)
+        static_cast<u8>((diff >> CHAR_BIT) & CODE_MAX),
+        static_cast<u8>(diff & CODE_MAX)
     );
 
     code.patchJump(failJump);
     compileStmt(node->elseClause); // Will do nothing if elseClause == nullptr.
 
     // Patch current scope "break" jumps.
-    for (ui64 jump : *breakJumps)
+    for (u64 jump : *breakJumps)
         code.patchJump(jump);
 
     // Patch nested scope "break" jumps.
@@ -571,19 +566,19 @@ DEF(ForStmt)
         continueLabels->add(node->label.text, {});
     }
 
-    std::vector<ui64> breaks{};
+    std::vector<u64> breaks{};
     auto* prevBreaks{breakJumps};
     breakJumps = &breaks;
 
-    std::vector<ui64> continues{};
+    std::vector<u64> continues{};
     auto* prevContinues{continueJumps};
     continueJumps = &continues;
 
-    ui8 varReg{nextReg};
-    defVar(std::string(node->var.text), varReg, accessFix); // For now.
+    u8 varReg{nextReg};
+    defVar(std::string{node->var.text}, varReg, accessFix); // For now.
     reserveReg();
 
-    ui8 iterReg{nextReg};
+    u8 iterReg{nextReg};
     compileExpr(node->iter);
 
     forLoopHelper(node, varReg, iterReg);
@@ -596,15 +591,15 @@ DEF(ForStmt)
 
 void ASTCompiler::matchCaseHelper(
     const MatchStmt::MatchCase& checkCase,
-    const ui8 matchReg,
-    ui64& fallJump,
-    ui64& emptyJump
+    const u8 matchReg,
+    u64& fallJump,
+    u64& emptyJump
 )
 {
-    ui8 caseReg{nextReg};
+    u8 caseReg{nextReg};
     compileExpr(checkCase.value);
     code.addOp(OP_EQUAL, caseReg, matchReg);
-    ui64 falseJump{code.addJump(OP_JUMP_FALSE, caseReg)};
+    u64 falseJump{code.addJump(OP_JUMP_FALSE, caseReg)};
     freeReg();
 
     if (fallJump != 0) // We skip condition checking during fallthrough.
@@ -635,15 +630,15 @@ void ASTCompiler::matchCaseHelper(
 
 DEF(MatchStmt)
 {
-    ui8 matchReg{nextReg};
+    u8 matchReg{nextReg};
     compileExpr(node->matchValue);
 
-    std::vector<ui64> jumps{};
+    std::vector<u64> jumps{};
     auto* prevEndJumps{endJumps};
     endJumps = &jumps;
 
-    ui64 fallJump{0}; // Invalid jump offset value.
-    ui64 emptyJump{0};
+    u64 fallJump{0}; // Invalid jump offset value.
+    u64 emptyJump{0};
 
     for (const auto& checkCase : node->cases)
     {
@@ -653,7 +648,7 @@ DEF(MatchStmt)
             compileStmt(checkCase.body); // No need for any jumps.
     }
 
-    for (ui64 jump : jumps)
+    for (u64 jump : jumps)
         code.patchJump(jump);
     freeReg(); // Remove the match value.
 
@@ -668,33 +663,33 @@ DEF(RepeatStmt)
         continueLabels->add(node->label.text, {});
     }
 
-    std::vector<ui64> breaks{};
+    std::vector<u64> breaks{};
     auto* prevBreaks{breakJumps};
     breakJumps = &breaks;
 
-    std::vector<ui64> continues{};
+    std::vector<u64> continues{};
     auto* prevContinues{continueJumps};
     continueJumps = &continues;
 
-    ui64 loopStart{code.getLoopStart()};
+    u64 loopStart{code.getLoopStart()};
     compileStmt(node->body);
 
     // Patch current scope "continue" jumps.
-    for (ui64 jump : continues)
+    for (u64 jump : continues)
         code.patchJump(jump);
     // Patch nested scope "continue" jumps.
     patchLoopLabelJumps(node->label, false);
 
-    ui8 reg{nextReg};
+    u8 reg{nextReg};
     compileExpr(node->condition);
-    ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
+    u64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
 
     code.addLoop(loopStart);
     code.patchJump(trueJump);
 
     // Patch current scope "break" jumps.
-    for (ui64 jump : breaks)
+    for (u64 jump : breaks)
         code.patchJump(jump);
 
     // Patch nested scope "break" jumps.
@@ -706,7 +701,7 @@ DEF(RepeatStmt)
 
 DEF(ReturnStmt)
 {
-    ui8 reg{nextReg};
+    u8 reg{nextReg};
     if (node->expr != nullptr)
         compileExpr(node->expr);
     else
@@ -754,7 +749,7 @@ DEF(ExprStmt)
 {
     if (node->expr == nullptr) return;
 
-    ui8 reg{nextReg};
+    u8 reg{nextReg};
     compileExpr(node->expr);
     if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
         code.addOp(OP_PRINT_VALID, reg);
@@ -773,12 +768,12 @@ DEF(TupleExpr)
 {
     constexpr int TUPLE_GROUP{5};
 
-    ui8 tupleReg{nextReg};
+    u8 tupleReg{nextReg};
     code.addOp(OP_TUPLE, tupleReg);
     reserveReg();
 
-    ui8 count{0};
-    ui8 startReg{nextReg};
+    u8 count{0};
+    u8 startReg{nextReg};
     auto emitTuple = [this, tupleReg, &count, startReg] {
         code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
         nextReg = startReg;
@@ -800,11 +795,11 @@ void ASTCompiler::compoundAssign(
     const VarInfo& info
 )
 {
-    ui8 varReg{nextReg};
+    u8 varReg{nextReg};
     addVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
-    ui8 valueReg{nextReg};
+    u8 valueReg{nextReg};
     compileExpr(node->value);
 
     Opcode op{};
@@ -848,7 +843,7 @@ DEF(AssignExpr)
         return;
     }
 
-    ui8 reg{nextReg};
+    u8 reg{nextReg};
     compileExpr(node->value);
     addVariableOp(setVar, info, info.slot, reg);
 }
@@ -857,18 +852,18 @@ DEF(LogicExpr)
 {
     if ((node->oper == TOK_AMP_AMP) || (node->oper == TOK_AND)) // &&, and
     {
-        ui8 reg{nextReg};
+        u8 reg{nextReg};
         compileExpr(node->left);
-        ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
+        u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
         nextReg = reg;
         compileExpr(node->right);
         code.patchJump(falseJump);
     }
     else if ((node->oper == TOK_BAR_BAR) || (node->oper == TOK_OR)) // ||, or
     {
-        ui8 reg{nextReg};
+        u8 reg{nextReg};
         compileExpr(node->left);
-        ui64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
+        u64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
         nextReg = reg;
         compileExpr(node->right);
         code.patchJump(trueJump);
@@ -877,10 +872,10 @@ DEF(LogicExpr)
 
 DEF(CompareExpr)
 {
-    ui8 firstOper{nextReg};
+    u8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{nextReg};
+    u8 secondOper{nextReg};
     compileExpr(node->right);
 
     Opcode op{};
@@ -914,10 +909,10 @@ DEF(CompareExpr)
 
 DEF(BitExpr)
 {
-    ui8 firstOper{nextReg};
+    u8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{nextReg};
+    u8 secondOper{nextReg};
     compileExpr(node->right);
 
     Opcode op{};
@@ -935,10 +930,10 @@ DEF(BitExpr)
 
 DEF(ShiftExpr)
 {
-    ui8 firstOper{nextReg};
+    u8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{nextReg};
+    u8 secondOper{nextReg};
     compileExpr(node->right);
 
     code.addOp(node->oper == TOK_RIGHT_SHIFT ?
@@ -948,10 +943,10 @@ DEF(ShiftExpr)
 
 DEF(BinaryExpr)
 {
-    ui8 firstOper{nextReg};
+    u8 firstOper{nextReg};
     compileExpr(node->left);
 
-    ui8 secondOper{nextReg};
+    u8 secondOper{nextReg};
     compileExpr(node->right);
 
     Opcode op{};
@@ -1010,7 +1005,7 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
 
     if (!node->prev)
     {
-        code.addOp(OP_MOVE_R, static_cast<ui8>(nextReg - 1),
+        code.addOp(OP_MOVE_R, static_cast<u8>(nextReg - 1),
             nextReg);
     }
 }
@@ -1023,7 +1018,7 @@ DEF(UnaryExpr)
         return;
     }
 
-    ui8 firstOper{nextReg};
+    u8 firstOper{nextReg};
     compileExpr(node->expr);
 
     Opcode op{};
@@ -1047,14 +1042,14 @@ DEF(CallExpr)
 {
     if (node->callee == nullptr) return;
 
-    ui8 location{};
+    u8 location{};
     if (node->builtin)
     {
         auto* var{static_cast<VarExpr*>(node->callee.get())};
         auto find{Natives::builtins.find(var->name.text)};
         if (find == Natives::builtins.end())
             REPORT_ERROR(BUILTIN_NOT_FOUND, var->name);
-        location = static_cast<ui8>(find->second);
+        location = static_cast<u8>(find->second);
         reserveReg(); // Reserve a register in place of the function object.
     }
     else
@@ -1063,11 +1058,11 @@ DEF(CallExpr)
         compileExpr(node->callee); // Will reserve a register.
     }
 
-    ui8 argsStart{nextReg};
+    u8 argsStart{nextReg};
     for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
-    ui8 size{static_cast<ui8>(node->args.size())};
+    u8 size{static_cast<u8>(node->args.size())};
     code.addOp((node->builtin ? OP_CALL_NAT : OP_CALL_DEF),
         location, argsStart, size);
 
@@ -1080,14 +1075,14 @@ DEF(CallExpr)
 
 DEF(IfExpr)
 {
-    ui8 reg{nextReg};
+    u8 reg{nextReg};
     compileExpr(node->condition);
-    ui64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
+    u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
 
-    ui8 current{nextReg};
+    u8 current{nextReg};
     compileExpr(node->trueExpr);
-    ui64 trueJump{code.addJump(OP_JUMP)};
+    u64 trueJump{code.addJump(OP_JUMP)};
     code.patchJump(falseJump);
 
     nextReg = current;
@@ -1107,44 +1102,44 @@ DEF(LambdaExpr)
 
 DEF(ComprehensionExpr)
 {
-    ui8 listReg{nextReg};
+    u8 listReg{nextReg};
     code.addOp(OP_LIST, listReg);
     reserveReg();
 
     pushScope();
-    ui8 varReg{nextReg};
+    u8 varReg{nextReg};
     defVar(std::string(node->var.text), varReg, accessFix); // For now.
     reserveReg();
 
-    ui8 iterReg{nextReg};
+    u8 iterReg{nextReg};
     compileExpr(node->iter);
 
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
-    ui64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
+    u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
-    ui64 loopStart{code.getLoopStart()};
-    ui64 whereJump{0};
+    u64 loopStart{code.getLoopStart()};
+    u64 whereJump{0};
     if (node->where != nullptr)
     {
-        ui8 whereReg{nextReg};
+        u8 whereReg{nextReg};
         compileExpr(node->where);
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
 
-    ui8 result{nextReg};
+    u8 result{nextReg};
     compileExpr(node->expr);
-    code.addOp(OP_EXT_LIST, listReg, result, ui8(1));
+    code.addOp(OP_EXT_LIST, listReg, result, u8(1));
 
     if (whereJump != 0)
         code.patchJump(whereJump);
 
     constexpr int UPDATE_ITER_OP_SIZE{5};
-    ui16 diff{static_cast<ui16>(code.codeSize() - loopStart
+    u16 diff{static_cast<u16>(code.codeSize() - loopStart
         + UPDATE_ITER_OP_SIZE)};
     code.addOp(OP_UPDATE_ITER, varReg, iterReg,
-        static_cast<ui8>((diff >> CHAR_BIT) & CODE_MAX),
-        static_cast<ui8>(diff & CODE_MAX)
+        static_cast<u8>((diff >> CHAR_BIT) & CODE_MAX),
+        static_cast<u8>(diff & CODE_MAX)
     );
 
     code.patchJump(failJump);
@@ -1153,12 +1148,12 @@ DEF(ComprehensionExpr)
 
 DEF(ListExpr)
 {
-    ui8 listReg{nextReg};
+    u8 listReg{nextReg};
     code.addOp(OP_LIST, listReg);
     reserveReg();
 
-    ui8 count{0};
-    ui8 startReg{nextReg};
+    u8 count{0};
+    u8 startReg{nextReg};
     auto emitList = [this, listReg, &count, startReg] {
         code.addOp(OP_EXT_LIST, listReg, startReg, count);
         nextReg = startReg;
@@ -1190,7 +1185,7 @@ DEF(ReferenceExpr)
     // a reference here is with the intention of modifying the variable.
     // Since this cannot be determined with certainty, stick to a warning.
 
-    code.addOp(OP_MAKE_REF, nextReg, static_cast<ui8>(info.type),
+    code.addOp(OP_MAKE_REF, nextReg, static_cast<u8>(info.type),
         info.slot);
     reserveReg();
 }
@@ -1232,12 +1227,12 @@ DEF(StringPartExpr)
 
 DEF(FormatExpr)
 {
-    ui8 partsBegin{nextReg};
+    u8 partsBegin{nextReg};
     for (const ExprUP& part : node->parts)
         compileExpr(part);
 
     code.addOp(OP_FORMAT_STR, partsBegin,
-        static_cast<ui8>(node->parts.size()));
+        static_cast<u8>(node->parts.size()));
 
     // Free all registers except first one (containing the
     // final string).

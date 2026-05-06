@@ -6,7 +6,7 @@ Token::Token(
     TokenType type,
     std::string_view text,
     Value content,
-    ui64 offset
+    u64 offset
 ) :
     text{text}, content{content}, byteOffset{offset}, type{type} {}
 
