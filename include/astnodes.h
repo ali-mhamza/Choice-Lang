@@ -1,6 +1,6 @@
 #pragma once
 #include "token.h"
-#include <memory>   // For std::unique_ptr.
+#include <memory>
 #include <vector>
 
 namespace AST

@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"		// For u8 in enum defintion.
+#include "common.h"
 #include <array>
 #include <string_view>
 

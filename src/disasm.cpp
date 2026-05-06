@@ -1,8 +1,8 @@
 #include "../include/disasm.h"
 #include "../include/bytecode.h"
-#include "../include/common.h"	// For CH_PRINT macro and 'file' global variable.
-#include "../include/config.h"	// For DIS_FUNCTION_OBJS constant.
-#include "../include/natives.h"	// For funcNames in callOp() method.
+#include "../include/common.h"
+#include "../include/config.h"
+#include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include <string_view>

@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"         // For u8 in NativeFunc type alias.
+#include "common.h"
 #include "token.h"
 #include <array>
 #include <string_view>

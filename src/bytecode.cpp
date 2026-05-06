@@ -1,14 +1,14 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
-#include "../include/object.h"		// For Object and object structs.
+#include "../include/object.h"
 #include "../include/opcodes.h"
-#include <cmath>					// For fmod() in loadRegConst() method.
-#include <cstring>					// For strlen() in countPool() method.
-#include <fstream>					// For ifstream in cacheStream() method.
-#include <ios>						// For std::streamsize.
-#include <limits>					// For std::numeric_limits.
-#include <utility>					// For std::move.
+#include <cmath>
+#include <cstring>
+#include <fstream>
+#include <ios>
+#include <limits>
+#include <utility>
 
 ByteCode::ByteCode(const vByte& block) :
 	block(block) {}

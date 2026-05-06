@@ -5,7 +5,7 @@
 #include "bytecode.h"
 #include "diagnostic.h"
 #include "vartable.h"
-#include <memory>       // For std::unique_ptr.
+#include <memory>
 #include <stack>
 #include <string>
 #include <string_view>

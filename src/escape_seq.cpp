@@ -2,7 +2,7 @@
 #include "../include/common.h"
 #include "../include/utils.h"
 #include <array>
-#include <limits> // For std::numeric_limits().
+#include <limits>
 #include <string>
 
 // Set to 1 if missing arguments for \b, \o,

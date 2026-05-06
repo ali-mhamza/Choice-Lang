@@ -7,11 +7,11 @@
 #include "../include/error.h"
 #include "../include/token.h"
 #include "../include/utils.h"
-#include <cctype>				// For isdigit, isalpha, is alnum.
-#include <cstring>				// For strchr.
+#include <cctype>
+#include <cstring>
 #include <string>
 #include <string_view>
-#include <unordered_map>		// For keywords map.
+#include <unordered_map>
 
 #undef EOF
 #define EOF static_cast<char>(-1)

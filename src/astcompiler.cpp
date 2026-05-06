@@ -10,7 +10,7 @@
 #include "../include/opcodes.h"
 #include "../include/token.h"
 #include "../include/utils.h"
-#include <climits> // For CHAR_BIT.
+#include <climits>
 #include <string_view>
 #include <utility>
 #include <vector>

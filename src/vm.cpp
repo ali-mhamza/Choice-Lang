@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdint> // For INT64_MIN.
+#include <cstdint>
 #include <cstring>
 #include <string>
-#include <utility> // For std::move.
+#include <utility>
 
 #if COPY_INLINE
     #define COPY(a, b) copyObject((a), (b))

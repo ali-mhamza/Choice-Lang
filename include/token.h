@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"		// For fixed-size integer types.
+#include "common.h"
 #include <string_view>
 
 enum TokenType : u8

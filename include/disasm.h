@@ -1,6 +1,6 @@
 #pragma once
 #include "bytecode.h"
-#include "common.h"     // For vBit, fixed-size integer types.
+#include "common.h"
 #include "object.h"
 #include <string_view>
 

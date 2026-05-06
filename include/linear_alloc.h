@@ -1,13 +1,13 @@
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 
 #pragma once
-#include "array.h"      // For allocs field.
+#include "array.h"
 
-#include "common.h"     // For CH_ASSERT_MEM macro.
-#include "gen_alloc.h"  // For multiple macros, helpers.
-#include <cstddef>      // For size_t.
-#include <type_traits>  // For std::is_trivially_destructible in alloc() method.
-#include <utility>      // For std::forward in alloc() method.
+#include "common.h"
+#include "gen_alloc.h"
+#include <cstddef>
+#include <type_traits>
+#include <utility>
 
 class LinearAlloc
 {

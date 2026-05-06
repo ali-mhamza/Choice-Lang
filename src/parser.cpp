@@ -5,7 +5,7 @@
 #include "../include/token.h"
 #include <memory>
 #include <string_view>
-#include <utility> // For std::move.
+#include <utility>
 #include <vector>
 
 using namespace AST::Statement;

@@ -19,8 +19,8 @@
 	#include "replxx.hxx"
 #endif
 
-#include <cstdio>			// For stderr in multiple functions.
-#include <cstdlib>			// For exit().
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>

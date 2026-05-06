@@ -1,14 +1,14 @@
 #pragma once
-#include "array.h"          // For Array in multiple object structs.
-#include "linearTable.h"    // For Table object struct.
+#include "array.h"
+#include "linearTable.h"
 
-#include "bytecode.h"       // For Function object struct.
-#include "common.h"         // For fixed-size integer types, macros, etc.
-#include "natives.h"        // For Natives::FuncType.
-#include <array>            // For Range object struct.
+#include "bytecode.h"
+#include "common.h"
+#include "natives.h"
+#include <array>
 #include <string>
 #include <string_view>
-#include <variant>          // For ObjIter.
+#include <variant>
 
 using Natives::FuncType;
 

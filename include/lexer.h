@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"     // For vT, fixed-size integer types.
+#include "common.h"
 #include "diagnostic.h"
 #include "token.h"
 #include <string>

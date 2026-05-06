@@ -1,7 +1,7 @@
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/token.h"
-#include <utility> // For std::move.
+#include <utility>
 #include <vector>
 
 using namespace AST::Statement;

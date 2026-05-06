@@ -1,5 +1,5 @@
 #include "../include/utils.h"
-#include <cstddef> // For size_t.
+#include <cstddef>
 #include <string_view>
 #include <vector>
 
@@ -9,7 +9,7 @@
 bool ends_with(std::string_view str, std::string_view suffix)
 {
     return (str.size() >= suffix.size()
-			&& (str.compare(str.size() - suffix.size(), 
+			&& (str.compare(str.size() - suffix.size(),
 			suffix.size(), suffix) == 0));
 }
 
@@ -35,5 +35,5 @@ std::vector<std::string> split(std::string_view str, std::string_view delim)
     }
     if (start != str.size())
         result.emplace_back(str.data() + start, str.size() - start);
-    return result;      
+    return result;
 }

@@ -6,24 +6,24 @@
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include "../include/tokprinter.h"
-#include "../include/utils.h"			// For helper functions.
+#include "../include/utils.h"
 #include "../include/vm.h"
 #include <algorithm>
 #include <array>
-#include <cctype>						// For isspace().
-#include <climits>						// For CHAR_BIT.
-#include <cstdio>						// For stderr.
-#include <cstdlib>						// For exit().
+#include <cctype>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <sstream>						// For stringstream in readFile() helper function.
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #if defined(DEBUG)
-	#include <ios>		// For std::streamsize.
-	#include <limits>	// For std::numeric_limits.
+	#include <ios>
+	#include <limits>
 #endif
 
 static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");

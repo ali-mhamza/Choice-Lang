@@ -1,9 +1,9 @@
 #if CH_USE_ALLOC
 
 #pragma once
-#include <cstddef>      // For size_t, uintptr_t.
-#include <cstdint>      // For uint8_t in AS_BYTES macro.
-#include <functional>   // For std::function in AllocPair.
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 
 #define KiB(n)  ((n) * (1 << 10))
 #define MiB(n)  ((n) * (1 << 20))

@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"     // For fixed-size integer types, size_t.
+#include "common.h"
 #include "object.h"
 #include "opcodes.h"
 #include <vector>

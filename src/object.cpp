@@ -5,9 +5,9 @@
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include <array>
-#include <climits>  // For CHAR_BIT, SIZE_MAX.
-#include <cstddef>  // For size_t.
-#include <cstdio>   // For stderr.
+#include <climits>
+#include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <ios>
