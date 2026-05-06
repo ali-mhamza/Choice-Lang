@@ -283,7 +283,11 @@ void Natives::quit(Natives::iter it, u8 args, const Token& error)
     if ((args == 1) && !IS_INT(it[0]))
         throw RuntimeError(error, "Argument must be an integer.");
 
-    u8 exitCode = ((args == 0) ? 0 : (AS_INT(it[0]) & 0xff));
+    i64 code{AS_INT(it[0])};
+    if (code < 0)
+        throw RuntimeError(error, "Argument cannot be negative.");
+
+    u8 exitCode{static_cast<u8>((args == 0) ? 0 : (code & 0xff))};
     exit(exitCode);
     // No return value.
 }
