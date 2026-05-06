@@ -1,6 +1,9 @@
+#include "fast_float.h"
 #include "../include/diagnostic.h"
 #include "../include/common.h"
+#include "../include/utils.h"
 #include "../include/token.h"
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <string>
@@ -13,14 +16,11 @@ static constexpr sv YELLOW{"\033[33m"};
 static constexpr sv BOLD{"\033[1m"};
 static constexpr sv NORMAL{"\033[0m"};
 
-static constexpr std::array<DiagCode, NUM_FAMILIES> families{
-    CONST_REF_CODES, UNUSED_CODES, CONTROL_FLOW_CODES,
-    ASSIGN_CODES, CALL_CODES, VALUE_CODES, TYPE_CODES,
-    VARIABLE_CODES, SYNTAX_CODES
+static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
+    INVALID_UTF_CODEPOINT, PARAM_ALREADY_DEFINED, RANGE_ONLY_INTS,
+    HIT_SHIFT_MAX, HIT_ARGS_MAX, MOD_CONST_VARIABLE,
+    IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE, REF_TO_CONST_VAR
 };
-
-// Temporarily.
-using DiagnosticEntry = sv;
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Type Error",
@@ -28,11 +28,11 @@ static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Control-flow Error", "Unused Warning", "Reference Warning"
 };
 
+// Temporarily.
+using DiagnosticEntry = sv;
+
 static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     // Syntax errors.
-    "",
-
-    "General error.",
 
     "Unterminated comment.", "Invalid use of digit separator.",
     "Failed to parse numeric literal.", "Invalid character for numeric literal.",
@@ -47,7 +47,6 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Codepoint value outside valid UTF-8 range.",
 
     // Variable errors.
-    "",
 
     "Undefined variable.", "Undefined function called.",
     "Variable already defined in current scope.",
@@ -55,7 +54,6 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Parameter with the same name already in use.",
 
     // Type errors.
-    "",
 
     "Failed to apply binary operator.", "Failed to apply unary operator.",
     "Object is not iterable.",
@@ -63,12 +61,10 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Wrong argument type.", "Can only construct range object from integers.",
 
     // Value errors.
-    "",
 
     "Division by zero.", "Modulus with base zero.", "Shift value too large.",
 
     // Call errors.
-    "",
 
     "Object is not callable.", "No built-in found with given name.",
     "Function has no overload for given number of arguments.",
@@ -76,7 +72,6 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Too many arguments in function call.",
 
     // Assign errors.
-    "",
 
     "Invalid assignment target.",
     "Invalid increment/decrement target.",
@@ -84,7 +79,6 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Cannot modify a fixed-value variable.",
 
     // Control-flow errors.
-    "",
 
     "Loop label is not assigned to any active loop.",
     "Cannot use 'fallthrough' outside a match-is structure.",
@@ -96,12 +90,10 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "A conditional expression must have a false-case branch.",
 
     // Unused warnings.
-    "",
 
     "Unused variable.", "Expression result not used.", "Unreachable code segment.",
 
     // Constant reference warning.
-    "",
 
     "Reference created to fixed-value variable."
 };
@@ -214,15 +206,20 @@ std::tuple<ui64, ui64, sv> SourceManager::getLineColumn(
 //     return std::make_pair(start, end - start);
 // }
 
-DiagFamily Diagnostic::getDiagCodeFamily() const
+DiagFamily Diagnostic::getDiagCodeFamily(DiagCode code)
 {
     for (ui8 i{0}; i < NUM_FAMILIES; i++)
     {
-        if (code > families[i])
-            return static_cast<DiagFamily>(NUM_FAMILIES - i - 1);
+        if (code <= familyMarkers[i])
+            return static_cast<DiagFamily>(i);
     }
 
     CH_UNREACHABLE();
+}
+
+DiagFamily Diagnostic::getDiagCodeFamily() const
+{
+    return getDiagCodeFamily(this->code);
 }
 
 void Diagnostic::displayReportTitle() const
@@ -233,13 +230,13 @@ void Diagnostic::displayReportTitle() const
     if (isError)
     {
         CH_PRINT(stderr, "{}{} [E{:0>4}]{}: ", RED, familyTitles[family],
-            static_cast<ui8>(code - family), NORMAL);
+            static_cast<ui8>(code) + 1, NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
     else
     {
         CH_PRINT(stderr, "{}{} [W{:0>4}]{}: ", YELLOW, familyTitles[family],
-            static_cast<ui8>(code - family), NORMAL);
+            static_cast<ui8>(code) + 1, NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
 }
@@ -300,6 +297,43 @@ void Diagnostic::report() const
 
 DiagnosticEngine::DiagnosticEngine(SourceManager* manager) :
     manager{manager} {}
+
+void DiagnosticEngine::explain(sv errorCode)
+{
+    #define IS_VALID_CODE(code) (((code) >= 0) && ((code) < NUM_CODES))
+
+    constexpr ui64 codeLength{5};
+    constexpr ui8 warningStart{static_cast<ui8>(UNUSED_VARIABLE)};
+    bool isError{starts_with(errorCode, "E")};
+    bool isWarning{starts_with(errorCode, "W")};
+
+    if ((!isError && !isWarning) || (errorCode.size() != 5))
+    {
+        CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
+        return;
+    }
+
+    ui8 explainCode{};
+    auto result{fast_float::from_chars(errorCode.data() + 1,
+        errorCode.data() + codeLength, explainCode)};
+
+    // Codes start from 1, but the enum starts from 0.
+    explainCode--;
+    if (isWarning) explainCode += warningStart;
+
+    if (!result || !IS_VALID_CODE(explainCode))
+    {
+        CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
+        return;
+    }
+
+    DiagFamily family{
+        Diagnostic::getDiagCodeFamily(static_cast<DiagCode>(explainCode))
+    };
+    CH_PRINT("Code: {}.\n", errorCode);
+    CH_PRINT("Message: {}\n", reportData[explainCode]);
+    CH_PRINT("Category: {}.\n", familyTitles[family]);
+}
 
 void DiagnosticEngine::recordError(
     FileID id,

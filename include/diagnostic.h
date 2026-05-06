@@ -59,11 +59,6 @@ enum DiagCode : ui8
 {
     /* Syntax Errors */
 
-    SYNTAX_CODES,
-
-    // Temporary.
-    GENERAL_ERROR,
-
     // Single-line or multi-line comment not terminated.
     UNTERMINATED_COMMENT,
     // Invalid use of digit separator in numeric literal.
@@ -107,8 +102,6 @@ enum DiagCode : ui8
 
     /* Variable errors. */
 
-    VARIABLE_CODES,
-
     // Variable is not defined.
     VAR_NOT_DEFINED,
     // Function is not defined. Not used when function is
@@ -123,8 +116,6 @@ enum DiagCode : ui8
 
 
     /* Type errors. */
-
-    TYPE_CODES,
 
     // Could not apply binary operator to given operands.
     BINARY_OP_FAIL,
@@ -146,8 +137,6 @@ enum DiagCode : ui8
 
     /* Value errors. */
 
-    VALUE_CODES,
-
     // Attempt to divide by zero.
     DIVISION_BY_ZERO,
     // Attempt to apply the modulus operator with base zero.
@@ -157,8 +146,6 @@ enum DiagCode : ui8
 
 
     /* Call errors. */
-
-    CALL_CODES,
 
     // Attempt to call an object that is not callable.
     OBJECT_NOT_CALLABLE,
@@ -178,8 +165,6 @@ enum DiagCode : ui8
 
     /* Assignment errors. */
 
-    ASSIGN_CODES,
-
     // LHS is not a variable or valid assignment target.
     // Also applies to compound-assignment operators.
     INVALID_ASSIGN_TARGET,
@@ -192,8 +177,6 @@ enum DiagCode : ui8
 
 
     /* Control-flow errors. */
-
-    CONTROL_FLOW_CODES,
 
     // Break/continue label is to assigned to any active loop.
     INVALID_LOOP_LABEL,
@@ -215,8 +198,6 @@ enum DiagCode : ui8
 
     /* Unused variable/object warnings. */
 
-    UNUSED_CODES,
-
     // Variable is declared in current (local) scope, but never used.
     UNUSED_VARIABLE,
     // Expression (other than function call) is computed, but it has
@@ -227,8 +208,6 @@ enum DiagCode : ui8
 
 
     /* Constant reference warnings. */
-
-    CONST_REF_CODES,
 
     // Reference is created in a function call to an immutable variable.
     // References cannot be constant (and only shallow copies are
@@ -256,6 +235,7 @@ struct Diagnostic
     // getDiagCodeSection() helps to identify the opcode integer
     // equivalent.
 
+    static DiagFamily getDiagCodeFamily(DiagCode code);
     DiagFamily getDiagCodeFamily() const;
     void displayReportTitle() const;
     // void displayNoteHelp(
@@ -276,6 +256,8 @@ class DiagnosticEngine
     public:
         DiagnosticEngine(SourceManager* manager);
         inline bool hasReports() const { return !reports.empty(); }
+        void explain(sv errorCode);
+
         // Primitive error-reporting helper.
         void recordError(
             FileID id,
@@ -284,6 +266,7 @@ class DiagnosticEngine
             ui64 length,
             const std::string& label
         );
+
         // Direct version for lexer.
         void recordError(
             FileID id,
@@ -291,6 +274,7 @@ class DiagnosticEngine
             ui64 byteOffset,
             const std::string& label
         );
+
         // Direct version for parser & compiler.
         void recordError(
             FileID id,
@@ -298,6 +282,7 @@ class DiagnosticEngine
             const Token& token,
             const std::string& label
         );
+
         void emitReports();
         // void recordWarning();
 };

@@ -75,6 +75,9 @@ enum ArgvOption : ui8
 	// the bytecode held in it.
 	DIS_PROGRAM,
 
+	// Explain a particular error code.
+	EXPLAIN_ERROR,
+
 	// Entire execution pipeline.
 	// Scan, compile, and execute given program
 	// or REPL input.
@@ -86,7 +89,8 @@ static const std::unordered_map<std::string_view, ArgvOption> options{
 	{"-bytecode", EMIT_BYTECODE},	{"-b", EMIT_BYTECODE},
 	{"-cache", CACHE_BYTECODE},		{"-c", CACHE_BYTECODE},
 	{"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
-	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM}
+	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM},
+	{"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
 };
 
 static inline vT& runLexer(FileID id, const std::string_view source)
@@ -366,7 +370,12 @@ int main(int argc, const char* argv[])
 	{
 		auto it{options.find(argv[1])};
 		if (it != options.end())
-			runFile(argv[2], it->second);
+		{
+		    if (it->second == EXPLAIN_ERROR)
+				diagEngine.explain(argv[2]);
+    		else
+    		    runFile(argv[2], it->second);
+		}
 		else
 		{
 			CH_PRINT(stderr, "Invalid command-line option.\n");
