@@ -92,20 +92,21 @@ class ASTCompiler
         void removeVar(const std::string& name, u8 reg);
 
         // Check if variable at register `reg` is mutable.
-        bool getAccess(u8 reg) const;
+        [[nodiscard]] bool getAccess(u8 reg) const;
 
         // Check if variable is already defined in local scope
         // (for declaration compiling helpers).
-        LocalInfo getScopeLocal(const Token& token) const;
+        [[nodiscard]] LocalInfo getScopeLocal(const Token& token) const;
 
         // Properly resolve a variable, recursively capturing
         // cells from enclosing scopes if needed.
-        VarInfo resolveVariable(const Token& token);
+        [[nodiscard]] VarInfo resolveVariable(const Token& token);
 
         // Capture a variable from the enclosing scope.
         // Returns the cell index for the new capture, if a capture is made.
         // Otherwise returns the variable's already-used cell index, or its
         // register slot if it should not be captured.
+        [[nodiscard]]
         u8 captureVariable(const Token& token, const VarInfo& info);
 
         /* Variable scoping. */
@@ -125,7 +126,7 @@ class ASTCompiler
         void patchLoopLabelJumps(const Token& label, bool patchBreaks);
 
         // `offset` - Number of characters to subtract from the size.
-        std::string parseStringToken(
+        [[nodiscard]] std::string parseStringToken(
             const Token& token,
             size_t start,
             size_t offset
@@ -225,5 +226,5 @@ class ASTCompiler
         ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp = nullptr);
         ~ASTCompiler();
 
-        Function* compile(FileID id, const StmtVec& program);
+        [[nodiscard]] Function* compile(FileID id, const StmtVec& program);
 };

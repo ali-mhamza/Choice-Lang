@@ -213,7 +213,7 @@ bool Object::in(const Object& other) const
     }
 }
 
-static std::string doubleToStr(double d)
+[[nodiscard]] static std::string doubleToStr(double d)
 {
     auto output{CH_STR("{:.6f}", d)};
 
@@ -319,7 +319,7 @@ Function::Function(const ByteCode& code, const u8 argCount) :
     name{nullptr}, code{code}, argCount{argCount}, lambda{true} {}
 
 // strdup is not a standard C++ function, but is instead from POSIX.
-static char* choiceStrdup(const char* str)
+[[nodiscard]] static char* choiceStrdup(const char* str)
 {
     auto size{strlen(str) + 1};
     char* ret{new char[size]};

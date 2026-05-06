@@ -30,9 +30,12 @@ class SourceManager
 
     public:
         SourceManager() = default;
+        [[nodiscard]]
         FileID addFile(const std::string& name, const std::string& content);
         void setFileContent(FileID id, const std::string& content);
+        [[nodiscard]]
         const std::string& getFile(FileID id) { return sourceData[id].fileName; }
+        [[nodiscard]]
         std::tuple<u64, u64, sv> getLineColumn(FileID id, u64 offset);
 };
 
@@ -236,8 +239,8 @@ struct Diagnostic
     // getDiagCodeSection() helps to identify the opcode integer
     // equivalent.
 
-    static DiagFamily getDiagCodeFamily(DiagCode code);
-    DiagFamily getDiagCodeFamily() const;
+    [[nodiscard]] static DiagFamily getDiagCodeFamily(DiagCode code);
+    [[nodiscard]] DiagFamily getDiagCodeFamily() const;
     void displayReportTitle() const;
     // void displayNoteHelp(
     //     const sv& lineStr,
@@ -258,6 +261,7 @@ class DiagnosticEngine
 
     public:
         DiagnosticEngine(SourceManager* manager);
+        [[nodiscard]]
         inline bool hasReports() const { return !reports.empty(); }
         void explain(sv code);
 

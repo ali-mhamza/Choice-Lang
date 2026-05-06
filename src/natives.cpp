@@ -85,6 +85,7 @@ void Natives::println(Natives::iter it, u8 args, const Token& error)
 
 #if !defined(CH_USE_FMT_LIB)
     // Work in progress.
+    [[nodiscard]]
     static std::string defaultFormat(Natives::iter it, u8 args,
         const Token& error)
     {

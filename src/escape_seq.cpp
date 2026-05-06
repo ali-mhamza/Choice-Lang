@@ -35,6 +35,7 @@ struct NumParseRules
     u8 (*convert)(char);
 };
 
+[[nodiscard]]
 static inline u32 strToHex(const svIter it, int count)
 {
 	constexpr u32 hexShift{4};
@@ -130,7 +131,7 @@ bool parseCharSequence(
     return true;
 }
 
-static bool checkParseArgs(
+[[nodiscard]] static bool checkParseArgs(
     const svIter it,
     const svIter end,
     const NumParseRules& rules,
@@ -153,7 +154,7 @@ static bool checkParseArgs(
     return true;
 }
 
-static u32 parseEscapeString(
+[[nodiscard]] static u32 parseEscapeString(
     svIter& it,
     const svIter end,
     const NumParseRules& rules

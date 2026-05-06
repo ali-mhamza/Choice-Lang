@@ -29,36 +29,37 @@ class Lexer
         // Prepares our lexer state.
         void setUp(FileID id, const std::string_view& code);
         // Check if we've reached the end.
-        bool hitEnd() const;
+        [[nodiscard]] bool hitEnd() const;
         // Move to next character.
         char advance();
         // Check next character.
-        bool checkChar(char c) const;
+        [[nodiscard]] bool checkChar(char c) const;
         // Only advance if char matches.
-        bool consumeChar(char c);
+        [[nodiscard]] bool consumeChar(char c);
         void consumeChars(size_t count = 1);
-        char peekChar(size_t distance = 0) const;
-        char previousChar(size_t distance = 0) const;
+        [[nodiscard]] char peekChar(size_t distance = 0) const;
+        [[nodiscard]] char previousChar(size_t distance = 0) const;
 
         TokenType identifierType();
-        bool matchSequence(char c, int length) const;
+        [[nodiscard]] bool matchSequence(char c, int length) const;
 
         // For nested comments with ###.
         // Returns true if nested comment was hit, false otherwise.
-        bool checkHyperComment();
-        bool checkRawString(char start);
-        bool checkNumericLiteral(char start);
+        [[nodiscard]] bool checkHyperComment();
+        [[nodiscard]] bool checkRawString(char start);
+        [[nodiscard]] bool checkNumericLiteral(char start);
 
         void reportError(DiagCode code, u64 offset, std::string_view message = "");
 
         /* Value conversion methods. */
 
         // `dec` - True if parsing a floating-point value; false otherwise.
+        [[nodiscard]]
         std::string& formatNumber(const std::string_view text, bool dec);
 
-        i64 intValue(std::string_view text);
-        double decValue(std::string_view text);
-        bool boolValue(TokenType type) const;
+        [[nodiscard]] i64 intValue(std::string_view text);
+        [[nodiscard]] double decValue(std::string_view text);
+        [[nodiscard]] bool boolValue(TokenType type) const;
 
         /* Token makers. */
 
@@ -71,7 +72,7 @@ class Lexer
         void multiLineStringToken(bool raw);
         // Consumes a single %(...) parameter.
         // Returns false on error; true otherwise.
-        bool formatParam();
+        [[nodiscard]] bool formatParam();
         // `endDelim` - " for regular strings, ` for multi-line strings.
         void formatStringToken(char endDelim);
         void identifierToken();

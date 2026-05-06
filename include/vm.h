@@ -67,26 +67,26 @@ class VM
 
         // Utilities.
 
-        u8 readByte();
-        u16 readShort();
-        u32 readLong();
+        [[nodiscard]] u8 readByte();
+        [[nodiscard]] u16 readShort();
+        [[nodiscard]] u32 readLong();
 
-        bool isTruthy(const Object& obj);
-        Cell* captureValue(u8 slot);
+        [[nodiscard]] bool isTruthy(const Object& obj);
+        [[nodiscard]] Cell* captureValue(u8 slot);
         void closeCells(Object* limit);
         #if COPY_INLINE
             void copyObject(Object& dest, const Object& src);
         #endif
 
-        Object concatStrings(const Object& str1, const Object& str2);
-        Object makeRange(const Object& start, const Object& stop);
-        Object makeReference();
+        [[nodiscard]] Object concatStrings(const Object& str1, const Object& str2);
+        [[nodiscard]] Object makeRange(const Object& start, const Object& stop);
+        [[nodiscard]] Object makeReference();
 
-        Object loadOper();
-        Object arithOper(Opcode op, u8 firstOper);
-        Object compareOper(Opcode op, u8 firstOper);
-        Object bitOper(Opcode op, u8 firstOper);
-        Object unaryOper(Opcode op, u8 oper);
+        [[nodiscard]] Object loadOper();
+        [[nodiscard]] Object arithOper(Opcode op, u8 firstOper);
+        [[nodiscard]] Object compareOper(Opcode op, u8 firstOper);
+        [[nodiscard]] Object bitOper(Opcode op, u8 firstOper);
+        [[nodiscard]] Object unaryOper(Opcode op, u8 oper);
 
         void callFunc(const Object& callee, u8 start, u8 argCount);
         void callNative(const Object& callee, u8 start, u8 argCount);

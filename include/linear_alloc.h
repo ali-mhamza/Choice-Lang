@@ -31,10 +31,10 @@ class LinearAlloc
 
         template<typename ObjT, typename Dealloc = DefaultDealloc,
         typename... Args>
-        ObjT* alloc(Args&&... args) noexcept;
+        [[nodiscard]] ObjT* alloc(Args&&... args) noexcept;
 
         #if defined(DEBUG)
-            size_t allocatedMemory();
+            [[nodiscard]] size_t allocatedMemory();
         #endif
 };
 

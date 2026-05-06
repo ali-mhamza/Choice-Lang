@@ -20,12 +20,12 @@ class Parser
         // Utilities.
 
         void nextTok();
-        bool checkTok(TokenType type) const;
+        [[nodiscard]] bool checkTok(TokenType type) const;
         bool consumeTok(TokenType type);
         template<typename... Type>
-        bool consumeToks(Type... toks);
-        bool matchError(TokenType type, std::string_view message);
-        bool consumeType();
+        [[nodiscard]] bool consumeToks(Type... toks);
+        [[nodiscard]] bool matchError(TokenType type, std::string_view message);
+        [[nodiscard]] bool consumeType();
         void matchType(std::string_view message = "");
         // Bring the compiler back to a proper state.
         void reset();
@@ -44,63 +44,63 @@ class Parser
 
         // Declarations.
 
-        StmtUP declaration();
-        StmtUP varDecl();
+        [[nodiscard]] StmtUP declaration();
+        [[nodiscard]] StmtUP varDecl();
         // skipParams: Since || is scanned as a single token, we use
         // this to indicate that the parser should assume no parameters.
-        StmtUP funcBodyHelper(
+        [[nodiscard]] StmtUP funcBodyHelper(
             bool lambda,
             vT& params,
             bool skipParams = false
         );
-        StmtUP funDecl();
-        StmtUP classDecl();
+        [[nodiscard]] StmtUP funDecl();
+        [[nodiscard]] StmtUP classDecl();
 
         // Statements.
 
-        StmtUP statement();
-        StmtUP ifStmt();
-        StmtUP whileStmt();
-        StmtUP forStmt();
-        StmtUP matchStmt();
-        StmtUP repeatStmt();
-        StmtUP returnStmt();
-        StmtUP breakStmt();
-        StmtUP continueStmt();
-        StmtUP blockStmt();
-        StmtUP exprStmt();
+        [[nodiscard]] StmtUP statement();
+        [[nodiscard]] StmtUP ifStmt();
+        [[nodiscard]] StmtUP whileStmt();
+        [[nodiscard]] StmtUP forStmt();
+        [[nodiscard]] StmtUP matchStmt();
+        [[nodiscard]] StmtUP repeatStmt();
+        [[nodiscard]] StmtUP returnStmt();
+        [[nodiscard]] StmtUP breakStmt();
+        [[nodiscard]] StmtUP continueStmt();
+        [[nodiscard]] StmtUP blockStmt();
+        [[nodiscard]] StmtUP exprStmt();
 
         // Expressions.
 
-        ExprUP tuple();
-        ExprUP expression();
-        ExprUP assignment();
-        ExprUP range();
-        ExprUP logicOr();
-        ExprUP logicAnd();
-        ExprUP equality();
-        ExprUP comparison();
-        ExprUP bitOr();
-        ExprUP bitXor();
-        ExprUP bitAnd();
-        ExprUP shift();
-        ExprUP sum();
-        ExprUP product();
-        ExprUP unary();
-        ExprUP exponent();
-        ExprUP call();
-        ExprUP post(); // Post-increment/decrement.
-        ExprUP ifExpr();
-        ExprUP lambda(bool skipParams);
-        ExprUP comprehension();
-        ExprUP list();
-        ExprUP formatString();
-        ExprUP primary();
+        [[nodiscard]] ExprUP tuple();
+        [[nodiscard]] ExprUP expression();
+        [[nodiscard]] ExprUP assignment();
+        [[nodiscard]] ExprUP range();
+        [[nodiscard]] ExprUP logicOr();
+        [[nodiscard]] ExprUP logicAnd();
+        [[nodiscard]] ExprUP equality();
+        [[nodiscard]] ExprUP comparison();
+        [[nodiscard]] ExprUP bitOr();
+        [[nodiscard]] ExprUP bitXor();
+        [[nodiscard]] ExprUP bitAnd();
+        [[nodiscard]] ExprUP shift();
+        [[nodiscard]] ExprUP sum();
+        [[nodiscard]] ExprUP product();
+        [[nodiscard]] ExprUP unary();
+        [[nodiscard]] ExprUP exponent();
+        [[nodiscard]] ExprUP call();
+        [[nodiscard]] ExprUP post(); // Post-increment/decrement.
+        [[nodiscard]] ExprUP ifExpr();
+        [[nodiscard]] ExprUP lambda(bool skipParams);
+        [[nodiscard]] ExprUP comprehension();
+        [[nodiscard]] ExprUP list();
+        [[nodiscard]] ExprUP formatString();
+        [[nodiscard]] ExprUP primary();
 
     public:
         bool hitError{false};
         int errorCount{0}; // So it can be modified directly.
 
         Parser(DiagnosticEngine* engine);
-        StmtVec& parseToAST(FileID id, const vT& tokens);
+        [[nodiscard]] StmtVec& parseToAST(FileID id, const vT& tokens);
 };

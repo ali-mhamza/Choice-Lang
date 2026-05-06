@@ -8,19 +8,21 @@
 using svIter = std::string_view::const_iterator;
 using ErrorPair = std::pair<DiagCode, std::string>;
 
-bool parseNumericSequence(
+[[nodiscard]] bool parseNumericSequence(
     std::string& str,
     svIter& it,
     const svIter end,
     ErrorPair& pair
 );
-bool parseUnicodeSequence(
+
+[[nodiscard]] bool parseUnicodeSequence(
     std::string& str,
     svIter& it,
     const svIter end,
     ErrorPair& pair
 );
-bool parseCharSequence(
+
+[[nodiscard]] bool parseCharSequence(
     std::string& str,
     svIter& it,
     const svIter end

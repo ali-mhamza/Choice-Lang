@@ -22,9 +22,9 @@ class Disassembler
         void printOperValue(const Object& oper) const;
         void disFunction(const Function& func) const;
 
-        u8 restoreByte() const;
-        u16 restoreShort() const;
-        u32 restoreLong() const;
+        [[nodiscard]] u8 restoreByte() const;
+        [[nodiscard]] u16 restoreShort() const;
+        [[nodiscard]] u32 restoreLong() const;
 
         void singleOper(u8 byte);
         void doubleOper(u8 byte);

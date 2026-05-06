@@ -13,6 +13,7 @@
 TokenPrinter::TokenPrinter(SourceManager* manager, FileID id, const vT& tokens) :
     manager{manager}, id{id}, tokens{tokens} {}
 
+[[nodiscard]]
 static std::string formatMultiLineString(const std::string_view& sv)
 {
     std::string newStr{sv};

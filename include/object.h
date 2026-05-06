@@ -112,16 +112,16 @@ class Object
             ~Object();
         #endif
 
-        bool operator==(const Object& other) const;
-        bool operator>(const Object& other) const;
-        bool operator<(const Object& other) const;
-        bool in(const Object& other) const;
+        [[nodiscard]] bool operator==(const Object& other) const;
+        [[nodiscard]] bool operator>(const Object& other) const;
+        [[nodiscard]] bool operator<(const Object& other) const;
+        [[nodiscard]] bool in(const Object& other) const;
 
-        std::string printVal() const;
-        std::string_view printType() const;
+        [[nodiscard]] std::string printVal() const;
+        [[nodiscard]] std::string_view printType() const;
         void emit(std::ofstream& os) const;
 
-        ObjIter* makeIter();
+        [[nodiscard]] ObjIter* makeIter();
 };
 
 template<typename T>
@@ -184,14 +184,14 @@ Object::Object(T val)
 /* Type check, validation and conversion macros. */
 
 #define X(TYPE, field) \
-    static inline bool IS_##TYPE(const Object& obj) {   \
-        return (obj.type == OBJ_##TYPE);                \
-    }                                                   \
-    static inline auto AS_##TYPE(const Object& obj) {   \
-        return obj.as.field;                            \
-    }                                                   \
-    static inline auto& AS_##TYPE(Object& obj) {        \
-        return obj.as.field;                            \
+    [[nodiscard]] static inline bool IS_##TYPE(const Object& obj) { \
+        return (obj.type == OBJ_##TYPE);                            \
+    }                                                               \
+    [[nodiscard]] static inline auto AS_##TYPE(const Object& obj) { \
+        return obj.as.field;                                        \
+    }                                                               \
+    [[nodiscard]] static inline auto& AS_##TYPE(Object& obj) {      \
+        return obj.as.field;                                        \
     }
 
 TYPE_LIST
@@ -263,7 +263,7 @@ struct Function : public HeapObj
     );
     ~Function();
 
-    bool operator==(const Function& other) const;
+    [[nodiscard]] bool operator==(const Function& other) const;
 
     void emit(std::ofstream& os) const;
 };
@@ -276,7 +276,7 @@ struct Closure : public HeapObj
     Closure(Function* function);
     ~Closure();
 
-    bool operator==(const Closure& other) const;
+    [[nodiscard]] bool operator==(const Closure& other) const;
 
     void addCell(Cell* cell);
 };
@@ -289,10 +289,10 @@ struct String : public HeapObj
     String(const std::string_view& view);
     String(const char* str, size_t len = -1);
 
-    bool operator==(const String& other) const;
-    bool contains(const String& substr) const;
+    [[nodiscard]] bool operator==(const String& other) const;
+    [[nodiscard]] bool contains(const String& substr) const;
 
-    std::string printVal() const;
+    [[nodiscard]] std::string printVal() const;
     void emit(std::ofstream& os) const;
 };
 
@@ -304,11 +304,11 @@ struct Range : public HeapObj
 
     Range(const std::array<i64, 3>& limits);
 
-    bool operator==(const Range& other) const;
-    bool contains(const i64 num) const;
+    [[nodiscard]] bool operator==(const Range& other) const;
+    [[nodiscard]] bool contains(const i64 num) const;
 
-    i64 length() const;
-    std::string printVal() const;
+    [[nodiscard]] i64 length() const;
+    [[nodiscard]] std::string printVal() const;
 };
 
 struct List : public HeapObj
@@ -317,10 +317,10 @@ struct List : public HeapObj
 
     List(u32 size);
 
-    bool operator==(const List& other) const;
-    bool contains(const Object& obj) const;
+    [[nodiscard]] bool operator==(const List& other) const;
+    [[nodiscard]] bool contains(const Object& obj) const;
 
-    std::string printVal() const;
+    [[nodiscard]] std::string printVal() const;
 };
 
 struct Table : public HeapObj
@@ -335,7 +335,7 @@ struct Tuple : public HeapObj
     Tuple();
     Tuple(u32 size);
 
-    std::string printVal() const;
+    [[nodiscard]] std::string printVal() const;
 };
 
 
@@ -354,8 +354,8 @@ struct StringIter
     StringIter& operator=(StringIter&& other) noexcept;
     ~StringIter();
 
-    bool start(Object& var);
-    bool next(Object& var);
+    [[nodiscard]] bool start(Object& var);
+    [[nodiscard]] bool next(Object& var);
 };
 
 struct RangeIter
@@ -371,8 +371,8 @@ struct RangeIter
     RangeIter& operator=(RangeIter&& other) noexcept;
     ~RangeIter();
 
-    bool start(Object& var);
-    bool next(Object& var);
+    [[nodiscard]] bool start(Object& var);
+    [[nodiscard]] bool next(Object& var);
 };
 
 struct ListIter
@@ -388,8 +388,8 @@ struct ListIter
     ListIter& operator=(ListIter&& other) noexcept;
     ~ListIter();
 
-    bool start(Object& var);
-    bool next(Object& var);
+    [[nodiscard]] bool start(Object& var);
+    [[nodiscard]] bool next(Object& var);
 };
 
 struct ObjIter
@@ -406,8 +406,8 @@ struct ObjIter
     ObjIter(Object& obj);
     ~ObjIter() = default;
 
-    bool start(Object& var);
-    bool next(Object& var);
+    [[nodiscard]] bool start(Object& var);
+    [[nodiscard]] bool next(Object& var);
 };
 
 

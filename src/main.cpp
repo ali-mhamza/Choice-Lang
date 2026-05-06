@@ -93,12 +93,14 @@ static const std::unordered_map<std::string_view, ArgvOption> options{
 	{"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
 };
 
+[[nodiscard]]
 static inline vT& runLexer(FileID id, const std::string_view source)
 {
 	static Lexer lexer{&diagEngine};
 	return lexer.tokenize(id, source);
 }
 
+[[nodiscard]]
 static Function* runCompiler(FileID id, const vT& tokens)
 {
 	static Parser parser{&diagEngine};
@@ -126,7 +128,7 @@ static Function* runCompiler(FileID id, const vT& tokens)
 // re-compiling.
 // Should be updated if we get to multi-file
 // compilation.
-static bool cacheOptimize(ArgvOption option)
+[[nodiscard]] static bool cacheOptimize(ArgvOption option)
 {
 	using std::filesystem::exists;
 	using std::filesystem::last_write_time;
@@ -173,6 +175,7 @@ static bool cacheOptimize(ArgvOption option)
 	return false;
 }
 
+[[nodiscard]]
 static bool prelimChecks(const char* fileName, ArgvOption option)
 {
 	if (!fileNameCheck(fileName))

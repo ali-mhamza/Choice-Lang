@@ -2,36 +2,39 @@
 #include <string_view>
 #include <vector>
 
+[[nodiscard]]
 bool ends_with(const std::string_view str, const std::string_view suffix);
+[[nodiscard]]
 bool starts_with(const std::string_view str, const std::string_view prefix);
+[[nodiscard]]
 std::vector<std::string> split(std::string_view str, std::string_view delim);
 
-static inline bool isBinary(char c)
+[[nodiscard]] static inline bool isBinary(char c)
 {
     return ((c == '0') || (c == '1'));
 }
 
-static inline bool isOctal(char c)
+[[nodiscard]] static inline bool isOctal(char c)
 {
     return ((c >= '0') && (c <= '7'));
 }
 
-static inline bool isHex(char c)
+[[nodiscard]] static inline bool isHex(char c)
 {
     return isxdigit(c);
 }
 
-static inline u8 fromBinary(char c)
+[[nodiscard]] static inline u8 fromBinary(char c)
 {
     return (c - '0');
 }
 
-static inline u8 fromOctal(char c)
+[[nodiscard]] static inline u8 fromOctal(char c)
 {
     return (c - '0');
 }
 
-static inline u8 fromHex(char c)
+[[nodiscard]] static inline u8 fromHex(char c)
 {
     if (isdigit(c)) return (c - '0');
     if (isupper(c)) return (c - 'A' + 10);

@@ -171,6 +171,7 @@ std::tuple<u64, u64, sv> SourceManager::getLineColumn(
     return std::make_tuple(line, column, lineStr);
 }
 
+// [[nodiscard]]
 // static std::pair<u64, u64> getChangeSpan(sv a, sv b)
 // {
 //     if (a.empty() || b.empty())

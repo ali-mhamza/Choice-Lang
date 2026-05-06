@@ -23,7 +23,7 @@ class ByteCode
         void addLong(u32 bytes);
 
         // Return the size of the constant pool once serialized.
-        u64 countPool() const;
+        [[nodiscard]] u64 countPool() const;
         void clearCode();
         void clearPool();
 
@@ -39,11 +39,11 @@ class ByteCode
         // Add a jump instruction with an optional condition
         // register
         // i16 to allow -1 while still fitting all register values.
-        u64 addJump(Opcode op, i16 reg = -1);
+        [[nodiscard]] u64 addJump(Opcode op, i16 reg = -1);
         // Fill in the two-byte operand for a jump instruction.
         void patchJump(u64 offset);
 
-        u64 getLoopStart() const { return codeSize(); }
+        [[nodiscard]] u64 getLoopStart() const { return codeSize(); }
         void addLoop(u64 start);
 
         // Load a register with an immediate, opcode-based value.
@@ -52,6 +52,7 @@ class ByteCode
         // instruction to store it in a register.
         void loadRegConst(Object& constant, u8 reg);
 
+        [[nodiscard]]
         u64 codeSize() const { return static_cast<u64>(block.size()); }
         // Serialize a ByteCode object into a file.
         void cacheStream(std::ofstream& os) const;

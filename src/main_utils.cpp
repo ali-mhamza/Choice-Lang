@@ -78,6 +78,7 @@ static inline void eofError()
 }
 
 template<typename Size>
+[[nodiscard]]
 static Size reconstructBytes(vBit& it, const vBit& end)
 {
 	(void) end; // In case we don't use it.
@@ -94,6 +95,7 @@ static Size reconstructBytes(vBit& it, const vBit& end)
 	return *temp;
 }
 
+[[nodiscard]]
 static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 {
 	u64 codeSize{reconstructBytes<u64>(it, end)};
@@ -119,6 +121,7 @@ static ByteCode reconstructByteCode(vBit& it, const vBit& end)
 	return ByteCode{bytes, reconstructPool(pool)};
 }
 
+[[nodiscard]]
 static Object reconstructFunc(vBit& it, const vBit& end)
 {
 	CHECK_EOF();
@@ -160,6 +163,7 @@ static Object reconstructFunc(vBit& it, const vBit& end)
 	}
 }
 
+[[nodiscard]]
 static Object reconstructString(vBit& it, const vBit& end)
 {
 	(void) end; // In case we don't use it.

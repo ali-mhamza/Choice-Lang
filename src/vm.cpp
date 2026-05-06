@@ -308,7 +308,7 @@ Object VM::compareOper(Opcode op, u8 firstOper)
     }
 }
 
-static inline i64 fromUnsigned(u64 num)
+[[nodiscard]] static inline i64 fromUnsigned(u64 num)
 {
     i64 i{};
     std::memcpy(&i, &num, sizeof(u64));

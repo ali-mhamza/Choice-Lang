@@ -1239,6 +1239,7 @@ DEF(FormatExpr)
     nextReg = partsBegin + 1;
 }
 
+[[nodiscard]]
 static std::string getRawString(const std::string_view& text)
 {
     size_t start{sizeof("r\"") - 1};
