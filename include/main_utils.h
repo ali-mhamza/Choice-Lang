@@ -16,10 +16,9 @@
     #define CHECK_EOF()
 #endif
 
-[[nodiscard]] std::string readFile(const char* fileName);
+[[nodiscard]]
+std::string readFile(const char* fileName, bool binary = false);
 void normalizeInput(std::string& input);
-[[nodiscard]] vObj reconstructPool(const vByte& poolBytes);
-[[nodiscard]] ByteCode readCache(std::ifstream& fileIn);
 void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens);
 void optionShowBytes(const ByteCode& chunk);
 void optionLoad(const char* fileName);

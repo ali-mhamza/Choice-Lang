@@ -5,36 +5,31 @@
 #include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
+#include "../include/deserializer.h"
 #include "../include/tokprinter.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 #include <algorithm>
-#include <array>
 #include <cctype>
-#include <climits>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <filesystem>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <vector>
-
-#if defined(DEBUG)
-	#include <ios>
-	#include <limits>
-#endif
-
-static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");
-using vBit = vByte::const_iterator;
 
 static constexpr std::string_view CH_FILE_EXT{".ch"};
 static constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
 
-std::string readFile(const char* fileName)
+std::string readFile(const char* fileName, bool binary)
 {
-	std::ifstream file{fileName};
+	std::ifstream file;
+
+	if (binary)
+	    file.open(fileName, std::ios::binary);
+	else
+        file.open(fileName);
+
 	if (file.fail())
 	{
 		CH_PRINT(stderr, "Failed to open file.\n");
@@ -69,239 +64,6 @@ void normalizeInput(std::string& input)
         input.replace(it, 1, std::string(TAB_SIZE, ' '));
         it = input.find('\t', it + 1);
     }
-}
-
-static inline void eofError()
-{
-	CH_PRINT(stderr, "Reached end of file prematurely.\n");
-	exit(65);
-}
-
-template<typename Size>
-[[nodiscard]]
-static Size reconstructBytes(vBit& it, const vBit& end)
-{
-	(void) end; // In case we don't use it.
-
-	u64 value{0};
-	constexpr size_t size{sizeof(Size)};
-	for (size_t i{0}; i < size; i++)
-	{
-		CHECK_EOF();
-		value = (value << CHAR_BIT) | *(it++);
-	}
-	it--;
-	Size* temp{reinterpret_cast<Size*>(&value)};
-	return *temp;
-}
-
-[[nodiscard]]
-static ByteCode reconstructByteCode(vBit& it, const vBit& end)
-{
-	u64 codeSize{reconstructBytes<u64>(it, end)};
-	it++;
-	u64 poolSize{reconstructBytes<u64>(it, end)};
-	it++;
-
-	vByte bytes(codeSize);
-	for (u64 i{0}; i < codeSize; i++)
-	{
-		CHECK_EOF();
-		bytes[i] = *(it++);
-	}
-
-	vByte pool(poolSize);
-	for (u64 i{0}; i < poolSize; i++)
-	{
-		CHECK_EOF();
-		pool[i] = *(it++);
-	}
-	it--;
-
-	return ByteCode{bytes, reconstructPool(pool)};
-}
-
-[[nodiscard]]
-static Object reconstructFunc(vBit& it, const vBit& end)
-{
-	CHECK_EOF();
-	u8 nameLen{*(it++)};
-	std::string name{};
-
-	if (nameLen != 0)
-	{
-    	name.resize(nameLen);
-
-    	#if defined(DEBUG)
-       	if (it + nameLen > end)
-       	    eofError();
-    	#endif
-
-    	for (u8 i{0}; i < nameLen; i++)
-    	    name[i] = static_cast<char>(*(it++));
-	}
-
-	CHECK_EOF();
-	u8 argCount{*it};
-
-	++it;
-	CHECK_EOF();
-	bool lambda{static_cast<bool>(*it)};
-
-	if (lambda)
-	{
-		return Object{CH_ALLOC(Function, reconstructByteCode(++it, end),
-			argCount)
-		};
-	}
-	else
-	{
-		return Object{CH_ALLOC(Function, name,
-			reconstructByteCode(++it, end),
-			argCount)
-		};
-	}
-}
-
-[[nodiscard]]
-static Object reconstructString(vBit& it, const vBit& end)
-{
-	(void) end; // In case we don't use it.
-
-	CHECK_EOF();
-	std::string str{};
-	while (static_cast<char>(*it) != '\0')
-	{
-		str.push_back(static_cast<char>(*it));
-		it++;
-		CHECK_EOF();
-	}
-
-	return Object{CH_ALLOC(String, str)};
-}
-
-vObj reconstructPool(const vByte& poolBytes)
-{
-	vObj pool{};
-
-	for (auto it{poolBytes.begin()}; it < poolBytes.end(); it++)
-	{
-		ObjType type{static_cast<ObjType>(*it)};
-		switch (type)
-		{
-			case OBJ_INT:
-				pool.emplace_back(reconstructBytes<i64>(++it, poolBytes.end()));
-				break;
-			case OBJ_DEC:
-				pool.emplace_back(reconstructBytes<double>(++it, poolBytes.end()));
-				break;
-			case OBJ_FUNC:
-			case OBJ_LAMBDA:
-				pool.emplace_back(reconstructFunc(++it, poolBytes.end()));
-				break;
-			case OBJ_STRING:
-				pool.emplace_back(reconstructString(++it, poolBytes.end()));
-				break;
-			default:
-			{
-				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
-				{
-					CH_PRINT(stderr, "Error: byte is {}.\n",
-						static_cast<u8>(type));
-					exit(65);
-				}
-			}
-		}
-	}
-
-	return pool;
-}
-
-static void handleFileLength(std::ifstream& fileIn, size_t expected)
-{
-	if (static_cast<size_t>(fileIn.gcount()) < expected)
-	{
-		if (fileIn.eof())
-			eofError();
-		else if (fileIn.fail())
-		{
-			CH_PRINT(stderr, "Encountered internal I/O error.\n");
-			exit(74);
-		}
-	}
-}
-
-static void readMagic(std::ifstream& fileIn)
-{
-	std::array<char, 6> magic{};
-	fileIn.read(magic.data(), sizeof(magic));
-	handleFileLength(fileIn, sizeof(magic));
-	if (strncmp(magic.data(), "choice", 6) != 0)
-	{
-		CH_PRINT(stderr, "Improper magic flag for bytecode file.\n");
-		exit(65);
-	}
-}
-
-static void readVersionNum(std::ifstream& fileIn)
-{
-	std::array<char, 3> num{};
-	fileIn.read(num.data(), sizeof(num));
-	handleFileLength(fileIn, sizeof(num));
-}
-
-ByteCode readCache(std::ifstream& fileIn)
-{
-	if (fileIn.is_open())
-	{
-		std::string fileName{};	u8 nameLength{};
-		vByte codeBytes{};		u64 codeLength{};
-		vByte poolBytes{};		u64 poolLength{};
-
-		readMagic(fileIn);
-		readVersionNum(fileIn);
-
-		int ch{fileIn.get()};
-		if (ch == -1) // EOF.
-			eofError();
-		nameLength = static_cast<u8>(ch);
-		fileName.resize(nameLength);
-
-		fileIn.read(reinterpret_cast<char*>(&codeLength), sizeof(u64));
-		handleFileLength(fileIn, sizeof(u64));
-		codeBytes.resize(codeLength);
-
-		fileIn.read(reinterpret_cast<char*>(&poolLength), sizeof(u64));
-		handleFileLength(fileIn, sizeof(u64));
-		poolBytes.resize(poolLength);
-
-		fileIn.read(reinterpret_cast<char*>(fileName.data()), nameLength);
-		handleFileLength(fileIn, nameLength);
-		file = fileName;
-
-		#if defined(DEBUG)
-			constexpr auto maxSize{static_cast<u64>(
-				std::numeric_limits<std::streamsize>::max()
-			)};
-			CH_ASSERT(
-				(codeLength < maxSize) && (poolLength < maxSize),
-				"File serialization did not bounds-check bytecode "
-				"and constant pool sizes."
-			);
-		#endif
-
-		fileIn.read(reinterpret_cast<char*>(codeBytes.data()), codeLength);
-		handleFileLength(fileIn, codeLength);
-
-		fileIn.read(reinterpret_cast<char*>(poolBytes.data()), poolLength);
-		handleFileLength(fileIn, poolLength);
-
-		fileIn.close();
-		return ByteCode{codeBytes, reconstructPool(poolBytes)};
-	}
-
-	CH_PRINT(stderr, "File is closed.\n");
-	exit(66);
 }
 
 void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens)
@@ -345,7 +107,8 @@ void optionLoad(const char* fileName)
 		exit(66);
 	}
 
-	ByteCode chunk{readCache(program)};
+	Deserializer deserializer{program};
+	ByteCode chunk{deserializer.readCache()};
 	Function* script{CH_ALLOC(Function, chunk, 0)};
 	VM{}.executeCode(script);
 
@@ -371,7 +134,8 @@ void optionDis(const char* fileName)
 		exit(66);
 	}
 
-	ByteCode chunk{readCache(program)};
+	Deserializer deserializer{program};
+	ByteCode chunk{deserializer.readCache()};
 	Disassembler{chunk}.disassembleCode();
 }
 
