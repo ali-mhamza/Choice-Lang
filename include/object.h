@@ -239,7 +239,7 @@ struct HeapObj
     #endif
 };
 
-struct Cell : HeapObj
+struct Cell : public HeapObj
 {
     Object* location{};
     Object obj{};
