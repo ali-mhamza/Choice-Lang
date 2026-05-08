@@ -721,8 +721,11 @@ ExprUP Parser::call()
 
                 if (consumeTok(TOK_STAR))
                 {
+                    u64 offset{previousTok.byteOffset};
                     MATCH_TOK(TOK_IDENTIFIER, "expect reference name");
-                    args.push_back(std::make_unique<ReferenceExpr>(previousTok));
+                    args.push_back(
+                        std::make_unique<ReferenceExpr>(offset, previousTok)
+                    );
                     continue;
                 }
 

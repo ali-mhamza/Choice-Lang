@@ -138,6 +138,15 @@ class ASTCompiler
             std::string_view message = ""
         );
 
+        // General helper to report a specific part in the source code.
+        void reportPart(
+            bool isError,
+            DiagCode code,
+            u64 offset,
+            u64 length,
+            std::string_view message = ""
+        );
+
         // For specific cases were we want to report a specific
         // part of a token for an error.
         void reportPartError(

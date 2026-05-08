@@ -395,9 +395,10 @@ namespace AST
 
         struct ReferenceExpr : public Expr
         {
+            const u64 operOffset{};
             const Token name{};
 
-            ReferenceExpr(const Token& name);
+            ReferenceExpr(u64 offset, const Token& name);
         };
 
         struct VarExpr : public Expr

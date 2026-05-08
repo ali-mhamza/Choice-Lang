@@ -15,6 +15,8 @@ static constexpr sv YELLOW{"\033[33m"};
 static constexpr sv BOLD{"\033[1m"};
 static constexpr sv NORMAL{"\033[0m"};
 
+constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
+
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     INVALID_UTF_CODEPOINT, PARAM_ALREADY_DEFINED, RANGE_ONLY_INTS,
     HIT_SHIFT_MAX, HIT_ARGS_MAX, MOD_CONST_VARIABLE,
@@ -236,7 +238,7 @@ void Diagnostic::displayReportTitle() const
     else
     {
         CH_PRINT(stderr, "{}{} [W{:0>4}]{}: ", YELLOW, familyTitles[family],
-            static_cast<u8>(code) + 1, NORMAL);
+            static_cast<u8>(code) - warningStart + 1, NORMAL);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
 }
@@ -303,7 +305,6 @@ std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
     #define IS_VALID_CODE(code) (((code) >= 0) && ((code) < NUM_CODES))
 
     constexpr u64 codeLength{5};
-    constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
     bool isError{starts_with(code, "E")};
     bool isWarning{starts_with(code, "W")};
 
@@ -372,6 +373,29 @@ void DiagnosticEngine::recordError(
 )
 {
     recordError(id, code, token.byteOffset, token.text.size(), label);
+}
+
+void DiagnosticEngine::recordWarning(
+    FileID id,
+    DiagCode code,
+    u64 byteOffset,
+    u64 length,
+    const std::string& label
+)
+{
+    reports.push_back(Diagnostic{
+       manager, false, id, byteOffset, length, code, label
+    });
+}
+
+void DiagnosticEngine::recordWarning(
+    FileID id,
+    DiagCode code,
+    const Token& token,
+    const std::string& label
+)
+{
+    recordWarning(id, code, token.byteOffset, token.text.size(), label);
 }
 
 void DiagnosticEngine::emitReports()

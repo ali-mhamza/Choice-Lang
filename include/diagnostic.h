@@ -290,6 +290,22 @@ class DiagnosticEngine
             const std::string& label
         );
 
+        // Primitive warning-reporting helper.
+        void recordWarning(
+            FileID id,
+            DiagCode code,
+            u64 byteOffset,
+            u64 length,
+            const std::string& label
+        );
+
+        // Direct version for parser & compiler.
+        void recordWarning(
+            FileID id,
+            DiagCode code,
+            const Token& token,
+            const std::string& label
+        );
+
         void emitReports();
-        // void recordWarning();
 };

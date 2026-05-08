@@ -291,6 +291,20 @@ void ASTCompiler::reportError(
     engine->recordError(id, code, token, std::string{message});
 }
 
+void ASTCompiler::reportPart(
+    bool isError,
+    DiagCode code,
+    u64 offset,
+    u64 length,
+    std::string_view message
+)
+{
+    if (isError)
+        engine->recordError(id, code, offset, length, std::string{message});
+    else
+        engine->recordWarning(id, code, offset, length, std::string{message});
+}
+
 void ASTCompiler::reportPartError(
     DiagCode code,
     const Token& token,
@@ -302,11 +316,7 @@ void ASTCompiler::reportPartError(
     hitError = true;
     if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
         code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
-
-    engine->recordError(
-        id, code, token.byteOffset + offset, length,
-        std::string{message}
-    );
+    reportPart(true, code, token.byteOffset + offset, length, message);
 }
 
 /* AST node compilation functions. */
@@ -1153,11 +1163,11 @@ DEF(ReferenceExpr)
             "cannot construct reference to undefined variable");
     }
 
-    // Should add a warning here if the variable is immutable.
-    // Since we don't have immutable references (and all our copies
-    // are cheap shallow copies), it's most often the case that using
-    // a reference here is with the intention of modifying the variable.
-    // Since this cannot be determined with certainty, stick to a warning.
+    if (info.access == accessFix)
+    {
+        reportPart(false, REF_TO_CONST_VAR, node->operOffset, 1,
+            "variable may be modified through this reference");
+    }
 
     code.addOp(OP_MAKE_REF, nextReg, static_cast<u8>(info.type),
         info.slot);

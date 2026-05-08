@@ -135,9 +135,9 @@ ListExpr::ListExpr(ExprVec& entries) :
     Expr{E_LIST_EXPR},
     entries{std::move(entries)} {}
 
-ReferenceExpr::ReferenceExpr(const Token& name) :
+ReferenceExpr::ReferenceExpr(u64 offset, const Token& name) :
     Expr{E_REF_EXPR},
-    name(name) {}
+    operOffset{offset}, name(name) {}
 
 VarExpr::VarExpr(const Token& name) :
     Expr{E_VAR_EXPR},
