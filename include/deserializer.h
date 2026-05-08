@@ -20,7 +20,7 @@ class Deserializer
         void handleFileLength(size_t expected);
         void eofError();
         template<typename T>
-        void cacheRead(T* mem, size_t memSize = sizeof(T));
+        T cacheRead(T* mem, size_t memSize = sizeof(T));
 
         /* Object reconstructors. */
 

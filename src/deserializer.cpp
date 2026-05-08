@@ -69,10 +69,11 @@ void Deserializer::eofError()
 }
 
 template<typename T>
-void Deserializer::cacheRead(T* mem, size_t memSize)
+T Deserializer::cacheRead(T* mem, size_t memSize)
 {
     cacheFile.read(reinterpret_cast<char*>(mem), memSize);
     handleFileLength(memSize);
+    return *mem;
 }
 
 template<typename Size>
@@ -210,20 +211,9 @@ ByteCode Deserializer::readCache()
 		readMagic();
 		readVersionNum();
 
-		int ch{cacheFile.get()};
-		if (ch == -1) // EOF.
-			eofError();
-		nameLength = static_cast<u8>(ch);
-		fileName.resize(nameLength);
-
-		cacheRead(&codeLength);
-		codeBytes.resize(codeLength);
-
-		cacheRead(&poolLength);
-		poolBytes.resize(poolLength);
-
-		cacheRead(fileName.data(), nameLength);
-		file = fileName;
+		fileName.resize(cacheRead(&nameLength));
+		codeBytes.resize(cacheRead(&codeLength));
+		poolBytes.resize(cacheRead(&poolLength));
 
 		#if defined(DEBUG)
 			constexpr auto maxSize{static_cast<u64>(
@@ -236,6 +226,8 @@ ByteCode Deserializer::readCache()
 			);
 		#endif
 
+		cacheRead(fileName.data(), nameLength);
+		file = fileName;
 		cacheRead(codeBytes.data(), codeLength);
 		cacheRead(poolBytes.data(), poolLength);
 
