@@ -208,8 +208,7 @@ void Disassembler::collectionOp(u8 byte)
 	u8 reg{restoreByte()};
 	ip++;
 
-	if ((static_cast<Opcode>(byte) == OP_EXT_LIST)
-		|| (static_cast<Opcode>(byte) == OP_EXT_TUPLE))
+	if (static_cast<Opcode>(byte) == OP_EXT_LIST)
 	{
 		u8 startReg{restoreByte()};
 		ip++;
@@ -308,7 +307,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_LOAD_R:
 			loadOp();
 			break;
-		case OP_LIST:		case OP_EXT_LIST:		case OP_TUPLE:		case OP_EXT_TUPLE:
+		case OP_LIST:		case OP_EXT_LIST:
 			collectionOp(byte);
 			break;
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:

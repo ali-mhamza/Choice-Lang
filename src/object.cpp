@@ -26,7 +26,7 @@ constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Function", "Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table",
     "", // References take the type of the contained object.
-    "Tuple", "Iterable", "Num", "Comparable"
+    "Void", "Iterable", "Num", "Comparable"
 };
 
 /* Object. */
@@ -140,7 +140,7 @@ bool Object::operator==(const Object& other) const
         case OBJ_STRING:    return *(AS_STRING(*this)) == *(AS_STRING(other));
         case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
         case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
-        // TODO: Tuples shouldn't be comparable.
+        case OBJ_VOID:      return true;
         default: CH_UNREACHABLE();
     }
 }
@@ -243,7 +243,7 @@ std::string Object::printVal() const
         case OBJ_STRING:    return AS_STRING(*this)->printVal();
         case OBJ_RANGE:     return AS_RANGE(*this)->printVal();
         case OBJ_LIST:      return AS_LIST(*this)->printVal();
-        case OBJ_TUPLE:     return AS_TUPLE(*this)->printVal();
+        case OBJ_VOID:      return "()";
         case OBJ_ITER:
         {
             const auto& iter{AS_ITER(*this)->iter};
@@ -556,27 +556,8 @@ std::string List::printVal() const
     return ret;
 }
 
-Tuple::Tuple() :
-    HeapObj{OBJ_TUPLE} {}
-
-Tuple::Tuple(u32 size) :
-    HeapObj{OBJ_TUPLE},
-    entries{size} {}
-
-std::string Tuple::printVal() const
-{
-    std::string ret{"("};
-    size_t size{entries.count()};
-    for (size_t i{0}; i < size; i++)
-    {
-        ret += entries[i].printVal();
-        if (i != size - 1)
-            ret += ", ";
-    }
-
-    ret += ")";
-    return ret;
-}
+Void::Void() :
+    HeapObj{OBJ_VOID} {}
 
 
 /* Object iterator struct types. */

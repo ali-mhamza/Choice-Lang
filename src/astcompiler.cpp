@@ -764,32 +764,6 @@ DEF(BlockStmt)
     popScope();
 }
 
-DEF(TupleExpr)
-{
-    constexpr int TUPLE_GROUP{5};
-
-    u8 tupleReg{nextReg};
-    code.addOp(OP_TUPLE, tupleReg);
-    reserveReg();
-
-    u8 count{0};
-    u8 startReg{nextReg};
-    auto emitTuple = [this, tupleReg, &count, startReg] {
-        code.addOp(OP_EXT_TUPLE, tupleReg, startReg, count);
-        nextReg = startReg;
-        count = 0;
-    };
-
-    for (const ExprUP& entry : node->entries)
-    {
-        compileExpr(entry);
-        if (++count == TUPLE_GROUP)
-            emitTuple();
-    }
-
-    if (count > 0) emitTuple();
-}
-
 void ASTCompiler::compoundAssign(
     const AssignExpr* node,
     const VarInfo& info
@@ -1311,7 +1285,6 @@ void ASTCompiler::compileExpr(const ExprUP& node)
 
     switch (node->type)
     {
-        case E_TUPLE_EXPR:      COMPILE(TupleExpr);         break;
         case E_ASSIGN_EXPR:     COMPILE(AssignExpr);        break;
         case E_LOGIC_EXPR:      COMPILE(LogicExpr);         break;
         case E_COMPARE_EXPR:    COMPILE(CompareExpr);       break;

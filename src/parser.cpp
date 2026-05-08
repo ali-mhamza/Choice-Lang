@@ -452,7 +452,7 @@ StmtUP Parser::returnStmt()
     Token keyword{previousTok};
     ExprUP expr{nullptr};
     if (!checkTok(TOK_SEMICOLON))
-        expr = tuple();
+        expr = returnExpr();
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after return statement");
     return std::make_unique<ReturnStmt>(keyword, expr);
 }
@@ -496,7 +496,7 @@ StmtUP Parser::exprStmt()
     return ptr;
 }
 
-ExprUP Parser::tuple()
+ExprUP Parser::returnExpr()
 {
     ExprVec entries{};
     ExprUP entry{expression()};
@@ -511,7 +511,7 @@ ExprUP Parser::tuple()
     else
         return entry;
 
-    return std::make_unique<TupleExpr>(entries);
+    return std::make_unique<ListExpr>(entries);
 }
 
 ExprUP Parser::expression()

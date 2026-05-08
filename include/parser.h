@@ -72,7 +72,7 @@ class Parser
 
         // Expressions.
 
-        [[nodiscard]] ExprUP tuple();
+        [[nodiscard]] ExprUP returnExpr();
         [[nodiscard]] ExprUP expression();
         [[nodiscard]] ExprUP assignment();
         [[nodiscard]] ExprUP range();

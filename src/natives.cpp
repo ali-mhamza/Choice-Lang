@@ -73,7 +73,7 @@ void Natives::print(Natives::iter it, u8 args, const Token& error)
         fflush(stdout);
 
     // To avoid reallocating the return value each time.
-    static auto ret{Object{CH_ALLOC(Tuple)}};
+    static auto ret{Object{CH_ALLOC(Void)}};
     it[-1] = ret;
 }
 

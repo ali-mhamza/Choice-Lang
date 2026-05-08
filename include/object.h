@@ -15,7 +15,9 @@ using Natives::FuncType;
 /* Type list macro. */
 
 #pragma push_macro("NULL")
+#pragma push_macro("AS_VOID")
 #undef NULL
+#undef AS_VOID
 
 #define TYPE_LIST           \
     X(INT, intVal)          \
@@ -35,7 +37,7 @@ using Natives::FuncType;
     X(TABLE, tableVal)      \
     X(REF, refVal)          \
     /* Used in function return values. */   \
-    X(TUPLE, tupleVal)      \
+    X(VOID, voidVal)        \
     /* Used in for-loops. */                \
     X(ITER, iterVal)        \
 
@@ -66,7 +68,7 @@ struct Range;
 struct List;
 struct Table;
 struct Cell;
-struct Tuple;
+struct Void;
 struct HeapObj;
 struct ObjIter;
 
@@ -95,7 +97,7 @@ class Object
             List*       listVal;
             Table*      tableVal;
             Cell*       refVal;
-            Tuple*      tupleVal;
+            Void*       voidVal;
             HeapObj*    heapVal;
             ObjIter*    iterVal;
         } as;
@@ -204,7 +206,7 @@ TYPE_LIST
 // Object can be called.
 #define IS_CALLABLE(obj)    (IS_NATIVE(obj) || IS_FUNCOBJ(obj))
 // Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type >= OBJ_FUNC) && ((obj).type <= OBJ_TUPLE))
+#define IS_HEAP_OBJ(obj)    (((obj).type >= OBJ_FUNC) && ((obj).type <= OBJ_VOID))
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
 // Object is iterable.
@@ -328,14 +330,9 @@ struct Table : public HeapObj
     linearTable<Object, Object> table{};
 };
 
-struct Tuple : public HeapObj
+struct Void : public HeapObj
 {
-    Array<Object> entries{};
-
-    Tuple();
-    Tuple(u32 size);
-
-    [[nodiscard]] std::string printVal() const;
+    Void();
 };
 
 
@@ -442,4 +439,5 @@ struct TypeMismatch
 };
 
 #undef TYPE_LIST
+#pragma pop_macro("AS_VOID")
 #pragma pop_macro("NULL")

@@ -89,7 +89,7 @@ inline bool VM::isTruthy(const Object& obj)
         case OBJ_STRING:    return (AS_STRING(obj)->str.size() != 0);
         case OBJ_LIST:      return (AS_LIST(obj)->array.count() != 0);
         case OBJ_TABLE:     return (AS_TABLE(obj)->table.size() != 0);
-        case OBJ_TUPLE:     return (AS_TUPLE(obj)->entries.count() != 0);
+        case OBJ_VOID:      return false;
         // Rest are always truthy.
         default:            return true;
     }
@@ -800,23 +800,6 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
-        CASE(OP_TUPLE):
-        {
-            registers[readByte()] = CH_ALLOC(Tuple);
-            SET_REGSLOT(*(ip - 1));
-            DISPATCH();
-        }
-        CASE(OP_EXT_TUPLE):
-        {
-            u8 tupleReg{readByte()};
-            u8 startReg{readByte()};
-            u8 count{readByte()};
-            auto& entries{AS_TUPLE(registers[tupleReg])->entries};
-            for (u8 i{0}; i < count; i++)
-                entries.push(registers[startReg + i]);
-            DISPATCH();
-        }
-
         CASE(OP_MAKE_ITER):
         {
             startIter();
@@ -873,7 +856,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_PRINT_VALID):
         {
             const Object& obj{registers[readByte()]};
-            if (IS_VALID(obj) && !IS_TUPLE(obj))
+            if (IS_VALID(obj) && !IS_VOID(obj))
                 CH_PRINT("{}\n", obj.printVal());
             DISPATCH();
         }
@@ -921,7 +904,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VOID):
         {
             // To avoid reallocating the return value each time.
-            static Object ret{CH_ALLOC(Tuple)};
+            static Object ret{CH_ALLOC(Void)};
             registers[readByte()] = ret;
             DISPATCH();
         }

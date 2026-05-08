@@ -74,9 +74,6 @@ enum Opcode : u8 // Each opcode is a single byte.
 
 	OP_FORMAT_STR,		// Create a formatted string from multiple parts.
 
-	OP_TUPLE,			// Create a tuple.
-	OP_EXT_TUPLE,		// Extend a tuple with additional elements.
-
 	/* Functions. */
 
 	OP_CALL_NAT,		// Call a native/built-in function.

@@ -187,7 +187,6 @@ class ASTCompiler
 
         /* Expressions. */
 
-        DECL_EXPR(TupleExpr);
         void compoundAssign(
             const AST::Expression::AssignExpr* node,
             const VarInfo& info

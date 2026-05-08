@@ -213,7 +213,6 @@ namespace AST
     {
         enum ExprType : u8
         {
-            E_TUPLE_EXPR,
             E_ASSIGN_EXPR,
             E_LOGIC_EXPR,
             E_COMPARE_EXPR,
@@ -239,13 +238,6 @@ namespace AST
 
             Expr(ExprType type);
             virtual ~Expr() = default;
-        };
-
-        struct TupleExpr : public Expr
-        {
-            const ExprVec entries{};
-
-            TupleExpr(ExprVec& entries);
         };
 
         struct AssignExpr : public Expr
