@@ -1,5 +1,6 @@
 #include "../include/object.h"
 #include "../include/bytecode.h"
+#include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/linear_alloc.h"
@@ -263,29 +264,18 @@ std::string_view Object::printType() const
     return objTypes[type];
 }
 
-template<typename T>
-static void emitBytes(std::ofstream& os, ObjType type, T value)
-{
-    if (type != OBJ_INVALID)
-        os.put(static_cast<char>(type));
-    constexpr size_t size{sizeof(T)};
-    u64* asBytes{reinterpret_cast<u64*>(&value)};
-    std::array<char, size> bytes{};
-    for (size_t i = 0; i < size; i++)
-        bytes[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & CODE_MAX;
-    os.write(bytes.data(), size);
-}
-
 void Object::emit(std::ofstream& os) const
 {
+    os.put(static_cast<char>(type));
+
     switch (type)
     {
-        case OBJ_INT:       emitBytes(os, OBJ_INT, AS_INT(*this));    break;
-        case OBJ_DEC:       emitBytes(os, OBJ_DEC, AS_DEC(*this));    break;
+        case OBJ_INT:       Bytes::encodeValue(os, AS_INT(*this));  break;
+        case OBJ_DEC:       Bytes::encodeValue(os, AS_DEC(*this));  break;
         case OBJ_FUNC:
-        case OBJ_LAMBDA:    AS_FUNC(*this)->emit(os);                 break;
-        case OBJ_STRING:    AS_STRING(*this)->emit(os);               break;
-        default: break;
+        case OBJ_LAMBDA:    AS_FUNC(*this)->emit(os);               break;
+        case OBJ_STRING:    AS_STRING(*this)->emit(os);             break;
+        default: CH_UNREACHABLE();
     }
 }
 
@@ -347,7 +337,6 @@ bool Function::operator==(const Function& other) const
 
 void Function::emit(std::ofstream& os) const
 {
-    os.put(static_cast<char>(type));
     if (name != nullptr)
     {
         u64 len{strlen(name)};
@@ -361,8 +350,8 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(lambda));
 
     const vByte& block{code.block};
-    emitBytes<u64>(os, OBJ_INVALID, block.size());
-    emitBytes<u64>(os, OBJ_INVALID, code.countPool());
+    Bytes::encodeValue(os, static_cast<u64>(block.size()));
+    Bytes::encodeValue(os, static_cast<u64>(code.countPool()));
     os.write(reinterpret_cast<const char*>(block.data()),
 		block.size());
 
@@ -442,9 +431,8 @@ std::string String::printVal() const
 
 void String::emit(std::ofstream& os) const
 {
-    os.put(static_cast<char>(type));
+    Bytes::encodeValue(os, static_cast<u64>(str.size()));
     os.write(str.data(), str.size());
-    os.put('\0');
 }
 
 Range::Range(const std::array<i64, 3>& limits) :

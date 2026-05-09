@@ -5,7 +5,7 @@
 #include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
-#include "../include/readers.h"
+#include "../include/bytes.h"
 #include "../include/tokprinter.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
@@ -21,14 +21,23 @@
 static constexpr std::string_view CH_FILE_EXT{".ch"};
 static constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
 
-std::string readFile(const char* fileName, bool binary)
+std::string readFile(std::ifstream& stream)
 {
-	std::ifstream file;
+    std::stringstream buffer{};
+	buffer << stream.rdbuf();
+	std::string fileString{buffer.str()};
+	stream.close();
+	return fileString;
+}
+
+std::string readFile(const std::filesystem::path& filePath, bool binary)
+{
+	std::ifstream file{};
 
 	if (binary)
-	    file.open(fileName, std::ios::binary);
+	    file.open(filePath, std::ios::binary);
 	else
-        file.open(fileName);
+        file.open(filePath);
 
 	if (file.fail())
 	{
@@ -37,13 +46,7 @@ std::string readFile(const char* fileName, bool binary)
 	}
 
 	if (file.is_open())
-	{
-		std::stringstream buffer{};
-		buffer << file.rdbuf();
-		std::string fileString{buffer.str()};
-		file.close();
-		return fileString;
-	}
+	    return readFile(file);
 
 	CH_PRINT(stderr, "File is closed.\n");
 	exit(66);
@@ -107,7 +110,7 @@ void optionLoad(const char* fileName)
 		exit(66);
 	}
 
-	Readers::CodeReader codeReader{program};
+	Bytes::CodeReader codeReader{program};
 	ByteCode chunk{codeReader.readCache()};
 	Function* script{CH_ALLOC(Function, chunk, 0)};
 	VM{}.executeCode(script);
@@ -134,7 +137,7 @@ void optionDis(const char* fileName)
 		exit(66);
 	}
 
-	Readers::CodeReader codeReader{program};
+	Bytes::CodeReader codeReader{program};
 	ByteCode chunk{codeReader.readCache()};
 	Disassembler{chunk}.disassembleCode();
 }

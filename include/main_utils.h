@@ -2,6 +2,7 @@
 #include "bytecode.h"
 #include "common.h"
 #include "diagnostic.h"
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <string_view>
@@ -16,8 +17,11 @@
     #define CHECK_EOF()
 #endif
 
-[[nodiscard]]
-std::string readFile(const char* fileName, bool binary = false);
+[[nodiscard]] std::string readFile(std::ifstream& stream);
+[[nodiscard]] std::string readFile(
+    const std::filesystem::path& filePath,
+    bool binary = false
+);
 void normalizeInput(std::string& input);
 void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens);
 void optionShowBytes(const ByteCode& chunk);

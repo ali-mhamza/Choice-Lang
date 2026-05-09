@@ -146,7 +146,7 @@ static Function* runCompiler(FileID id, const vT& tokens)
 				return true; // Nothing to do.
 
 			std::ifstream code{cache};
-			Readers::CodeReader codeReader{code};
+			Bytes::CodeReader codeReader{code};
 			ByteCode chunk{codeReader.readCache()};
 
 			if (option == EMIT_BYTECODE)

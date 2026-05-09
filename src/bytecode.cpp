@@ -1,4 +1,5 @@
 #include "../include/bytecode.h"
+#include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/object.h"
@@ -158,8 +159,8 @@ u64 ByteCode::countPool() const
 					break;
 				}
 				case OBJ_STRING:
-					// Added type byte (1) and null byte (1).
-					count += AS_STRING(obj)->str.size() + 2 * sizeof(u8);
+					// Added type byte (1) and string length bytes (8).
+					count += sizeof(u8) + sizeof(u64) + AS_STRING(obj)->str.size();
 					break;
 				default:
 					CH_UNREACHABLE();
@@ -180,18 +181,13 @@ void ByteCode::cacheStream(std::ofstream& os) const
 	os.put(static_cast<char>(CH_VERSION_MINOR));
 	os.put(static_cast<char>(CH_VERSION_PATCH));
 
-	// File name length.
-	os.put(static_cast<char>(file.size()));
+	os.put(static_cast<char>(file.size())); // File name length.
 
-	// Bytecode length.
-	u64 codeSize{block.size()};
-	os.write(reinterpret_cast<const char*>(&codeSize),
-		sizeof(u64));
+	u64 codeSize{block.size()}; // Bytecode length.
+	Bytes::encodeValue(os, codeSize);
 
-	// Constant pool length.
-	u64 poolSize{countPool()};
-	os.write(reinterpret_cast<const char*>(&poolSize),
-		sizeof(u64));
+	u64 poolSize{countPool()}; 	// Constant pool length.
+	Bytes::encodeValue(os, poolSize);
 
 	u64 fileSize{file.size()};
 	constexpr auto maxSize{static_cast<u64>(
