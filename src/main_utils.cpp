@@ -5,7 +5,7 @@
 #include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
-#include "../include/deserializer.h"
+#include "../include/readers.h"
 #include "../include/tokprinter.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
@@ -107,8 +107,8 @@ void optionLoad(const char* fileName)
 		exit(66);
 	}
 
-	Deserializer deserializer{program};
-	ByteCode chunk{deserializer.readCache()};
+	Readers::CodeReader codeReader{program};
+	ByteCode chunk{codeReader.readCache()};
 	Function* script{CH_ALLOC(Function, chunk, 0)};
 	VM{}.executeCode(script);
 
@@ -134,8 +134,8 @@ void optionDis(const char* fileName)
 		exit(66);
 	}
 
-	Deserializer deserializer{program};
-	ByteCode chunk{deserializer.readCache()};
+	Readers::CodeReader codeReader{program};
+	ByteCode chunk{codeReader.readCache()};
 	Disassembler{chunk}.disassembleCode();
 }
 

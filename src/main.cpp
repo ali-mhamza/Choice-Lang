@@ -8,7 +8,7 @@
 #include "../include/main_utils.h"
 #include "../include/object.h"
 #include "../include/parser.h"
-#include "../include/deserializer.h"
+#include "../include/readers.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 
@@ -146,8 +146,8 @@ static Function* runCompiler(FileID id, const vT& tokens)
 				return true; // Nothing to do.
 
 			std::ifstream code{cache};
-			Deserializer deserializer{code};
-			ByteCode chunk{deserializer.readCache()};
+			Readers::CodeReader codeReader{code};
+			ByteCode chunk{codeReader.readCache()};
 
 			if (option == EMIT_BYTECODE)
 			{

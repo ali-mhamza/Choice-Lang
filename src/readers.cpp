@@ -1,4 +1,4 @@
-#include "../include/deserializer.h"
+#include "../include/readers.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/linear_alloc.h"
@@ -26,10 +26,12 @@
     #define CHECK_EOF()
 #endif
 
-Deserializer::Deserializer(std::ifstream& fileIn) :
+using Readers::CodeReader;
+
+CodeReader::CodeReader(std::ifstream& fileIn) :
     cacheFile{fileIn} {}
 
-void Deserializer::readMagic()
+void CodeReader::readMagic()
 {
 	std::array<char, 6> magic{};
 	cacheFile.read(magic.data(), sizeof(magic));
@@ -41,14 +43,14 @@ void Deserializer::readMagic()
 	}
 }
 
-void Deserializer::readVersionNum()
+void CodeReader::readVersionNum()
 {
 	std::array<char, 3> num{};
 	cacheFile.read(num.data(), sizeof(num));
 	handleFileLength(sizeof(num));
 }
 
-void Deserializer::handleFileLength(size_t expected)
+void CodeReader::handleFileLength(size_t expected)
 {
 	if (static_cast<size_t>(cacheFile.gcount()) < expected)
 	{
@@ -62,14 +64,14 @@ void Deserializer::handleFileLength(size_t expected)
 	}
 }
 
-void Deserializer::eofError()
+void CodeReader::eofError()
 {
 	CH_PRINT(stderr, "Reached end of file prematurely.\n");
 	exit(65);
 }
 
 template<typename T>
-T Deserializer::cacheRead(T* mem, size_t memSize)
+T CodeReader::cacheRead(T* mem, size_t memSize)
 {
     cacheFile.read(reinterpret_cast<char*>(mem), memSize);
     handleFileLength(memSize);
@@ -77,7 +79,7 @@ T Deserializer::cacheRead(T* mem, size_t memSize)
 }
 
 template<typename Size>
-Size Deserializer::reconstructBytes()
+Size CodeReader::reconstructBytes()
 {
 	u64 value{0};
 	constexpr size_t size{sizeof(Size)};
@@ -92,7 +94,7 @@ Size Deserializer::reconstructBytes()
 	return *temp;
 }
 
-ByteCode Deserializer::reconstructByteCode()
+ByteCode CodeReader::reconstructByteCode()
 {
 	u64 codeSize{reconstructBytes<u64>()};
 	it++;
@@ -118,7 +120,7 @@ ByteCode Deserializer::reconstructByteCode()
 }
 
 [[nodiscard]]
-Object Deserializer::reconstructFunc()
+Object CodeReader::reconstructFunc()
 {
 	CHECK_EOF();
 	u8 nameLen{*(it++)};
@@ -149,7 +151,7 @@ Object Deserializer::reconstructFunc()
 		return Object{CH_ALLOC(Function, name, reconstructByteCode(), argCount)};
 }
 
-Object Deserializer::reconstructString()
+Object CodeReader::reconstructString()
 {
 	CHECK_EOF();
 	std::string str{};
@@ -163,7 +165,7 @@ Object Deserializer::reconstructString()
 	return Object{CH_ALLOC(String, str)};
 }
 
-vObj Deserializer::reconstructPool(const vByte& poolBytes)
+vObj CodeReader::reconstructPool(const vByte& poolBytes)
 {
 	vObj pool{};
 	// Since we reuse this method recursively in reconstructFunc.
@@ -200,7 +202,7 @@ vObj Deserializer::reconstructPool(const vByte& poolBytes)
 	return pool;
 }
 
-ByteCode Deserializer::readCache()
+ByteCode CodeReader::readCache()
 {
 	if (cacheFile.is_open())
 	{
