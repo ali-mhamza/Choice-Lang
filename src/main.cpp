@@ -76,7 +76,7 @@ enum ArgvOption : u8
 	// the bytecode held in it.
 	DIS_PROGRAM,
 
-	// Explain a particular error code.
+	// Explain a particular error/warning code.
 	EXPLAIN_ERROR,
 
 	// Entire execution pipeline.
