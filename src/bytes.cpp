@@ -82,6 +82,15 @@ void CodeReader::readVersionNum()
 {
 	std::array<u8, 3> num{};
 	readBytes(num.data(), 3);
+
+	if (num[0] != CH_VERSION_MAJOR)
+	{
+		CH_PRINT(stderr,
+			"File version is incompatible with current language implementation.\n" \
+			"Please update to a newer, compatible version."
+		);
+		exit(EXIT_FAILURE);
+	}
 }
 
 ByteCode CodeReader::reconstructByteCode()
