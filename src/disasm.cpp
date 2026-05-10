@@ -345,7 +345,7 @@ void Disassembler::disassembleCode()
 	auto end{code.block.end()};
 	if (topLevel)
 	{
-		if ((file != "") && (ip < end)) // ip < end -> We have some bytecode to print.
+		if (!inRepl && (ip < end)) // ip < end -> We have some bytecode to print.
 			CH_PRINT("=== CODE [{}] ===\n", file);
 		CH_PRINT("Bytes: {}\n", code.block.size());
 	}

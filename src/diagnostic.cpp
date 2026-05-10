@@ -284,10 +284,10 @@ void Diagnostic::report() const
         highlight += label;
     }
 
-    sv file{manager->getFile(id)};
-    if (file.empty()) file = "<script>";
+    sv fileName{manager->getFile(id)};
+    if (fileName.empty()) fileName = "<script>";
 
-    CH_PRINT(stderr, "  --> {} ({}:{})\n", file, lineNo,
+    CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo,
         start);
     CH_PRINT(stderr, "{}|\n", gap);
     CH_PRINT(stderr, " {} | {}\n", lineNo, lineStr);
