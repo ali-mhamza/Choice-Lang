@@ -1,6 +1,9 @@
 #pragma once
 #include "token.h"
+#include <array>
+#include <cstdint>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace AST
@@ -14,31 +17,57 @@ using ExprUP    = std::unique_ptr<AST::Expression::Expr>;
 using StmtVec   = std::vector<StmtUP>;
 using ExprVec   = std::vector<ExprUP>;
 
+#define STMT_LIST       \
+    X(S_VAR_DECL)       \
+    X(S_FUNC_DECL)      \
+    X(S_CLASS_DECL)     \
+    X(S_IF_STMT)        \
+    X(S_WHILE_STMT)     \
+    X(S_FOR_STMT)       \
+    X(S_MATCH_STMT)     \
+    X(S_REPEAT_STMT)    \
+    X(S_RETURN_STMT)    \
+    X(S_BREAK_STMT)     \
+    X(S_CONT_STMT)      \
+    X(S_END_STMT)       \
+    X(S_EXPR_STMT)      \
+    X(S_BLOCK_STMT)
+
+#define EXPR_LIST       \
+    X(E_ASSIGN_EXPR)    \
+    X(E_LOGIC_EXPR)     \
+    X(E_COMPARE_EXPR)   \
+    X(E_BIT_EXPR)       \
+    X(E_SHIFT_EXPR)     \
+    X(E_BINARY_EXPR)    \
+    X(E_UNARY_EXPR)     \
+    X(E_CALL_EXPR)      \
+    X(E_IF_EXPR)        \
+    X(E_LAMBDA_EXPR)    \
+    X(E_COMPREHEN_EXPR) \
+    X(E_LIST_EXPR)      \
+    X(E_REF_EXPR)       \
+    X(E_VAR_EXPR)       \
+    X(E_STR_PART_EXPR)  \
+    X(E_FORMAT_EXPR)    \
+    X(E_LITERAL_EXPR)
+
 namespace AST
 {
     namespace Statement
     {
         enum StmtType : u8
         {
-            S_VAR_DECL,
-            S_FUNC_DECL,
-            S_CLASS_DECL,
-            S_IF_STMT,
-            S_WHILE_STMT,
-            S_FOR_STMT,
-            S_MATCH_STMT,
-            S_REPEAT_STMT,
-            S_RETURN_STMT,
-            S_BREAK_STMT,
-            S_CONT_STMT,
-            S_END_STMT,
-            S_EXPR_STMT,
-            S_BLOCK_STMT
+            #define X(type) type,
+            STMT_LIST
+            #undef X
         };
 
         struct Stmt
         {
             const StmtType type{};
+            u64 sourceStart{UINT64_MAX};
+            u64 sourceEnd{UINT64_MAX};
 
             Stmt(StmtType type);
             virtual ~Stmt() = default;
@@ -213,28 +242,16 @@ namespace AST
     {
         enum ExprType : u8
         {
-            E_ASSIGN_EXPR,
-            E_LOGIC_EXPR,
-            E_COMPARE_EXPR,
-            E_BIT_EXPR,
-            E_SHIFT_EXPR,
-            E_BINARY_EXPR,
-            E_UNARY_EXPR,
-            E_CALL_EXPR,
-            E_IF_EXPR,
-            E_LAMBDA_EXPR,
-            E_COMPREHEN_EXPR,
-            E_LIST_EXPR,
-            E_REF_EXPR,
-            E_VAR_EXPR,
-            E_STR_PART_EXPR,
-            E_FORMAT_EXPR,
-            E_LITERAL_EXPR
+            #define X(type) type,
+            EXPR_LIST
+            #undef X
         };
 
         struct Expr
         {
             const ExprType type{};
+            u64 sourceStart{UINT64_MAX};
+            u64 sourceEnd{UINT64_MAX};
 
             Expr(ExprType type);
             virtual ~Expr() = default;
@@ -431,3 +448,18 @@ namespace AST
         };
     };
 }
+
+constexpr u64 numStmts{AST::Statement::S_BLOCK_STMT + 1};
+constexpr u64 numExprs{AST::Expression::E_LITERAL_EXPR + 1};
+
+constexpr std::array<std::string_view, numStmts> stmtTypes{
+    #define X(type) #type,
+    STMT_LIST
+    #undef X
+};
+
+constexpr std::array<std::string_view, numExprs> exprTypes{
+    #define X(type) #type,
+    EXPR_LIST
+    #undef X
+};

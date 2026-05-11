@@ -11,8 +11,6 @@ class Lexer
         enum NumBase : u8 { DEC, BIN, OCT, HEX };
 
         FileID id{};
-        DiagnosticEngine* engine{};
-
         const char* start{};
         const char* current{};
         const char* end{};
@@ -81,6 +79,6 @@ class Lexer
         void singleToken();
 
     public:
-        Lexer(DiagnosticEngine* engine);
+        Lexer() = default;
         vT& tokenize(FileID id, const std::string_view code);
 };

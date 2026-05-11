@@ -9,7 +9,6 @@ class Parser
     private:
         StmtVec program{};
         FileID id{};
-        DiagnosticEngine* engine{};
 
         Token previousTok{}, currentTok{};
 
@@ -27,6 +26,7 @@ class Parser
         [[nodiscard]] bool matchError(TokenType type, std::string_view message);
         [[nodiscard]] bool consumeType();
         void matchType(std::string_view message = "");
+
         // Bring the compiler back to a proper state.
         void reset();
         void reportSyntax(
@@ -39,6 +39,9 @@ class Parser
             const Token& token,
             std::string_view message = ""
         );
+
+        void setStmtLocation(StmtUP& stmt, u64 start);
+        void setExprLocation(ExprUP& expr, u64 start);
 
         // Recursive descent parsing functions.
 
@@ -101,6 +104,6 @@ class Parser
         bool hitError{false};
         int errorCount{0}; // So it can be modified directly.
 
-        Parser(DiagnosticEngine* engine);
+        Parser() = default;
         [[nodiscard]] StmtVec& parseToAST(FileID id, const vT& tokens);
 };

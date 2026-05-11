@@ -42,9 +42,6 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 	{"def", TOK_DEF},		{"fields", TOK_FIELDS},	{"in", TOK_IN}
 };
 
-Lexer::Lexer(DiagnosticEngine* engine) :
-	engine{engine} {}
-
 void Lexer::setUp(FileID id, const std::string_view& code)
 {
 	this->id = id;
@@ -220,7 +217,7 @@ void Lexer::reportError(DiagCode code, u64 offset, std::string_view message)
 	// prematurely.
 	if ((code == WRONG_CHAR_FOUND) && (current[offset - this->offset] == '\0'))
 	    code = UNEXPECTED_INPUT_END;
-	engine->recordError(id, code, offset, std::string{message});
+	diagEngine.recordError(id, code, offset, std::string{message});
 }
 
 std::string& Lexer::formatNumber(const std::string_view text, bool dec)

@@ -2,6 +2,7 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/diagnostic.h"
 #include "../include/disasm.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
@@ -17,9 +18,37 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
+
+/* File extensions. */
 
 static constexpr std::string_view CH_FILE_EXT{".ch"};
 static constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
+static constexpr std::string_view CH_DEBUG_EXT{".chdbg"};
+
+/* General helpers. */
+
+static std::ifstream openFile(
+	const std::filesystem::path& filePath,
+	bool binary = false,
+	const std::string_view message = "Failed to open file."
+)
+{
+	std::ifstream fileStream{};
+
+	if (binary)
+	    fileStream.open(filePath, std::ios::binary);
+	else
+        fileStream.open(filePath);
+
+	if (fileStream.fail() || !fileStream.is_open())
+	{
+		CH_PRINT(stderr, "{}\n", message);
+		exit(66);
+	}
+
+	return fileStream;
+}
 
 std::string readFile(std::ifstream& stream)
 {
@@ -32,24 +61,20 @@ std::string readFile(std::ifstream& stream)
 
 std::string readFile(const std::filesystem::path& filePath, bool binary)
 {
-	std::ifstream file{};
+	std::ifstream fileStream{openFile(filePath, binary)};
+	return readFile(fileStream);
+}
 
-	if (binary)
-	    file.open(filePath, std::ios::binary);
-	else
-        file.open(filePath);
+bool fileMoreRecent(
+    const std::filesystem::path& a,
+    const std::filesystem::path& b
+)
+{
+	using std::filesystem::exists;
+	using std::filesystem::last_write_time;
 
-	if (file.fail())
-	{
-		CH_PRINT(stderr, "Failed to open file.\n");
-		exit(66);
-	}
-
-	if (file.is_open())
-	    return readFile(file);
-
-	CH_PRINT(stderr, "File is closed.\n");
-	exit(66);
+	return (exists(a) && exists(b)
+			&& (last_write_time(a) >= last_write_time(b)));
 }
 
 void normalizeInput(std::string& input)
@@ -69,6 +94,8 @@ void normalizeInput(std::string& input)
     }
 }
 
+/* Special option handlers. */
+
 void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens)
 {
 	TokenPrinter{manager, id, tokens}.printTokens();
@@ -79,7 +106,7 @@ void optionShowBytes(const ByteCode& chunk)
 	Disassembler{chunk}.disassembleCode();
 }
 
-void optionCacheBytes(const ByteCode& chunk, const char* fileName)
+void optionCacheBytes(FileID id, const ByteCode& chunk)
 {
 	if (chunk.codeSize() == 0)
 	{
@@ -87,10 +114,92 @@ void optionCacheBytes(const ByteCode& chunk, const char* fileName)
 		return;
 	}
 
-	std::filesystem::path filePath{fileName};
+	std::filesystem::path filePath{sourceManager.getFile(id)};
 	filePath.replace_extension(CH_BYTECODE_EXT);
 	std::ofstream cacheFile{filePath.filename().c_str(), std::ios::binary};
-	chunk.cacheStream(cacheFile);
+
+	const auto& lineMarkers{sourceManager.getLineMarkers(id)};
+
+	chunk.encodeHeaders(cacheFile, id);
+	Bytes::encodeValue(cacheFile, static_cast<u64>(lineMarkers.size()));
+	for (const auto& marker : lineMarkers)
+		Bytes::encodeValue(cacheFile, marker);
+	chunk.encodeData(cacheFile);
+	chunk.encodeMetadata(cacheFile);
+}
+
+// Read headers and file name.
+// Read debug info state field.
+// If bytecode information is stripped, ignore following steps.
+
+// Check if bytecode and debug info are combined.
+// - If they are, read only the line markers and let
+// the code reader parse the rest of the debug info.
+// - If not, read all the debug data first, organize it,
+// then pass it to the code reader to use when parsing
+// the bytecode objects.
+
+// For both, if the source file is available, read it
+// then store it in the source manager (let it compute
+// the line markers manually).
+// If it isn't available, store the file name and line markers
+// in the source manager directly (keep file content empty).
+
+// Only read/load the source file if it is not more recent
+// than the bytecode file. Otherwise, report an error/warning(?)
+// and ignore it.
+
+[[nodiscard]]
+static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
+{
+	std::ifstream program{openFile(fileName, true)};
+	std::filesystem::path debugFile{fileName};
+	debugFile.replace_extension(CH_DEBUG_EXT);
+
+	Bytes::CodeReader codeReader{program};
+	codeReader.readHeaders();
+	auto infoState{codeReader.readDebugState()};
+	auto originalFile{codeReader.readFileName()};
+
+	file = originalFile;
+	FileID id{sourceManager.addFile(originalFile)};
+
+	if (infoState != DEBUG_STRIPPED)
+	{
+		std::vector<u64> lineMarkers{};
+		std::vector<DebugMetadata> metadataBlocks{};
+		bool usingSource{false};
+
+		std::filesystem::path checkPath{};
+		if (infoState == DEBUG_COMBINED)
+			checkPath = fileName;
+		else
+			checkPath = debugFile;
+
+		if (fileMoreRecent(checkPath, originalFile))
+		{
+			std::string fileContent{readFile(originalFile)};
+			sourceManager.setContent(id, fileContent);
+			usingSource = true;
+		}
+
+		if (infoState == DEBUG_SEPARATE)
+		{
+			std::ifstream debugStream{openFile(debugFile, true,
+				"Failed to access debug information.")};
+			Bytes::DebugReader debugReader{debugStream};
+			lineMarkers = debugReader.readLineMarkers();
+			metadataBlocks = debugReader.readMetadata();
+		}
+		else /* if (infoState == DEBUG_COMBINED) */
+			lineMarkers = codeReader.readLineMarkers();
+
+		if (!usingSource)
+			sourceManager.setLineMarkers(id, lineMarkers);
+		return std::make_pair(codeReader.readCache(metadataBlocks), id);
+	}
+
+	return std::make_pair(codeReader.readCache(), id);
 }
 
 void optionLoad(const char* fileName)
@@ -101,17 +210,8 @@ void optionLoad(const char* fileName)
 		exit(65);
 	}
 
-	external = true;
-
-	std::ifstream program{fileName, std::ios::binary};
-	if (program.fail())
-	{
-		CH_PRINT(stderr, "Failed to open file.\n");
-		exit(66);
-	}
-
-	Bytes::CodeReader codeReader{program};
-	ByteCode chunk{codeReader.readCache()};
+	auto [chunk, id] = readByteCode(fileName);
+	(void) id;
 	Function* script{CH_ALLOC(Function, chunk, 0)};
 	VM{}.executeCode(script);
 
@@ -128,19 +228,12 @@ void optionDis(const char* fileName)
 		exit(65);
 	}
 
-	external = true;
-
-	std::ifstream program{fileName, std::ios::binary};
-	if (program.fail())
-	{
-		CH_PRINT(stderr, "Failed to open file.\n");
-		exit(66);
-	}
-
-	Bytes::CodeReader codeReader{program};
-	ByteCode chunk{codeReader.readCache()};
+	auto [chunk, id] = readByteCode(fileName);
+	(void) id;
 	Disassembler{chunk}.disassembleCode();
 }
+
+/* File extension check. */
 
 bool fileNameCheck(const std::string_view fileName)
 {

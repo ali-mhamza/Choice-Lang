@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "diagnostic.h"
 #include "opcodes.h"
 #include <fstream>
 #include <vector>
@@ -14,6 +15,7 @@ class ByteCode
     private:
         vByte block{};
         vObj pool{};
+        DebugMetadata metadata{};
 
         void addByte(u8 byte);
         template<typename... Bytes>
@@ -27,6 +29,8 @@ class ByteCode
         void clearCode();
         void clearPool();
 
+        void sortMetadata();
+
     public:
         ByteCode() = default;
         ByteCode(const vByte& block);
@@ -35,6 +39,8 @@ class ByteCode
         void addOp(Opcode op);
         template<typename... Bytes>
         void addOp(Opcode op, Bytes... opers);
+
+        void setDebugData(const DebugMetadata& metadata);
 
         // Add a jump instruction with an optional condition
         // register
@@ -54,10 +60,16 @@ class ByteCode
 
         [[nodiscard]]
         u64 codeSize() const { return static_cast<u64>(block.size()); }
-        // Serialize a ByteCode object into a file.
-        void cacheStream(std::ofstream& os) const;
         // Clear code and constant pool.
         void clear();
+
+        // Serialize data headers into a file.
+        // `id` represents the original file's file ID.
+        void encodeHeaders(std::ofstream& os, FileID id) const;
+        // Serialize code and pool data into a file.
+        void encodeData(std::ofstream& os) const;
+        // Serialize debug metadata into a file.
+        void encodeMetadata(std::ofstream& os) const;
 
         friend class Disassembler;
         friend struct Function;

@@ -22,10 +22,14 @@
     const std::filesystem::path& filePath,
     bool binary = false
 );
+bool fileMoreRecent(
+    const std::filesystem::path& a,
+    const std::filesystem::path& b
+);
 void normalizeInput(std::string& input);
 void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens);
 void optionShowBytes(const ByteCode& chunk);
 void optionLoad(const char* fileName);
 void optionDis(const char* fileName);
-void optionCacheBytes(const ByteCode& chunk, const char* fileName);
+void optionCacheBytes(FileID id, const ByteCode& chunk);
 [[nodiscard]] bool fileNameCheck(const std::string_view fileName);

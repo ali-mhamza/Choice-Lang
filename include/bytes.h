@@ -12,18 +12,18 @@ static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");
 namespace Bytes
 {
     template<typename T>
-    void encodeMemValue(u8* mem, T value)
+    void encodeMemValue(u8* mem, const T value)
     {
         if (mem == nullptr) return;
 
         constexpr auto size{sizeof(T)};
-        u64* asBytes{reinterpret_cast<u64*>(&value)};
+        const u64* asBytes{reinterpret_cast<const u64*>(&value)};
         for (size_t i{0}; i < size; i++)
             mem[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & 0xff;
     }
 
     template<typename T>
-    void encodeValue(std::ofstream& os, T value)
+    void encodeValue(std::ofstream& os, const T value)
     {
         std::array<u8, sizeof(T)> bytes{};
         encodeMemValue(bytes.data(), value);
@@ -36,6 +36,9 @@ namespace Bytes
     class CodeReader
     {
         private:
+            // Debug info exists and is combined with the bytecode,
+            // so both must be read together.
+            bool debugInfoCombined{};
             vByte cacheBytes{};
             vBit it{};
             vBit end{};
@@ -50,6 +53,7 @@ namespace Bytes
 
             void readMagic();
             void readVersionNum();
+            void readDebugMetadata(ByteCode& code);
 
             /* Object reconstructors. */
 
@@ -59,7 +63,7 @@ namespace Bytes
 
             /* Constant pool reconstructor. */
 
-            [[nodiscard]] vObj reconstructPool(const vByte& poolBytes);
+            [[nodiscard]] vObj reconstructPool(u64 poolByteSize);
 
         public:
             CodeReader(std::ifstream& cacheFile);
@@ -67,24 +71,33 @@ namespace Bytes
             CodeReader(const CodeReader&) = delete;
             CodeReader& operator=(const CodeReader&) = delete;
 
+            void readHeaders();
+            DebugInfoState readDebugState();
+            std::string readFileName();
+            std::vector<u64> readLineMarkers();
             [[nodiscard]] ByteCode readCache();
+            [[nodiscard]] ByteCode readCache(std::vector<DebugMetadata>& metadata);
     };
 
     class DebugReader
     {
         private:
             vByte debugBytes{};
-            u64 index{0};
+            vBit it{};
+            vBit end{};
 
             template<typename T>
             [[nodiscard]] T readValue();
 
         public:
+            DebugReader(vBit& it, vBit& end);
             DebugReader(std::ifstream& debugFile);
 
             DebugReader(const DebugReader&) = delete;
             DebugReader& operator=(const DebugReader&) = delete;
 
-            std::vector<DbgBlock> decodeBlocks();
+            std::vector<u64> readLineMarkers();
+            DebugMetadata readMetadataBlock();
+            std::vector<DebugMetadata> readMetadata();
     };
 }

@@ -52,7 +52,8 @@ class ASTCompiler
         ByteCode code{};
         ASTCompiler* const scopeCompiler{};
         FileID id{};
-        DiagnosticEngine* engine{};
+
+        u64 metadataIndex{};
 
         u8 nextReg{0};
         u8 scope{0};       // Our current block scope depth.
@@ -226,12 +227,16 @@ class ASTCompiler
         void compileExpr(const ExprUP& node);
         void compileStmt(const StmtUP& node);
 
+        // Finalize and return ByteCode object.
+        ByteCode& getCode();
+
     public:
+        static std::vector<DebugMetadata> metadataBlocks;
         // So they can be modified directly.
         bool hitError{false};
         int errorCount{0};
 
-        ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp = nullptr);
+        ASTCompiler(ASTCompiler* comp = nullptr);
         ~ASTCompiler();
 
         [[nodiscard]] Function* compile(FileID id, const StmtVec& program);

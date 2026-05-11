@@ -165,9 +165,12 @@ using vBit  = vByte::const_iterator;
 
 /* Global variables. */
 
-// Whether we're running an externally loaded
-// program or not.
-extern bool external;
+class SourceManager;
+extern SourceManager sourceManager;
+
+class DiagnosticEngine;
+extern DiagnosticEngine diagEngine;
+
 // Whether or not we are in the REPL or executing
 // a given file.
 extern bool inRepl;

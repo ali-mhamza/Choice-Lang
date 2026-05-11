@@ -8,7 +8,7 @@
 #include "../include/main_utils.h"
 #include "../include/object.h"
 #include "../include/parser.h"
-#include "../include/readers.h"
+#include "../include/bytes.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 
@@ -20,8 +20,10 @@
 	#include "replxx.hxx"
 #endif
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -43,11 +45,10 @@
 	#define CLEAR_REPL_HISTORY	0
 #endif
 
-static SourceManager sourceManager{};
-static DiagnosticEngine diagEngine{&sourceManager};
+SourceManager sourceManager{};
+DiagnosticEngine diagEngine{&sourceManager};
 
 std::string file{};
-bool external{false};
 bool inRepl{false};
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
@@ -97,15 +98,15 @@ static const std::unordered_map<std::string_view, ArgvOption> options{
 [[nodiscard]]
 static inline vT& runLexer(FileID id, const std::string_view source)
 {
-	static Lexer lexer{&diagEngine};
+	static Lexer lexer{};
 	return lexer.tokenize(id, source);
 }
 
 [[nodiscard]]
 static Function* runCompiler(FileID id, const vT& tokens)
 {
-	static Parser parser{&diagEngine};
-	static ASTCompiler compiler{&diagEngine};
+	static Parser parser{};
+	static ASTCompiler compiler{};
 	const StmtVec& program = parser.parseToAST(id, tokens);
 
 	#ifdef TYPE
@@ -139,8 +140,7 @@ static Function* runCompiler(FileID id, const vT& tokens)
 
 	if (exists(file))
 	{
-		if (exists(cache) &&
-			(last_write_time(cache) >= last_write_time(file)))
+		if (fileMoreRecent(cache, file))
 		{
 			if (option == CACHE_BYTECODE)
 				return true; // Nothing to do.
@@ -170,7 +170,7 @@ static Function* runCompiler(FileID id, const vT& tokens)
 	}
 	else
 	{
-		CH_PRINT(stderr, "Failed to open file.\n");
+		CH_PRINT(stderr, "File does not exist.\n");
 		exit(66);
 	}
 
@@ -238,7 +238,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	}
 	if (option == CACHE_BYTECODE)
 	{
-		optionCacheBytes(script->code, fileName);
+		optionCacheBytes(id, script->code);
 		return;
 	}
 
@@ -340,7 +340,7 @@ static void repl(ArgvOption option = EXECUTE)
 			#endif
 
 			normalizeInput(line);
-			sourceManager.setFileContent(id, line);
+			sourceManager.setContent(id, line);
 
 			vT& tokens{runLexer(id, line)};
 			if (option == EMIT_TOKENS)

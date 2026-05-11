@@ -3,6 +3,7 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/token.h"
+#include <cstddef>
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -16,16 +17,15 @@ using namespace AST::Expression;
         reportSyntax(__VA_ARGS__);  \
         return nullptr;             \
     } while (false)
+
 #define REPORT_SEMANTIC(...)            \
     do {                                \
         reportSemantic(__VA_ARGS__);    \
         return nullptr;                 \
     } while (false)
+
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
-
-Parser::Parser(DiagnosticEngine* engine) :
-    engine{engine} {}
 
 void Parser::nextTok()
 {
@@ -146,7 +146,7 @@ void Parser::reportSyntax(
     if (syntaxError) return;
     syntaxError = true;
 
-    engine->recordError(id, code, token, std::string{message});
+    diagEngine.recordError(id, code, token, std::string{message});
 }
 
 void Parser::reportSemantic(
@@ -166,12 +166,34 @@ void Parser::reportSemantic(
     // errorCount++;
     if (semanticError) return;
     semanticError = true;
-    engine->recordError(id, code, token, std::string{message});
+    diagEngine.recordError(id, code, token, std::string{message});
+}
+
+void Parser::setStmtLocation(StmtUP& stmt, u64 start)
+{
+    if (stmt != nullptr)
+    {
+        stmt->sourceStart = start;
+        stmt->sourceEnd = previousTok.byteOffset
+            + previousTok.text.size();
+    }
+}
+
+void Parser::setExprLocation(ExprUP& expr, u64 start)
+{
+    if (expr != nullptr)
+    {
+        expr->sourceStart = start;
+        expr->sourceEnd = previousTok.byteOffset
+            + previousTok.text.size();
+    } 
 }
 
 StmtUP Parser::declaration()
 {
     StmtUP ret{nullptr};
+    u64 start{currentTok.byteOffset};
+
     if (consumeTok(TOK_SEMICOLON)) // Empty statement.
         return ret;
     else if (consumeToks(TOK_MAKE, TOK_FIX))
@@ -187,6 +209,7 @@ StmtUP Parser::declaration()
         syntaxError = semanticError = false;
     }
 
+    setStmtLocation(ret, start);
     return ret;
 }
 
@@ -269,24 +292,27 @@ StmtUP Parser::funDecl()
 
 StmtUP Parser::statement()
 {
+    StmtUP stmt{nullptr};
+    u64 start{currentTok.byteOffset};
+
     if (consumeTok(TOK_IF))
-        return ifStmt();
+        stmt = ifStmt();
     else if (consumeTok(TOK_WHILE))
-        return whileStmt();
+        stmt = whileStmt();
     else if (consumeTok(TOK_FOR))
-        return forStmt();
+        stmt = forStmt();
     else if (consumeTok(TOK_MATCH))
-        return matchStmt();
+        stmt = matchStmt();
     else if (consumeTok(TOK_REPEAT))
-        return repeatStmt();
+        stmt = repeatStmt();
     else if (consumeTok(TOK_RETURN))
-        return returnStmt();
+        stmt = returnStmt();
     else if (consumeTok(TOK_BREAK))
-        return breakStmt();
+        stmt = breakStmt();
     else if (consumeTok(TOK_LEFT_BRACE))
-        return blockStmt();
+        stmt = blockStmt();
     else if (consumeTok(TOK_CONT))
-        return continueStmt();
+        stmt = continueStmt();
     // Consider splitting into their own methods.
     else if (consumeTok(TOK_FALL))
     {
@@ -303,9 +329,13 @@ StmtUP Parser::statement()
         if (!inMatch)
             REPORT_SEMANTIC(INVALID_END, previousTok);
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'end'");
-        return std::make_unique<EndStmt>();
+        stmt = std::make_unique<EndStmt>();
     }
-    return exprStmt();
+    else
+        stmt = exprStmt();
+
+    setStmtLocation(stmt, start);
+    return stmt;
 }
 
 StmtUP Parser::ifStmt()
@@ -432,7 +462,6 @@ StmtUP Parser::repeatStmt()
         label = previousTok;
 
     MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before 'repeat' block");
-    if (previousTok.type != TOK_LEFT_BRACE) return nullptr;
 
     StmtUP body{blockStmt()}; // Will consume the '}'.
     MATCH_TOK(TOK_UNTIL, "expect 'until' condition after 'repeat'");
@@ -481,12 +510,17 @@ StmtUP Parser::continueStmt()
 
 StmtUP Parser::blockStmt()
 {
+    u64 start{previousTok.byteOffset}; // The left '{'.
     StmtVec block{};
     block.reserve(10);
+
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
         block.push_back(declaration());
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after block");
-    return std::make_unique<BlockStmt>(block);
+
+    StmtUP blockStmt{std::make_unique<BlockStmt>(block)};
+    setStmtLocation(blockStmt, start);
+    return blockStmt;
 }
 
 StmtUP Parser::exprStmt()
@@ -499,6 +533,7 @@ StmtUP Parser::exprStmt()
 ExprUP Parser::returnExpr()
 {
     ExprVec entries{};
+    u64 start{currentTok.byteOffset};
     ExprUP entry{expression()};
 
     if (consumeTok(TOK_COMMA))
@@ -511,7 +546,9 @@ ExprUP Parser::returnExpr()
     else
         return entry;
 
-    return std::make_unique<ListExpr>(entries);
+    ExprUP expr{std::make_unique<ListExpr>(entries)};
+    setExprLocation(expr, start);
+    return expr;
 }
 
 ExprUP Parser::expression()
@@ -521,6 +558,7 @@ ExprUP Parser::expression()
 
 ExprUP Parser::assignment()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP target{logicOr()};
     if (IS_ASSIGN_TOK(currentTok.type))
     {
@@ -531,11 +569,13 @@ ExprUP Parser::assignment()
         target = std::make_unique<AssignExpr>(target, oper, logicOr());
     }
 
+    setExprLocation(target, start);
     return target;
 }
 
 ExprUP Parser::logicOr()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{logicAnd()};
     while (consumeToks(TOK_BAR_BAR, TOK_OR))
     {
@@ -543,11 +583,13 @@ ExprUP Parser::logicOr()
         expr = std::make_unique<LogicExpr>(expr, oper, logicAnd());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::logicAnd()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{equality()};
     while (consumeToks(TOK_AMP_AMP, TOK_AND))
     {
@@ -555,11 +597,13 @@ ExprUP Parser::logicAnd()
         expr = std::make_unique<LogicExpr>(expr, oper, equality());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::equality()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{comparison()};
     while (consumeToks(TOK_EQ_EQ, TOK_BANG_EQ))
     {
@@ -567,11 +611,13 @@ ExprUP Parser::equality()
         expr = std::make_unique<CompareExpr>(expr, oper, comparison());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::comparison()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{range()};
     while (consumeToks(TOK_GT, TOK_GT_EQ, TOK_LT, TOK_LT_EQ, TOK_IN)
             || (consumeTok(TOK_NOT) && checkTok(TOK_IN)))
@@ -581,11 +627,13 @@ ExprUP Parser::comparison()
         expr = std::make_unique<CompareExpr>(expr, oper, range());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::range()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{bitOr()};
     if (consumeTok(TOK_DOT_DOT))
     {
@@ -593,11 +641,13 @@ ExprUP Parser::range()
         expr = std::make_unique<BinaryExpr>(expr, oper, bitOr());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::bitOr()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{bitXor()};
     while (consumeTok(TOK_BAR))
     {
@@ -605,11 +655,13 @@ ExprUP Parser::bitOr()
         expr = std::make_unique<BitExpr>(expr, oper, bitXor());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::bitXor()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{bitAnd()};
     while (consumeTok(TOK_UARROW))
     {
@@ -617,11 +669,13 @@ ExprUP Parser::bitXor()
         expr = std::make_unique<BitExpr>(expr, oper, bitAnd());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::bitAnd()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{shift()};
     while (consumeTok(TOK_AMP))
     {
@@ -629,11 +683,13 @@ ExprUP Parser::bitAnd()
         expr = std::make_unique<BitExpr>(expr, oper, shift());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::shift()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{sum()};
     while (consumeToks(TOK_RIGHT_SHIFT, TOK_LEFT_SHIFT))
     {
@@ -641,11 +697,13 @@ ExprUP Parser::shift()
         expr = std::make_unique<ShiftExpr>(expr, oper, sum());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::sum()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{product()};
     while (consumeToks(TOK_PLUS, TOK_MINUS))
     {
@@ -653,11 +711,13 @@ ExprUP Parser::sum()
         expr = std::make_unique<BinaryExpr>(expr, oper, product());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::product()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{unary()};
     while (consumeToks(TOK_STAR, TOK_SLASH, TOK_PERCENT))
     {
@@ -665,23 +725,30 @@ ExprUP Parser::product()
         expr = std::make_unique<BinaryExpr>(expr, oper, unary());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
 ExprUP Parser::unary()
 {
+    u64 start{currentTok.byteOffset};
+    ExprUP expr{nullptr};
     if (consumeToks(TOK_INCR, TOK_DECR, TOK_MINUS,
         TOK_BANG, TOK_NOT, TOK_TILDE))
     {
         Token oper{previousTok};
-        return std::make_unique<UnaryExpr>(oper, unary(), false);
+        expr = std::make_unique<UnaryExpr>(oper, unary(), false);
     }
+    else
+        expr = exponent();
 
-    return exponent();
+    setExprLocation(expr, start);
+    return expr;
 }
 
 ExprUP Parser::exponent()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{call()};
     while (consumeTok(TOK_STAR_STAR))
     {
@@ -689,6 +756,7 @@ ExprUP Parser::exponent()
         expr = std::make_unique<BinaryExpr>(expr, oper, exponent());
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
@@ -698,6 +766,7 @@ ExprUP Parser::call()
     // Just has to evaluate to a callable object.
     // Exception: builtin with ! token.
 
+    u64 start{currentTok.byteOffset};
     ExprUP expr{post()};
     if ((currentTok.type == TOK_BANG) && (expr != nullptr)
         && (expr->type != E_VAR_EXPR))
@@ -734,14 +803,16 @@ ExprUP Parser::call()
         }
 
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' following function arguments");
-        return std::make_unique<CallExpr>(expr, args, builtin, previousTok);
+        expr = std::make_unique<CallExpr>(expr, args, builtin, previousTok);
     }
-    else
-        return expr;
+
+    setExprLocation(expr, start);
+    return expr;
 }
 
 ExprUP Parser::post()
 {
+    u64 start{currentTok.byteOffset};
     ExprUP expr{primary()};
 
     if (consumeToks(TOK_INCR, TOK_DECR))
@@ -754,6 +825,7 @@ ExprUP Parser::post()
         } while (consumeToks(TOK_INCR, TOK_DECR));
     }
 
+    setExprLocation(expr, start);
     return expr;
 }
 
@@ -845,35 +917,41 @@ ExprUP Parser::formatString()
 
 ExprUP Parser::primary()
 {
+    u64 start{currentTok.byteOffset};
+    ExprUP expr{nullptr};
+
     nextTok();
     TokenType type{previousTok.type};
 
     if (IS_LITERAL_TOK(type))
-        return std::make_unique<LiteralExpr>(previousTok);
+        expr = std::make_unique<LiteralExpr>(previousTok);
 
     else if (type == TOK_IDENTIFIER)
-        return std::make_unique<VarExpr>(previousTok);
+        expr = std::make_unique<VarExpr>(previousTok);
 
     else if (IS_INTER_TOK(type))
-        return formatString();
+        expr = formatString();
 
     else if (type == TOK_LEFT_PAREN)
     {
-        ExprUP expr{expression()};
+        expr = expression();
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after grouped expression");
-        return expr;
     }
 
     else if (type == TOK_IF)
-        return ifExpr();
+        expr = ifExpr();
 
     else if (type == TOK_BAR || type == TOK_BAR_BAR)
-        return lambda(type == TOK_BAR_BAR);
+        expr = lambda(type == TOK_BAR_BAR);
 
     else if (type == TOK_LEFT_BRACKET)
-        return list();
+        expr = list();
 
-    REPORT_SYNTAX(INVALID_TOKEN, previousTok);
+    else
+        REPORT_SYNTAX(INVALID_TOKEN, previousTok);
+
+    setExprLocation(expr, start);
+    return expr;
 }
 
 StmtVec& Parser::parseToAST(FileID id, const vT& tokens)

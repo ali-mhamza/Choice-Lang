@@ -2,6 +2,7 @@
 
 #include "linearTable.h"
 
+#include "astnodes.h"
 #include "common.h"
 #include "token.h"
 #include <string>
@@ -20,6 +21,36 @@ struct FileData
     std::vector<u64> lineMarkers{};
 };
 
+struct DebugRange
+{
+    bool isStmt{};
+    AST::Statement::StmtType stmtType{};
+    AST::Expression::ExprType exprType{};
+    u64 byteStart{};    // The first instruction for the expression/statement.
+    u64 byteEnd{};      // The last instruction for the expression/statement (not included).
+    u64 sourceStart{};  // Offset into the source code wher the expression/statement starts.
+    u64 sourceEnd{};    // Offset into the source code wher the expression/statement ends.
+
+    bool operator==(const DebugRange& other) const
+    {
+        return ((this->byteStart == other.byteStart)
+                && (this->byteEnd == other.byteEnd));
+    }
+
+    bool operator!=(const DebugRange& other) const
+    {
+        return !(*this == other);
+    }
+};
+
+// The three cases for debug info with respect to a ByteCode cache file.
+enum DebugInfoState : u8
+{
+    DEBUG_COMBINED, DEBUG_SEPARATE, DEBUG_STRIPPED
+};
+
+using DebugMetadata = std::vector<DebugRange>;
+
 class SourceManager
 {
     private:
@@ -31,10 +62,11 @@ class SourceManager
     public:
         SourceManager() = default;
         [[nodiscard]]
-        FileID addFile(const std::string& name, const std::string& content);
-        void setFileContent(FileID id, const std::string& content);
-        [[nodiscard]]
-        const std::string& getFile(FileID id) { return sourceData[id].fileName; }
+        FileID addFile(const std::string& name, const std::string& content = "");
+        void setContent(FileID id, const std::string& content);
+        void setLineMarkers(FileID id, const std::vector<u64>& lineMarkers);
+        [[nodiscard]] const std::string& getFile(FileID id);
+        [[nodiscard]] const std::vector<u64>& getLineMarkers(FileID id);
         [[nodiscard]]
         std::tuple<u64, u64, sv> getLineColumn(FileID id, u64 offset);
 };

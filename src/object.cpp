@@ -349,16 +349,9 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(argCount));
     os.put(static_cast<char>(lambda));
 
-    const vByte& block{code.block};
-    Bytes::encodeValue(os, static_cast<u64>(block.size()));
-    Bytes::encodeValue(os, static_cast<u64>(code.countPool()));
-    os.write(reinterpret_cast<const char*>(block.data()),
-		block.size());
-
-	// Constant pool.
-    const vObj& pool{code.pool};
-	for (const Object& constant : pool)
-		constant.emit(os);
+    code.encodeData(os);
+    // ASSUMES COMBINED DEBUG INFO.
+    code.encodeMetadata(os);
 }
 
 Closure::Closure(Function* function) :

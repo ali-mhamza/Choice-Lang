@@ -41,8 +41,10 @@ constexpr bool setVar{false};
 
 /* Constructors/destructors. */
 
-ASTCompiler::ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp) :
-    scopeCompiler{comp}, engine{engine},
+std::vector<DebugMetadata> ASTCompiler::metadataBlocks{};
+
+ASTCompiler::ASTCompiler(ASTCompiler* comp) :
+    scopeCompiler{comp},
     depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)}
 {
     if (depth == 0) // Global scope compiler.
@@ -52,6 +54,9 @@ ASTCompiler::ASTCompiler(DiagnosticEngine* engine, ASTCompiler* comp) :
     }
     else
         this->id = scopeCompiler->id;
+
+    metadataIndex = metadataBlocks.size();
+    metadataBlocks.emplace_back();
 }
 
 ASTCompiler::~ASTCompiler() = default;
@@ -288,7 +293,7 @@ void ASTCompiler::reportError(
     hitError = true;
     if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
         code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
-    engine->recordError(id, code, token, std::string{message});
+    diagEngine.recordError(id, code, token, std::string{message});
 }
 
 void ASTCompiler::reportPart(
@@ -300,9 +305,9 @@ void ASTCompiler::reportPart(
 )
 {
     if (isError)
-        engine->recordError(id, code, offset, length, std::string{message});
+        diagEngine.recordError(id, code, offset, length, std::string{message});
     else
-        engine->recordWarning(id, code, offset, length, std::string{message});
+        diagEngine.recordWarning(id, code, offset, length, std::string{message});
 }
 
 void ASTCompiler::reportPartError(
@@ -369,7 +374,7 @@ void ASTCompiler::funcBodyHelper(
     const std::string& name
 )
 {
-    ASTCompiler miniCompiler{engine, this};
+    ASTCompiler miniCompiler{this};
     // The number of "parameter" tokens that aren't identifiers.
     u8 removeCount{0};
     for (auto it{params.begin()}; it != params.end(); it++)
@@ -394,7 +399,7 @@ void ASTCompiler::funcBodyHelper(
     miniCompiler.code.addOp(OP_VOID, 0);
     miniCompiler.code.addOp(OP_RETURN, 0);
 
-    ByteCode& funcCode{miniCompiler.code};
+    ByteCode& funcCode{miniCompiler.getCode()};
     if (miniCompiler.hitError)
         this->hitError = true;
 
@@ -1293,6 +1298,12 @@ void ASTCompiler::compileExpr(const ExprUP& node)
 {
     if (node == nullptr) return;
 
+    u64 lastIndex{metadataBlocks[metadataIndex].size()};
+    metadataBlocks[metadataIndex].push_back(DebugRange{
+        false, StmtType{}, node->type, code.codeSize(), 0,
+        node->sourceStart, node->sourceEnd
+    });
+
     switch (node->type)
     {
         case E_ASSIGN_EXPR:     COMPILE(AssignExpr);        break;
@@ -1313,11 +1324,19 @@ void ASTCompiler::compileExpr(const ExprUP& node)
         case E_FORMAT_EXPR:     COMPILE(FormatExpr);        break;
         case E_LITERAL_EXPR:    COMPILE(LiteralExpr);       break;
     }
+
+    metadataBlocks[metadataIndex][lastIndex].byteEnd = code.codeSize();
 }
 
 void ASTCompiler::compileStmt(const StmtUP& node)
 {
     if (node == nullptr) return;
+
+    u64 lastIndex{metadataBlocks[metadataIndex].size()};
+    metadataBlocks[metadataIndex].push_back(DebugRange{
+        true, node->type, ExprType{}, code.codeSize(), 0,
+        node->sourceStart, node->sourceEnd
+    });
 
     switch (node->type)
     {
@@ -1336,19 +1355,30 @@ void ASTCompiler::compileStmt(const StmtUP& node)
         case S_EXPR_STMT:   COMPILE(ExprStmt);      break;
         case S_BLOCK_STMT:  COMPILE(BlockStmt);     break;
     }
+
+    metadataBlocks[metadataIndex][lastIndex].byteEnd = code.codeSize();
+}
+
+ByteCode& ASTCompiler::getCode()
+{
+    code.setDebugData(metadataBlocks.back());
+    metadataBlocks.pop_back();
+    return code;
 }
 
 Function* ASTCompiler::compile(FileID id, const StmtVec& program)
 {
     this->id = id;
     code.clear();
+    // Since we reuse the compiler.
+    metadataBlocks.emplace_back();
     // Inherit hitError and errorCount from parser.
 
     for (const StmtUP& node : program)
         compileStmt(node);
 
     if (hitError) code.clear();
-    return CH_ALLOC(Function, code, 0);
+    return CH_ALLOC(Function, getCode(), 0);
 }
 
 #undef DEF

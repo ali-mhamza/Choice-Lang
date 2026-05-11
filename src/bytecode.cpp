@@ -41,6 +41,12 @@ void ByteCode::addOp(Opcode op)
 	addByte(static_cast<u8>(op));
 }
 
+void ByteCode::setDebugData(const DebugMetadata& metadata)
+{
+	this->metadata = metadata;
+	sortMetadata();
+}
+
 u64 ByteCode::addJump(Opcode op, i16 reg)
 {
 	if (reg == -1)
@@ -148,6 +154,8 @@ u64 ByteCode::countPool() const
 				case OBJ_LAMBDA:
 				{
 					const Function& func{*(AS_FUNC(obj))};
+					constexpr u64 metadataBlockSize{4 * sizeof(u64) + sizeof(u8)};
+
 					if (func.name != nullptr) count += strlen(func.name);
 					// Added type byte (1) and name length byte (1)
 					// and argCount byte (1) and lambda Boolean byte (1).
@@ -156,6 +164,9 @@ u64 ByteCode::countPool() const
 					// as well as the actual sizes of the code and pool.
 					count += 2 * sizeof(u64) + func.code.codeSize()
 						+ func.code.countPool();
+					// Add metadata + metadata size value (8 bytes).
+					// ASSUMES COMBINED DEBUG INFO.
+					count += (func.code.metadata.size() * metadataBlockSize) + sizeof(u64);
 					break;
 				}
 				case OBJ_STRING:
@@ -169,44 +180,6 @@ u64 ByteCode::countPool() const
 	}
 
 	return count;
-}
-
-void ByteCode::cacheStream(std::ofstream& os) const
-{
-	// Magic.
-	os.write("choice", sizeof("choice") - 1);
-
-	// Version number.
-	os.put(static_cast<char>(CH_VERSION_MAJOR));
-	os.put(static_cast<char>(CH_VERSION_MINOR));
-	os.put(static_cast<char>(CH_VERSION_PATCH));
-
-	os.put(static_cast<char>(file.size())); // File name length.
-
-	u64 codeSize{block.size()}; // Bytecode length.
-	Bytes::encodeValue(os, codeSize);
-
-	u64 poolSize{countPool()}; 	// Constant pool length.
-	Bytes::encodeValue(os, poolSize);
-
-	u64 fileSize{file.size()};
-	constexpr auto maxSize{static_cast<u64>(
-		std::numeric_limits<std::streamsize>::max()
-	)};
-	// Check to avoid narrowing conversions below.
-	if ((fileSize > maxSize) || (codeSize > maxSize))
-		return; // Report an error.
-
-	// File name.
-	os.write(file.data(), static_cast<std::streamsize>(file.size()));
-
-	// Bytecode.
-	os.write(reinterpret_cast<const char*>(block.data()),
-		static_cast<std::streamsize>(block.size()));
-
-	// Constant pool.
-	for (const Object& constant : pool)
-		constant.emit(os);
 }
 
 void ByteCode::clearCode()
@@ -223,4 +196,83 @@ void ByteCode::clear()
 {
 	clearCode();
 	clearPool();
+}
+
+void ByteCode::sortMetadata()
+{
+	std::sort(metadata.begin(), metadata.end(),
+		[](const DebugRange& a, const DebugRange& b)
+		{
+			bool in{(a.byteStart >= b.byteStart) && (a.byteEnd <= b.byteEnd)
+				&& ((a != b) || (a.sourceStart > b.sourceStart))};
+			bool prior{(a.byteEnd <= b.byteStart)};
+			return (in || prior);
+		}
+	);
+	metadata.erase(
+		std::unique(metadata.begin(), metadata.end()),
+		metadata.end()
+	);
+}
+
+void ByteCode::encodeHeaders(std::ofstream& os, FileID id) const
+{
+	// Magic.
+	os.write("choice", sizeof("choice") - 1);
+
+	// Version number.
+	os.put(static_cast<char>(CH_VERSION_MAJOR));
+	os.put(static_cast<char>(CH_VERSION_MINOR));
+	os.put(static_cast<char>(CH_VERSION_PATCH));
+
+	// Temporarily.
+	os.put(static_cast<char>(DEBUG_COMBINED));
+
+	std::string fileName{sourceManager.getFile(id)};
+	os.put(static_cast<char>(fileName.size())); // File name length.
+	os.write(fileName.data(), static_cast<std::streamsize>(fileName.size()));
+}
+
+void ByteCode::encodeData(std::ofstream& os) const
+{
+	u64 codeSize{block.size()}; // Bytecode length.
+	Bytes::encodeValue(os, codeSize);
+
+	u64 poolSize{countPool()}; 	// Constant pool length.
+	Bytes::encodeValue(os, poolSize);
+
+	// Check to avoid narrowing conversions below.
+
+	constexpr auto maxSize{static_cast<u64>(
+		std::numeric_limits<std::streamsize>::max()
+	)};
+
+	if (codeSize > maxSize) return; // Report an error.
+
+	// Bytecode.
+	os.write(reinterpret_cast<const char*>(block.data()),
+		static_cast<std::streamsize>(block.size()));
+
+	// Constant pool.
+	for (const Object& constant : pool)
+		constant.emit(os);
+}
+
+void ByteCode::encodeMetadata(std::ofstream& os) const
+{
+	u64 size{metadata.size()};
+	Bytes::encodeValue(os, size);
+
+	for (auto& range : metadata)
+	{
+		Bytes::encodeValue(os, range.byteStart);
+		Bytes::encodeValue(os, range.byteEnd);
+		Bytes::encodeValue(os, range.sourceStart);
+		Bytes::encodeValue(os, range.sourceEnd);
+
+		if (range.isStmt)
+			os.put(static_cast<char>(range.stmtType));
+		else
+			os.put(static_cast<char>(range.exprType | 0x80)); // Set the first bit.
+	}
 }

@@ -106,6 +106,8 @@ void SourceManager::computeLineMarkers(FileData& data)
     const auto& content{data.content};
     auto& markers{data.lineMarkers};
 
+    if (content.empty()) return;
+
     u64 pos{0};
     while ((pos = content.find('\n', pos)) != std::string::npos)
     {
@@ -133,11 +135,29 @@ FileID SourceManager::addFile(
 // Later, we may wish to keep each line as an independent entry so
 // that we can combine diagnostics from different lines (would
 // require some more expansion work here, though).
-void SourceManager::setFileContent(FileID id, const std::string& content)
+void SourceManager::setContent(FileID id, const std::string& content)
 {
     sourceData[id].content = content;
     sourceData[id].lineMarkers.clear();
     computeLineMarkers(sourceData[id]);
+}
+
+void SourceManager::setLineMarkers(
+    FileID id,
+    const std::vector<u64>& lineMarkers
+)
+{
+    sourceData[id].lineMarkers = lineMarkers;
+}
+
+const std::string& SourceManager::getFile(FileID id)
+{
+    return sourceData[id].fileName;
+}
+
+const std::vector<u64>& SourceManager::getLineMarkers(FileID id)
+{
+    return sourceData[id].lineMarkers;
 }
 
 std::tuple<u64, u64, sv> SourceManager::getLineColumn(

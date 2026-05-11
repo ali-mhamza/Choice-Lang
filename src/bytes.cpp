@@ -101,16 +101,11 @@ ByteCode CodeReader::reconstructByteCode()
 	vByte bytes(codeSize);
 	readBytes(bytes.data(), codeSize);
 
-	vByte pool{};
-	// The pool for a function (unlike the code block)
-	// may be empty.
-	if (poolSize != 0)
-	{
-		pool.resize(poolSize);
-		readBytes(pool.data(), poolSize);
-	}
+	ByteCode code{bytes, reconstructPool(poolSize)};
+	if (debugInfoCombined)
+		readDebugMetadata(code);
 
-	return ByteCode{bytes, reconstructPool(pool)};
+	return code;
 }
 
 [[nodiscard]]
@@ -149,16 +144,12 @@ Object CodeReader::reconstructString()
 	return Object{CH_ALLOC(String, str)};
 }
 
-vObj CodeReader::reconstructPool(const vByte& poolBytes)
+vObj CodeReader::reconstructPool(u64 poolByteSize)
 {
 	vObj pool{};
-	// Since we reuse this method recursively in reconstructFunc.
-	vBit currentIt{this->it}, currentEnd{this->end};
+	auto stop{it + poolByteSize};
 
-	this->it = poolBytes.begin();
-	this->end = poolBytes.end();
-
-	while (it < end)
+	while (it < stop)
 	{
 		ObjType type{readValue<ObjType>()};
 		switch (type)
@@ -172,7 +163,8 @@ vObj CodeReader::reconstructPool(const vByte& poolBytes)
 			{
 				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
-					CH_PRINT(stderr, "Error: byte is {}.\n", static_cast<u8>(type));
+					CH_PRINT(stderr, "Error: byte {} is {}.\n", it - cacheBytes.begin(),
+						static_cast<u8>(type));
 					exit(65);
 				}
 
@@ -181,37 +173,80 @@ vObj CodeReader::reconstructPool(const vByte& poolBytes)
 		}
 	}
 
-	this->it = currentIt;
-	this->end = currentEnd;
 	return pool;
+}
+
+void CodeReader::readHeaders()
+{
+	readMagic();
+	readVersionNum();
+}
+
+DebugInfoState CodeReader::readDebugState()
+{
+	return static_cast<DebugInfoState>(readValue<u8>());
+}
+
+std::string CodeReader::readFileName()
+{
+	std::string fileName{};
+	u8 nameLength{readValue<u8>()};
+	fileName.resize(nameLength);
+	readBytes(fileName.data(), nameLength);
+	return fileName;
+}
+
+std::vector<u64> CodeReader::readLineMarkers()
+{
+	u64 numMarkers{readValue<u64>()};
+	std::vector<u64> lineMarkers(numMarkers);
+
+	for (u64 i{0}; i < numMarkers; i++)
+		lineMarkers[i] = readValue<u64>();
+
+	return lineMarkers;
+}
+
+void CodeReader::readDebugMetadata(ByteCode& code)
+{
+	DebugReader reader{it, end};
+	DebugMetadata metadata{reader.readMetadataBlock()};
+	code.setDebugData(metadata);
+
+	constexpr u64 metadataBlockSize{4 * sizeof(u64) + sizeof(u8)};
+
+	// The isStmt field is computed, not read from the data.
+	it += (metadata.size() * metadataBlockSize) + sizeof(u64);
 }
 
 ByteCode CodeReader::readCache()
 {
-	readMagic();
-	readVersionNum();
-
-	std::string fileName{};
-	u8 nameLength{readValue<u8>()};
-	fileName.resize(nameLength);
-
-	vByte codeBytes{}, poolBytes{};
+	debugInfoCombined = false;
+	vByte codeBytes{};
 
 	u64 codeSize{readValue<u64>()};
 	codeBytes.resize(codeSize);
 	u64 poolSize{readValue<u64>()};
-
-	readBytes(fileName.data(), nameLength);
-	file = fileName;
 	readBytes(codeBytes.data(), codeSize);
 
-	if (poolSize != 0)
-	{
-		poolBytes.resize(poolSize);
-		readBytes(poolBytes.data(), poolSize);
-	}
+	return ByteCode{codeBytes, reconstructPool(poolSize)};
+}
 
-	return ByteCode{codeBytes, reconstructPool(poolBytes)};
+ByteCode CodeReader::readCache(std::vector<DebugMetadata>& metadata)
+{
+	debugInfoCombined = metadata.empty();
+	vByte codeBytes{};
+
+	u64 codeSize{readValue<u64>()};
+	codeBytes.resize(codeSize);
+	u64 poolSize{readValue<u64>()};
+	readBytes(codeBytes.data(), codeSize);
+
+	ByteCode code{codeBytes, reconstructPool(poolSize)};
+	if (debugInfoCombined)
+		readDebugMetadata(code);
+
+	return code;
 }
 
 
@@ -219,50 +254,73 @@ ByteCode CodeReader::readCache()
 
 using Bytes::DebugReader;
 
+DebugReader::DebugReader(vBit& it, vBit& end) :
+	it{it}, end{end} {}
+
 DebugReader::DebugReader(std::ifstream& debugFile)
 {
     std::string debugContent{readFile(debugFile)};
     debugBytes = std::vector<u8>(debugContent.begin(), debugContent.end());
+	it = debugBytes.begin();
+	end = debugBytes.end();
 }
 
 template<typename T>
 T DebugReader::readValue()
 {
-    return readMemValue<T>(debugBytes.data() + index,
-        debugBytes.data() + debugBytes.size());
+    T ret{readMemValue<T>(&it[0], &end[0])};
+
+	it += sizeof(T);
+	return ret;
 }
 
-std::vector<DbgBlock> DebugReader::decodeBlocks()
+std::vector<u64> DebugReader::readLineMarkers()
 {
-    using AST::Statement::StmtType;
+	u64 numMarkers{readValue<u64>()};
+	std::vector<u64> lineMarkers(numMarkers);
+
+	for (u64 i{0}; i < numMarkers; i++)
+		lineMarkers[i] = readValue<u64>();
+
+	return lineMarkers;
+}
+
+DebugMetadata DebugReader::readMetadataBlock()
+{
+	using AST::Statement::StmtType;
     using AST::Expression::ExprType;
 
-    std::vector<DbgBlock> blocks{};
+	DebugMetadata metadata;
+	u64 size{readValue<u64>()};
 
-    while (index < debugBytes.size())
-    {
-        blocks.emplace_back();
-        u64 size{readValue<u64>()};
+	for (u64 i{0}; i < size; i++)
+	{
+		u64 byteStart{readValue<u64>()};
+		u64 byteEnd{readValue<u64>()};
+		u64 sourceStart{readValue<u64>()};
+		u64 sourceEnd{readValue<u64>()};
 
-        for (u64 i{0}; i < size; i++)
-        {
-            u64 byteStart{readValue<u64>()};
-            u64 byteEnd{readValue<u64>()};
-            u64 offset{readValue<u64>()};
-            u64 lineNo{readValue<u64>()};
-            (void) lineNo;
+		u8 typeByte{readValue<u8>()};
+		bool isStmt{(typeByte & 0x80) == 0}; // Check if first bit is set/reset.
 
-            u8 typeByte{readValue<u8>()};
-            bool isStmt{(typeByte & 0x80) == 0}; // Check if first bit is set/reset.
+		metadata.push_back(DebugRange{
+			isStmt,
+			static_cast<StmtType>(typeByte),
+			static_cast<ExprType>(typeByte & 0x7f), // Reset first bit.
+			byteStart, byteEnd,
+			sourceStart, sourceEnd
+		});
+	}
 
-            blocks.back().push_back(DbgRange{
-                isStmt,
-                static_cast<StmtType>(typeByte),
-                static_cast<ExprType>(typeByte & 0x7f), // Reset first bit.
-                byteStart, byteEnd, offset
-            });
-        }
-    }
+	return metadata;
+}
 
-    return blocks;
+std::vector<DebugMetadata> DebugReader::readMetadata()
+{
+    std::vector<DebugMetadata> metadata{};
+
+    while (it < end)
+        metadata.push_back(readMetadataBlock());
+
+    return metadata;
 }
