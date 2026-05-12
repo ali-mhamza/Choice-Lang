@@ -41,8 +41,6 @@ constexpr bool setVar{false};
 
 /* Constructors/destructors. */
 
-std::vector<DebugMetadata> ASTCompiler::metadataBlocks{};
-
 ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     scopeCompiler{comp},
     depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)}
@@ -54,9 +52,6 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
     }
     else
         this->id = scopeCompiler->id;
-
-    metadataIndex = metadataBlocks.size();
-    metadataBlocks.emplace_back();
 }
 
 ASTCompiler::~ASTCompiler() = default;
@@ -1298,8 +1293,8 @@ void ASTCompiler::compileExpr(const ExprUP& node)
 {
     if (node == nullptr) return;
 
-    u64 lastIndex{metadataBlocks[metadataIndex].size()};
-    metadataBlocks[metadataIndex].push_back(DebugRange{
+    u64 lastIndex{metadata.size()};
+    metadata.push_back(DebugRange{
         false, StmtType{}, node->type, code.codeSize(), 0,
         node->sourceStart, node->sourceEnd
     });
@@ -1325,15 +1320,15 @@ void ASTCompiler::compileExpr(const ExprUP& node)
         case E_LITERAL_EXPR:    COMPILE(LiteralExpr);       break;
     }
 
-    metadataBlocks[metadataIndex][lastIndex].byteEnd = code.codeSize();
+    metadata[lastIndex].byteEnd = code.codeSize();
 }
 
 void ASTCompiler::compileStmt(const StmtUP& node)
 {
     if (node == nullptr) return;
 
-    u64 lastIndex{metadataBlocks[metadataIndex].size()};
-    metadataBlocks[metadataIndex].push_back(DebugRange{
+    u64 lastIndex{metadata.size()};
+    metadata.push_back(DebugRange{
         true, node->type, ExprType{}, code.codeSize(), 0,
         node->sourceStart, node->sourceEnd
     });
@@ -1356,13 +1351,12 @@ void ASTCompiler::compileStmt(const StmtUP& node)
         case S_BLOCK_STMT:  COMPILE(BlockStmt);     break;
     }
 
-    metadataBlocks[metadataIndex][lastIndex].byteEnd = code.codeSize();
+    metadata[lastIndex].byteEnd = code.codeSize();
 }
 
 ByteCode& ASTCompiler::getCode()
 {
-    code.setDebugData(metadataBlocks.back());
-    metadataBlocks.pop_back();
+    code.setDebugData(id, metadata);
     return code;
 }
 
@@ -1370,8 +1364,6 @@ Function* ASTCompiler::compile(FileID id, const StmtVec& program)
 {
     this->id = id;
     code.clear();
-    // Since we reuse the compiler.
-    metadataBlocks.emplace_back();
     // Inherit hitError and errorCount from parser.
 
     for (const StmtUP& node : program)

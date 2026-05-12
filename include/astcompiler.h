@@ -52,8 +52,7 @@ class ASTCompiler
         ByteCode code{};
         ASTCompiler* const scopeCompiler{};
         FileID id{};
-
-        u64 metadataIndex{};
+        DebugMetadata metadata{};
 
         u8 nextReg{0};
         u8 scope{0};       // Our current block scope depth.
@@ -231,7 +230,6 @@ class ASTCompiler
         ByteCode& getCode();
 
     public:
-        static std::vector<DebugMetadata> metadataBlocks;
         // So they can be modified directly.
         bool hitError{false};
         int errorCount{0};
