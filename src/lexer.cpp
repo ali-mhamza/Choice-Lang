@@ -447,7 +447,6 @@ void Lexer::multiLineStringToken(bool raw)
 		REPORT_RETURN(UNTERMINATED_STRING, tempOffset);
 
 	advance(); // Consume final `.
-
 	makeToken(raw ? TOK_RAW_STR : TOK_STR_LIT);
 }
 
