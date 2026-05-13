@@ -307,7 +307,7 @@ static void repl(ArgvOption option = EXECUTE)
 		exit(64);
 	}
 
-	file = "";
+	file = "<repl>";
 	std::string line{};
 	FileID id{sourceManager.addFile(file, line)};
 

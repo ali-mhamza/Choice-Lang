@@ -150,9 +150,16 @@ void SourceManager::setLineMarkers(
     sourceData[id].lineMarkers = lineMarkers;
 }
 
+// Worth revising for different cases.
+// Needs more detailed review.
 bool SourceManager::hasLineData(FileID id) const
 {
-    return !sourceData[id].lineMarkers.empty();
+    const FileData& data{sourceData[id]};
+    bool lineMarkersAvailable{!data.lineMarkers.empty()};
+    bool singleLine{!data.content.empty()
+        && (data.content.find('\n') == data.content.npos)
+    };
+    return (lineMarkersAvailable || singleLine);
 }
 
 const std::string& SourceManager::getFile(FileID id) const
@@ -364,7 +371,6 @@ void Diagnostic::report() const
     );
 
     sv fileName{sourceManager.getFile(id)};
-    if (fileName.empty()) fileName = "<script>";
 
     displayReportTitle();
     CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo,
@@ -559,14 +565,20 @@ void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
     auto it{std::max_element(outputLines.begin(), outputLines.end(),
         [](auto& str1, auto& str2) { return str1.size() < str2.size(); }
     )};
-    u64 maxLineNo{std::max_element(positions.begin(), positions.end())->first};
+    u64 maxLineNo{lineDataExists ?
+        std::max_element(positions.begin(), positions.end())->first : 0
+    };
 
     CH_PRINT(stderr, "Stack Trace:\n");
     for (u64 i{0}; i < size; i++)
     {
         CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
         CH_PRINT(stderr, "{}", fileName);
-        if (!lineDataExists) continue;
+        if (!lineDataExists)
+        {
+            CH_PRINT("\n");
+            continue;
+        }
 
         const auto& pos{positions[size - 1 - i]};
         CH_PRINT(stderr, " ({}:{})\n", pos.first, pos.second);
