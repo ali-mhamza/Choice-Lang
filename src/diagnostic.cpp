@@ -532,9 +532,9 @@ void DiagnosticEngine::displayErrorLine(
     auto size{std::to_string(maxLineNo).size()};
     std::string gap(size + EXTRA_SPACES, ' ');
 
-    CH_PRINT(stderr, "    {}|\n", gap);
-    CH_PRINT(stderr, "     {:>{}} | {}\n", line, size, text);
-    CH_PRINT(stderr, "    {}| {}{}\n\n", gap, space, highlight);
+    CH_PRINT(stderr, "  {}|\n", gap);
+    CH_PRINT(stderr, "   {:>{}} | {}\n", line, size, text);
+    CH_PRINT(stderr, "  {}| {}{}\n\n", gap, space, highlight);
 }
 
 void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
