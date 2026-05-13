@@ -493,7 +493,7 @@ std::string DiagnosticEngine::printStackEntry(
         output = "  called from ";
 
     if (index == 0)
-        return output + " <script>     ";
+        return output + "<script>     ";
     if (func->name == nullptr)
         return output + "[lambda]     ";
     else
