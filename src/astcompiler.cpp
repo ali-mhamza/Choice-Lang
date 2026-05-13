@@ -1362,6 +1362,7 @@ Function* ASTCompiler::compile(FileID id, const StmtVec& program)
 {
     this->id = id;
     code.clear();
+    metadata.clear();
     // Inherit hitError and errorCount from parser.
 
     for (const StmtUP& node : program)
