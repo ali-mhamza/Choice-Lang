@@ -110,7 +110,7 @@ void optionCacheBytes(FileID id, const ByteCode& chunk)
 
 	std::filesystem::path filePath{sourceManager.getFile(id)};
 	filePath.replace_extension(CH_BYTECODE_EXT);
-	std::ofstream cacheFile{filePath.filename().c_str(), std::ios::binary};
+	std::ofstream cacheFile{filePath.filename(), std::ios::binary};
 
 	const auto& lineMarkers{sourceManager.getLineMarkers(id)};
 

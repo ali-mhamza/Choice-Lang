@@ -416,7 +416,7 @@ bool String::operator==(const String& other) const
 
 bool String::contains(const String& substr) const
 {
-    return (strstr(this->str.c_str(), substr.str.c_str()) != nullptr);
+    return (this->str.find(substr.str) != std::string::npos);
 }
 
 std::string String::printVal() const
