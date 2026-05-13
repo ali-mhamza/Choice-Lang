@@ -212,7 +212,7 @@ void CodeReader::readDebugMetadata(ByteCode& code)
 {
 	DebugReader reader{it, end};
 	DebugMetadata metadata{reader.readMetadataBlock()};
-	code.setDebugData(metadata);
+	code.setDebugData(id, metadata);
 
 	constexpr u64 metadataBlockSize{4 * sizeof(u64) + sizeof(u8)};
 

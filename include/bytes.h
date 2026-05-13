@@ -1,8 +1,7 @@
 #pragma once
 #include "bytecode.h"
 #include "common.h"
-#include "diagnostic.h"
-#include <fstream>
+#include "debug.h"
 #include <climits>
 #include <fstream>
 #include <string>
@@ -39,9 +38,10 @@ namespace Bytes
             // Debug info exists and is combined with the bytecode,
             // so both must be read together.
             bool debugInfoCombined{};
-            vByte cacheBytes{};
             vBit it{};
             vBit end{};
+            FileID id{};
+            vByte cacheBytes{};
 
             /* Byte reading. */
 
@@ -75,6 +75,7 @@ namespace Bytes
             DebugInfoState readDebugState();
             std::string readFileName();
             std::vector<u64> readLineMarkers();
+            void setFileID(FileID id) { this->id = id; }
             [[nodiscard]] ByteCode readCache();
             [[nodiscard]] ByteCode readCache(std::vector<DebugMetadata>& metadata);
     };
