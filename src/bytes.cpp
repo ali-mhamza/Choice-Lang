@@ -214,10 +214,7 @@ void CodeReader::readDebugMetadata(ByteCode& code)
 	DebugMetadata metadata{reader.readMetadataBlock()};
 	code.setDebugData(id, metadata);
 
-	constexpr u64 metadataBlockSize{4 * sizeof(u64) + sizeof(u8)};
-
-	// The isStmt field is computed, not read from the data.
-	it += (metadata.size() * metadataBlockSize) + sizeof(u64);
+	it += (metadata.size() * sizeof(DebugRange)) + sizeof(u64);
 }
 
 ByteCode CodeReader::readCache()
@@ -301,15 +298,8 @@ DebugMetadata DebugReader::readMetadataBlock()
 		u64 sourceStart{readValue<u64>()};
 		u64 sourceEnd{readValue<u64>()};
 
-		u8 typeByte{readValue<u8>()};
-		bool isStmt{(typeByte & 0x80) == 0}; // Check if first bit is set/reset.
-
 		metadata.push_back(DebugRange{
-			isStmt,
-			static_cast<StmtType>(typeByte),
-			static_cast<ExprType>(typeByte & 0x7f), // Reset first bit.
-			byteStart, byteEnd,
-			sourceStart, sourceEnd
+			byteStart, byteEnd, sourceStart, sourceEnd
 		});
 	}
 

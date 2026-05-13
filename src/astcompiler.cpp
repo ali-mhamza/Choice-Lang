@@ -1295,8 +1295,7 @@ void ASTCompiler::compileExpr(const ExprUP& node)
 
     u64 lastIndex{metadata.size()};
     metadata.push_back(DebugRange{
-        false, StmtType{}, node->type, code.codeSize(), 0,
-        node->sourceStart, node->sourceEnd
+        code.codeSize(), 0, node->sourceStart, node->sourceEnd
     });
 
     switch (node->type)
@@ -1329,8 +1328,7 @@ void ASTCompiler::compileStmt(const StmtUP& node)
 
     u64 lastIndex{metadata.size()};
     metadata.push_back(DebugRange{
-        true, node->type, ExprType{}, code.codeSize(), 0,
-        node->sourceStart, node->sourceEnd
+        code.codeSize(), 0, node->sourceStart, node->sourceEnd
     });
 
     switch (node->type)

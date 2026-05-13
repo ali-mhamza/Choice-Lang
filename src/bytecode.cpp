@@ -156,7 +156,6 @@ u64 ByteCode::countPool() const
 				case OBJ_LAMBDA:
 				{
 					const Function& func{*(AS_FUNC(obj))};
-					constexpr u64 metadataBlockSize{4 * sizeof(u64) + sizeof(u8)};
 
 					if (func.name != nullptr) count += strlen(func.name);
 					// Added type byte (1) and name length byte (1)
@@ -168,7 +167,8 @@ u64 ByteCode::countPool() const
 						+ func.code.countPool();
 					// Add metadata + metadata size value (8 bytes).
 					// ASSUMES COMBINED DEBUG INFO.
-					count += (func.code.metadata.size() * metadataBlockSize) + sizeof(u64);
+					count += (func.code.metadata.size() * sizeof(DebugRange))
+						+ sizeof(u64);
 					break;
 				}
 				case OBJ_STRING:
@@ -269,10 +269,5 @@ void ByteCode::encodeMetadata(std::ofstream& os) const
 		Bytes::encodeValue(os, range.byteEnd);
 		Bytes::encodeValue(os, range.sourceStart);
 		Bytes::encodeValue(os, range.sourceEnd);
-
-		if (range.isStmt)
-			os.put(static_cast<char>(range.stmtType));
-		else
-			os.put(static_cast<char>(range.exprType | 0x80)); // Set the first bit.
 	}
 }

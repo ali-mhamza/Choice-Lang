@@ -5,9 +5,6 @@
 
 struct DebugRange
 {
-    bool isStmt{};
-    AST::Statement::StmtType stmtType{};
-    AST::Expression::ExprType exprType{};
     // The first instruction for the expression/statement.
     u64 byteStart{};
     // The last instruction for the expression/statement (not included).
