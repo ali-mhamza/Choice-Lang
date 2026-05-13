@@ -131,10 +131,9 @@ static Function* runCompiler(FileID id, const vT& tokens)
 static bool cacheOptimize(const char* fileName, ArgvOption option)
 {
 	using std::filesystem::exists;
-	using std::filesystem::last_write_time;
 
 	std::filesystem::path cache{fileName};
-	cache.replace_extension(".bch");
+	cache.replace_extension(CH_BYTECODE_EXT);
 
 	if (exists(fileName))
 	{
@@ -143,25 +142,15 @@ static bool cacheOptimize(const char* fileName, ArgvOption option)
 			if (option == CACHE_BYTECODE)
 				return true; // Nothing to do.
 
-			std::ifstream code{cache};
-			Bytes::CodeReader codeReader{code};
-			ByteCode chunk{codeReader.readCache()};
-
 			if (option == EMIT_BYTECODE)
 			{
-				optionShowBytes(chunk);
+				optionDis(cache);
 				return true;
 			}
 
 			if (option == EXECUTE)
 			{
-				Function* script{CH_ALLOC(Function, chunk, 0)};
-				VM{}.executeCode(script);
-
-				#if !CH_USE_ALLOC
-					delete script;
-				#endif
-
+				optionLoad(cache);
 				return true;
 			}
 		}
@@ -235,7 +224,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 
 	if (option == EMIT_BYTECODE)
 	{
-		optionShowBytes(script->code);
+		optionShowBytes(script);
 		return;
 	}
 	if (option == CACHE_BYTECODE)
@@ -350,7 +339,7 @@ static void repl(ArgvOption option = EXECUTE)
 			{
 				Function* script{runCompiler(id, tokens)};
 				if (option == EMIT_BYTECODE)
-					optionShowBytes(script->code);
+					optionShowBytes(script);
 				else
 					vm.executeCode(script);
 

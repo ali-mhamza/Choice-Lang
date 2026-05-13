@@ -95,9 +95,9 @@ void optionShowTokens(FileID id, const vT& tokens)
 	TokenPrinter{id, tokens}.printTokens();
 }
 
-void optionShowBytes(const ByteCode& chunk)
+void optionShowBytes(const Function* func)
 {
-	Disassembler{chunk}.disassembleCode();
+	Disassembler{func}.disassembleCode();
 }
 
 void optionCacheBytes(FileID id, const ByteCode& chunk)
@@ -144,10 +144,10 @@ void optionCacheBytes(FileID id, const ByteCode& chunk)
 // and ignore it.
 
 [[nodiscard]]
-static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
+static ByteCode readByteCode(const std::filesystem::path& file)
 {
-	std::ifstream program{openFile(fileName, true)};
-	std::filesystem::path debugFile{fileName};
+	std::ifstream program{openFile(file, true)};
+	std::filesystem::path debugFile{file};
 	debugFile.replace_extension(CH_DEBUG_EXT);
 
 	Bytes::CodeReader codeReader{program};
@@ -166,7 +166,7 @@ static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
 
 		std::filesystem::path checkPath{};
 		if (infoState == DEBUG_COMBINED)
-			checkPath = fileName;
+			checkPath = file;
 		else
 			checkPath = debugFile;
 
@@ -191,22 +191,21 @@ static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
 
 		if (!usingSource)
 			sourceManager.setLineMarkers(id, lineMarkers);
-		return std::make_pair(codeReader.readCache(metadataBlocks), id);
+		return codeReader.readCache(metadataBlocks);
 	}
 
-	return std::make_pair(codeReader.readCache(), id);
+	return codeReader.readCache();
 }
 
-void optionLoad(const char* fileName)
+void optionLoad(const std::filesystem::path& file)
 {
-	if (!ends_with(fileName, CH_BYTECODE_EXT))
+	if (!ends_with(file.string(), CH_BYTECODE_EXT))
 	{
 		CH_PRINT(stderr, "Invalid bytecode file.\n");
 		exit(65);
 	}
 
-	auto [chunk, id] = readByteCode(fileName);
-	(void) id;
+	ByteCode chunk{readByteCode(file)};
 	Function* script{CH_ALLOC(Function, chunk, 0)};
 	VM{}.executeCode(script);
 
@@ -215,17 +214,17 @@ void optionLoad(const char* fileName)
 	#endif
 }
 
-void optionDis(const char* fileName)
+void optionDis(const std::filesystem::path& file)
 {
-	if (!ends_with(fileName, CH_BYTECODE_EXT))
+	if (!ends_with(file.string(), CH_BYTECODE_EXT))
 	{
 		CH_PRINT(stderr, "Invalid bytecode file.\n");
 		exit(65);
 	}
 
-	auto [chunk, id] = readByteCode(fileName);
-	(void) id;
-	Disassembler{chunk}.disassembleCode();
+	ByteCode chunk{readByteCode(file)};
+	Function* script{CH_ALLOC(Function, chunk, 0)};
+	Disassembler{script}.disassembleCode();
 }
 
 /* File extension check. */

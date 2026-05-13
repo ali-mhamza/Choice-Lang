@@ -9,7 +9,7 @@ class VM;
 class Disassembler
 {
     private:
-        const ByteCode& code{};
+        const Function* func{};
         vBit ip{};
         const vBit start{};
         // Whether or not we are disassembling the top-level script.
@@ -20,7 +20,7 @@ class Disassembler
 
         void printOpcode(std::string_view opName) const;
         void printOperValue(const Object& oper) const;
-        void disFunction(const Function& func) const;
+        void disFunction(const Function* func) const;
 
         [[nodiscard]] u8 restoreByte() const;
         [[nodiscard]] u16 restoreShort() const;
@@ -43,7 +43,7 @@ class Disassembler
         void formatOp();
 
     public:
-        Disassembler(const ByteCode& code);
+        Disassembler(const Function* function);
         void disassembleOp(u8 byte);
         void disassembleCode();
 

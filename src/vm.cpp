@@ -405,7 +405,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     pool = code.pool.data();
 
     #if WATCH_EXEC
-        this->dis = new Disassembler(code);
+        this->dis = new Disassembler(func);
     #endif
 }
 
@@ -927,7 +927,7 @@ void VM::executeCode(Function* script)
     pool = script->code.pool.data();
 
     #if WATCH_EXEC
-        Disassembler dis(script->code);
+        Disassembler dis(script);
         this->dis = &dis;
     #endif
 

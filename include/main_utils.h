@@ -2,6 +2,7 @@
 #include "bytecode.h"
 #include "common.h"
 #include "diagnostic.h"
+#include "object.h"
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -26,8 +27,8 @@ bool fileMoreRecent(
 );
 void normalizeInput(std::string& input);
 void optionShowTokens(FileID id, const vT& tokens);
-void optionShowBytes(const ByteCode& chunk);
-void optionLoad(const char* fileName);
-void optionDis(const char* fileName);
+void optionShowBytes(const Function* func);
+void optionLoad(const std::filesystem::path& file);
+void optionDis(const std::filesystem::path& file);
 void optionCacheBytes(FileID id, const ByteCode& chunk);
 [[nodiscard]] bool fileNameCheck(const std::string_view fileName);

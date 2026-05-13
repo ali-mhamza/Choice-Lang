@@ -10,9 +10,9 @@
 
 #define PRINT_FULL_OFFSET 1
 
-Disassembler::Disassembler(const ByteCode& code) :
-	code{code}, ip{code.block.begin()},
-	start{code.block.begin()} {}
+Disassembler::Disassembler(const Function* function) :
+	func{function}, ip{func->code.block.begin()},
+	start{func->code.block.begin()} {}
 
 void Disassembler::printOpcode(std::string_view opName) const
 {
@@ -24,24 +24,21 @@ void Disassembler::printOpcode(std::string_view opName) const
 	#endif
 }
 
-void Disassembler::disFunction(const Function& func) const
+void Disassembler::disFunction(const Function* func) const
 {
-	if (func.lambda)
+	if (func->lambda)
 		CH_PRINT("\n===== [start] <lambda> =====\n\n");
 	else
-		CH_PRINT("\n===== [start] func {} =====\n\n", func.name);
+		CH_PRINT("\n===== [start] func {} =====\n\n", func->name);
 
-	CH_PRINT("(args: {}, ", func.argCount);
-	CH_PRINT("constants: {})", func.code.pool.size());
-	CH_PRINT("\n\n");
-	Disassembler miniDis{func.code};
+	Disassembler miniDis{func};
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
 
-	if (func.lambda)
+	if (func->lambda)
 		CH_PRINT("\n====== [end] <lambda> ======\n\n");
 	else
-		CH_PRINT("\n====== [end] func {} ======\n\n", func.name);
+		CH_PRINT("\n====== [end] func {} ======\n\n", func->name);
 }
 
 void Disassembler::printOperValue(const Object& oper) const
@@ -51,7 +48,7 @@ void Disassembler::printOperValue(const Object& oper) const
 	// We only disassemble functions when requested, and not
 	// with concurrent disassembler output during VM execution.
 	if (DIS_FUNCTION_OBJS && IS_FUNCOBJ(oper) && !inVM)
-		disFunction(*(AS_FUNC(oper)));
+		disFunction(AS_FUNC(oper));
 }
 
 u8 Disassembler::restoreByte() const
@@ -115,7 +112,7 @@ void Disassembler::loadOp()
 		{
 			u8 operand{restoreByte()};
 			CH_PRINT("C[{}] ", operand);
-			printOperValue(code.pool[operand]);
+			printOperValue(func->code.pool[operand]);
 			ip += 2;
 			break;
 		}
@@ -123,7 +120,7 @@ void Disassembler::loadOp()
 		{
 			u16 operand{restoreShort()};
 			CH_PRINT("C[{}] ", operand);
-			printOperValue(code.pool[operand]);
+			printOperValue(func->code.pool[operand]);
 			ip += 3;
 			break;
 		}
@@ -131,7 +128,7 @@ void Disassembler::loadOp()
 		{
 			u32 operand{restoreLong()};
 			CH_PRINT("C[{}] ", operand);
-			printOperValue(code.pool[operand]);
+			printOperValue(func->code.pool[operand]);
 			ip += 5;
 			break;
 		}
@@ -343,19 +340,12 @@ void Disassembler::disassembleOp(u8 byte)
 void Disassembler::disassembleCode()
 {
 	inVM = false;
-	auto end{code.block.end()};
-	if (topLevel)
-	{
-		if (!inRepl && (ip < end)) // ip < end -> We have some bytecode to print.
-			CH_PRINT("=== CODE [{}] ===\n", sourceManager.getFile(code.id));
-		CH_PRINT("Bytes: {}\n", code.block.size());
-	}
-	int opers{0};
+	auto end{func->code.block.end()};
+	// ip < end -> We have some bytecode to print.
+	if (topLevel && !inRepl && (ip < end))
+		CH_PRINT("=== CODE [{}] ===\n", sourceManager.getFile(func->code.id));
+	CH_PRINT("(bytes: {}, args: {}, constants: {})\n\n",
+		func->code.block.size(), func->argCount, func->code.pool.size());
 	while (ip < end)
-	{
 		disassembleOp(*ip);
-		opers++;
-	}
-	if (topLevel)
-		CH_PRINT("Instructions: {}\n", opers);
 }
