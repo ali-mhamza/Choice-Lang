@@ -3,6 +3,7 @@
 
 #include "astnodes.h"
 #include "bytecode.h"
+#include "debug.h"
 #include "diagnostic.h"
 #include "vartable.h"
 #include <memory>
