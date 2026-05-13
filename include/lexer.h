@@ -44,6 +44,7 @@ class Lexer
         // For nested comments with ###.
         // Returns true if nested comment was hit, false otherwise.
         [[nodiscard]] bool checkHyperComment();
+
         [[nodiscard]] bool checkRawString(char start);
         [[nodiscard]] bool checkNumericLiteral(char start);
 
