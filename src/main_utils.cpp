@@ -20,12 +20,6 @@
 #include <string_view>
 #include <utility>
 
-/* File extensions. */
-
-static constexpr std::string_view CH_FILE_EXT{".ch"};
-static constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
-static constexpr std::string_view CH_DEBUG_EXT{".chdbg"};
-
 /* General helpers. */
 
 static std::ifstream openFile(

@@ -7,15 +7,13 @@
 #include <string>
 #include <string_view>
 
-#ifdef DEBUG
-    #define CHECK_EOF()     \
-        do {                \
-            if (it == end)  \
-			    eofError(); \
-        } while (false)
-#else
-    #define CHECK_EOF()
-#endif
+/* File extensions. */
+
+constexpr std::string_view CH_FILE_EXT{".ch"};
+constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
+constexpr std::string_view CH_DEBUG_EXT{".chdbg"};
+
+/* Miscellaneous helpers. */
 
 [[nodiscard]] std::string readFile(std::ifstream& stream);
 [[nodiscard]] std::string readFile(

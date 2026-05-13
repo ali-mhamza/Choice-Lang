@@ -211,6 +211,11 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 
 	if (prelimChecks(fileName, option))
 		return;
+	if ((option == CACHE_BYTECODE) && !ends_with(fileName, CH_FILE_EXT))
+	{
+		CH_PRINT(stderr, "Invalid Choice source file.\n");
+		exit(65);
+	}
 
 	using namespace std::chrono;
 	#if TIME_TOTAL && !TIME_RUN
@@ -225,7 +230,7 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	vT& tokens{runLexer(id, code)};
 	if (option == EMIT_TOKENS)
 	{
-		optionShowTokens(&sourceManager, id, tokens);
+		optionShowTokens(id, tokens);
 		return;
 	}
 
@@ -340,11 +345,11 @@ static void repl(ArgvOption option = EXECUTE)
 			#endif
 
 			normalizeInput(line);
-			sourceManager.setContent(id, line);
+			id = sourceManager.addFile(file, line);
 
 			vT& tokens{runLexer(id, line)};
 			if (option == EMIT_TOKENS)
-				optionShowTokens(&sourceManager, id, tokens);
+				optionShowTokens(id, tokens);
 			else
 			{
 				Function* script{runCompiler(id, tokens)};
