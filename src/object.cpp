@@ -352,8 +352,31 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(lambda));
 
     code.encodeData(os);
-    // ASSUMES COMBINED DEBUG INFO.
-    code.encodeMetadata(os);
+    if (debugInfoState == DEBUG_COMBINED)
+        code.encodeMetadata(os);
+}
+
+u64 Function::byteSize() const
+{
+    u64 size{0};
+
+    if (name != nullptr) size += strlen(name);
+
+    // Added type byte (1) and name length byte (1)
+    // and argCount byte (1) and lambda Boolean byte (1).
+    size += 4 * sizeof(u8);
+
+    // Added code size and pool size values,
+    // as well as the actual sizes of the code and pool.
+    size += 2 * sizeof(u64) + code.codeSize() + code.countPool();
+
+    if (debugInfoState == DEBUG_COMBINED)
+    {
+        // Added metadata + metadata size value (8 bytes).
+        size += (code.metadata.size() * sizeof(DebugRange)) + sizeof(u64);
+    }
+
+    return size;
 }
 
 Closure::Closure(Function* function) :
@@ -428,6 +451,12 @@ void String::emit(std::ofstream& os) const
 {
     Bytes::encodeValue(os, static_cast<u64>(str.size()));
     os.write(str.data(), str.size());
+}
+
+u64 String::byteSize() const
+{
+    // Added type byte (1) and string length bytes (8).
+    return sizeof(u8) + sizeof(u64) + str.size();
 }
 
 Range::Range(const std::array<i64, 3>& limits) :

@@ -112,14 +112,28 @@ void optionCacheBytes(FileID id, const ByteCode& chunk)
 	filePath.replace_extension(CH_BYTECODE_EXT);
 	std::ofstream cacheFile{filePath.filename(), std::ios::binary};
 
+	std::ofstream debugFile{};
+	if (debugInfoState == DEBUG_SEPARATE)
+	{
+		filePath.replace_extension(CH_DEBUG_EXT);
+		debugFile.open(filePath.filename(), std::ios::binary);
+	}
+
+	std::ofstream& debugDestination{(debugInfoState == DEBUG_COMBINED) ?
+		cacheFile : debugFile};
 	const auto& lineMarkers{sourceManager.getLineMarkers(id)};
 
 	chunk.encodeHeaders(cacheFile);
-	Bytes::encodeValue(cacheFile, static_cast<u64>(lineMarkers.size()));
-	for (const auto& marker : lineMarkers)
-		Bytes::encodeValue(cacheFile, marker);
+	if (debugInfoState != DEBUG_STRIPPED)
+	{
+		Bytes::encodeValue(debugDestination, static_cast<u64>(lineMarkers.size()));
+		for (const auto& marker : lineMarkers)
+			Bytes::encodeValue(debugDestination, marker);
+	}
+
 	chunk.encodeData(cacheFile);
-	chunk.encodeMetadata(cacheFile);
+	if (debugInfoState != DEBUG_STRIPPED)
+		chunk.encodeMetadata(debugDestination);
 }
 
 // Read headers and file name.
@@ -152,20 +166,20 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 
 	Bytes::CodeReader codeReader{program};
 	codeReader.readHeaders();
-	auto infoState{codeReader.readDebugState()};
+	debugInfoState = codeReader.readDebugState();
 	auto originalFile{codeReader.readFileName()};
 
 	FileID id{sourceManager.addFile(originalFile)};
 	codeReader.setFileID(id); // Before any code is read.
 
-	if (infoState != DEBUG_STRIPPED)
+	if (debugInfoState != DEBUG_STRIPPED)
 	{
 		std::vector<u64> lineMarkers{};
 		std::vector<DebugMetadata> metadataBlocks{};
 		bool usingSource{false};
 
 		std::filesystem::path checkPath{};
-		if (infoState == DEBUG_COMBINED)
+		if (debugInfoState == DEBUG_COMBINED)
 			checkPath = file;
 		else
 			checkPath = debugFile;
@@ -178,7 +192,7 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 			usingSource = true;
 		}
 
-		if (infoState == DEBUG_SEPARATE)
+		if (debugInfoState == DEBUG_SEPARATE)
 		{
 			std::ifstream debugStream{openFile(debugFile, true,
 				"Failed to access debug information.")};

@@ -172,6 +172,9 @@ extern SourceManager sourceManager;
 class DiagnosticEngine;
 extern DiagnosticEngine diagEngine;
 
+// Where debug info (if any) is to be stored when caching bytecode.
+enum DebugInfoState : u8;
+extern DebugInfoState debugInfoState;
 // Whether or not we are in the REPL or executing
 // a given file.
 extern bool inRepl;

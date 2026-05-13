@@ -105,6 +105,8 @@ ByteCode CodeReader::reconstructByteCode()
 	ByteCode code{bytes, reconstructPool(poolSize)};
 	if (debugInfoCombined)
 		readDebugMetadata(code);
+	else if (debugInfoExists)
+		matchDebugMetadata(code);
 
 	return code;
 }
@@ -217,8 +219,14 @@ void CodeReader::readDebugMetadata(ByteCode& code)
 	it += (metadata.size() * sizeof(DebugRange)) + sizeof(u64);
 }
 
+void CodeReader::matchDebugMetadata(ByteCode& code)
+{
+	code.setDebugData(id, data[dataIndex++]);
+}
+
 ByteCode CodeReader::readCache()
 {
+	debugInfoExists = false;
 	debugInfoCombined = false;
 	vByte codeBytes{};
 
@@ -232,7 +240,10 @@ ByteCode CodeReader::readCache()
 
 ByteCode CodeReader::readCache(std::vector<DebugMetadata>& metadata)
 {
+	debugInfoExists = true;
 	debugInfoCombined = metadata.empty();
+	data = metadata.data();
+
 	vByte codeBytes{};
 
 	u64 codeSize{readValue<u64>()};
@@ -243,6 +254,8 @@ ByteCode CodeReader::readCache(std::vector<DebugMetadata>& metadata)
 	ByteCode code{codeBytes, reconstructPool(poolSize)};
 	if (debugInfoCombined)
 		readDebugMetadata(code);
+	else if (debugInfoExists)
+		matchDebugMetadata(code);
 
 	return code;
 }

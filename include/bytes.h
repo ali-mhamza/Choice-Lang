@@ -35,12 +35,17 @@ namespace Bytes
     class CodeReader
     {
         private:
-            // Debug info exists and is combined with the bytecode,
-            // so both must be read together.
+            // Debug info exists.
+            bool debugInfoExists{};
+            // Debug info  is combined with the bytecode, so both
+            // must be read together.
             bool debugInfoCombined{};
+            FileID id{};
+            DebugMetadata* data{};
+            u64 dataIndex{0};
+
             vBit it{};
             vBit end{};
-            FileID id{};
             vByte cacheBytes{};
 
             /* Byte reading. */
@@ -54,6 +59,7 @@ namespace Bytes
             void readMagic();
             void readVersionNum();
             void readDebugMetadata(ByteCode& code);
+            void matchDebugMetadata(ByteCode& code);
 
             /* Object reconstructors. */
 

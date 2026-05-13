@@ -3,6 +3,7 @@
 #include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
+#include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/gen_alloc.h"
 #include "../include/lexer.h"
@@ -43,8 +44,11 @@
 	#define CLEAR_REPL_HISTORY	0
 #endif
 
+/* Global variables. */
+
 SourceManager sourceManager{};
 DiagnosticEngine diagEngine{};
+DebugInfoState debugInfoState{DEBUG_COMBINED};
 
 bool inRepl{false};
 
@@ -90,6 +94,13 @@ static const std::unordered_map<std::string_view, ArgvOption> options{
 	{"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
 	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM},
 	{"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
+};
+
+static const
+std::unordered_map<std::string_view, DebugInfoState> debugStateOptions{
+	{"-c", DEBUG_COMBINED},	{"-combine", DEBUG_COMBINED},
+	{"-s", DEBUG_SEPARATE},	{"-separate", DEBUG_SEPARATE},
+	{"-n", DEBUG_STRIPPED},	{"-nodebug", DEBUG_STRIPPED}
 };
 
 [[nodiscard]]
@@ -256,7 +267,6 @@ static void runFile(const char* fileName, ArgvOption option = EXECUTE)
 	#if !CH_USE_ALLOC
 		delete script;
 	#endif
-
 }
 
 static void printReplIntro()
@@ -359,34 +369,55 @@ static void repl(ArgvOption option = EXECUTE)
 	#endif
 }
 
+static void invalidOption()
+{
+	CH_PRINT(stderr, "Invalid command-line option.\n");
+	exit(64);
+}
+
+static void handleFourArgs(const char* argv[])
+{
+	auto it{options.find(argv[1])};
+	if ((it == options.end()) || (it->second != CACHE_BYTECODE))
+		invalidOption();
+
+	auto stateIt{debugStateOptions.find(argv[2])};
+	if (stateIt == debugStateOptions.end())
+		invalidOption();
+
+	debugInfoState = stateIt->second;
+	runFile(argv[3], it->second);
+}
+
+static void handleThreeArgs(const char* argv[])
+{
+	auto it{options.find(argv[1])};
+	if (it == options.end()) invalidOption();
+
+	if (it->second == EXPLAIN_ERROR)
+		diagEngine.explain(argv[2]);
+	else
+		runFile(argv[2], it->second);
+}
+
+static void handleTwoArgs(const char* argv[])
+{
+	auto it{options.find(argv[1])};
+	if (it != options.end())
+		repl(it->second);
+	else
+		runFile(argv[1]);
+}
+
 int main(int argc, const char* argv[])
 {
-	if (argc == 3)
+	switch (argc)
 	{
-		auto it{options.find(argv[1])};
-		if (it != options.end())
-		{
-		    if (it->second == EXPLAIN_ERROR)
-				diagEngine.explain(argv[2]);
-    		else
-    		    runFile(argv[2], it->second);
-		}
-		else
-		{
-			CH_PRINT(stderr, "Invalid command-line option.\n");
-			exit(64);
-		}
+		case 4:	handleFourArgs(argv);	break;
+		case 3:	handleThreeArgs(argv);	break;
+		case 2:	handleTwoArgs(argv);	break;
+		case 1:	repl();					break;
 	}
-	else if (argc == 2)
-	{
-		auto it{options.find(argv[1])};
-		if (it != options.end())
-			repl(it->second);
-		else
-			runFile(argv[1]);
-	}
-	else
-		repl();
 
 	return 0;
 }

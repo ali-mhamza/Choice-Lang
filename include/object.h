@@ -269,6 +269,7 @@ struct Function : public HeapObj
 
     const DebugRange& getErrorRange(const u8* ip) const;
     void emit(std::ofstream& os) const;
+    u64 byteSize() const;
 };
 
 struct Closure : public HeapObj
@@ -297,6 +298,7 @@ struct String : public HeapObj
 
     [[nodiscard]] std::string printVal() const;
     void emit(std::ofstream& os) const;
+    u64 byteSize() const;
 };
 
 struct Range : public HeapObj

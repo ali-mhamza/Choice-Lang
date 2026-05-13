@@ -509,10 +509,22 @@ void VM::printRegister()
 void VM::reportError(const Error& error)
 {
     pushCurrentStackFrame();
-    const auto& range{currentFunc->getErrorRange(ip)};
-    diagEngine.recordError(currentFunc->code.id, error.code,
-        range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
-    diagEngine.emitStackTrace(frames);
+
+    if (debugInfoState != DEBUG_STRIPPED)
+    {
+        const auto& range{currentFunc->getErrorRange(ip)};
+        diagEngine.recordError(currentFunc->code.id, error.code,
+            range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
+        diagEngine.emitStackTrace(frames);
+    }
+    else
+    {
+        // We can put dummy offsets and lengths since no lines will
+        // be printed anyway.
+        diagEngine.recordError(currentFunc->code.id, error.code, 0, 0,
+            error.label);
+        diagEngine.emitMiniStackTrace(frames);
+    }
 }
 
 void VM::executeOp(Opcode op)

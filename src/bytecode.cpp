@@ -140,44 +140,33 @@ void ByteCode::loadRegConst(Object& constant, u8 reg)
 	}
 }
 
+#undef IS_SMALL
+
 u64 ByteCode::countPool() const
 {
 	u64 count{0};
 
 	for (const Object& obj : pool)
 	{
-		if (IS_INT(obj) || IS_DEC(obj))
-			count += 9; // 8 bytes + 1 type byte.
-		else if (IS_HEAP_OBJ(obj))
+		switch (obj.type)
 		{
-			switch (obj.type)
+			case OBJ_INT:	case OBJ_DEC:
 			{
-				case OBJ_FUNC:
-				case OBJ_LAMBDA:
-				{
-					const Function& func{*(AS_FUNC(obj))};
-
-					if (func.name != nullptr) count += strlen(func.name);
-					// Added type byte (1) and name length byte (1)
-					// and argCount byte (1) and lambda Boolean byte (1).
-					count += 4 * sizeof(u8);
-					// Added code size and pool size values,
-					// as well as the actual sizes of the code and pool.
-					count += 2 * sizeof(u64) + func.code.codeSize()
-						+ func.code.countPool();
-					// Add metadata + metadata size value (8 bytes).
-					// ASSUMES COMBINED DEBUG INFO.
-					count += (func.code.metadata.size() * sizeof(DebugRange))
-						+ sizeof(u64);
-					break;
-				}
-				case OBJ_STRING:
-					// Added type byte (1) and string length bytes (8).
-					count += sizeof(u8) + sizeof(u64) + AS_STRING(obj)->str.size();
-					break;
-				default:
-					CH_UNREACHABLE();
+				count += 9;
+				break;
 			}
+			case OBJ_FUNC:	case OBJ_LAMBDA:
+			{
+				count += AS_FUNC(obj)->byteSize();
+				break;
+			}
+			case OBJ_STRING:
+			{
+				count += AS_STRING(obj)->byteSize();
+				break;
+			}
+			default:
+				CH_UNREACHABLE();
 		}
 	}
 
@@ -225,8 +214,7 @@ void ByteCode::encodeHeaders(std::ofstream& os) const
 	os.put(static_cast<char>(CH_VERSION_MINOR));
 	os.put(static_cast<char>(CH_VERSION_PATCH));
 
-	// Temporarily.
-	os.put(static_cast<char>(DEBUG_COMBINED));
+	os.put(static_cast<char>(debugInfoState));
 
 	std::string fileName{sourceManager.getFile(id)};
 	os.put(static_cast<char>(fileName.size())); // File name length.
@@ -260,6 +248,21 @@ void ByteCode::encodeData(std::ofstream& os) const
 
 void ByteCode::encodeMetadata(std::ofstream& os) const
 {
+	// When debug metadata is combined with the bytecode,
+	// each function's metadata directly follows its bytecode
+	// data, so they aren't composed like this.
+	if (debugInfoState == DEBUG_SEPARATE)
+	{
+		// Function objects have their metadata encoded first
+		// since their disassembling is completed first when
+		// reading cached bytecode data.
+		for (const Object& obj : pool)
+		{
+			if (IS_FUNC(obj))
+				AS_FUNC(obj)->code.encodeMetadata(os);
+		}
+	}
+
 	u64 size{metadata.size()};
 	Bytes::encodeValue(os, size);
 

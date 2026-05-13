@@ -373,8 +373,7 @@ void Diagnostic::report() const
     sv fileName{sourceManager.getFile(id)};
 
     displayReportTitle();
-    CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo,
-        start);
+    CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo, start);
     displayErrorLine(lineNo, start, lineStr);
 
     // displayNoteHelp(lineStr, lineNo, gap);
@@ -499,11 +498,11 @@ std::string DiagnosticEngine::printStackEntry(
         output = "  called from ";
 
     if (index == 0)
-        return output + "<script>     ";
+        return output + "<script>";
     if (func->name == nullptr)
-        return output + "[lambda]     ";
+        return output + "[lambda]";
     else
-        return output + CH_STR("{}()     ", func->name);
+        return output + CH_STR("{}()", func->name);
 }
 
 void DiagnosticEngine::displayErrorLine(
@@ -537,7 +536,8 @@ void DiagnosticEngine::displayErrorLine(
     CH_PRINT(stderr, "  {}| {}{}\n\n", gap, space, highlight);
 }
 
-void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
+void
+DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
 {
     const auto& diag{reports.back()}; // Is invalidated after calling emitReports.
     const auto id{diag.id};
@@ -573,7 +573,7 @@ void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
     for (u64 i{0}; i < size; i++)
     {
         CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
-        CH_PRINT(stderr, "{}", fileName);
+        CH_PRINT(stderr, "     {}", fileName);
         if (!lineDataExists)
         {
             CH_PRINT("\n");
@@ -584,5 +584,30 @@ void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
         CH_PRINT(stderr, " ({}:{})\n", pos.first, pos.second);
         displayErrorLine(id, pos.first, pos.second, maxLineNo);
         reports.pop_back();
+    }
+}
+
+void
+DiagnosticEngine::emitMiniStackTrace(const std::vector<CallFrame>& frames)
+{
+    const auto& fileName{sourceManager.getFile(reports.back().id)};
+    reports.back().displayReportTitle();
+    CH_PRINT(stderr, "  --> {}\n\n", fileName);
+
+    auto size{frames.size()};
+    std::vector<std::string> outputLines(size);
+
+    for (u64 i{0}; i < size; i++)
+        outputLines[i] = printStackEntry(frames, i);
+
+    auto it{std::max_element(outputLines.begin(), outputLines.end(),
+        [](auto& str1, auto& str2) { return str1.size() < str2.size(); }
+    )};
+
+    CH_PRINT(stderr, "Stack Trace:\n");
+    for (u64 i{0}; i < size; i++)
+    {
+        CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
+        CH_PRINT(stderr, "     {}\n", fileName);
     }
 }
