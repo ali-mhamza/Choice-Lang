@@ -1,6 +1,7 @@
 #include "../include/astcompiler.h"
 #include "../include/astnodes.h"
 #include "../include/bytecode.h"
+#include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/diagnostic.h"
 #include "../include/gen_alloc.h"
@@ -8,7 +9,6 @@
 #include "../include/main_utils.h"
 #include "../include/object.h"
 #include "../include/parser.h"
-#include "../include/bytes.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 
@@ -20,10 +20,8 @@
 	#include "replxx.hxx"
 #endif
 
-#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -46,7 +44,7 @@
 #endif
 
 SourceManager sourceManager{};
-DiagnosticEngine diagEngine{&sourceManager};
+DiagnosticEngine diagEngine{};
 
 std::string file{};
 bool inRepl{false};
