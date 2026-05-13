@@ -559,7 +559,7 @@ void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
     auto it{std::max_element(outputLines.begin(), outputLines.end(),
         [](auto& str1, auto& str2) { return str1.size() < str2.size(); }
     )};
-    auto maxLineNo{std::max_element(positions.begin(), positions.end())->first};
+    u64 maxLineNo{std::max_element(positions.begin(), positions.end())->first};
 
     CH_PRINT(stderr, "Stack Trace:\n");
     for (u64 i{0}; i < size; i++)
