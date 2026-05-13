@@ -34,8 +34,9 @@ T Bytes::readMemValue(const u8* mem, const u8* end)
 	for (size_t i{0}; i < sizeof(T); i++)
 		value = (value << CHAR_BIT) | mem[i];
 
-	T* temp{reinterpret_cast<T*>(&value)};
-	return *temp;
+	T result{};
+	std::memcpy(&result, &value, sizeof(T));
+	return result;
 }
 
 /* CodeReader class. */
