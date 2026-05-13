@@ -96,9 +96,9 @@ void normalizeInput(std::string& input)
 
 /* Special option handlers. */
 
-void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens)
+void optionShowTokens(FileID id, const vT& tokens)
 {
-	TokenPrinter{manager, id, tokens}.printTokens();
+	TokenPrinter{id, tokens}.printTokens();
 }
 
 void optionShowBytes(const ByteCode& chunk)
@@ -120,7 +120,7 @@ void optionCacheBytes(FileID id, const ByteCode& chunk)
 
 	const auto& lineMarkers{sourceManager.getLineMarkers(id)};
 
-	chunk.encodeHeaders(cacheFile, id);
+	chunk.encodeHeaders(cacheFile);
 	Bytes::encodeValue(cacheFile, static_cast<u64>(lineMarkers.size()));
 	for (const auto& marker : lineMarkers)
 		Bytes::encodeValue(cacheFile, marker);
@@ -163,6 +163,7 @@ static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
 
 	file = originalFile;
 	FileID id{sourceManager.addFile(originalFile)};
+	codeReader.setFileID(id); // Before any code is read.
 
 	if (infoState != DEBUG_STRIPPED)
 	{

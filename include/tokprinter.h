@@ -7,7 +7,6 @@
 class TokenPrinter
 {
     private:
-        SourceManager* manager{};
         FileID id{};
         const vT& tokens{};
 
@@ -19,6 +18,6 @@ class TokenPrinter
         void printToken(const Token& token) const;
 
     public:
-        TokenPrinter(SourceManager* manager, FileID id, const vT& tokens);
+        TokenPrinter(FileID id, const vT& tokens);
         void printTokens() const;
 };

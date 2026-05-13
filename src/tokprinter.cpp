@@ -10,8 +10,8 @@
 
 #define NEWLINE_REPLACEMENT "<NL>"
 
-TokenPrinter::TokenPrinter(SourceManager* manager, FileID id, const vT& tokens) :
-    manager{manager}, id{id}, tokens{tokens} {}
+TokenPrinter::TokenPrinter(FileID id, const vT& tokens) :
+    id{id}, tokens{tokens} {}
 
 [[nodiscard]]
 static std::string formatMultiLineString(const std::string_view& sv)
@@ -110,7 +110,7 @@ void TokenPrinter::printToken(const Token& token) const
     CH_PRINT("{:<20}", typeStrings[token.type]);
     if (token.type != TOK_EOF)
     {
-        const auto& [line, column, _] = manager->getLineColumn(id, token.byteOffset);
+        const auto& [line, column] = sourceManager.getLineColumn(id, token.byteOffset);
         std::string format{CH_STR("({}:{})", line, column)};
         CH_PRINT("{:<10}", format);
 

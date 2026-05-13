@@ -27,7 +27,7 @@ bool fileMoreRecent(
     const std::filesystem::path& b
 );
 void normalizeInput(std::string& input);
-void optionShowTokens(SourceManager* manager, FileID id, const vT& tokens);
+void optionShowTokens(FileID id, const vT& tokens);
 void optionShowBytes(const ByteCode& chunk);
 void optionLoad(const char* fileName);
 void optionDis(const char* fileName);
