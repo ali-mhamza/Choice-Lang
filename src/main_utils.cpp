@@ -155,7 +155,6 @@ static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
 	auto infoState{codeReader.readDebugState()};
 	auto originalFile{codeReader.readFileName()};
 
-	file = originalFile;
 	FileID id{sourceManager.addFile(originalFile)};
 	codeReader.setFileID(id); // Before any code is read.
 

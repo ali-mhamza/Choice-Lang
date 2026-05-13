@@ -46,7 +46,6 @@
 SourceManager sourceManager{};
 DiagnosticEngine diagEngine{};
 
-std::string file{};
 bool inRepl{false};
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
@@ -128,17 +127,18 @@ static Function* runCompiler(FileID id, const vT& tokens)
 // re-compiling.
 // Should be updated if we get to multi-file
 // compilation.
-[[nodiscard]] static bool cacheOptimize(ArgvOption option)
+[[nodiscard]]
+static bool cacheOptimize(const char* fileName, ArgvOption option)
 {
 	using std::filesystem::exists;
 	using std::filesystem::last_write_time;
 
-	std::filesystem::path cache{file};
+	std::filesystem::path cache{fileName};
 	cache.replace_extension(".bch");
 
-	if (exists(file))
+	if (exists(fileName))
 	{
-		if (fileMoreRecent(cache, file))
+		if (fileMoreRecent(cache, fileName))
 		{
 			if (option == CACHE_BYTECODE)
 				return true; // Nothing to do.
@@ -184,7 +184,6 @@ static bool prelimChecks(const char* fileName, ArgvOption option)
 		exit(65);
 	}
 
-	file = std::string{fileName};
 	if (option == LOAD_PROGRAM)
 	{
 		optionLoad(fileName);
@@ -197,7 +196,7 @@ static bool prelimChecks(const char* fileName, ArgvOption option)
 		return true;
 	}
 
-	if (cacheOptimize(option))
+	if (cacheOptimize(fileName, option))
 		return true;
 
 	return false;
@@ -307,9 +306,8 @@ static void repl(ArgvOption option = EXECUTE)
 		exit(64);
 	}
 
-	file = "<repl>";
 	std::string line{};
-	FileID id{sourceManager.addFile(file, line)};
+	FileID id{sourceManager.addFile("<repl>", line)};
 
 	#if EXTERNAL_REPL
 		replxx::Replxx rx{};
@@ -343,7 +341,7 @@ static void repl(ArgvOption option = EXECUTE)
 			#endif
 
 			normalizeInput(line);
-			id = sourceManager.addFile(file, line);
+			id = sourceManager.addFile("<repl>", line);
 
 			vT& tokens{runLexer(id, line)};
 			if (option == EMIT_TOKENS)

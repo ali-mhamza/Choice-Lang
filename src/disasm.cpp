@@ -2,6 +2,7 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/diagnostic.h"
 #include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
@@ -346,7 +347,7 @@ void Disassembler::disassembleCode()
 	if (topLevel)
 	{
 		if (!inRepl && (ip < end)) // ip < end -> We have some bytecode to print.
-			CH_PRINT("=== CODE [{}] ===\n", file);
+			CH_PRINT("=== CODE [{}] ===\n", sourceManager.getFile(code.id));
 		CH_PRINT("Bytes: {}\n", code.block.size());
 	}
 	int opers{0};

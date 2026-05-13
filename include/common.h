@@ -175,9 +175,6 @@ extern DiagnosticEngine diagEngine;
 // Whether or not we are in the REPL or executing
 // a given file.
 extern bool inRepl;
-// The (optional) name of the file being executed.
-// Has value "" when in the REPL.
-extern std::string file;
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 	class LinearAlloc;
