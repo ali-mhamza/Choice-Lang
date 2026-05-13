@@ -173,9 +173,16 @@ void Parser::setStmtLocation(StmtUP& stmt, u64 start)
 {
     if (stmt != nullptr)
     {
-        stmt->sourceStart = start;
-        stmt->sourceEnd = previousTok.byteOffset
-            + previousTok.text.size();
+        // We only store these offsets if the statement
+        // has not already been assigned any.
+
+        if (stmt->sourceStart == UINT64_MAX)
+            stmt->sourceStart = start;
+        if (stmt->sourceEnd == UINT64_MAX)
+        {
+            stmt->sourceEnd = previousTok.byteOffset
+                + previousTok.text.size();
+        }
     }
 }
 
@@ -183,9 +190,16 @@ void Parser::setExprLocation(ExprUP& expr, u64 start)
 {
     if (expr != nullptr)
     {
-        expr->sourceStart = start;
-        expr->sourceEnd = previousTok.byteOffset
-            + previousTok.text.size();
+        // We only store these offsets if the expression
+        // has not already been assigned any.
+
+        if (expr->sourceStart == UINT64_MAX)
+            expr->sourceStart = start;
+        if (expr->sourceEnd == UINT64_MAX)
+        {
+            expr->sourceEnd = previousTok.byteOffset
+                + previousTok.text.size();
+        }
     } 
 }
 
@@ -525,9 +539,11 @@ StmtUP Parser::blockStmt()
 
 StmtUP Parser::exprStmt()
 {
-    StmtUP ptr{std::make_unique<ExprStmt>(expression())};
+    u64 start{currentTok.byteOffset};
+    ExprUP expr{expression()};
+    setExprLocation(expr, start);
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after expression");
-    return ptr;
+    return std::make_unique<ExprStmt>(expr);
 }
 
 ExprUP Parser::returnExpr()
@@ -770,7 +786,9 @@ ExprUP Parser::call()
     ExprUP expr{post()};
     if ((currentTok.type == TOK_BANG) && (expr != nullptr)
         && (expr->type != E_VAR_EXPR))
+    {
         REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, currentTok);
+    }
 
     if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
     {
@@ -795,6 +813,7 @@ ExprUP Parser::call()
                     args.push_back(
                         std::make_unique<ReferenceExpr>(offset, previousTok)
                     );
+                    setExprLocation(args.back(), offset);
                     continue;
                 }
 
@@ -903,15 +922,20 @@ ExprUP Parser::formatString()
 {
     ExprVec parts{};
     parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
+    setExprLocation(parts.back(), previousTok.byteOffset);
     while (!consumeTok(TOK_INTER_END))
     {
         if (consumeTok(TOK_INTER_PART))
+        {
             parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
+            setExprLocation(parts.back(), previousTok.byteOffset);
+        }
         else
             parts.emplace_back(expression());
     }
 
     parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
+    setExprLocation(parts.back(), previousTok.byteOffset);
     return std::make_unique<FormatExpr>(parts);
 }
 
