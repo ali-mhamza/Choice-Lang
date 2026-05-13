@@ -174,6 +174,7 @@ static std::pair<ByteCode, FileID> readByteCode(const char* fileName)
 		if (fileMoreRecent(checkPath, originalFile))
 		{
 			std::string fileContent{readFile(originalFile)};
+			normalizeInput(fileContent);
 			sourceManager.setContent(id, fileContent);
 			usingSource = true;
 		}
