@@ -442,7 +442,7 @@ inline void VM::restoreData()
     registers = frame.regStart;
     ip = frame.ip;
     end = &(currentFunc->code.block.back()) + 1;
-    pool = &(currentFunc->code.pool.front());
+    pool = currentFunc->code.pool.data();
     #if WATCH_EXEC
         delete this->dis;
         this->dis = frame.dis;
