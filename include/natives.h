@@ -11,7 +11,7 @@ namespace Natives
 {
     // using iter = vObj::const_iterator;
     using iter = Object*;
-    using NativeFunc = void (*)(iter, u8, const Token&);
+    using NativeFunc = void (*)(iter, u8);
 
     enum FuncType : u8
     {
@@ -27,15 +27,15 @@ namespace Natives
         NUM_FUNCS
     };
 
-    void print(iter it, u8 args, const Token& error);
-    void println(iter it, u8 args, const Token& error);
-    void format(iter it, u8 args, const Token& error);
-    void type(iter it, u8 args, const Token& error);
-    void len(iter it, u8 args, const Token& error);
-    void clock(iter it, u8 args, const Token& error);
-    void range(iter it, u8 args, const Token& error);
-    void read(iter it, u8 args, const Token& error);
-    void quit(iter it, u8 args, const Token& error);
+    void print(iter it, u8 args);
+    void println(iter it, u8 args);
+    void format(iter it, u8 args);
+    void type(iter it, u8 args);
+    void len(iter it, u8 args);
+    void clock(iter it, u8 args);
+    void range(iter it, u8 args);
+    void read(iter it, u8 args);
+    void quit(iter it, u8 args);
 
     extern const std::array<NativeFunc, NUM_FUNCS> functions;
     extern const std::array<const char*, NUM_FUNCS> funcNames;

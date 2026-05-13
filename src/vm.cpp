@@ -2,6 +2,7 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/diagnostic.h"
 #include "../include/disasm.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
@@ -158,13 +159,7 @@ Object VM::concatStrings(const Object& str1, const Object& str2)
 Object VM::makeRange(const Object& start, const Object& stop)
 {
     if (!IS_INT(start) || !IS_INT(stop))
-    {
-        throw TypeMismatch(
-            "Can only construct ranges from integer values.",
-            OBJ_INT,
-            IS_INT(start) ? stop.type : start.type
-        );
-    }
+        throw reportBinaryOperator(OP_RANGE, start, stop);
 
     std::array<i64, 3> nums{AS_INT(start), AS_INT(stop), 1};
     return CH_ALLOC(Range, nums);
@@ -214,7 +209,7 @@ inline Object VM::loadOper()
     }
 }
 
-Object VM::arithOper(Opcode oper, u8 firstOper)
+Object VM::arithOper(Opcode op, u8 firstOper)
 {
     const Object& a{registers[firstOper]};
     const Object& b{registers[readByte()]};
@@ -223,21 +218,19 @@ Object VM::arithOper(Opcode oper, u8 firstOper)
     {
         i64 aVal{AS_INT(a)};
         i64 bVal{AS_INT(b)};
-        switch (oper)
+        switch (op)
         {
             case OP_ADD:    return aVal + bVal;
             case OP_SUB:    return aVal - bVal;
             case OP_MULT:   return aVal * bVal;
             case OP_DIV:
             {
-                if (bVal == 0)
-                    throw RuntimeError(Token(), "Division by zero.");
+                if (bVal == 0) throw RuntimeError(DIVISION_BY_ZERO);
                 return static_cast<double>(aVal) / bVal;
             }
             case OP_MOD:
             {
-                if (bVal == 0)
-                    throw RuntimeError(Token(), "Modulus with divisor zero.");
+                if (bVal == 0) throw RuntimeError(MODULUS_WITH_ZERO);
                 return aVal % bVal;
             }
             case OP_POWER:  return static_cast<i64>(pow(aVal, bVal));
@@ -248,39 +241,26 @@ Object VM::arithOper(Opcode oper, u8 firstOper)
     {
         double aVal{static_cast<double>(AS_NUM(a))};
         double bVal{static_cast<double>(AS_NUM(b))};
-        switch (oper)
+        switch (op)
         {
             case OP_ADD:    return aVal + bVal;
             case OP_SUB:    return aVal - bVal;
             case OP_MULT:   return aVal * bVal;
             case OP_DIV:
             {
-                if (bVal == 0.0)
-                    throw RuntimeError(Token(), "Division by zero.");
+                if (bVal == 0.0) throw RuntimeError(DIVISION_BY_ZERO);
                 return aVal / bVal;
             }
             case OP_POWER:  return pow(aVal, bVal);
             case OP_MOD:
-            {
-                throw TypeMismatch(
-                    "Cannot apply modulus operator to non-integers.",
-                    OBJ_INT,
-                    (IS_INT(a) ? b.type : a.type)
-                );
-            }
+                throw reportBinaryOperator(op, a, b);
             default: CH_UNREACHABLE();
         }
     }
-    else if (IS_STRING(a) && IS_STRING(b) && (oper == OP_ADD))
+    else if (IS_STRING(a) && IS_STRING(b) && (op == OP_ADD))
         return concatStrings(a, b);
     else
-    {
-        throw TypeMismatch(
-            "Cannot apply arithmetic operator to non-numeric values.",
-            OBJ_NUM,
-            (IS_NUM(a) ? b.type : a.type)
-        );
-    }
+        throw reportBinaryOperator(op, a, b);
 }
 
 Object VM::compareOper(Opcode op, u8 firstOper)
@@ -291,11 +271,7 @@ Object VM::compareOper(Opcode op, u8 firstOper)
     if (((op == OP_GT) || (op == OP_LT))
         && (!IS_COMPARABLE(a) || !IS_COMPARABLE(b)))
     {
-        throw TypeMismatch(
-            "Cannot compare given values.",
-            OBJ_COMPARABLE,
-            IS_COMPARABLE(a) ? b.type : a.type
-        );
+        throw reportBinaryOperator(op, a, b);
     }
 
     switch (op)
@@ -321,13 +297,7 @@ Object VM::bitOper(Opcode op, u8 firstOper)
     const Object& b{registers[readByte()]};
 
     if (!IS_INT(a) || !IS_INT(b))
-    {
-        throw TypeMismatch(
-            "Cannot apply bitwise operator to non-integer values.",
-            OBJ_INT,
-            (IS_INT(a) ? b.type : a.type)
-        );
-    }
+        throw reportBinaryOperator(op, a, b);
 
     u64 aVal{AS_UINT(a)};
     u64 bVal{AS_UINT(b)};
@@ -339,14 +309,12 @@ Object VM::bitOper(Opcode op, u8 firstOper)
         case OP_XOR:        return fromUnsigned(aVal ^ bVal);
         case OP_SHIFT_L:
         {
-            if (bVal >= 64)
-                throw RuntimeError(Token(), "Shift value too high.");
+            if (bVal >= 64) throw RuntimeError(HIT_SHIFT_MAX);
             return fromUnsigned(aVal << bVal);
         }
         case OP_SHIFT_R:
         {
-            if (bVal >= 64)
-                throw RuntimeError(Token(), "Shift value too high.");
+            if (bVal >= 64) throw RuntimeError(HIT_SHIFT_MAX);
             // Manually perform wraparound to maintain LHS signed-ness.
             i64 term{(AS_INT(a) >= 0) ? 0 : INT64_MIN};
             return fromUnsigned(aVal >> bVal) + term;
@@ -365,13 +333,7 @@ Object VM::unaryOper(Opcode op, u8 oper)
         case OP_DECR:
         {
             if (!IS_NUM(obj))
-            {
-                throw TypeMismatch(
-                    "Cannot increment or decrement a non-numeric value.",
-                    OBJ_NUM,
-                    obj.type
-                );
-            }
+                throw reportUnaryOperator(op, obj);
             if (IS_INT(obj))
                 return AS_INT(obj) + i64(op == OP_INCR ? 1 : -1);
             else
@@ -380,13 +342,7 @@ Object VM::unaryOper(Opcode op, u8 oper)
         case OP_NEG:
         {
             if (!IS_NUM(obj))
-            {
-                throw TypeMismatch(
-                    "Cannot negate a non-numeric value.",
-                    OBJ_NUM,
-                    obj.type
-                );
-            }
+                throw reportUnaryOperator(op, obj);
             if (IS_INT(obj))
                 return i64(AS_INT(obj) * -1);
             else
@@ -396,17 +352,21 @@ Object VM::unaryOper(Opcode op, u8 oper)
         case OP_COMP:
         {
             if (!IS_INT(obj))
-            {
-                throw TypeMismatch(
-                    "Cannot apply bitwise operator to non-integer values.",
-                    OBJ_INT,
-                    obj.type
-                );
-            }
+                throw reportUnaryOperator(op, obj);
             return i64(~AS_UINT(obj));
         }
         default: CH_UNREACHABLE();
     }
+}
+
+void VM::pushCurrentStackFrame()
+{
+    frames.emplace_back(CallFrame::Args{
+        currentFunc, currentClosure, registers, ip
+        #if WATCH_EXEC
+        , this->dis
+        #endif
+    });
 }
 
 void VM::callFunc(const Object& callee, u8 start, u8 argCount)
@@ -428,19 +388,14 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     if (func->argCount != argCount)
     {
         throw RuntimeError(
-            Token(),
-            CH_STR("Expected {} argument{} but found {}.",
+            ARITY_MISMATCH,
+            CH_STR("expected {} argument{} but found {}",
             func->argCount, (func->argCount == 1 ? "" : "s"), argCount)
         );
     }
 
+    pushCurrentStackFrame();
     const ByteCode& code{func->code};
-    frames.emplace_back(CallFrame::Args{
-        currentFunc, currentClosure, registers, ip
-        #if WATCH_EXEC
-        , this->dis
-        #endif
-    });
 
     currentFunc = func;
     currentClosure = closure;
@@ -457,19 +412,13 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 void VM::callNative(const Object& callee, u8 start, u8 argCount)
 {
     auto* func{Natives::functions[AS_NATIVE(callee)]};
-    func(&registers[start], argCount, Token());
+    func(&registers[start], argCount);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
 {
     if (!IS_CALLABLE(callee))
-    {
-        throw TypeMismatch(
-            "Object is not callable.",
-            OBJ_FUNC,
-            callee.type
-        );
-    }
+        throw TypeMismatch{OBJ_NOT_CALLABLE};
 
     switch (callee.type)
     {
@@ -510,13 +459,7 @@ void VM::startIter()
 
     ObjIter* iter{};
     if ((iter = iterable.makeIter()) == nullptr)
-    {
-        throw TypeMismatch(
-            "Given object is not iterable.",
-            OBJ_ITER,
-            iterable.type
-        );
-    }
+        throw TypeMismatch{OBJ_NOT_ITERABLE};
 
     if (iter->start(var))
     {
@@ -562,6 +505,15 @@ void VM::printRegister()
 }
 
 #endif
+
+void VM::reportError(const Error& error)
+{
+    pushCurrentStackFrame();
+    const auto& range{currentFunc->getErrorRange(ip)};
+    diagEngine.recordError(currentFunc->code.id, error.code,
+        range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
+    diagEngine.emitStackTrace(frames);
+}
 
 void VM::executeOp(Opcode op)
 {
@@ -875,7 +827,7 @@ void VM::executeOp(Opcode op)
             SET_REGSLOT(start);
 
             const auto& func{Natives::functions[callee]};
-            func(&registers[start], argCount, Token()); // Temporarily.
+            func(&registers[start], argCount); // Temporarily.
 
             SET_REGSLOT(currentSlot);
             DISPATCH();
@@ -1002,13 +954,9 @@ void VM::executeCode(Function* script)
             executeOp(static_cast<Opcode>(0));
         #endif
     }
-    catch (TypeMismatch& error)
+    catch (Error& error)
     {
-        error.report();
-    }
-    catch (RuntimeError& error)
-    {
-        error.report();
+        reportError(error);
     }
 
     #if WATCH_EXEC
@@ -1019,9 +967,9 @@ void VM::executeCode(Function* script)
     scopeStarts.clear();
 }
 
-/* FuncContext logic. */
+/* CallFrame constructor. */
 
-VM::CallFrame::CallFrame(const Args& args) :
+CallFrame::CallFrame(const Args& args) :
     function(args.function),
     closure(args.closure),
     regStart(args.regStart),

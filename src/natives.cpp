@@ -43,10 +43,8 @@ const std::unordered_map<std::string_view,
     {"quit", Natives::FUNC_QUIT}
 };
 
-void Natives::print(Natives::iter it, u8 args, const Token& error)
+void Natives::print(Natives::iter it, u8 args)
 {
-    (void) error;
-
     for (u8 i{0}; i < args; i++)
     {
         switch (it[i].type)
@@ -77,17 +75,16 @@ void Natives::print(Natives::iter it, u8 args, const Token& error)
     it[-1] = ret;
 }
 
-void Natives::println(Natives::iter it, u8 args, const Token& error)
+void Natives::println(Natives::iter it, u8 args)
 {
-    print(it, args, error);
+    print(it, args);
     if (!inRepl) CH_PRINT("\n");
 }
 
 #if !defined(CH_USE_FMT_LIB)
     // Work in progress.
     [[nodiscard]]
-    static std::string defaultFormat(Natives::iter it, u8 args,
-        const Token& error)
+    static std::string defaultFormat(Natives::iter it, u8 args)
     {
         using sizeT = std::string::size_type;
         const std::string& str{AS_STRING(it[0])->str};
@@ -114,7 +111,7 @@ void Natives::println(Natives::iter it, u8 args, const Token& error)
                 {
                     newStr.append(str, start, pos - start);
                     if (++count > static_cast<u8>(args - 1))
-                        throw RuntimeError(error, "Too few format arguments.");
+                        throw RuntimeError(ARITY_MISMATCH, "Too few format arguments.");
 
                     newStr += it[count].printVal();
                     pos += 2;
@@ -125,19 +122,19 @@ void Natives::println(Natives::iter it, u8 args, const Token& error)
         }
 
         if (count < static_cast<u8>(args - 1))
-            throw RuntimeError(error, "Too many format arguments.");
+            throw RuntimeError(ARITY_MISMATCH, "Too many format arguments.");
         if (newStr.empty()) newStr = str;
 
         return newStr;
     }
 #endif
 
-void Natives::format(Natives::iter it, u8 args, const Token& error)
+void Natives::format(Natives::iter it, u8 args)
 {
     if (args == 0)
-        throw RuntimeError(error, "String argument not provided.");
+        throw RuntimeError(WRONG_ARG_TYPE, "string argument not provided");
     else if (!IS_STRING(it[0]))
-        throw RuntimeError(error, "First argument must be a string.");
+        throw RuntimeError(WRONG_ARG_TYPE, "first argument must be a string");
 
     std::string result{};
 
@@ -153,10 +150,7 @@ void Natives::format(Natives::iter it, u8 args, const Token& error)
         }
         catch (std::runtime_error& err) // Formatting error.
         {
-            auto msg{err.what()};
-            throw RuntimeError(error,
-                CH_STR("{:c}{}.", toupper(msg[0]), &msg[1])
-            );
+            throw RuntimeError(FORMAT_STR_PROBLEM, err.what());
         }
 
     #else
@@ -166,30 +160,30 @@ void Natives::format(Natives::iter it, u8 args, const Token& error)
     it[-1] = Object{CH_ALLOC(String, result)};
 }
 
-void Natives::type(Natives::iter it, u8 args, const Token& error)
+void Natives::type(Natives::iter it, u8 args)
 {
     if (args != 1)
     {
-        throw RuntimeError(error,
-            CH_STR("Expected 1 argument but found {}.", args)
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expected 1 argument but found {}", args)
         );
     }
 
     it[-1] = Object{it->type};
 }
 
-void Natives::len(Natives::iter it, u8 args, const Token& error)
+void Natives::len(Natives::iter it, u8 args)
 {
     if (args != 1)
     {
-        throw RuntimeError(error,
-            CH_STR("Expected 1 argument but found {}.", args)
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expected 1 argument but found {}", args)
         );
     }
 
     const Object& obj{*it};
     if (!IS_ITERABLE(obj))
-        throw RuntimeError(error, "Argument provided is not iterable.");
+        throw RuntimeError(OBJ_NOT_ITERABLE, "argument provided is not iterable");
 
     i64 len{0};
     switch (obj.type)
@@ -213,12 +207,12 @@ void Natives::len(Natives::iter it, u8 args, const Token& error)
     it[-1] = Object{len};
 }
 
-void Natives::clock(Natives::iter it, u8 args, const Token& error)
+void Natives::clock(Natives::iter it, u8 args)
 {
     if (args != 0)
     {
-        throw RuntimeError(error,
-            CH_STR("Expected 0 arguments but found {}.", args)
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expected 0 arguments but found {}", args)
         );
     }
 
@@ -232,18 +226,18 @@ void Natives::clock(Natives::iter it, u8 args, const Token& error)
     it[-1] = Object{i64(ret.count())};
 }
 
-void Natives::range(Natives::iter it, u8 args, const Token& error)
+void Natives::range(Natives::iter it, u8 args)
 {
     if ((args != 2) && (args != 3))
     {
-        throw RuntimeError(error,
-            CH_STR("Expect 2 or 3 arguments but found {}.", args)
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expect 2 or 3 arguments but found {}", args)
         );
     }
     if (!IS_INT(it[0]) || !IS_INT(it[1]) || ((args == 3) && !IS_INT(it[2])))
-        throw RuntimeError(error, "Arguments must be integers.");
+        throw RuntimeError(WRONG_ARG_TYPE, "arguments must be integers");
     if ((args == 3) && (AS_INT(it[2]) == 0))
-        throw RuntimeError(error, "Cannot have a step size of zero.");
+        throw RuntimeError(WRONG_ARG_TYPE, "cannot have a step size of zero");
 
     std::array<i64, 3> limits{AS_INT(it[0]), AS_INT(it[1]), 1};
     if (args == 3)
@@ -251,18 +245,18 @@ void Natives::range(Natives::iter it, u8 args, const Token& error)
     it[-1] = Object{CH_ALLOC(Range, limits)};
 }
 
-void Natives::read(Natives::iter it, u8 args, const Token& error)
+void Natives::read(Natives::iter it, u8 args)
 {
     if (args > 1)
     {
-        throw RuntimeError(error,
-            CH_STR("Expect 0 or 1 arguments but found {}.", args)
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expect 0 or 1 arguments but found {}", args)
         );
     }
     if (args == 1)
     {
         if (!IS_STRING(it[0]))
-            throw RuntimeError(error, "Argument must be a string."); // Temporarily.
+            throw RuntimeError(WRONG_ARG_TYPE, "argument must be a string");
         CH_PRINT("{}", AS_STRING(it[0])->str);
         fflush(stdout);
     }
@@ -273,20 +267,20 @@ void Natives::read(Natives::iter it, u8 args, const Token& error)
     it[-1] = Object{CH_ALLOC(String, input)};
 }
 
-void Natives::quit(Natives::iter it, u8 args, const Token& error)
+void Natives::quit(Natives::iter it, u8 args)
 {
     if (args > 1)
     {
-        throw RuntimeError(error,
-            CH_STR("Expect 0 or 1 arguments but found {}.", args)
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expect 0 or 1 arguments but found {}", args)
         );
     }
     if ((args == 1) && !IS_INT(it[0]))
-        throw RuntimeError(error, "Argument must be an integer.");
+        throw RuntimeError(WRONG_ARG_TYPE, "argument must be an integer");
 
     i64 code{AS_INT(it[0])};
     if (code < 0)
-        throw RuntimeError(error, "Argument cannot be negative.");
+        throw RuntimeError(WRONG_ARG_TYPE, "argument cannot be negative");
 
     u8 exitCode{static_cast<u8>((args == 0) ? 0 : (code & 0xff))};
     exit(exitCode);

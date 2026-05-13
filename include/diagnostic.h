@@ -5,6 +5,8 @@
 #include "astnodes.h"
 #include "common.h"
 #include "token.h"
+#include "vm.h"
+#include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -12,7 +14,7 @@
 #include <vector>
 
 using sv = std::string_view;
-using FileID = u64;
+struct Function;
 
 struct FileData
 {
@@ -31,14 +33,25 @@ class SourceManager
 
     public:
         SourceManager() = default;
+
         [[nodiscard]]
         FileID addFile(const std::string& name, const std::string& content = "");
         void setContent(FileID id, const std::string& content);
         void setLineMarkers(FileID id, const std::vector<u64>& lineMarkers);
-        [[nodiscard]] const std::string& getFile(FileID id);
-        [[nodiscard]] const std::vector<u64>& getLineMarkers(FileID id);
+
+        [[nodiscard]] bool hasLineData(FileID id) const;
+
+        [[nodiscard]] const std::string& getFile(FileID id) const;
+        [[nodiscard]] const std::vector<u64>& getLineMarkers(FileID id) const;
+
+        [[nodiscard]] u64 getLineNumber(FileID id, u64 offset) const;
+        [[nodiscard]] u64 getColumnNumber(FileID id, u64 offset) const;
+        [[nodiscard]] sv getLineText(FileID id, u64 line) const;
+
         [[nodiscard]]
-        std::tuple<u64, u64, sv> getLineColumn(FileID id, u64 offset);
+        std::pair<u64, u64> getLineColumn(FileID id, u64 offset) const;
+        [[nodiscard]]
+        std::tuple<u64, u64, sv> getPositionData(FileID id, u64 offset) const;
 };
 
 enum DiagFamily : u8
@@ -136,9 +149,6 @@ enum DiagCode : u8
     // Argument provided has the wrong type.
     // Primarily used in built-in functions.
     WRONG_ARG_TYPE,
-    // Attempt to construct a range object from non-integer values.
-    // Applies to range literals and the built-in 'range' function.
-    RANGE_ONLY_INTS,
 
 
     /* Value errors. */
@@ -149,12 +159,14 @@ enum DiagCode : u8
     MODULUS_WITH_ZERO,
     // Bit-shift operator shift value is too high.
     HIT_SHIFT_MAX,
+    // General error while using the format!() built-in.
+    FORMAT_STR_PROBLEM,
 
 
     /* Call errors. */
 
     // Attempt to call an object that is not callable.
-    OBJECT_NOT_CALLABLE,
+    OBJ_NOT_CALLABLE,
     // Attempt to call a built-in function that does not exist.
     BUILTIN_NOT_FOUND,
     // No overload for function with given arity.
@@ -226,7 +238,6 @@ enum DiagCode : u8
 
 struct Diagnostic
 {
-    SourceManager* manager;
     bool isError{};
     FileID id;
     u64 byteOffset{}, length{};
@@ -244,6 +255,7 @@ struct Diagnostic
     [[nodiscard]] static DiagFamily getDiagCodeFamily(DiagCode code);
     [[nodiscard]] DiagFamily getDiagCodeFamily() const;
     void displayReportTitle() const;
+    void displayErrorLine(u64 line, u64 start, sv text) const;
     // void displayNoteHelp(
     //     const sv& lineStr,
     //     const u64& lineNo,
@@ -256,15 +268,20 @@ struct Diagnostic
 class DiagnosticEngine
 {
     private:
-        SourceManager* manager;
         std::vector<Diagnostic> reports{};
 
-        std::pair<bool, DiagCode> validateCode(sv code);
+        std::optional<DiagCode> validateCode(sv code);
+        std::string printStackEntry(const std::vector<CallFrame>& frames, u64 index);
+        void displayErrorLine(
+            FileID id,
+            u64 line,
+            u64 col,
+            u64 maxLineNo = UINT64_MAX
+        );
 
     public:
-        DiagnosticEngine(SourceManager* manager);
-        [[nodiscard]]
-        inline bool hasReports() const { return !reports.empty(); }
+        DiagnosticEngine() = default;
+        [[nodiscard]] bool hasReports() const { return !reports.empty(); }
         void explain(sv code);
 
         // Primitive error-reporting helper.
@@ -310,4 +327,7 @@ class DiagnosticEngine
         );
 
         void emitReports();
+
+        // Directly reports a runtime error with a stack trace.
+        void emitStackTrace(const std::vector<CallFrame>& frames);
 };

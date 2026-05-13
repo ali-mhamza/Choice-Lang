@@ -1,8 +1,10 @@
 #include "fast_float.h"
 #include "../include/diagnostic.h"
 #include "../include/common.h"
-#include "../include/utils.h"
+#include "../include/object.h"
 #include "../include/token.h"
+#include "../include/utils.h"
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <string>
@@ -18,15 +20,15 @@ static constexpr sv NORMAL{"\033[0m"};
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    INVALID_UTF_CODEPOINT, PARAM_ALREADY_DEFINED, RANGE_ONLY_INTS,
-    HIT_SHIFT_MAX, HIT_ARGS_MAX, MOD_CONST_VARIABLE,
+    INVALID_UTF_CODEPOINT, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
+    FORMAT_STR_PROBLEM, HIT_ARGS_MAX, MOD_CONST_VARIABLE,
     IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE, REF_TO_CONST_VAR
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Type Error",
-    "Value Error", "Function-call Error", "Assignment Error",
-    "Control-flow Error", "Unused Warning", "Reference Warning"
+    "Value Error", "Function-Call Error", "Assignment Error",
+    "Control-Flow Error", "Unused Warning", "Reference Warning"
 };
 
 // Temporarily.
@@ -59,11 +61,12 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Failed to apply binary operator.", "Failed to apply unary operator.",
     "Object is not iterable.",
     "Operand does not match member type of iterable object.",
-    "Wrong argument type.", "Can only construct range object from integers.",
+    "Wrong argument type or value.",
 
     // Value errors.
 
     "Division by zero.", "Modulus with base zero.", "Shift value too large.",
+    "Invalid format argument.",
 
     // Call errors.
 
@@ -92,7 +95,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     // Unused warnings.
 
-    "Unused variable.", "Expression result not used.", "Unreachable code segment.",
+    "Unused variable.", "Expression result not used.",
+    "Unreachable code segment.",
 
     // Constant reference warning.
 
@@ -131,10 +135,6 @@ FileID SourceManager::addFile(
     return id - 1;
 }
 
-// For now, we use this to save only one content entry for the REPL.
-// Later, we may wish to keep each line as an independent entry so
-// that we can combine diagnostics from different lines (would
-// require some more expansion work here, though).
 void SourceManager::setContent(FileID id, const std::string& content)
 {
     sourceData[id].content = content;
@@ -150,22 +150,25 @@ void SourceManager::setLineMarkers(
     sourceData[id].lineMarkers = lineMarkers;
 }
 
-const std::string& SourceManager::getFile(FileID id)
+bool SourceManager::hasLineData(FileID id) const
+{
+    return !sourceData[id].lineMarkers.empty();
+}
+
+const std::string& SourceManager::getFile(FileID id) const
 {
     return sourceData[id].fileName;
 }
 
-const std::vector<u64>& SourceManager::getLineMarkers(FileID id)
+const std::vector<u64>& SourceManager::getLineMarkers(FileID id) const
 {
     return sourceData[id].lineMarkers;
 }
 
-std::tuple<u64, u64, sv> SourceManager::getLineColumn(
-    FileID id,
-    u64 offset
-)
+u64 SourceManager::getLineNumber(FileID id, u64 offset) const
 {
     const FileData& data{sourceData[id]};
+
     u64 line{1};
     if (!data.lineMarkers.empty())
     {
@@ -177,20 +180,58 @@ std::tuple<u64, u64, sv> SourceManager::getLineColumn(
         }
     }
 
+    return line;
+}
+
+u64 SourceManager::getColumnNumber(FileID id, u64 offset) const
+{
+    const FileData& data{sourceData[id]};
+    u64 line{getLineNumber(id, offset)};
+
+    u64 lineStart{
+        (line == 1) ? 0 : data.lineMarkers[line - 2] + 1
+    };
+    u64 column{offset - lineStart + 1};
+
+    return column;
+}
+
+sv SourceManager::getLineText(FileID id, u64 line) const
+{
+    const FileData& data{sourceData[id]};
+    if ((data.content.empty()) || (line > data.lineMarkers.size() + 1))
+        return "";
+
     u64 lineStart{
         (line == 1) ? 0 : data.lineMarkers[line - 2] + 1
     };
     u64 lineEnd{};
 
-    if (data.lineMarkers.empty() || (offset > data.lineMarkers.back()))
+    if (data.lineMarkers.empty() || (line == data.lineMarkers.size() + 1))
         lineEnd = data.content.size() - 1;
     else
         lineEnd = data.lineMarkers[line - 1] - 1;
 
-    u64 column{offset - lineStart + 1};
-    sv lineStr{&(data.content[lineStart]), lineEnd - lineStart + 1};
+    return sv{&(data.content[lineStart]), lineEnd - lineStart + 1};
+}
 
-    return std::make_tuple(line, column, lineStr);
+std::pair<u64, u64>
+SourceManager::getLineColumn(FileID id, u64 offset) const
+{
+    return std::make_pair(
+        getLineNumber(id, offset),
+        getColumnNumber(id, offset)
+    );
+}
+
+std::tuple<u64, u64, sv>
+SourceManager::getPositionData(FileID id, u64 offset) const
+{
+    u64 line{getLineNumber(id, offset)};
+    u64 column{getColumnNumber(id, offset)};
+    sv text{getLineText(id, line)};
+
+    return std::make_tuple(line, column, text);
 }
 
 // [[nodiscard]]
@@ -263,6 +304,38 @@ void Diagnostic::displayReportTitle() const
     }
 }
 
+void Diagnostic::displayErrorLine(u64 line, u64 start, sv text) const
+{
+    if (text.empty()) return;
+
+    constexpr auto EXTRA_SPACES{2u};
+
+    // If the pointing caret isn't just past the end of the line,
+    // we truncate it so it doesn't go past the line (if the token
+    // is long, like with a multi-line string).
+
+    u64 caretLength{length};
+    if (byteOffset != text.size())
+        caretLength = std::min(length, text.size() - byteOffset);
+
+    std::string space(start - 1, ' ');
+    std::string highlight(caretLength, '^');
+    auto size{std::to_string(line).size()};
+    std::string gap(size + EXTRA_SPACES, ' ');
+
+    if (!label.empty())
+    {
+        highlight += " ";
+        highlight += label;
+    }
+
+    CH_PRINT(stderr, "{}|\n", gap);
+    CH_PRINT(stderr, " {} | {}\n", line, text);
+    CH_PRINT(stderr, "{}| {}{}\n", gap, space, highlight);
+    if (!label.empty())
+        CH_PRINT(stderr, "{}|\n", gap);
+}
+
 // void Diagnostic::displayNoteHelp(
 //     const sv& lineStr,
 //     const u64& lineNo,
@@ -286,41 +359,23 @@ void Diagnostic::displayReportTitle() const
 
 void Diagnostic::report() const
 {
-    constexpr auto EXTRA_SPACES{2u};
-    const auto [lineNo, start, lineStr] = manager->getLineColumn(
+    const auto [lineNo, start, lineStr] = sourceManager.getPositionData(
         id, byteOffset
     );
 
-    displayReportTitle();
-
-    std::string space(start - 1, ' ');
-    std::string highlight(length, '^');
-    auto size{std::to_string(lineNo).size()};
-    std::string gap(size + EXTRA_SPACES, ' ');
-
-    if (!label.empty())
-    {
-        highlight += " ";
-        highlight += label;
-    }
-
-    sv fileName{manager->getFile(id)};
+    sv fileName{sourceManager.getFile(id)};
     if (fileName.empty()) fileName = "<script>";
 
+    displayReportTitle();
     CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo,
         start);
-    CH_PRINT(stderr, "{}|\n", gap);
-    CH_PRINT(stderr, " {} | {}\n", lineNo, lineStr);
-    CH_PRINT(stderr, "{}| {}{}\n", gap, space, highlight);
+    displayErrorLine(lineNo, start, lineStr);
 
     // displayNoteHelp(lineStr, lineNo, gap);
     CH_PRINT("\n");
 }
 
-DiagnosticEngine::DiagnosticEngine(SourceManager* manager) :
-    manager{manager} {}
-
-std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
+std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
 {
     #define IS_VALID_CODE(code) (((code) >= 0) && ((code) < NUM_CODES))
 
@@ -331,7 +386,7 @@ std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
     if ((!isError && !isWarning) || (code.size() != 5))
     {
         CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
-        return std::make_pair(false, static_cast<DiagCode>(0));
+        return std::nullopt;
     }
 
     u8 explainCode{};
@@ -345,20 +400,20 @@ std::pair<bool, DiagCode> DiagnosticEngine::validateCode(sv code)
     if (!result || !IS_VALID_CODE(explainCode))
     {
         CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
-        return std::make_pair(false, static_cast<DiagCode>(0));
+        return std::nullopt;
     }
 
-    return std::make_pair(true, static_cast<DiagCode>(explainCode));
+    return static_cast<DiagCode>(explainCode);
 }
 
 void DiagnosticEngine::explain(sv code)
 {
-    auto pair{validateCode(code)};
-    if (!pair.first) return;
+    auto codeValue{validateCode(code)};
+    if (!codeValue) return;
 
-    DiagFamily family{Diagnostic::getDiagCodeFamily(pair.second)};
+    DiagFamily family{Diagnostic::getDiagCodeFamily(codeValue.value())};
     CH_PRINT("Code:     {}.\n", code);
-    CH_PRINT("Message:  {}\n", reportData[pair.second]);
+    CH_PRINT("Message:  {}\n", reportData[codeValue.value()]);
     CH_PRINT("Category: {}.\n", familyTitles[family]);
 }
 
@@ -371,7 +426,7 @@ void DiagnosticEngine::recordError(
 )
 {
     reports.push_back(Diagnostic{
-       manager, true, id, byteOffset, length, code, label
+        true, id, byteOffset, length, code, label
     });
 }
 
@@ -404,7 +459,7 @@ void DiagnosticEngine::recordWarning(
 )
 {
     reports.push_back(Diagnostic{
-       manager, false, id, byteOffset, length, code, label
+        false, id, byteOffset, length, code, label
     });
 }
 
@@ -423,4 +478,99 @@ void DiagnosticEngine::emitReports()
     for (const auto& diag : reports)
         diag.report();
     reports.clear();
+}
+
+std::string DiagnosticEngine::printStackEntry(
+    const std::vector<CallFrame>& frames,
+    u64 index
+)
+{
+    const Function* func{frames[index].function};
+    std::string output{};
+    if (index == frames.size() - 1)
+        output = "  at ";
+    else
+        output = "  called from ";
+
+    if (index == 0)
+        return output + " <script>     ";
+    if (func->name == nullptr)
+        return output + "[lambda]     ";
+    else
+        return output + CH_STR("{}()     ", func->name);
+}
+
+void DiagnosticEngine::displayErrorLine(
+    FileID id,
+    u64 line,
+    u64 col,
+    u64 maxLineNo
+)
+{
+    constexpr auto EXTRA_SPACES{2u};
+    const auto& text{sourceManager.getLineText(id, line)};
+
+    // In case we aren't using the original source code.
+    if (text.empty()) return;
+
+    // If the pointing caret isn't just past the end of the line,
+    // we truncate it so it doesn't go past the line.
+
+    const auto& diag{reports.back()};
+    u64 caretLength{diag.length};
+    if (diag.byteOffset != text.size())
+        caretLength = std::min(diag.length, text.size() - diag.byteOffset);
+
+    std::string space(col - 1, ' ');
+    std::string highlight(caretLength, '^');
+    auto size{std::to_string(maxLineNo).size()};
+    std::string gap(size + EXTRA_SPACES, ' ');
+
+    CH_PRINT(stderr, "    {}|\n", gap);
+    CH_PRINT(stderr, "     {:>{}} | {}\n", line, size, text);
+    CH_PRINT(stderr, "    {}| {}{}\n\n", gap, space, highlight);
+}
+
+void DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
+{
+    const auto& diag{reports.back()}; // Is invalidated after calling emitReports.
+    const auto id{diag.id};
+    const auto& fileName{sourceManager.getFile(diag.id)};
+    emitReports(); // Emits the only runtime error (since they don't aggregate).
+
+    auto size{frames.size()};
+    bool lineDataExists{sourceManager.hasLineData(id)};
+    std::vector<std::string> outputLines(size);
+    std::vector<std::pair<u64, u64>> positions(lineDataExists ? size : 0);
+
+    // Will store stack trace output for call stack in reverse
+    // (most recent call last).
+    for (u64 i{0}; i < size; i++)
+    {
+        outputLines[i] = printStackEntry(frames, i);
+        if (!lineDataExists) continue;
+
+        const auto& range{frames[i].function->getErrorRange(frames[i].ip)};
+        positions[i] = sourceManager.getLineColumn(id, range.sourceStart);
+        recordError(id, DiagCode{}, range.sourceStart,
+            range.sourceEnd - range.sourceStart, "");
+    }
+
+    auto it{std::max_element(outputLines.begin(), outputLines.end(),
+        [](auto& str1, auto& str2) { return str1.size() < str2.size(); }
+    )};
+    auto maxLineNo{std::max_element(positions.begin(), positions.end())->first};
+
+    CH_PRINT(stderr, "Stack Trace:\n");
+    for (u64 i{0}; i < size; i++)
+    {
+        CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
+        CH_PRINT(stderr, "{}", fileName);
+        if (!lineDataExists) continue;
+
+        const auto& pos{positions[size - 1 - i]};
+        CH_PRINT(stderr, " ({}:{})\n", pos.first, pos.second);
+        displayErrorLine(id, pos.first, pos.second, maxLineNo);
+        reports.pop_back();
+    }
 }

@@ -50,8 +50,6 @@ enum ObjType : u8
     TYPE_LIST
 
     // Used in TypeMismatch errors.
-    OBJ_NUM,
-    OBJ_COMPARABLE,
     NUM_TYPES,
     OBJ_INVALID,
 };
@@ -250,6 +248,8 @@ struct Cell : public HeapObj
     void close();
 };
 
+struct DebugRange;
+
 struct Function : public HeapObj
 {
     const char* name{};
@@ -267,6 +267,7 @@ struct Function : public HeapObj
 
     [[nodiscard]] bool operator==(const Function& other) const;
 
+    const DebugRange& getErrorRange(const u8* ip) const;
     void emit(std::ofstream& os) const;
 };
 
@@ -418,24 +419,6 @@ struct CustomDealloc
         ObjT* obj = reinterpret_cast<ObjT*>(mem);
         obj->~ObjT();
     }
-};
-
-
-/* General type mismatch error class. */
-
-struct TypeMismatch
-{
-    const std::string message{};
-    const ObjType expect{};
-    const ObjType actual{};
-
-    TypeMismatch(
-        const std::string& message,
-        const ObjType expect,
-        const ObjType actual
-    );
-
-    void report();
 };
 
 #undef TYPE_LIST

@@ -2,11 +2,11 @@
 #include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
-#include "../include/config.h"
+#include "../include/diagnostic.h"
+#include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
 #include <array>
-#include <climits>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -27,7 +27,7 @@ constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Function", "Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table",
     "", // References take the type of the contained object.
-    "Void", "Iterable", "Num", "Comparable"
+    "Void", "Iterable"
 };
 
 /* Object. */
@@ -197,21 +197,9 @@ bool Object::in(const Object& other) const
         return list.contains(obj);
     }
     else if (!IS_STRING(obj) && !IS_RANGE(other))
-    {
-        throw TypeMismatch(
-            "Right operand must be an iterable object.",
-            OBJ_ITER,
-            other.type
-        );
-    }
+        throw reportCollection(OBJ_NOT_ITERABLE, obj, other);
     else
-    {
-        throw TypeMismatch(
-            "Left operand not matching member type of iterable object.",
-            (other.type == OBJ_STRING ? OBJ_STRING : OBJ_INT),
-            obj.type
-        );
-    }
+        throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
 }
 
 [[nodiscard]] static std::string doubleToStr(double d)
@@ -333,6 +321,20 @@ Function::~Function()
 bool Function::operator==(const Function& other) const
 {
     return (this == &other);
+}
+
+const DebugRange& Function::getErrorRange(const u8 *ip) const
+{
+    CH_ASSERT(ip >= code.block.data(), "Wrong IP passed for error reporting.");
+
+    u64 offset{static_cast<u64>(ip - code.block.data())};
+    for (const auto& range : code.metadata)
+    {
+        if ((offset >= range.byteStart) && (offset <= range.byteEnd))
+            return range;
+    }
+
+    CH_UNREACHABLE();
 }
 
 void Function::emit(std::ofstream& os) const
@@ -753,28 +755,4 @@ bool ObjIter::next(Object& var)
     }, iter);
 
     return ret;
-}
-
-/* Type mismatch error class.*/
-
-TypeMismatch::TypeMismatch(const std::string& message, ObjType expect,
-    ObjType actual) :
-    message{message}, expect{expect}, actual{actual} {}
-
-#if defined(DEBUG)
-    #define LENGTH(array) sizeof(array) / sizeof(array[0])
-    #define IS_OBJ(type) \
-        (((type) >= 0) && ((type) < LENGTH(objTypes)))
-#endif
-
-void TypeMismatch::report()
-{
-    CH_ASSERT(IS_OBJ(expect) && IS_OBJ(actual),
-        "Invalid object type for error reporting.");
-
-    CH_PRINT(stderr,
-        "Type mismatch: Expected ({}) but found ({}) instead.\n",
-        objTypes[expect], objTypes[actual]
-    );
-    CH_PRINT(stderr, "{:>15}{}\n", "", message);
 }

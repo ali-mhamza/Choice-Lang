@@ -12,37 +12,38 @@
 #define COPY_INLINE 0
 
 class Disassembler;
+class Error;
+
+struct CallFrame
+{
+    struct Args
+    {
+        Function* function{};
+        Closure* closure{};
+        Object* regStart{};
+        const u8* ip{};
+
+        #if WATCH_EXEC
+        Disassembler* dis;
+        #endif
+    };
+
+    Function* function{};
+    Closure* closure{};
+    Object* regStart{};
+    const u8* ip{};
+
+    #if WATCH_EXEC
+    Disassembler* dis;
+    #endif
+
+    CallFrame() = default;
+    CallFrame(const Args& args);
+};
 
 class VM
 {
     private:
-        struct CallFrame
-        {
-            struct Args
-            {
-                Function* function{};
-                Closure* closure{};
-                Object* regStart{};
-                const u8* ip{};
-
-                #if WATCH_EXEC
-                Disassembler* dis;
-                #endif
-            };
-
-            Function* function{};
-            Closure* closure{};
-            Object* regStart{};
-            const u8* ip{};
-
-            #if WATCH_EXEC
-            Disassembler* dis;
-            #endif
-
-            CallFrame() = default;
-            CallFrame(const Args& args);
-        };
-
         Function* currentFunc{};
         Closure* currentClosure{};
         const u8* ip{};
@@ -88,6 +89,7 @@ class VM
         [[nodiscard]] Object bitOper(Opcode op, u8 firstOper);
         [[nodiscard]] Object unaryOper(Opcode op, u8 oper);
 
+        void pushCurrentStackFrame();
         void callFunc(const Object& callee, u8 start, u8 argCount);
         void callNative(const Object& callee, u8 start, u8 argCount);
         void callObj(const Object& callee, u8 start, u8 argCount);
@@ -100,6 +102,7 @@ class VM
         void printRegister();
         #endif
 
+        void reportError(const Error& error);
         void executeOp(Opcode op);
 
     public:
