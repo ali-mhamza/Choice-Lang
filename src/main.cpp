@@ -98,7 +98,7 @@ static const std::unordered_map<std::string_view, ArgvOption> options{
 
 static const
 std::unordered_map<std::string_view, DebugInfoState> debugStateOptions{
-	{"-c", DEBUG_COMBINED},	{"-combine", DEBUG_COMBINED},
+	{"-c", DEBUG_COMBINED},	{"-combined", DEBUG_COMBINED},
 	{"-s", DEBUG_SEPARATE},	{"-separate", DEBUG_SEPARATE},
 	{"-n", DEBUG_STRIPPED},	{"-nodebug", DEBUG_STRIPPED}
 };
