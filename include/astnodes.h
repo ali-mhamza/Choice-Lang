@@ -67,6 +67,7 @@ namespace AST
         {
             const StmtType type{};
             u64 sourceStart{UINT64_MAX};
+            // Just past the end.
             u64 sourceEnd{UINT64_MAX};
 
             Stmt(StmtType type);
@@ -227,7 +228,7 @@ namespace AST
         {
             const ExprUP expr{};
 
-            ExprStmt(ExprUP expr);
+            ExprStmt(ExprUP& expr);
         };
 
         struct BlockStmt : public Stmt
@@ -251,6 +252,7 @@ namespace AST
         {
             const ExprType type{};
             u64 sourceStart{UINT64_MAX};
+            // Just past the end.
             u64 sourceEnd{UINT64_MAX};
 
             Expr(ExprType type);

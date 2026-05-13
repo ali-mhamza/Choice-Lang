@@ -69,7 +69,7 @@ ContinueStmt::ContinueStmt(const Token& label) :
 EndStmt::EndStmt() :
     Stmt{S_END_STMT} {}
 
-ExprStmt::ExprStmt(ExprUP expr) :
+ExprStmt::ExprStmt(ExprUP& expr) :
     Stmt{S_EXPR_STMT},
     expr{std::move(expr)} {}
 
