@@ -1,6 +1,6 @@
 #pragma once
 #include "common.h"
-#include "diagnostic.h"
+#include "debug.h"
 #include "opcodes.h"
 #include <fstream>
 #include <vector>
@@ -15,6 +15,7 @@ class ByteCode
     private:
         vByte block{};
         vObj pool{};
+        FileID id{};
         DebugMetadata metadata{};
 
         void addByte(u8 byte);
@@ -40,10 +41,10 @@ class ByteCode
         template<typename... Bytes>
         void addOp(Opcode op, Bytes... opers);
 
-        void setDebugData(const DebugMetadata& metadata);
+        void setDebugData(FileID id, const DebugMetadata& metadata);
 
         // Add a jump instruction with an optional condition
-        // register
+        // register.
         // i16 to allow -1 while still fitting all register values.
         [[nodiscard]] u64 addJump(Opcode op, i16 reg = -1);
         // Fill in the two-byte operand for a jump instruction.
@@ -64,8 +65,7 @@ class ByteCode
         void clear();
 
         // Serialize data headers into a file.
-        // `id` represents the original file's file ID.
-        void encodeHeaders(std::ofstream& os, FileID id) const;
+        void encodeHeaders(std::ofstream& os) const;
         // Serialize code and pool data into a file.
         void encodeData(std::ofstream& os) const;
         // Serialize debug metadata into a file.

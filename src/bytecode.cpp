@@ -2,6 +2,7 @@
 #include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/diagnostic.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include <cmath>
@@ -41,8 +42,9 @@ void ByteCode::addOp(Opcode op)
 	addByte(static_cast<u8>(op));
 }
 
-void ByteCode::setDebugData(const DebugMetadata& metadata)
+void ByteCode::setDebugData(FileID id, const DebugMetadata& metadata)
 {
+	this->id = id;
 	this->metadata = metadata;
 	sortMetadata();
 }
@@ -203,10 +205,8 @@ void ByteCode::sortMetadata()
 	std::sort(metadata.begin(), metadata.end(),
 		[](const DebugRange& a, const DebugRange& b)
 		{
-			bool in{(a.byteStart >= b.byteStart) && (a.byteEnd <= b.byteEnd)
-				&& ((a != b) || (a.sourceStart > b.sourceStart))};
 			bool prior{(a.byteEnd <= b.byteStart)};
-			return (in || prior);
+			return (a.bytesInside(b) || a.locationInside(b) || prior);
 		}
 	);
 	metadata.erase(
@@ -215,7 +215,7 @@ void ByteCode::sortMetadata()
 	);
 }
 
-void ByteCode::encodeHeaders(std::ofstream& os, FileID id) const
+void ByteCode::encodeHeaders(std::ofstream& os) const
 {
 	// Magic.
 	os.write("choice", sizeof("choice") - 1);
@@ -263,7 +263,7 @@ void ByteCode::encodeMetadata(std::ofstream& os) const
 	u64 size{metadata.size()};
 	Bytes::encodeValue(os, size);
 
-	for (auto& range : metadata)
+	for (const auto& range : metadata)
 	{
 		Bytes::encodeValue(os, range.byteStart);
 		Bytes::encodeValue(os, range.byteEnd);
