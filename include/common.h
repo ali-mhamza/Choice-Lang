@@ -154,7 +154,8 @@ using u16   = uint16_t;
 using u32   = uint32_t;
 using u64   = uint64_t;
 
-using Hash  = uint32_t;
+using Hash  	= u32;
+using FileID	= u64;
 
 struct Token;
 class Object;
