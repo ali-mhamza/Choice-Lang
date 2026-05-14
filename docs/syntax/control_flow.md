@@ -145,7 +145,7 @@ for (fn in x)
 `for` loops, like `if-elif-else` statements, also have an expression counterpart, though in a more minor form. List comprehensions can be used to iteratively generate the lists of an element.\
 The syntax for list comprehensions can be illustrated with this example:
 ```
-make list = [for (i in 1..10): i]; // x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+make list = [for (i in 1..10): i]; // list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 ```
 
 The `for` loop used in a list comprehension is identical to a regular `for` loop, with two exceptions:
@@ -154,7 +154,7 @@ The `for` loop used in a list comprehension is identical to a regular `for` loop
 
 Similar to `for` loops, list comprehensions can also have `where` conditional clauses to exclude some elements or cases:
 ```
-make list = [for (i in 1..10 where i % 2 == 0): i]; // x = [1, 3, 5, 7, 9]
+make list = [for (i in 1..10 where i % 2 == 0): i]; // list = [1, 3, 5, 7, 9]
 ```
 
 <hr>
