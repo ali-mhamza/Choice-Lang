@@ -56,6 +56,10 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
 
 ASTCompiler::~ASTCompiler() = default;
 
+std::vector<ASTCompiler::DeclarationPair> ASTCompiler::declaredVars{};
+bool ASTCompiler::clearDeclaredVars{false};
+u8 ASTCompiler::clearIndex{0};
+
 /* Compilation helpers. */
 
 void ASTCompiler::addVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
@@ -86,14 +90,40 @@ void ASTCompiler::defVar(const std::string& name, u8 reg, bool access)
 {
     (*varLocations)[{ name, scope }] = reg;
     (*varAccess)[reg] = access;
-    if (scope != 0) varScopes.top().push_back(name);
+
+    if (scope != 0)
+        varScopes.top().push_back(name);
+    else if (inRepl && (depth == 0) && (scope == 0))
+        declaredVars.push_back({ name, reg });
 }
 
 void ASTCompiler::removeVar(const std::string& name, u8 reg)
 {
     varLocations->remove({ name, scope });
     varAccess->remove(reg);
-    if (scope != 0) varScopes.top().pop_back();
+
+    if (scope != 0)
+        varScopes.top().pop_back();
+    else if (inRepl && (depth == 0) && (scope == 0))
+        declaredVars.pop_back();
+}
+
+void ASTCompiler::clearDeclarations()
+{
+    if (clearDeclaredVars)
+    {
+        while (clearIndex < declaredVars.size())
+        {
+            const auto& pair{declaredVars[clearIndex++]};
+
+            varLocations->remove({ pair.name, scope });
+            varAccess->remove(pair.reg);
+        }
+    }
+
+    declaredVars.clear();
+    clearDeclaredVars = false;
+    clearIndex = 0;
 }
 
 bool ASTCompiler::getAccess(u8 reg) const
@@ -182,6 +212,16 @@ void ASTCompiler::popScope()
     scope--;
     nextReg = scopeStart;
     code.addOp(OP_EXIT_SCOPE);
+}
+
+void ASTCompiler::startDeclaration()
+{
+    if (inRepl) code.addOp(OP_DEF_START, declaredVars.size());
+}
+
+void ASTCompiler::endDeclaration()
+{
+    if (inRepl) code.addOp(OP_DEF_END);
 }
 
 void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
@@ -323,6 +363,8 @@ void ASTCompiler::reportPartError(
 
 DEF(VarDecl)
 {
+    startDeclaration();
+
     LocalInfo localInfo{getScopeLocal(node->name)};
     if (localInfo.found)
     {
@@ -360,6 +402,7 @@ DEF(VarDecl)
     }
 
     if (!inError && hitError) removeVar(varName, varSlot);
+    endDeclaration();
 }
 
 void ASTCompiler::funcBodyHelper(
@@ -421,6 +464,8 @@ void ASTCompiler::funcBodyHelper(
 
 DEF(FuncDecl)
 {
+    startDeclaration();
+
     LocalInfo localInfo{getScopeLocal(node->name)};
     bool redefined{false};
     if (localInfo.found)
@@ -450,6 +495,7 @@ DEF(FuncDecl)
     bool inError{hitError};
     funcBodyHelper(node->params, node->body, varSlot, name);
     if (!inError && hitError) removeVar(name, varSlot);
+    endDeclaration();
 }
 
 DEF(ClassDecl) { (void) node; }
@@ -1363,12 +1409,18 @@ Function* ASTCompiler::compile(FileID id, const StmtVec& program)
     this->id = id;
     code.clear();
     metadata.clear();
+    clearDeclarations();
     // Inherit hitError and errorCount from parser.
 
     for (const StmtUP& node : program)
         compileStmt(node);
 
-    if (hitError) code.clear();
+    if (hitError)
+    {
+        code.clear();
+        clearDeclaredVars = true; // Will clear on the next run.
+    }
+
     return CH_ALLOC(Function, getCode(), 0);
 }
 

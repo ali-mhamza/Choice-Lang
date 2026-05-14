@@ -50,6 +50,12 @@ class ASTCompiler
             bool inCell{};
         };
 
+        struct DeclarationPair
+        {
+            std::string name{};
+            u8 reg{};
+        };
+
         ByteCode code{};
         ASTCompiler* const scopeCompiler{};
         FileID id{};
@@ -92,6 +98,9 @@ class ASTCompiler
         // Must always be called (if it is called at all) *after* defVar.
         void removeVar(const std::string& name, u8 reg);
 
+        // To clear declaredVars upon a compile-time or runtime error.
+        void clearDeclarations();
+
         // Check if variable at register `reg` is mutable.
         [[nodiscard]] bool getAccess(u8 reg) const;
 
@@ -114,6 +123,11 @@ class ASTCompiler
 
         void pushScope();
         void popScope();
+
+        /* Variable declarations. */
+
+        void startDeclaration();
+        void endDeclaration();
 
         /* Registers. */
 
@@ -234,6 +248,10 @@ class ASTCompiler
         // So they can be modified directly.
         bool hitError{false};
         int errorCount{0};
+
+        static std::vector<DeclarationPair> declaredVars;
+        static bool clearDeclaredVars;
+        static u8 clearIndex;
 
         ASTCompiler(ASTCompiler* comp = nullptr);
         ~ASTCompiler();

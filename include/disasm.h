@@ -41,6 +41,8 @@ class Disassembler
         void referenceOp();
         // For OP_FORMAT_STR.
         void formatOp();
+        // For OP_DEF_START.
+        void declOp();
 
     public:
         Disassembler(const Function* function);

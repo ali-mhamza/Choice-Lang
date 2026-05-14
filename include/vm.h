@@ -58,6 +58,9 @@ class VM
         std::vector<CallFrame> frames{};
         std::vector<Cell*> activeCells{};
 
+        bool inDeclaration{false};
+        u8 clearIndex{}; // To communicate with compiler.
+
         #if WATCH_REG
         u8 regSlot{};
         #endif

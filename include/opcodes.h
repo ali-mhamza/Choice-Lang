@@ -52,6 +52,9 @@ enum Opcode : u8 // Each opcode is a single byte.
 
 	/* Variables. */
 
+	OP_DEF_START,		// Begin a variable declaration/definition.
+	OP_DEF_END,			// End a variable declaration/definition.
+
 	OP_GET_GLOBAL,		// Retrieve/load a global variable.
 	OP_SET_GLOBAL,		// Assign to a global variable.
 

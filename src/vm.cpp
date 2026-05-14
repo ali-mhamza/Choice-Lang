@@ -1,4 +1,5 @@
 #include "../include/vm.h"
+#include "../include/astcompiler.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
@@ -639,6 +640,18 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        CASE(OP_DEF_START):
+        {
+            inDeclaration = true;
+            clearIndex = readByte();
+            DISPATCH();
+        }
+        CASE(OP_DEF_END):
+        {
+            inDeclaration = false;
+            DISPATCH();
+        }
+
         CASE(OP_GET_GLOBAL):
         {
             u8 dest{readByte()};
@@ -969,6 +982,14 @@ void VM::executeCode(Function* script)
     catch (Error& error)
     {
         reportError(error);
+
+        if (inDeclaration)
+        {
+            ASTCompiler::clearDeclaredVars = true;
+            ASTCompiler::clearIndex = this->clearIndex;
+            inDeclaration = false;
+            this->clearIndex = 0;
+        }
     }
 
     #if WATCH_EXEC

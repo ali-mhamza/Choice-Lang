@@ -276,6 +276,14 @@ void Disassembler::formatOp()
 	CH_PRINT("R[{}] ({})\n", reg, count);
 }
 
+void Disassembler::declOp()
+{
+	printOpcode(opNames[OP_DEF_START]);
+	CH_PRINT("V[{}]\n", ip[1]);
+
+	ip += 2;
+}
+
 void Disassembler::disassembleOp(u8 byte)
 {
 	switch (byte)
@@ -311,13 +319,10 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
 			captureOp(byte);
 			break;
-		case OP_MAKE_REF:
-			referenceOp();
-			break;
-		case OP_FORMAT_STR:
-			formatOp();
-			break;
-		case OP_EXIT_SCOPE:
+		case OP_MAKE_REF:	referenceOp();	break;
+		case OP_FORMAT_STR:	formatOp();		break;
+		case OP_DEF_START:	declOp();		break;
+		case OP_EXIT_SCOPE:		case OP_DEF_END:
 		{
 			#if PRINT_FULL_OFFSET
 				CH_PRINT("{:0>4} {}\n", ip - start, opNames[byte]);
