@@ -133,6 +133,10 @@ enum TokenType : u8
 	TOK_COLON,			// :
 	TOK_EQUAL,			// =
 
+	/* Functions. */
+
+	TOK_THICK_ARROW,	// =>
+
 	/* Classes. */
 
 	TOK_DOT,			// .

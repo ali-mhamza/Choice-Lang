@@ -49,13 +49,7 @@ class Parser
 
         [[nodiscard]] StmtUP declaration();
         [[nodiscard]] StmtUP varDecl();
-        // skipParams: Since || is scanned as a single token, we use
-        // this to indicate that the parser should assume no parameters.
-        [[nodiscard]] StmtUP funcBodyHelper(
-            bool lambda,
-            vT& params,
-            bool skipParams = false
-        );
+        [[nodiscard]] StmtUP funcBodyHelper(vT& params);
         [[nodiscard]] StmtUP funDecl();
         [[nodiscard]] StmtUP classDecl();
 
@@ -94,6 +88,10 @@ class Parser
         [[nodiscard]] ExprUP call();
         [[nodiscard]] ExprUP post(); // Post-increment/decrement.
         [[nodiscard]] ExprUP ifExpr();
+        [[nodiscard]] StmtUP lambdaBodyHelper(
+            vT& params,
+            bool skipParams = false
+        );
         [[nodiscard]] ExprUP lambda(bool skipParams);
         [[nodiscard]] ExprUP comprehension();
         [[nodiscard]] ExprUP list();

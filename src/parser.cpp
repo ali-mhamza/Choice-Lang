@@ -255,34 +255,21 @@ StmtUP Parser::varDecl()
     return std::make_unique<VarDecl>(declType, name, init);
 }
 
-StmtUP Parser::funcBodyHelper(bool lambda, vT& params, bool skipParams)
+StmtUP Parser::funcBodyHelper(vT& params)
 {
-    if (!lambda)
-        MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name");
+    MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name");
 
-    if (!skipParams)
+    if (!checkTok(TOK_RIGHT_PAREN))
     {
-        if (!checkTok(lambda ? TOK_BAR : TOK_RIGHT_PAREN))
-        {
-            do {
-                if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
-                MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
-                params.emplace_back(previousTok);
-            } while (consumeTok(TOK_COMMA));
-        }
-
-        if (lambda)
-        {
-            MATCH_TOK(TOK_BAR, "expect '|' after lambda parameters");
-        }
-        else
-        {
-            MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' to close function signature");
-        }
+        do {
+            if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
+            MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
+            params.emplace_back(previousTok);
+        } while (consumeTok(TOK_COMMA));
     }
 
-    MATCH_TOK(TOK_LEFT_BRACE, lambda ?
-        "expect '{' before lambda body" : "expect '{' before function body");
+    MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' to close function signature");
+    MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before function body");
 
     bool prevInFunc{inFunc};
     inFunc = true;
@@ -298,7 +285,7 @@ StmtUP Parser::funDecl()
     Token name{previousTok};
 
     vT params{};
-    StmtUP body{funcBodyHelper(false, params)};
+    StmtUP body{funcBodyHelper(params)};
 
     return std::make_unique<FuncDecl>(name, params, body);
 }
@@ -872,10 +859,47 @@ ExprUP Parser::ifExpr()
     return std::make_unique<IfExpr>(condition, trueBranch, falseBranch);
 }
 
+StmtUP Parser::lambdaBodyHelper(vT& params, bool skipParams)
+{
+    if (!skipParams)
+    {
+        if (!checkTok(TOK_BAR))
+        {
+            do {
+                if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
+                MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
+                params.emplace_back(previousTok);
+            } while (consumeTok(TOK_COMMA));
+        }
+
+        MATCH_TOK(TOK_BAR, "expect '|' after lambda parameters");
+    }
+
+    StmtUP body{};
+    u64 start{currentTok.byteOffset};
+    if (consumeTok(TOK_THICK_ARROW))
+    {
+        ExprUP result{expression()};
+        body = std::make_unique<ReturnStmt>(previousTok, result);
+        setStmtLocation(body, start);
+    }
+    else
+    {
+        MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before lambda body");
+
+        bool prevInFunc{inFunc};
+        inFunc = true;
+        body = blockStmt();
+        inFunc = prevInFunc;
+    }
+
+    return body;
+}
+
 ExprUP Parser::lambda(bool skipParams)
 {
     vT params{};
-    StmtUP body{funcBodyHelper(true, params, skipParams)};
+    StmtUP body{lambdaBodyHelper(params, skipParams)};
     return std::make_unique<LambdaExpr>(params, body);
 }
 
