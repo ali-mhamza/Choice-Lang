@@ -204,13 +204,7 @@ bool Lexer::checkNumericLiteral(char start)
 
 void Lexer::reportError(DiagCode code, u64 offset, std::string_view message)
 {
-	// if (errorCount == LEX_ERROR_MAX)
-	// 	CH_PRINT("SCANNING ERROR MAXIMUM REACHED.\n");
-	// else if (errorCount < LEX_ERROR_MAX)
-	// 	LexError{offset, message}.report();
-	// hitError = true;
-	// errorCount++;
-
+	diagEngine.source = ErrorSource::LEXER;
 	hitError = true;
 	// We did not find the expected character since we hit the end
 	// prematurely.

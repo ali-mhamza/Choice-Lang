@@ -1,6 +1,7 @@
 #include "fast_float.h"
 #include "../include/diagnostic.h"
 #include "../include/common.h"
+#include "../include/config.h"
 #include "../include/object.h"
 #include "../include/token.h"
 #include "../include/utils.h"
@@ -478,10 +479,26 @@ void DiagnosticEngine::recordWarning(
     recordWarning(id, code, token.byteOffset, token.text.size(), label);
 }
 
+bool DiagnosticEngine::hitCompileErrorMax(u64 errors)
+{
+    return ((source != ErrorSource::VM) && (errors == COMPILE_ERROR_MAX));
+}
+
 void DiagnosticEngine::emitReports()
 {
-    for (const auto& diag : reports)
+    for (u64 i{0}; i < reports.size(); i++)
+    {
+        if ((source != ErrorSource::VM) && (i == COMPILE_ERROR_MAX))
+        {
+            CH_PRINT(stderr, "{}COMPILATION ERROR MAXIMUM REACHED.{}\n",
+                RED, NORMAL);
+            break;
+        }
+
+        const auto& diag{reports[i]};
         diag.report();
+    }
+
     reports.clear();
 }
 

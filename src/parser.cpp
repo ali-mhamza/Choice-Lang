@@ -133,15 +133,8 @@ void Parser::reportSyntax(
     std::string_view message
 )
 {
+    diagEngine.source = ErrorSource::PARSER;
     hitError = true;
-    // if (syntaxError || (errorCount > COMPILE_ERROR_MAX))
-    //     return;
-    // if (errorCount == COMPILE_ERROR_MAX)
-    //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-    // else
-    //     CompileError{token, std::string{message}}.report();
-    // syntaxError = true;
-    // errorCount++;
     if (syntaxError) return;
     syntaxError = true;
 
@@ -154,15 +147,8 @@ void Parser::reportSemantic(
     std::string_view message
 )
 {
+    diagEngine.source = ErrorSource::PARSER;
     hitError = true;
-    // if (semanticError || (errorCount > COMPILE_ERROR_MAX))
-    //     return;
-    // if (errorCount == COMPILE_ERROR_MAX)
-    //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-    // else
-    //     CompileError{token, std::string{message}}.report();
-    // semanticError = true;
-    // errorCount++;
     if (semanticError) return;
     semanticError = true;
     diagEngine.recordError(id, code, token, std::string{message});

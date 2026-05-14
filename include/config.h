@@ -11,8 +11,6 @@ constexpr inline unsigned int CODE_MAX{(1 << 8) - 1};
 constexpr inline unsigned int TAB_SIZE{4};
 // Used to estimate space to reserve early in token array.
 constexpr inline unsigned int AVG_TOK_SIZE{4};
-// Cut-off for errors in the lexer.
-constexpr inline unsigned int LEX_ERROR_MAX{10};
 // Maximum level of nesting for string interpolation.
 constexpr inline unsigned int INTERPOLATION_MAX{2};
 
@@ -28,7 +26,7 @@ constexpr inline unsigned int MATCH_CASES_MAX{100};
 constexpr inline unsigned int DEFAULT_LIST_SIZE{16};
 // Default partition size for list elements (we add X elements at a time).
 constexpr inline unsigned int LIST_ENTRY_GROUP{50};
-// Cut-off for errors in the compiler (+ parser, if applicable).
+// Cut-off for errors across lexer, parser, or compiler.
 constexpr inline unsigned int COMPILE_ERROR_MAX{10};
 
 /* VM */

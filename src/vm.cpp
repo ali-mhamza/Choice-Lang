@@ -510,6 +510,7 @@ void VM::printRegister()
 void VM::reportError(const Error& error)
 {
     pushCurrentStackFrame();
+    diagEngine.source = ErrorSource::VM;
 
     if (debugInfoState != DEBUG_STRIPPED)
     {

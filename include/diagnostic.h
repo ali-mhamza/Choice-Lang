@@ -265,6 +265,14 @@ struct Diagnostic
     void report() const;
 };
 
+enum class ErrorSource : u8
+{
+    LEXER,
+    PARSER,
+    COMPILER,
+    VM
+};
+
 class DiagnosticEngine
 {
     private:
@@ -272,16 +280,14 @@ class DiagnosticEngine
 
         std::optional<DiagCode> validateCode(sv code);
         std::string printStackEntry(const std::vector<CallFrame>& frames, u64 index);
-        void displayErrorLine(
-            FileID id,
-            u64 line,
-            u64 col,
-            u64 maxLineNo = UINT64_MAX
-        );
+        void displayErrorLine(FileID id, u64 line, u64 col, u64 maxLineNo);
 
     public:
+        ErrorSource source{};
+
         DiagnosticEngine() = default;
         [[nodiscard]] bool hasReports() const { return !reports.empty(); }
+        bool hitCompileErrorMax(u64 errors);
         void explain(sv code);
 
         // Primitive error-reporting helper.

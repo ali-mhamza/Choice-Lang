@@ -318,13 +318,7 @@ void ASTCompiler::reportError(
     std::string_view message
 )
 {
-    // if (errorCount == COMPILE_ERROR_MAX)
-    //     CH_PRINT("COMPILATION ERROR MAXIMUM REACHED.\n");
-    // else if (errorCount < COMPILE_ERROR_MAX)
-    //     CompileError{token, std::string{message}}.report();
-    // hitError = true;
-    // errorCount++;
-
+    diagEngine.source = ErrorSource::COMPILER;
     hitError = true;
     if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
         code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
@@ -339,6 +333,8 @@ void ASTCompiler::reportPart(
     std::string_view message
 )
 {
+    diagEngine.source = ErrorSource::COMPILER;
+
     if (isError)
         diagEngine.recordError(id, code, offset, length, std::string{message});
     else
