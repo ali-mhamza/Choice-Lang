@@ -4,6 +4,7 @@
 
 # In-progress documentation files.
 *.md
+!docs/*/*
 !README.md
 
 # Set-up files.
