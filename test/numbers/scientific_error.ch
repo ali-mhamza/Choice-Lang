@@ -1,0 +1,10 @@
+println!(1e);       // Error
+println!(1e+);      // Error
+println!(1e-);      // Error
+println!(1ea);      // Error
+println!(1e*2);     // Error
+println!(1e/2);     // Error
+println!(1e?);      // Error
+println!(2.5e+);    // Error
+println!(2.5e-);    // Error
+println!(3.14ex);   // Error
