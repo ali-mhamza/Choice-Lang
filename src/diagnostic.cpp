@@ -479,11 +479,6 @@ void DiagnosticEngine::recordWarning(
     recordWarning(id, code, token.byteOffset, token.text.size(), label);
 }
 
-bool DiagnosticEngine::hitCompileErrorMax(u64 errors)
-{
-    return ((source != ErrorSource::VM) && (errors == COMPILE_ERROR_MAX));
-}
-
 void DiagnosticEngine::emitReports()
 {
     for (u64 i{0}; i < reports.size(); i++)

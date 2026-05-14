@@ -287,7 +287,6 @@ class DiagnosticEngine
 
         DiagnosticEngine() = default;
         [[nodiscard]] bool hasReports() const { return !reports.empty(); }
-        bool hitCompileErrorMax(u64 errors);
         void explain(sv code);
 
         // Primitive error-reporting helper.
