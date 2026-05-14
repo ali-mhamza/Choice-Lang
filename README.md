@@ -24,6 +24,6 @@ dependencies/   # Headers and source files for various dependencies.
 ```
 
 ## Documentation Guide
-[internals](docs/internals/)    — Inside view on how (parts of) the interpreter work.\
+[internals](docs/internals/)    — Inside view on how (some of) the interpreter works.\
 [syntax](docs/syntax/)          — A user-friendly guide on the language's rules, features and syntax.\
 [tools](docs/tools/)            — Different tools built in to the interpreter for different uses cases or interests.
