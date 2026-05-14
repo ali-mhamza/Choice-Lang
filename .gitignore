@@ -16,12 +16,12 @@
 # Test scripts and bytecode files I
 # use for quick testing.
 *.ch
+!test/*/*
 *.chbc
 *.chdbg
 
 # Comparison test and benchmark scripts.
 programs/
-test/
 *.sh
 
 # Extra directories with notes or build files/
