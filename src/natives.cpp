@@ -7,7 +7,6 @@
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include <array>
-#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>

@@ -1,7 +1,6 @@
 #include "../include/astcompiler.h"
 #include "../include/astnodes.h"
 #include "../include/bytecode.h"
-#include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/debug.h"
 #include "../include/diagnostic.h"
@@ -24,7 +23,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -133,11 +131,9 @@ static Function* runCompiler(FileID id, const vT& tokens)
 	return compiler.compile(id, program);
 }
 
-// Optimization to run a cached bytecode
-// file if it is recent enough rather than
-// re-compiling.
-// Should be updated if we get to multi-file
-// compilation.
+// Optimization to run a cached bytecode file if it
+// is recent enough rather than re-compiling.
+// Should be updated if we get to multi-file compilation.
 [[nodiscard]]
 static bool cacheOptimize(const char* fileName, ArgvOption option)
 {
@@ -150,9 +146,6 @@ static bool cacheOptimize(const char* fileName, ArgvOption option)
 	{
 		if (fileMoreRecent(cache, fileName))
 		{
-			if (option == CACHE_BYTECODE)
-				return true; // Nothing to do.
-
 			if (option == EMIT_BYTECODE)
 			{
 				optionDis(cache);

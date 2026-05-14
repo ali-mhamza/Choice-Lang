@@ -4,7 +4,6 @@
 
 #include "../include/common.h"
 #include "../include/config.h"
-#include "../include/error.h"
 #include "../include/token.h"
 #include "../include/utils.h"
 #include <cctype>

@@ -3,7 +3,6 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/token.h"
-#include <cstddef>
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -200,7 +199,7 @@ void Parser::setExprLocation(ExprUP& expr, u64 start)
             expr->sourceEnd = previousTok.byteOffset
                 + previousTok.text.size();
         }
-    } 
+    }
 }
 
 StmtUP Parser::declaration()
