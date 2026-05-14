@@ -770,17 +770,14 @@ ExprUP Parser::call()
 
     u64 start{currentTok.byteOffset};
     ExprUP expr{post()};
-    if ((currentTok.type == TOK_BANG) && (expr != nullptr)
-        && (expr->type != E_VAR_EXPR))
-    {
-        REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, currentTok);
-    }
 
-    if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
+    while (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
     {
         bool builtin{false};
         if (previousTok.type == TOK_BANG)
         {
+            if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
+                REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, previousTok);
             MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name and '!'");
             builtin = true;
         }
@@ -809,9 +806,11 @@ ExprUP Parser::call()
 
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' following function arguments");
         expr = std::make_unique<CallExpr>(expr, args, builtin, previousTok);
+        setExprLocation(expr, start);
+
+        start = currentTok.byteOffset;
     }
 
-    setExprLocation(expr, start);
     return expr;
 }
 
