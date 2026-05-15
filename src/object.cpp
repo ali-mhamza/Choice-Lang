@@ -232,6 +232,8 @@ std::string Object::printVal() const
         case OBJ_STRING:    return AS_STRING(*this)->printVal();
         case OBJ_RANGE:     return AS_RANGE(*this)->printVal();
         case OBJ_LIST:      return AS_LIST(*this)->printVal();
+        case OBJ_TABLE:     return ""; // TODO.
+        case OBJ_REF:       return CH_STR("*({})", AS_REF(*this)->location->printVal());
         case OBJ_VOID:      return "()";
         case OBJ_ITER:
         {
