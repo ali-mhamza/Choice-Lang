@@ -180,12 +180,10 @@ u64 SourceManager::getLineNumber(FileID id, u64 offset) const
     u64 line{1};
     if (!data.lineMarkers.empty())
     {
-        for (const auto& pos : data.lineMarkers)
-        {
-            if (offset <= pos)
-                break;
-            line++;
-        }
+        line = std::lower_bound(
+            data.lineMarkers.begin(), data.lineMarkers.end(),
+            offset
+        ) - data.lineMarkers.begin() + 1;
     }
 
     return line;
