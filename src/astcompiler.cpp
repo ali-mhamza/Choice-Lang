@@ -375,6 +375,7 @@ DEF(VarDecl)
             }
             else
                 code.loadReg(localInfo.slot, OP_NULL);
+            endDeclaration();
             return;
         }
 
