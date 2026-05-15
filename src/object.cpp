@@ -216,6 +216,8 @@ bool Object::in(const Object& other) const
     return output;
 }
 
+// Need to support internal types in this function as well
+// since this is used for register printing in debug builds.
 std::string Object::printVal() const
 {
     switch (type)
