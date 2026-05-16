@@ -57,9 +57,9 @@ void TokenPrinter::printValue(const Token& token) const
             ));
             break;
         }
-        case TOK_TRUE:      CH_PRINT("true");                   break;
-        case TOK_FALSE:     CH_PRINT("false");                  break;
-        case TOK_NULL:      CH_PRINT("{}", token.content.s);    break;
+        case TOK_TRUE:      CH_PRINT("true");   break;
+        case TOK_FALSE:     CH_PRINT("false");  break;
+        case TOK_NULL:      CH_PRINT("null");   break;                  
         default: CH_UNREACHABLE();
     }
 }
@@ -73,8 +73,10 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_TRUE", "TOK_FALSE", "TOK_NULL", "TOK_INTER_START",
     "TOK_INTER_PART", "TOK_INTER_END",
 
-    "TOK_INT", "TOK_DEC", "TOK_BOOL", "TOK_STRING",
-    "TOK_FUNC", "TOK_ARRAY", "TOK_TABLE", "TOK_ANY", "TOK_CLASS",
+    "TOK_INT_T", "TOK_DEC_T", "TOK_BOOL_T", "TOK_NULL_T",
+    "TOK_TYPE_T", "TOK_FUNC_T", "TOK_STR_T", "TOK_RANGE_T",
+    "TOK_LIST_T", "TOK_TABLE_T", "TOK_VOID_T", "TOK_ANY_T",
+    "TOK_CLASS_T",
 
     "TOK_IF", "TOK_ELIF", "TOK_ELSE", "TOK_WHILE", "TOK_FOR",
     "TOK_WHERE", "TOK_REPEAT", "TOK_UNTIL", "TOK_BREAK", "TOK_CONT",
@@ -100,9 +102,9 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
 
     "TOK_IDENTIFIER", "TOK_MAKE", "TOK_FIX", "TOK_COLON", "TOK_EQUAL",
 
-    "TOK_THICK_ARROW",
+    "TOK_FUNC", "TOK_THICK_ARROW",
 
-    "TOK_DOT", "TOK_UNDER_UNDER", "TOK_RARROW",
+    "TOK_CLASS", "TOK_DOT", "TOK_UNDER_UNDER", "TOK_RARROW",
 
     "TOK_EOF"
 };

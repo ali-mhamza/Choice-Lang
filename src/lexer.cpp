@@ -27,18 +27,35 @@
 	} while (false)
 
 static const std::unordered_map<std::string_view, TokenType> keywords{
-	{"int", TOK_INT},		{"dec", TOK_DEC},		{"boolean", TOK_BOOL},
-	{"string", TOK_STRING},	{"func", TOK_FUNC},		{"array", TOK_ARRAY},
-	{"table", TOK_TABLE},	{"class", TOK_CLASS},	{"any",	TOK_ANY},
-	{"if", TOK_IF},			{"elif", TOK_ELIF},		{"else", TOK_ELSE},
-	{"while", TOK_WHILE},	{"for", TOK_FOR},		{"where", TOK_WHERE},
-	{"repeat", TOK_REPEAT},	{"until", TOK_UNTIL},	{"break", TOK_BREAK},
-	{"continue", TOK_CONT},	{"match", TOK_MATCH},	{"is", TOK_IS},
-	{"fallthrough", TOK_FALL}, {"end", TOK_END},	{"make", TOK_MAKE},
-	{"fix", TOK_FIX},		{"true", TOK_TRUE},		{"false", TOK_FALSE},
-	{"null", TOK_NULL},		{"and", TOK_AND},		{"or", TOK_OR},
-	{"not", TOK_NOT},		{"return", TOK_RETURN},	{"new", TOK_NEW},
-	{"def", TOK_DEF},		{"fields", TOK_FIELDS},	{"in", TOK_IN}
+	// Literals.
+
+	{"true", TOK_TRUE}, {"false", TOK_FALSE}, {"null", TOK_NULL},
+
+	// Types.
+
+	{"Int", TOK_INT_T},		{"Dec", TOK_DEC_T},		{"Boolean", TOK_BOOL_T},
+	{"Null", TOK_NULL_T},	{"Type", TOK_NULL_T},	{"Func", TOK_FUNC_T},
+	{"String", TOK_STR_T},	{"Range", TOK_RANGE_T},	{"List", TOK_LIST_T},
+	{"Table", TOK_TABLE_T},	{"Void", TOK_VOID_T},	{"Any", TOK_ANY_T},
+	{"Class", TOK_CLASS_T},
+
+	// Control-flow.
+
+	{"if", TOK_IF},				{"elif", TOK_ELIF},		{"else", TOK_ELSE},
+	{"while", TOK_WHILE},		{"for", TOK_FOR},		{"where", TOK_WHERE},
+	{"repeat", TOK_REPEAT},		{"until", TOK_UNTIL},	{"break", TOK_BREAK},
+	{"continue", TOK_CONT},		{"match", TOK_MATCH},	{"is", TOK_IS},
+	{"fallthrough", TOK_FALL}, 	{"end", TOK_END},
+
+	// Miscellaneous keywords.
+
+	{"and", TOK_AND},		{"or", TOK_OR},		{"not", TOK_NOT},
+	{"return", TOK_RETURN}, {"new", TOK_NEW},	{"def", TOK_DEF},
+	{"fields", TOK_FIELDS},	{"in", TOK_IN},
+
+	// Declarations.
+
+	{"make", TOK_MAKE}, {"fix", TOK_FIX}, {"func", TOK_FUNC}, {"class", TOK_CLASS}
 };
 
 void Lexer::setUp(FileID id, const std::string_view& code)

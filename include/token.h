@@ -33,15 +33,19 @@ enum TokenType : u8
 
 	// Types.
 
-	TOK_INT,            // int
-	TOK_DEC,            // dec
-	TOK_BOOL,           // boolean
-	TOK_STRING,         // string
-	TOK_FUNC,			// func
-	TOK_ARRAY,			// array
-	TOK_TABLE,			// table
-	TOK_ANY,			// any
-	TOK_CLASS,			// class
+	TOK_INT_T,        	// Int
+	TOK_DEC_T,          // Dec
+	TOK_BOOL_T,         // Boolean
+	TOK_NULL_T,			// Null
+	TOK_TYPE_T,			// Type
+	TOK_FUNC_T,			// Func
+	TOK_STR_T,         	// String
+	TOK_RANGE_T,		// Range
+	TOK_LIST_T,			// List
+	TOK_TABLE_T,		// Table
+	TOK_VOID_T,			// Void
+	TOK_ANY_T,			// Any
+	TOK_CLASS_T,		// Class
 
 	// Control flow.
 
@@ -135,10 +139,12 @@ enum TokenType : u8
 
 	/* Functions. */
 
+	TOK_FUNC,			// func
 	TOK_THICK_ARROW,	// =>
 
 	/* Classes. */
 
+	TOK_CLASS,			// class
 	TOK_DOT,			// .
 	TOK_UNDER_UNDER,	// __
 	TOK_RARROW,			// ->
@@ -178,7 +184,6 @@ struct Token
 #define IS_LITERAL_TOK(type)	((TOK_NUM <= (type)) && ((type) <= TOK_NULL))
 // Token used in string interpolation.
 #define IS_INTER_TOK(type)		((TOK_INTER_START <= (type)) && ((type) <= TOK_INTER_END))
-#define IS_TYPE_TOK(type)		((TOK_INT <= (type)) && ((type) <= TOK_ANY))
 #define IS_ASSIGN_TOK(type)										\
 	(((type) == TOK_EQUAL)										\
 	|| (((type) >= TOK_PLUS_EQ) && ((type) <= TOK_RSHIFT_EQ)))

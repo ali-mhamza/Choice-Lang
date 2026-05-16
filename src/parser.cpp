@@ -26,6 +26,12 @@ using namespace AST::Expression;
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
 
+#define CONSUME_VAR_TYPE()                      \
+    if (consumeTok(TOK_COLON)) consumeType();
+
+#define CONSUME_RETURN_TYPE()                   \
+    if (consumeTok(TOK_RARROW)) consumeType();
+
 void Parser::nextTok()
 {
     if (currentTok.type != TOK_EOF)
@@ -77,27 +83,62 @@ bool Parser::matchError(TokenType type, std::string_view message)
     return true;
 }
 
-bool Parser::consumeType()
+bool Parser::consumeTypename()
 {
-    for (int i{TOK_INT}; i <= TOK_ANY; i++)
+    for (u8 type{TOK_INT_T}; type <= TOK_CLASS_T; type++)
     {
-        TokenType type{static_cast<TokenType>(i)};
-        if (checkTok(type))
-            return consumeTok(type);
+        if (consumeTok(static_cast<TokenType>(type)))
+            return true;
     }
 
+    reportSyntax(WRONG_TOKEN_FOUND, currentTok, "expect variable type");
     return false;
 }
 
-void Parser::matchType(std::string_view message /* = "" */)
+void Parser::consumeType()
 {
-    if (!consumeType())
+    // For reference types, e.g., *Int.
+    consumeTok(TOK_STAR);
+
+    // For possible types, e.g., <Int | String>.
+    if (consumeTok(TOK_LT))
     {
-        DiagCode code{
-            currentTok.type == TOK_EOF ? UNEXPECTED_INPUT_END : WRONG_TOKEN_FOUND
-        };
-        reportSyntax(code, currentTok, message);
+        do {
+            consumeType();
+        } while (consumeTok(TOK_BAR));
+        (void) matchError(TOK_GT, "expect closing '>' after types");
     }
+
+    // For collections of types, e.g., (Int, String).
+    else if (consumeTok(TOK_LEFT_PAREN))
+    {
+        do {
+            consumeType();
+        } while (consumeTok(TOK_COMMA));
+        (void) matchError(TOK_RIGHT_PAREN, "expect closing ')' after type group");
+    }
+
+    // For basic typenames or sequence types, e.g., Int
+    // or List[Int].
+    else
+    {
+        consumeTypename();
+        if (consumeTok(TOK_LEFT_BRACKET))
+        {
+            consumeType();
+            (void) matchError(TOK_RIGHT_BRACKET, "expect closing ']'");
+        }
+        else if (checkTok(TOK_LEFT_PAREN))
+            consumeType();
+    }
+
+    // For function types with specified return types, e.g.,
+    // Func(Int, Boolean) -> String.
+    if (consumeTok(TOK_RARROW))
+        consumeType();
+
+    // For nullable types, e.g., Int?.
+    consumeTok(TOK_QMARK);
 }
 
 void Parser::reset()
@@ -219,9 +260,7 @@ StmtUP Parser::varDecl()
 
     MATCH_TOK(TOK_IDENTIFIER, "expect variable name");
     Token name{previousTok};
-
-    if (consumeTok(TOK_COLON))
-        matchType("expect variable type");
+    CONSUME_VAR_TYPE();
 
     ExprUP init{nullptr};
     if (consumeTok(TOK_EQUAL))
@@ -251,10 +290,13 @@ StmtUP Parser::funcBodyHelper(vT& params)
             if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
             MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
             params.emplace_back(previousTok);
+            CONSUME_VAR_TYPE();
         } while (consumeTok(TOK_COMMA));
     }
 
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' to close function signature");
+    CONSUME_RETURN_TYPE();
+
     MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before function body");
 
     bool prevInFunc{inFunc};
@@ -362,7 +404,10 @@ StmtUP Parser::forStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
     MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
+
     Token var{previousTok};
+    CONSUME_VAR_TYPE();
+
     MATCH_TOK(TOK_IN, "expect 'in' keyword after loop variable");
     ExprUP iter{expression()};
 
@@ -854,6 +899,7 @@ StmtUP Parser::lambdaBodyHelper(vT& params, bool skipParams)
                 if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
                 MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
                 params.emplace_back(previousTok);
+                CONSUME_VAR_TYPE();
             } while (consumeTok(TOK_COMMA));
         }
 
@@ -865,11 +911,12 @@ StmtUP Parser::lambdaBodyHelper(vT& params, bool skipParams)
     if (consumeTok(TOK_THICK_ARROW))
     {
         ExprUP result{expression()};
-        body = std::make_unique<ReturnStmt>(previousTok, result);
+        body = std::make_unique<ReturnStmt>(Token{}, result);
         setStmtLocation(body, start);
     }
     else
     {
+        CONSUME_RETURN_TYPE();
         MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before lambda body");
 
         bool prevInFunc{inFunc};
@@ -892,7 +939,10 @@ ExprUP Parser::comprehension()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
     MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
+
     Token var{previousTok};
+    CONSUME_VAR_TYPE();
+
     MATCH_TOK(TOK_IN, "expect 'in' keyword after loop variable");
     ExprUP iter{expression()};
 

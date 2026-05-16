@@ -24,8 +24,8 @@ class Parser
         template<typename... Type>
         [[nodiscard]] bool consumeToks(Type... toks);
         [[nodiscard]] bool matchError(TokenType type, std::string_view message);
-        [[nodiscard]] bool consumeType();
-        void matchType(std::string_view message = "");
+        bool consumeTypename();
+        void consumeType();
 
         // Bring the compiler back to a proper state.
         void reset();
