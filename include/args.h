@@ -31,6 +31,10 @@ namespace Args
         // Load a bytecode file/program and run it.
         LOAD_PROGRAM,
 
+        // Check that a source compiles successfully.
+        // Emits a success message if so, and diagnostics otherwise.
+        CHECK_PROGRAM,
+
         // Explain a particular error/warning code.
         EXPLAIN_ERROR,
 

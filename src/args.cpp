@@ -16,6 +16,7 @@ namespace Args
         {"-cache", CACHE_BYTECODE},		{"-c", CACHE_BYTECODE},
         {"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM},
         {"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
+        {"-check", CHECK_PROGRAM},      {"-k", CHECK_PROGRAM},
         {"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
     };
 
@@ -25,6 +26,7 @@ namespace Args
         {CACHE_BYTECODE, optionCacheBytecode},
         {DIS_PROGRAM, optionDisProgram},
         {LOAD_PROGRAM, optionLoadProgram},
+        {CHECK_PROGRAM, optionCheckProgram},
         {EXPLAIN_ERROR, optionExplainError}
     };
 
@@ -34,10 +36,13 @@ namespace Args
         {"-n", DEBUG_STRIPPED},	{"-nodebug", DEBUG_STRIPPED}
     };
 
-    const std::array fileOnlyOptions{ CACHE_BYTECODE, DIS_PROGRAM, LOAD_PROGRAM };
+    const std::array fileOnlyOptions{
+        CACHE_BYTECODE, DIS_PROGRAM, LOAD_PROGRAM, CHECK_PROGRAM
+    };
+
     // Options that potentially handle source files.
     const std::array optionsWithFileContent{
-        EXECUTE, EMIT_TOKENS, EMIT_BYTECODE, CACHE_BYTECODE
+        EXECUTE, EMIT_TOKENS, EMIT_BYTECODE, CACHE_BYTECODE, CHECK_PROGRAM
     };
 
     void Config::run()

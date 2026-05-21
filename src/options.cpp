@@ -215,6 +215,31 @@ void optionLoadProgram(FileID id, std::string_view input)
 	#endif
 }
 
+void optionCheckProgram(FileID id, std::string_view input)
+{
+	constexpr std::string_view GREEN{"\x1b[32m"};
+	constexpr std::string_view NORMAL{"\x1b[0m"};
+
+	vT& tokens{runLexer(id, input)};
+	// We don't need the bytecode, but we must capture
+	// the returned pointer to free its memory (if needed).
+	Function* script{runCompiler(id, tokens)};
+	(void) script; // In case it is not used again.
+
+	if (diagEngine.hasReports())
+		diagEngine.emitReports();
+	else
+	{
+		const auto& sourceFile{sourceManager.getFile(id)};
+		CH_PRINT("{}File '{}' compiles successfully.{}\n", GREEN, sourceFile,
+			NORMAL);
+	}
+
+	#if !CH_USE_ALLOC
+		delete script;
+	#endif
+}
+
 void optionExplainError(FileID id, std::string_view input)
 {
     (void) id;

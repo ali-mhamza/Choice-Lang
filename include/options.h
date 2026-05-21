@@ -8,4 +8,5 @@ void optionEmitBytecode(FileID id, std::string_view input);
 void optionCacheBytecode(FileID id, std::string_view input);
 void optionDisProgram(FileID id, std::string_view input);
 void optionLoadProgram(FileID id, std::string_view input);
+void optionCheckProgram(FileID id, std::string_view input);
 void optionExplainError(FileID id, std::string_view input);
