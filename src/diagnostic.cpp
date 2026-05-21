@@ -1,10 +1,10 @@
-#include "fast_float.h"
 #include "../include/diagnostic.h"
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/object.h"
 #include "../include/token.h"
 #include "../include/utils.h"
+#include <fast_float/fast_float.h>
 #include <algorithm>
 #include <array>
 #include <cstdio>

@@ -1,11 +1,10 @@
 #pragma once
-#include "linearTable.h"
-
 #include "astnodes.h"
 #include "bytecode.h"
 #include "debug.h"
 #include "diagnostic.h"
 #include "vartable.h"
+#include <personal/linearTable.h>
 #include <memory>
 #include <stack>
 #include <string>

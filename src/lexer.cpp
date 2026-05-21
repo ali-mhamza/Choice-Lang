@@ -1,11 +1,9 @@
 #include "../include/lexer.h"
-
-#include "fast_float.h"
-
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/token.h"
 #include "../include/utils.h"
+#include <fast_float/fast_float.h>
 #include <cctype>
 #include <cstring>
 #include <string>

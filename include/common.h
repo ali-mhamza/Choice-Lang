@@ -55,8 +55,8 @@
 	#ifndef FMT_HEADER_ONLY
 		#define FMT_HEADER_ONLY
 	#endif
-	#include "fmt/args.h"
-	#include "fmt/format.h"
+	#include <fmt/args.h>
+	#include <fmt/format.h>
 
 	#define CH_PRINT	fmt::print
 	#define CH_STR		fmt::format

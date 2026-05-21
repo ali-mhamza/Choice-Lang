@@ -1,11 +1,9 @@
 #pragma once
-
-#include "linearTable.h"
-
 #include "astnodes.h"
 #include "common.h"
 #include "token.h"
 #include "vm.h"
+#include <personal/linearTable.h>
 #include <optional>
 #include <string>
 #include <string_view>

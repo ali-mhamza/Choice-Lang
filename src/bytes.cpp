@@ -5,7 +5,7 @@
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include "../include/utils.h"
-#include "base.h"
+#include <fmt/base.h>
 #include <array>
 #include <climits>
 #include <cstdio>

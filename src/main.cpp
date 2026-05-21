@@ -11,7 +11,7 @@
 #define EXTERNAL_REPL 1
 
 #if EXTERNAL_REPL
-	#include "replxx.hxx"
+	#include <replxx/include/replxx.hxx>
 #endif
 
 #include <filesystem>

@@ -1,10 +1,9 @@
 #pragma once
-#include "array.h"
-#include "linearTable.h"
-
 #include "bytecode.h"
 #include "common.h"
 #include "natives.h"
+#include <personal/array.h>
+#include <personal/linearTable.h>
 #include <array>
 #include <string>
 #include <string_view>

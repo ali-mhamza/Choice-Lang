@@ -1,9 +1,5 @@
 CXX = g++
-INCLUDES =	-Idependencies \
-			-Idependencies/personal \
-			-Idependencies/fmt \
-			-Idependencies/fast_float \
-			-Idependencies/replxx -Idependencies/replxx/include
+INCLUDES =	-Idependencies
 CXX_STANDARD = -std=c++17
 
 # fmt: Compile as header-only library.

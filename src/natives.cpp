@@ -1,11 +1,9 @@
 #include "../include/natives.h"
-
-#include "format-inl.h"
-
 #include "../include/common.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
+#include <fmt/format-inl.h>
 #include <array>
 #include <chrono>
 #include <cstdio>

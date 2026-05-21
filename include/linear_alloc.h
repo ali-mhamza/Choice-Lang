@@ -1,10 +1,9 @@
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 
 #pragma once
-#include "array.h"
-
 #include "common.h"
 #include "gen_alloc.h"
+#include <personal/array.h>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
