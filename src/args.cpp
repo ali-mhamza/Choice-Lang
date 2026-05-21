@@ -41,20 +41,20 @@ namespace Args
     };
 
     // Options that potentially handle source files.
-    const std::array optionsWithFileContent{
+    const std::array optionsUsingSourceFiles{
         EXECUTE, EMIT_TOKENS, EMIT_BYTECODE, CACHE_BYTECODE, CHECK_PROGRAM
     };
 
     void Config::run()
     {
         auto it{std::find(
-            optionsWithFileContent.begin(),
-            optionsWithFileContent.end(),
+            optionsUsingSourceFiles.begin(),
+            optionsUsingSourceFiles.end(),
             option
         )};
-        bool needsFileContent{it != optionsWithFileContent.end()};
+        bool usingSourceFile{it != optionsUsingSourceFiles.end()};
 
-        if (needsFileContent)
+        if (usingSourceFile)
         {
             // Read and store source file.
             std::string code{readFile(arg)};
@@ -124,8 +124,9 @@ namespace Args
                 return { RUN_DIRECT, it->second, optionExplainError, argv[2] };
             else
             {
-                bool isCacheFile{(it->second == DIS_PROGRAM)
-                    || (it->second == LOAD_PROGRAM)};
+                auto checkIt{std::find(optionsUsingSourceFiles.begin(),
+                    optionsUsingSourceFiles.end(), it->second)};
+                bool isCacheFile{checkIt == optionsUsingSourceFiles.end()};
                 validateChoiceFile(argv[2], isCacheFile);
                 return { RUN_FILE, it->second, optionHandlers.at(it->second), argv[2] };
             }
