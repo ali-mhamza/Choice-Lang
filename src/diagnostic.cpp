@@ -13,11 +13,6 @@
 #include <tuple>
 #include <utility>
 
-static constexpr sv RED{"\033[31m"};
-static constexpr sv YELLOW{"\033[33m"};
-static constexpr sv BOLD{"\033[1m"};
-static constexpr sv NORMAL{"\033[0m"};
-
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
@@ -298,14 +293,14 @@ void Diagnostic::displayReportTitle() const
 
     if (isError)
     {
-        CH_PRINT(stderr, "{}{} [E{:0>4}]{}: ", RED, familyTitles[family],
-            static_cast<u8>(code) + 1, NORMAL);
+        PRINT_ERROR_ARGS("{} [E{:0>4}]{}: ", familyTitles[family],
+            static_cast<u8>(code) + 1);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
     else
     {
-        CH_PRINT(stderr, "{}{} [W{:0>4}]{}: ", YELLOW, familyTitles[family],
-            static_cast<u8>(code) - warningStart + 1, NORMAL);
+        PRINT_WARNING_ARGS("{}{} [W{:0>4}]{}: ", familyTitles[family],
+            static_cast<u8>(code) - warningStart + 1);
         CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
     }
 }
@@ -389,7 +384,7 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
 
     if ((!isError && !isWarning) || (code.size() != 5))
     {
-        CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
+        PRINT_ERROR("Invalid error/warning code.\n");
         return std::nullopt;
     }
 
@@ -403,7 +398,7 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
 
     if (!result || !IS_VALID_CODE(explainCode))
     {
-        CH_PRINT(stderr, "{}Invalid error/warning code.{}\n", RED, NORMAL);
+        PRINT_ERROR("Invalid error/warning code.\n");
         return std::nullopt;
     }
 
@@ -483,8 +478,7 @@ void DiagnosticEngine::emitReports()
     {
         if ((source != ErrorSource::VM) && (i == COMPILE_ERROR_MAX))
         {
-            CH_PRINT(stderr, "{}COMPILATION ERROR MAXIMUM REACHED.{}\n",
-                RED, NORMAL);
+            PRINT_ERROR("COMPILATION ERROR MAXIMUM REACHED.\n");
             break;
         }
 

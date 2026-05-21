@@ -74,7 +74,7 @@ namespace Args
 
     void invalidOption()
     {
-        CH_PRINT(stderr, "Invalid command-line option.\n");
+        PRINT_ERROR("Invalid command-line option.\n");
         exit(64);
     }
 
@@ -82,18 +82,18 @@ namespace Args
     {
         if (!std::filesystem::exists(fileName))
         {
-            CH_PRINT(stderr, "File does not exist.\n");
+            PRINT_ERROR("File does not exist.\n");
             exit(66);
         }
 
         if (!isCacheFile && !ends_with(fileName, CH_FILE_EXT))
         {
-            CH_PRINT(stderr, "Invalid Choice source file.\n");
+            PRINT_ERROR("Invalid Choice source file.\n");
             exit(65);
         }
         else if (isCacheFile && !ends_with(fileName, CH_BYTECODE_EXT))
         {
-            CH_PRINT(stderr, "Invalid Choice bytecode file.\n");
+            PRINT_ERROR("Invalid Choice bytecode file.\n");
             exit(65);
         }
     }
@@ -141,7 +141,7 @@ namespace Args
                     it->second)};
                 if (checkIt != fileOnlyOptions.end())
                 {
-                    CH_PRINT(stderr, "Invalid command-line option for REPL mode.\n");
+                    PRINT_ERROR("Invalid command-line option for REPL mode.\n");
                     exit(64);
                 }
 
@@ -159,7 +159,7 @@ namespace Args
 
         else
         {
-            CH_PRINT(stderr, "Too many command-line arguments.\n");
+            PRINT_ERROR("Too many command-line arguments.\n");
             exit(1);
         }
     }

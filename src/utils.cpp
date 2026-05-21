@@ -22,7 +22,7 @@ std::ifstream openFile(
 
 	if (fileStream.fail() || !fileStream.is_open())
 	{
-		CH_PRINT(stderr, "{}\n", message);
+		PRINT_ERROR_ARGS("{}\n", message);
 		exit(66);
 	}
 

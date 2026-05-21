@@ -217,9 +217,6 @@ void optionLoadProgram(FileID id, std::string_view input)
 
 void optionCheckProgram(FileID id, std::string_view input)
 {
-	constexpr std::string_view GREEN{"\x1b[32m"};
-	constexpr std::string_view NORMAL{"\x1b[0m"};
-
 	vT& tokens{runLexer(id, input)};
 	// We don't need the bytecode, but we must capture
 	// the returned pointer to free its memory (if needed).
@@ -231,8 +228,7 @@ void optionCheckProgram(FileID id, std::string_view input)
 	else
 	{
 		const auto& sourceFile{sourceManager.getFile(id)};
-		CH_PRINT("{}File '{}' compiles successfully.{}\n", GREEN, sourceFile,
-			NORMAL);
+		PRINT_SUCCESS_ARGS("File '{}' compiles successfully.\n", sourceFile);
 	}
 
 	#if !CH_USE_ALLOC
