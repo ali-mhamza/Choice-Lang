@@ -1,5 +1,6 @@
 CXX = g++
-INCLUDES =	-Idependencies/personal \
+INCLUDES =	-Idependencies \
+			-Idependencies/personal \
 			-Idependencies/fmt \
 			-Idependencies/fast_float \
 			-Idependencies/replxx -Idependencies/replxx/include
@@ -33,6 +34,9 @@ RELEASE = choice-release
 DEBUG = choice-debug
 SRC_DIR = src
 OBJ_DIR = build
+
+BYTES_EXT = .chbc
+DEBUG_EXT = .chdbg
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
@@ -102,6 +106,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 
 $(REPL_LIB):
 	@make --no-print-directory -C $(REPL_DIR)
+
+clear:
+	@rm -f *$(BYTES_EXT)
+	@rm -f *$(DEBUG_EXT)
 
 clean:
 	@rm -f $(OBJ_DIR)/*.o
