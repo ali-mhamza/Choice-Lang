@@ -132,6 +132,40 @@ void optionCacheBytecode(FileID id, std::string_view input)
     #endif
 }
 
+static bool loadRecentSourceFile(
+	FileID id,
+	const std::filesystem::path& debugInfoLocation,
+	const std::filesystem::path& originalFile
+)
+{
+	using std::filesystem::exists;
+
+	if (fileMoreRecent(debugInfoLocation, originalFile))
+	{
+		std::string fileContent{readFile(originalFile)};
+		normalizeInput(fileContent);
+		sourceManager.setContent(id, fileContent);
+		return true;
+	}
+
+	if (exists(originalFile))
+	{
+		PRINT_WARNING(
+			"Warning: original source file more recent than bytecode file.\n"
+			"Diagnostic reporting may be limited accordingly.\n\n"
+		);
+	}
+	else
+	{
+		PRINT_WARNING(
+			"Warning: original source file not found.\n"
+			"Diagnostic reporting may be limited accordingly.\n\n"
+		);
+	}
+
+	return false;
+}
+
 [[nodiscard]]
 static ByteCode readByteCode(const std::filesystem::path& file)
 {
@@ -150,21 +184,12 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 	{
 		std::vector<u64> lineMarkers{};
 		std::vector<DebugMetadata> metadataBlocks{};
-		bool usingSource{false};
 
 		std::filesystem::path checkPath{};
 		if (debugInfoState == DEBUG_COMBINED)
 			checkPath = file;
 		else
 			checkPath = debugFile;
-
-		if (fileMoreRecent(checkPath, originalFile))
-		{
-			std::string fileContent{readFile(originalFile)};
-			normalizeInput(fileContent);
-			sourceManager.setContent(id, fileContent);
-			usingSource = true;
-		}
 
 		if (debugInfoState == DEBUG_SEPARATE)
 		{
@@ -177,7 +202,8 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 		else /* if (infoState == DEBUG_COMBINED) */
 			lineMarkers = codeReader.readLineMarkers();
 
-		if (!usingSource)
+		// Failed to use existing source file (or its data).
+		if (!loadRecentSourceFile(id, checkPath, originalFile))
 			sourceManager.setLineMarkers(id, lineMarkers);
 		return codeReader.readCache(metadataBlocks);
 	}
