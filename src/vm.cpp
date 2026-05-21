@@ -490,7 +490,6 @@ void VM::updateIter()
 }
 
 #if WATCH_REG
-#include "../include/common.h"
 
 void VM::printRegister()
 {
