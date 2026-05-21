@@ -293,15 +293,15 @@ void Diagnostic::displayReportTitle() const
 
     if (isError)
     {
-        PRINT_ERROR_ARGS("{} [E{:0>4}]{}: ", familyTitles[family],
+        PRINT_ERROR_ARGS("{} [E{:0>4}]", familyTitles[family],
             static_cast<u8>(code) + 1);
-        CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
+        CH_PRINT(stderr, ": {}{}{}\n", BOLD, entry, NORMAL);
     }
     else
     {
-        PRINT_WARNING_ARGS("{}{} [W{:0>4}]{}: ", familyTitles[family],
+        PRINT_WARNING_ARGS("{} [W{:0>4}]", familyTitles[family],
             static_cast<u8>(code) - warningStart + 1);
-        CH_PRINT(stderr, "{}{}{}\n", BOLD, entry, NORMAL);
+        CH_PRINT(stderr, ": {}{}{}\n", BOLD, entry, NORMAL);
     }
 }
 
