@@ -23,7 +23,7 @@ constexpr std::string_view NORMAL{"\033[0m"};
 #define PRINT_SUCCESS_ARGS(msg, ...)                            \
     CH_PRINT(stdout, "{}" msg "{}", GREEN, __VA_ARGS__, NORMAL)
 
-#define PRINT_WARNING(msg) CH_PRINT(stdout, "{}" msg "{}", YELLOW, NORMAL)
+#define PRINT_WARNING(msg) CH_PRINT(stderr, "{}" msg "{}", YELLOW, NORMAL)
 #define PRINT_WARNING_ARGS(msg, ...)                            \
     CH_PRINT(stderr, "{}" msg "{}", YELLOW, __VA_ARGS__, NORMAL)
 
