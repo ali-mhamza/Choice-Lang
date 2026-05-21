@@ -60,7 +60,7 @@ namespace Args
             std::string code{readFile(arg)};
             normalizeInput(code);
 
-            FileID id{sourceManager.addFile(std::string{arg}, code)};
+            FileID id{sourceManager.addFile(arg, code)};
             handler(id, code);
         }
         else
