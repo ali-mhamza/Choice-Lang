@@ -103,15 +103,12 @@ void optionCacheBytecode(FileID id, std::string_view input)
 	else
 	{
 		std::filesystem::path filePath{sourceManager.getFile(id)};
-		filePath.replace_extension(CH_BYTECODE_EXT);
-		std::ofstream cacheFile{filePath.filename(), std::ios::binary};
+		std::ofstream cacheFile{filePath.stem().concat(CH_BYTECODE_EXT),
+			std::ios::binary};
 
 		std::ofstream debugFile{};
 		if (debugInfoState == DEBUG_SEPARATE)
-		{
-			filePath.replace_extension(CH_DEBUG_EXT);
-			debugFile.open(filePath.filename(), std::ios::binary);
-		}
+			debugFile.open(filePath.stem().concat(CH_DEBUG_EXT), std::ios::binary);
 
 		std::ofstream& debugDestination{(debugInfoState == DEBUG_COMBINED) ?
 			cacheFile : debugFile};
@@ -139,8 +136,7 @@ void optionCacheBytecode(FileID id, std::string_view input)
 static ByteCode readByteCode(const std::filesystem::path& file)
 {
 	std::ifstream program{openFile(file, true)};
-	std::filesystem::path debugFile{file};
-	debugFile.replace_extension(CH_DEBUG_EXT);
+	std::filesystem::path debugFile{file.stem().concat(CH_DEBUG_EXT)};
 
 	Bytes::CodeReader codeReader{program};
 	codeReader.readHeaders();
