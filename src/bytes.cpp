@@ -3,8 +3,8 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/linear_alloc.h"
-#include "../include/main_utils.h"
 #include "../include/object.h"
+#include "../include/utils.h"
 #include "base.h"
 #include <array>
 #include <climits>

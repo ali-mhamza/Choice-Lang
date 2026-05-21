@@ -1,16 +1,10 @@
-#include "../include/astcompiler.h"
-#include "../include/astnodes.h"
-#include "../include/bytecode.h"
+#include "../include/args.h"
 #include "../include/common.h"
 #include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/gen_alloc.h"
-#include "../include/lexer.h"
-#include "../include/main_utils.h"
-#include "../include/object.h"
-#include "../include/parser.h"
+#include "../include/options.h"
 #include "../include/utils.h"
-#include "../include/vm.h"
 
 // Use replxx library instead of standard
 // std::getline.
@@ -20,20 +14,11 @@
 	#include "replxx.hxx"
 #endif
 
-#include <cstdio>
-#include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-
-#if defined(DEBUG)
-	#include <chrono>
-
-	#define TIME_TOTAL	1
-	#define TIME_RUN	0
-#endif
 
 #if EXTERNAL_REPL
 	#define TRACK_REPL_HISTORY	1
@@ -47,7 +32,6 @@
 SourceManager sourceManager{};
 DiagnosticEngine diagEngine{};
 DebugInfoState debugInfoState{DEBUG_COMBINED};
-
 bool inRepl{false};
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
@@ -55,210 +39,75 @@ bool inRepl{false};
 	LinearAlloc allocator{CH_ALLOC_SIZE};
 #endif
 
-enum ArgvOption : u8
-{
-	// Show the tokens for the given
-	// script or REPL input.
-	EMIT_TOKENS,
-
-	// Compile and show the bytecode for the
-	// given script or REPL input.
-	EMIT_BYTECODE,
-
-	// Compile and store the bytecode for the
-	// given script in a file.
-	CACHE_BYTECODE,
-
-	// Load a bytecode file/program and run it.
-	LOAD_PROGRAM,
-
-	// Load a bytecode file/program and display
-	// the bytecode held in it.
-	DIS_PROGRAM,
-
-	// Explain a particular error/warning code.
-	EXPLAIN_ERROR,
-
-	// Entire execution pipeline.
-	// Scan, compile, and execute given program
-	// or REPL input.
-	EXECUTE
-};
-
-static const std::unordered_map<std::string_view, ArgvOption> options{
-	{"-token", EMIT_TOKENS},		{"-t", EMIT_TOKENS},
-	{"-bytecode", EMIT_BYTECODE},	{"-b", EMIT_BYTECODE},
-	{"-cache", CACHE_BYTECODE},		{"-c", CACHE_BYTECODE},
-	{"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
-	{"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM},
-	{"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
-};
-
-static const
-std::unordered_map<std::string_view, DebugInfoState> debugStateOptions{
-	{"-c", DEBUG_COMBINED},	{"-combined", DEBUG_COMBINED},
-	{"-s", DEBUG_SEPARATE},	{"-separate", DEBUG_SEPARATE},
-	{"-n", DEBUG_STRIPPED},	{"-nodebug", DEBUG_STRIPPED}
-};
-
 [[nodiscard]]
-static inline vT& runLexer(FileID id, const std::string_view source)
+static DebugInfoState readCacheFileState(const std::filesystem::path& path)
 {
-	static Lexer lexer{};
-	return lexer.tokenize(id, source);
+    // Byte offset of the debug info state byte into the cache file.
+    // Does not change regardless of whether or not debug info is
+    // combined, separate, or removed.
+    constexpr u64 debugInfoBytePosition{9};
+    std::ifstream cacheFile{openFile(path, true)};
+
+    cacheFile.seekg(debugInfoBytePosition);
+    u8 state;
+    cacheFile >> state;
+    cacheFile.close();
+    return static_cast<DebugInfoState>(state);
 }
 
-[[nodiscard]]
-static Function* runCompiler(FileID id, const vT& tokens)
-{
-	static Parser parser{};
-	static ASTCompiler compiler{};
-	const StmtVec& program = parser.parseToAST(id, tokens);
-
-	#ifdef TYPE
-		// Perform type-checking here.
-	#endif
-
-	#ifdef OPT
-		// Optimize here.
-	#endif
-
-	// To stop after compilation if either hit an error.
-	compiler.hitError = parser.hitError;
-	// To not report too many errors when using an
-	// AST.
-	compiler.errorCount = parser.errorCount;
-	return compiler.compile(id, program);
-}
-
-// Optimization to run a cached bytecode file if it
+// Optimization to use a cached bytecode file if it
 // is recent enough rather than re-compiling.
 // Should be updated if we get to multi-file compilation.
-[[nodiscard]]
-static bool cacheOptimize(const char* fileName, ArgvOption option)
+[[nodiscard]] static bool cacheOptimize(Args::Config& config)
 {
-	using std::filesystem::exists;
-
-	std::filesystem::path cache{fileName};
+	std::filesystem::path cache{config.arg};
 	cache.replace_extension(CH_BYTECODE_EXT);
 
-	if (exists(fileName))
+	if (fileMoreRecent(cache, config.arg))
 	{
-		if (fileMoreRecent(cache, fileName))
+	    DebugInfoState fileState{readCacheFileState(cache)};
+		if ((config.option == Args::CACHE_BYTECODE)
+		    && (debugInfoState == fileState))
 		{
-			if (option == EMIT_BYTECODE)
-			{
-				optionDis(cache);
-				return true;
-			}
+		    // We only return true here so that `config.run()`
+			// is not executed back in readFile (we don't do anything).
+		    return true;
+		}
 
-			if (option == EXECUTE)
-			{
-				optionLoad(cache);
-				return true;
-			}
+		// We don't want the debug restructuring function(s)
+		// to go searching for a (possibly missing) debug info file.
+		if ((config.option == Args::EMIT_BYTECODE)
+		    && (fileState != DEBUG_SEPARATE))
+		{
+		    config.option = Args::DIS_PROGRAM;
+			config.handler = optionDisProgram;
+		    config.arg = cache.string();
+		}
+
+		// Only combined debug info can guarantee the same level
+		// of detail in error reporting as the source file itself.
+		if ((config.option == Args::EXECUTE)
+		    && (fileState == DEBUG_COMBINED))
+		{
+		    config.option = Args::LOAD_PROGRAM;
+			config.handler = optionLoadProgram;
+			config.arg = cache.string();
 		}
 	}
-	else
-	{
-		CH_PRINT(stderr, "File does not exist.\n");
-		exit(66);
-	}
 
 	return false;
 }
 
-[[nodiscard]]
-static bool prelimChecks(const char* fileName, ArgvOption option)
-{
-	if (!fileNameCheck(fileName))
-	{
-		CH_PRINT(stderr, "Invalid Choice file.\n");
-		exit(65);
-	}
-
-	if (option == LOAD_PROGRAM)
-	{
-		optionLoad(fileName);
-		return true;
-	}
-
-	if (option == DIS_PROGRAM)
-	{
-		optionDis(fileName);
-		return true;
-	}
-
-	if (cacheOptimize(fileName, option))
-		return true;
-
-	return false;
-}
-
-static void runFile(const char* fileName, ArgvOption option = EXECUTE)
+static void runFile(Args::Config& config)
 {
 	inRepl = false;
 
-	if (prelimChecks(fileName, option))
-		return;
-	if ((option == CACHE_BYTECODE) && !ends_with(fileName, CH_FILE_EXT))
-	{
-		CH_PRINT(stderr, "Invalid Choice source file.\n");
-		exit(65);
-	}
+	if (!cacheOptimize(config))
+	    config.run();
 
-	using namespace std::chrono;
-	#if TIME_TOTAL && !TIME_RUN
-		auto begin{steady_clock::now()};
-	#endif
-
-	std::string code{readFile(fileName)};
-	normalizeInput(code);
-
-	FileID id{sourceManager.addFile(fileName, code)};
-
-	vT& tokens{runLexer(id, code)};
-	if (option == EMIT_TOKENS)
-	{
-		optionShowTokens(id, tokens);
-		return;
-	}
-
-	Function* script{runCompiler(id, tokens)};
-
-	if (option == EMIT_BYTECODE)
-	{
-		optionShowBytes(script);
-		return;
-	}
-	if (option == CACHE_BYTECODE)
-	{
-		optionCacheBytes(id, script->code);
-		return;
-	}
-
-	#if TIME_RUN && !TIME_TOTAL
-		auto begin{steady_clock::now()};
-	#endif
-
-	VM{}.executeCode(script);
-
-	diagEngine.emitReports();
-
-	#if TIME_RUN || TIME_TOTAL
-		auto end{steady_clock::now()};
-		auto time{duration_cast<microseconds>(end - begin)};
-		CH_PRINT("Time: {:.6f}\n",
-			static_cast<long double>(time.count()) / 1000000);
-
-		#if CH_USE_ALLOC
-			CH_PRINT("Total memory from allocator: {} bytes\n",
-				allocator.allocatedMemory());
-		#endif /* CH_USE_ALLOC */
-	#endif
-
-	#if !CH_USE_ALLOC
-		delete script;
+	#if defined(DEBUG) && CH_USE_ALLOC
+		CH_PRINT("Total memory from allocator: {} bytes\n",
+			allocator.allocatedMemory());
 	#endif
 }
 
@@ -286,45 +135,40 @@ static void buildLine(std::string& line)
 	}
 }
 
-static void repl(ArgvOption option = EXECUTE)
+#if EXTERNAL_REPL
+	static void handleReplHistory(replxx::Replxx& rx)
+	{
+		#if LOAD_REPL_HISTORY
+			rx.history_load("history.txt");
+		#elif CLEAR_REPL_HISTORY
+			std::ofstream history{"history.txt", std::ios::trunc};
+			if (history.is_open()) history.close();
+		#endif
+	}
+#endif
+
+static void repl(Args::Config& config)
 {
 	inRepl = true;
 
-	// All invalid options for REPL mode.
-	if (option == CACHE_BYTECODE || option == LOAD_PROGRAM ||
-		option == DIS_PROGRAM)
-	{
-		CH_PRINT(stderr, "Invalid command-line option for REPL mode.\n");
-		exit(64);
-	}
-
-	std::string line{};
-	FileID id{sourceManager.addFile("<repl>", line)};
-
 	#if EXTERNAL_REPL
 		replxx::Replxx rx{};
+		handleReplHistory(rx);
 	#endif
-
-	#if LOAD_REPL_HISTORY
-		rx.history_load("history.txt");
-	#elif CLEAR_REPL_HISTORY
-		std::ofstream history{"history.txt", std::ios::trunc};
-		if (history.is_open()) history.close();
-	#endif
-
-	VM vm{}; // Must persist for the entire execution.
 
 	printReplIntro();
 	while (true)
 	{
+		std::string line{};
+
 		#if EXTERNAL_REPL
 			line = rx.input(">>> ");
-			buildLine(line);
 		#else
 			CH_PRINT(">>> ");
 			std::getline(std::cin, line);
-			buildLine(line);
 		#endif
+
+		buildLine(line);
 
 		if (!line.empty())
 		{
@@ -333,25 +177,8 @@ static void repl(ArgvOption option = EXECUTE)
 			#endif
 
 			normalizeInput(line);
-			id = sourceManager.addFile("<repl>", line);
-
-			vT& tokens{runLexer(id, line)};
-			if (option == EMIT_TOKENS)
-				optionShowTokens(id, tokens);
-			else
-			{
-				Function* script{runCompiler(id, tokens)};
-				if (option == EMIT_BYTECODE)
-					optionShowBytes(script);
-				else
-					vm.executeCode(script);
-
-				#if !CH_USE_ALLOC
-					delete script;
-				#endif
-			}
-
-			diagEngine.emitReports();
+			FileID id{sourceManager.addFile("<repl>", line)};
+			config.run(id, line);
 		}
 		else
 			break;
@@ -362,54 +189,15 @@ static void repl(ArgvOption option = EXECUTE)
 	#endif
 }
 
-static void invalidOption()
-{
-	CH_PRINT(stderr, "Invalid command-line option.\n");
-	exit(64);
-}
-
-static void handleFourArgs(const char* argv[])
-{
-	auto it{options.find(argv[1])};
-	if ((it == options.end()) || (it->second != CACHE_BYTECODE))
-		invalidOption();
-
-	auto stateIt{debugStateOptions.find(argv[2])};
-	if (stateIt == debugStateOptions.end())
-		invalidOption();
-
-	debugInfoState = stateIt->second;
-	runFile(argv[3], it->second);
-}
-
-static void handleThreeArgs(const char* argv[])
-{
-	auto it{options.find(argv[1])};
-	if (it == options.end()) invalidOption();
-
-	if (it->second == EXPLAIN_ERROR)
-		diagEngine.explain(argv[2]);
-	else
-		runFile(argv[2], it->second);
-}
-
-static void handleTwoArgs(const char* argv[])
-{
-	auto it{options.find(argv[1])};
-	if (it != options.end())
-		repl(it->second);
-	else
-		runFile(argv[1]);
-}
-
 int main(int argc, const char* argv[])
 {
-	switch (argc)
+	Args::Config config{Args::parseArgs(argc, argv)};
+
+	switch (config.runOption)
 	{
-		case 4:	handleFourArgs(argv);	break;
-		case 3:	handleThreeArgs(argv);	break;
-		case 2:	handleTwoArgs(argv);	break;
-		case 1:	repl();					break;
+		case Args::RUN_FILE:	runFile(config);	break;
+		case Args::RUN_REPL:	repl(config);		break;
+		case Args::RUN_DIRECT:	config.run();		break;
 	}
 
 	return 0;

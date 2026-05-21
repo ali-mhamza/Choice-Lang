@@ -1,7 +1,77 @@
 #include "../include/utils.h"
+#include "../include/config.h"
 #include <cstddef>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string_view>
 #include <vector>
+
+std::ifstream openFile(
+	const std::filesystem::path& filePath,
+	bool binary,
+	const std::string_view message
+)
+{
+	std::ifstream fileStream{};
+
+	if (binary)
+	    fileStream.open(filePath, std::ios::binary);
+	else
+        fileStream.open(filePath);
+
+	if (fileStream.fail() || !fileStream.is_open())
+	{
+		CH_PRINT(stderr, "{}\n", message);
+		exit(66);
+	}
+
+	return fileStream;
+}
+
+std::string readFile(std::ifstream& stream)
+{
+    std::stringstream buffer{};
+	buffer << stream.rdbuf();
+	std::string fileString{buffer.str()};
+	stream.close();
+	return fileString;
+}
+
+std::string readFile(const std::filesystem::path& filePath, bool binary)
+{
+	std::ifstream fileStream{openFile(filePath, binary)};
+	return readFile(fileStream);
+}
+
+bool fileMoreRecent(
+    const std::filesystem::path& a,
+    const std::filesystem::path& b
+)
+{
+	using std::filesystem::exists;
+	using std::filesystem::last_write_time;
+
+	return (exists(a) && exists(b)
+			&& (last_write_time(a) >= last_write_time(b)));
+}
+
+void normalizeInput(std::string& input)
+{
+	input.erase(std::remove_if(input.begin(), input.end(),
+	[](char c) -> bool {
+		return (isspace(c) && (c != ' ')
+				&& (c != '\n') && (c != '\t'));
+    }), input.end());
+
+    auto it{input.find('\t')};
+    while (it != input.npos)
+    {
+		// Normalize all tabs with spaces.
+        input.replace(it, 1, std::string(TAB_SIZE, ' '));
+        it = input.find('\t', it + 1);
+    }
+}
 
 // Credit for ends_with and starts_with: Pavel P.
 // Source: https://stackoverflow.com/questions/874134/.
