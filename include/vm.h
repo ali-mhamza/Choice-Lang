@@ -47,7 +47,6 @@ class VM
         Function* currentFunc{};
         Closure* currentClosure{};
         const u8* ip{};
-        const u8* end{};
 
         static constexpr size_t regSize{4096};
         Object* globalRegisters{new Object[regSize]};

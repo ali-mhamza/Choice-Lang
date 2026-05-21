@@ -402,7 +402,6 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     currentClosure = closure;
     registers += start;
     ip = code.block.data();
-    end = ip + code.block.size();
     pool = code.pool.data();
 
     #if WATCH_EXEC
@@ -442,7 +441,6 @@ inline void VM::restoreData()
     currentFunc = frame.function;
     registers = frame.regStart;
     ip = frame.ip;
-    end = &(currentFunc->code.block.back()) + 1;
     pool = currentFunc->code.pool.data();
     #if WATCH_EXEC
         delete this->dis;
@@ -554,22 +552,20 @@ void VM::executeOp(Opcode op)
         #endif
 
         #define DISPATCH_OP(op)  goto *dispatchTable[op]
-        #define DISPATCH()                                                          \
-            do {                                                                    \
-                PRINT_REGS();                                                       \
-                if (ip >= end)                                                      \
-                    return;                                                         \
-                op = static_cast<Opcode>(readByte());                               \
-                CH_ASSERT(IS_VALID_OP(op),                                          \
-                    CH_STR("Invalid opcode {}.", static_cast<u8>(op)));            \
-                DEBUG_OP(op);                                                       \
-                DISPATCH_OP(op);                                                    \
+        #define DISPATCH()                                              \
+            do {                                                        \
+                PRINT_REGS();                                           \
+                op = static_cast<Opcode>(readByte());                   \
+                CH_ASSERT(IS_VALID_OP(op),                              \
+                    CH_STR("Invalid opcode {}.", static_cast<u8>(op))); \
+                DEBUG_OP(op);                                           \
+                DISPATCH_OP(op);                                        \
             } while (false)
         #define SWITCH(op)  DISPATCH();
         #define CASE(op)    CASE_##op
         #define DEFAULT     CASE_NO_REACH
 
-    #else // if !CH_COMPUTED_GOTO
+    #else /* if !CH_COMPUTED_GOTO */
         #define SWITCH(op)  switch (op)
         #define CASE(op)    case op
         #define DISPATCH()  break
@@ -929,6 +925,11 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        CASE(OP_HALT):
+        {
+            return;
+        }
+
         DEFAULT:
         {
             #if defined(DEBUG)
@@ -948,7 +949,6 @@ void VM::executeCode(Function* script)
     // so it doesn't need to have an active closure.
     registers = globalRegisters;
     ip = script->code.block.data();
-    end = ip + script->code.block.size();
     pool = script->code.pool.data();
 
     #if WATCH_EXEC
@@ -963,7 +963,7 @@ void VM::executeCode(Function* script)
     try
     {
         #if !CH_COMPUTED_GOTO
-            while (ip < end)
+            while (static_cast<Opcode>(*ip) != OP_HALT)
             {
                 #if WATCH_EXEC
                     this->dis->disassembleOp(*ip);

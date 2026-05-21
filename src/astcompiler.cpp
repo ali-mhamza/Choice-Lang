@@ -1417,6 +1417,8 @@ Function* ASTCompiler::compile(FileID id, const StmtVec& program)
         code.clear();
         clearDeclaredVars = true; // Will clear on the next run.
     }
+    else
+        code.addOp(OP_HALT);
 
     return CH_ALLOC(Function, getCode(), 0);
 }

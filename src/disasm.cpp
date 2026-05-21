@@ -322,7 +322,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_MAKE_REF:	referenceOp();	break;
 		case OP_FORMAT_STR:	formatOp();		break;
 		case OP_DEF_START:	declOp();		break;
-		case OP_EXIT_SCOPE:		case OP_DEF_END:
+		case OP_EXIT_SCOPE:		case OP_DEF_END:	case OP_HALT:
 		{
 			#if PRINT_FULL_OFFSET
 				CH_PRINT("{:0>4} {}\n", ip - start, opNames[byte]);
