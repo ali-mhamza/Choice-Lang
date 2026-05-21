@@ -836,7 +836,7 @@ ExprUP Parser::call()
         }
 
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' following function arguments");
-        expr = std::make_unique<CallExpr>(expr, args, builtin, previousTok);
+        expr = std::make_unique<CallExpr>(expr, args, builtin);
         setExprLocation(expr, start);
 
         start = currentTok.byteOffset;
