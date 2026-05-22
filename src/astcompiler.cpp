@@ -1297,7 +1297,7 @@ DEF(ListExpr)
 
     u8 count{0};
     u8 startReg{nextReg};
-    auto emitList = [this, listReg, &count, startReg] {
+    auto extendList = [this, listReg, &count, startReg] {
         code.addOp(OP_EXT_LIST, listReg, startReg, count);
         nextReg = startReg;
         count = 0;
@@ -1307,10 +1307,10 @@ DEF(ListExpr)
     {
         compileExpr(entry);
         if (++count == LIST_ENTRY_GROUP)
-            emitList();
+            extendList();
     }
 
-    if (count > 0) emitList();
+    if (count > 0) extendList();
 }
 
 DEF(ReferenceExpr)
