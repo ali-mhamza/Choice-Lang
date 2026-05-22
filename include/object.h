@@ -126,12 +126,6 @@ class Object
 template<typename T>
 Object::Object(T val)
 {
-    #if !CH_USE_ALLOC
-        #define INCREMENT_REF() val->refCount++;
-    #else
-        #define INCREMENT_REF()
-    #endif
-
     if constexpr (std::is_same_v<T, i64>)
     {
         type = OBJ_INT;
@@ -172,11 +166,13 @@ Object::Object(T val)
     else
     {
         type = val->type;
-        INCREMENT_REF();
+
+        #if !CH_USE_ALLOC
+            val->refCount++;
+        #endif
+    
         as.heapVal = val;
     }
-
-    #undef INCREMENT_REF
 }
 
 
