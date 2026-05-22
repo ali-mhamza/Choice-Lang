@@ -219,7 +219,7 @@ void Disassembler::collectionOp(u8 byte)
 	else
 	{
 		CH_PRINT("R[{}]\n", reg);
-		ip += 1;
+		ip++;
 	}
 }
 
