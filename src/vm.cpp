@@ -360,6 +360,29 @@ Object VM::unaryOper(Opcode op, u8 oper)
     }
 }
 
+Object VM::getIndex(u8 objReg, u8 indexReg)
+{
+    Object& obj{registers[objReg]};
+    const Object& index{registers[indexReg]};
+
+    if (!IS_COLLECTION(obj))
+        throw reportCollection(OBJ_NOT_COLLECTION, obj);
+
+    return obj.getIndex(index);
+}
+
+void VM::setIndex(u8 objReg, u8 indexReg, u8 valueReg)
+{
+    Object& obj{registers[objReg]};
+    const Object& index{registers[indexReg]};
+    const Object& value{registers[valueReg]};
+
+    if (!IS_COLLECTION(obj))
+        throw reportCollection(OBJ_NOT_COLLECTION, obj);
+
+    obj.setIndex(index, value);
+}
+
 void VM::pushCurrentStackFrame()
 {
     frames.emplace_back(CallFrame::Args{
@@ -458,7 +481,7 @@ void VM::startIter()
 
     ObjIter* iter{};
     if ((iter = iterable.makeIter()) == nullptr)
-        throw TypeMismatch{OBJ_NOT_ITERABLE};
+        throw reportCollection(OBJ_NOT_ITERABLE, iterable);
 
     if (iter->start(var))
     {
@@ -725,6 +748,25 @@ void VM::executeOp(Opcode op)
 
             COPY(*destObj, *srcObj);
             SET_REGSLOT_MAX(dest, src);
+            DISPATCH();
+        }
+
+        CASE(OP_GET_INDEX):
+        {
+            u8 destReg{readByte()};
+            u8 objReg{readByte()};
+            u8 indexReg{readByte()};
+            registers[destReg] = getIndex(objReg, indexReg);
+            SET_REGSLOT(destReg);
+            DISPATCH();
+        }
+        CASE(OP_SET_INDEX):
+        {
+            u8 objReg{readByte()};
+            u8 indexReg{readByte()};
+            u8 valueReg{readByte()};
+            setIndex(objReg, indexReg, valueReg);
+            SET_REGSLOT(valueReg);
             DISPATCH();
         }
 

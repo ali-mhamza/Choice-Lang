@@ -817,7 +817,54 @@ DEF(BlockStmt)
     popScope();
 }
 
-void ASTCompiler::compoundAssign(
+Opcode ASTCompiler::getCompoundAssignOpcode(
+    const AST::Expression::AssignExpr* node
+)
+{
+    switch (node->oper.type)
+    {
+        case TOK_PLUS_EQ:       return OP_ADD;
+        case TOK_MINUS_EQ:      return OP_SUB;
+        case TOK_STAR_EQ:       return OP_MULT;
+        case TOK_SLASH_EQ:      return OP_DIV;
+        case TOK_PERCENT_EQ:    return OP_MOD;
+        case TOK_STAR_STAR_EQ:  return OP_POWER;
+
+        case TOK_AMP_EQ:        return OP_AND;
+        case TOK_BAR_EQ:        return OP_OR;
+        case TOK_UARROW_EQ:     return OP_XOR;
+        case TOK_TILDE_EQ:      return OP_COMP;
+        case TOK_LSHIFT_EQ:     return OP_SHIFT_L;
+        case TOK_RSHIFT_EQ:     return OP_SHIFT_R;
+        default: CH_UNREACHABLE();
+    }
+}
+
+void ASTCompiler::assignToVar(
+    const AssignExpr* node
+)
+{
+    // Temporarily assuming regular variables only.
+    VarExpr* temp{static_cast<VarExpr*>(node->target.get())};
+    VarInfo info{resolveVariable(temp->name)};
+
+    if (!info.found)
+        REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
+    else if (info.access == accessFix)
+        REPORT_ERROR(ASSIGN_CONST_VARIABLE, node->oper);
+
+    if (node->oper.type != TOK_EQUAL)
+    {
+        compoundAssignToVar(node, info);
+        return;
+    }
+
+    u8 reg{nextReg};
+    compileExpr(node->value);
+    emitVariableOp(setVar, info, info.slot, reg);
+}
+
+void ASTCompiler::compoundAssignToVar(
     const AssignExpr* node,
     const VarInfo& info
 )
@@ -829,50 +876,73 @@ void ASTCompiler::compoundAssign(
     u8 valueReg{nextReg};
     compileExpr(node->value);
 
-    Opcode op{};
-    switch (node->oper.type)
-    {
-        case TOK_PLUS_EQ:       op = OP_ADD;            break;
-        case TOK_MINUS_EQ:      op = OP_SUB;            break;
-        case TOK_STAR_EQ:       op = OP_MULT;           break;
-        case TOK_SLASH_EQ:      op = OP_DIV;            break;
-        case TOK_PERCENT_EQ:    op = OP_MOD;            break;
-        case TOK_STAR_STAR_EQ:  op = OP_POWER;          break;
-
-        case TOK_AMP_EQ:        op = OP_AND;            break;
-        case TOK_BAR_EQ:        op = OP_OR;             break;
-        case TOK_UARROW_EQ:     op = OP_XOR;            break;
-        case TOK_TILDE_EQ:      op = OP_COMP;           break;
-        case TOK_LSHIFT_EQ:     op = OP_SHIFT_L;        break;
-        case TOK_RSHIFT_EQ:     op = OP_SHIFT_R;        break;
-        default: CH_UNREACHABLE();
-    }
-
+    Opcode op{getCompoundAssignOpcode(node)};
     code.addOp(op, varReg, valueReg);
     emitVariableOp(setVar, info, info.slot, varReg);
     freeReg(); // Free the temporary register used for the RHS value.
 }
 
-DEF(AssignExpr)
+void ASTCompiler::assignToElement(
+    const AssignExpr* node
+)
 {
-    // Temporarily assuming regular variables only.
-    auto* temp{static_cast<VarExpr*>(node->target.get())};
-    VarInfo info{resolveVariable(temp->name)};
+    IndexExpr* item{static_cast<IndexExpr*>(node->target.get())};
 
-    if (!info.found)
-        REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
-    else if (info.access == accessFix)
-        REPORT_ERROR(ASSIGN_CONST_VARIABLE, node->oper);
+    u8 objReg{nextReg};
+    compileExpr(item->obj);
+
+    u8 indexReg{nextReg};
+    compileExpr(item->index);
 
     if (node->oper.type != TOK_EQUAL)
     {
-        compoundAssign(node, info);
+        compoundAssignToElement(node, objReg, indexReg);
         return;
     }
 
-    u8 reg{nextReg};
+    u8 valueReg{nextReg};
     compileExpr(node->value);
-    addVariableOp(setVar, info, info.slot, reg);
+
+    code.addOp(OP_SET_INDEX, objReg, indexReg, valueReg);
+    // Final result should be in the first register reserved,
+    // i.e., object register.
+    code.addOp(OP_MOVE_R, objReg, valueReg);
+    nextReg -= 2; // Free the index and value registers.
+}
+
+void ASTCompiler::compoundAssignToElement(
+    const AssignExpr* node,
+    u8 objReg,
+    u8 indexReg
+)
+{
+    u8 elementReg{nextReg};
+    code.addOp(OP_GET_INDEX, elementReg, objReg, indexReg);
+    reserveReg();
+
+    u8 valueReg{nextReg};
+    compileExpr(node->value);
+
+    Opcode op{getCompoundAssignOpcode(node)};
+    // E.g., ADD x[0], 1
+    code.addOp(op, elementReg, valueReg);
+    freeReg(); // Free the temporary value register.
+
+    code.addOp(OP_SET_INDEX, objReg, indexReg, elementReg);
+    // Final result should be in the first register reserved,
+    // i.e., object register.
+    code.addOp(OP_MOVE_R, objReg, elementReg);
+    nextReg -= 2; // Free the index and element registers.
+}
+
+DEF(AssignExpr)
+{
+    switch (node->target->type)
+    {
+        case E_VAR_EXPR:    assignToVar(node);      break;
+        case E_INDEX_EXPR:  assignToElement(node);  break;
+        default: CH_UNREACHABLE();
+    }
 }
 
 DEF(LogicExpr)
@@ -995,36 +1065,33 @@ DEF(BinaryExpr)
     freeReg();
 }
 
-// Temporarily only dealing with simple identifier
-// variables; will need to extend later.
+// We copy the object into two temporary register slots:
+// [x][.][.][.][...] -> [...][x][x]
+// We then increment/decrement the second register:
+// [x][x + 1/x - 1]
+// We then store the new value in the object's location:
+// [x + 1/x - 1][...][...][x][x + 1/x - 1]
+// For post-increment, we move the value in the second
+// register into the first one:
+// [x + 1/x - 1][x + 1/x - 1]
+// For pre-increment, we do nothing (previous value is in
+// the correct location).
+// In both cases, the result ends up in the first register,
+// which is the only reserved register.
 
-void ASTCompiler::_crementExpr(const UnaryExpr* node)
+void ASTCompiler::_crementVar(
+    const UnaryExpr* node
+)
 {
-    if (node->expr->type != E_VAR_EXPR)
-        REPORT_ERROR(INVALID_INCR_DECR_TARGET, node->oper);
-
-    auto* temp{static_cast<VarExpr*>(node->expr.get())};
+    VarExpr* temp{static_cast<VarExpr*>(node->expr.get())};
     VarInfo info{resolveVariable(temp->name)};
     if (!info.found)
         REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
     else if (info.access == accessFix)
         REPORT_ERROR(MOD_CONST_VARIABLE, node->oper);
 
-    // We copy the variable into two temporary register slots:
-    // [x][.][.][.][...] -> [...][x][x]
-    // We then increment/decrement the second register:
-    // [x][x + 1/x - 1]
-    // We then store the new value in the variable's location:
-    // [x + 1/x - 1][...][...][x][x + 1/x - 1]
-    // For post-increment, we move the value in the second
-    // register into the first one:
-    // [x + 1/x - 1][x + 1/x - 1]
-    // For pre-increment, we do nothing (previous value is in
-    // the correct location).
-    // In both cases, the result ends up in the first register,
-    // which is the only reserved register.
-
-    emitVariableOp(getVar, info, nextReg, info.slot);
+    u8 tempReg{nextReg};
+    emitVariableOp(getVar, info, tempReg, info.slot);
     reserveReg();
 
     emitVariableOp(getVar, info, nextReg, info.slot);
@@ -1033,18 +1100,49 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
     emitVariableOp(setVar, info, info.slot, nextReg);
 
     if (!node->prev)
-    {
-        code.addOp(OP_MOVE_R, static_cast<u8>(nextReg - 1),
-            nextReg);
-    }
+        code.addOp(OP_MOVE_R, tempReg, nextReg);
+}
+
+void ASTCompiler::_crementElement(
+    const UnaryExpr* node    
+)
+{
+    IndexExpr* item{static_cast<IndexExpr*>(node->expr.get())};
+
+    u8 objReg{nextReg};
+    compileExpr(item->obj);
+
+    u8 indexReg{nextReg};
+    compileExpr(item->index);
+
+    u8 tempReg{nextReg};
+    code.addOp(OP_GET_INDEX, tempReg, objReg, indexReg);
+    reserveReg();
+
+    code.addOp(OP_GET_INDEX, nextReg, objReg, indexReg);
+    code.addOp((node->oper.type == TOK_INCR ?
+        OP_INCR : OP_DECR), nextReg);
+    code.addOp(OP_SET_INDEX, objReg, indexReg, nextReg);
+
+    if (!node->prev)
+        code.addOp(OP_MOVE_R, tempReg, nextReg);
+
+    // Final result should be in the first register reserved,
+    // i.e., object register.
+    code.addOp(OP_MOVE_R, objReg, tempReg);
+    nextReg -= 2;
 }
 
 DEF(UnaryExpr)
 {
     if ((node->oper.type == TOK_INCR) || (node->oper.type == TOK_DECR))
     {
-        _crementExpr(node);
-        return;
+        switch (node->expr->type)
+        {
+            case E_VAR_EXPR:    _crementVar(node);      return;
+            case E_INDEX_EXPR:  _crementElement(node);  return;
+            default: CH_UNREACHABLE();
+        }
     }
 
     u8 firstOper{nextReg};
@@ -1065,6 +1163,22 @@ DEF(UnaryExpr)
     // operators don't use any extra registers.
     // They apply an operator directly onto a
     // register.
+}
+
+DEF(IndexExpr)
+{
+    u64 objectReg{nextReg};
+    compileExpr(node->obj);
+
+    u64 indexReg{nextReg};
+    compileExpr(node->index);
+
+    // The object should replace the first operand (the second's
+    // register is freed up).
+    // The two operands are only evaluated to get the element,
+    // so they shouldn't stick around afterwards.
+    code.addOp(OP_GET_INDEX, objectReg, objectReg, indexReg);
+    freeReg();
 }
 
 DEF(CallExpr)
@@ -1352,6 +1466,7 @@ void ASTCompiler::compileExpr(const ExprUP& node)
         case E_SHIFT_EXPR:      COMPILE(ShiftExpr);         break;
         case E_BINARY_EXPR:     COMPILE(BinaryExpr);        break;
         case E_UNARY_EXPR:      COMPILE(UnaryExpr);         break;
+        case E_INDEX_EXPR:      COMPILE(IndexExpr);         break;
         case E_CALL_EXPR:       COMPILE(CallExpr);          break;
         case E_IF_EXPR:         COMPILE(IfExpr);            break;
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;

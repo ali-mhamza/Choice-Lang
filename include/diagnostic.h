@@ -138,6 +138,10 @@ enum DiagCode : u8
     BINARY_OP_FAIL,
     // Could not apply unary operator to given operands.
     UNARY_OP_FAIL,
+    // Object is not an index-able collection type.
+    OBJ_NOT_COLLECTION,
+    // Object cannot be used as an index.
+    OBJ_NOT_INDEX,
     // Object to iterate over is not iterable.
     // Primarily for for-loops and the 'in' operator.
     OBJ_NOT_ITERABLE,

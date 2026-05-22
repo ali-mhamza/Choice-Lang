@@ -55,7 +55,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     // Type errors.
 
     "Failed to apply binary operator.", "Failed to apply unary operator.",
-    "Object is not iterable.",
+    "Object is not an index-able collection type.",
+    "Object cannot be used as an index.", "Object is not iterable.",
     "Operand does not match member type of iterable object.",
     "Wrong argument type or value.",
 

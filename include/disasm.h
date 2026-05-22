@@ -33,6 +33,7 @@ class Disassembler
         void jumpOp(u8 byte, int sign);
         void callOp(u8 byte);
         void iterOp(u8 byte);
+        void indexOp(u8 byte);
         // Currently: lists and tuples.
         void collectionOp(u8 byte);
         // For closure captures.

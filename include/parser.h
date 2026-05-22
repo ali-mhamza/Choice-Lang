@@ -85,8 +85,9 @@ class Parser
         [[nodiscard]] ExprUP product();
         [[nodiscard]] ExprUP unary();
         [[nodiscard]] ExprUP exponent();
-        [[nodiscard]] ExprUP call();
-        [[nodiscard]] ExprUP post(); // Post-increment/decrement.
+        [[nodiscard]] ExprUP call(ExprUP&& expr, u64 start);
+        // All post-fix operators.
+        [[nodiscard]] ExprUP post();
         [[nodiscard]] ExprUP ifExpr();
         [[nodiscard]] StmtUP lambdaBodyHelper(
             vT& params,

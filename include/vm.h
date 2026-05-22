@@ -91,6 +91,9 @@ class VM
         [[nodiscard]] Object bitOper(Opcode op, u8 firstOper);
         [[nodiscard]] Object unaryOper(Opcode op, u8 oper);
 
+        [[nodiscard]] Object getIndex(u8 objReg, u8 indexReg);
+        void setIndex(u8 objReg, u8 indexReg, u8 valueReg);
+
         void pushCurrentStackFrame();
         void callFunc(const Object& callee, u8 start, u8 argCount);
         void callNative(const Object& callee, u8 start, u8 argCount);

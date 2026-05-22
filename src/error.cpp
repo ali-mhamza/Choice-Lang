@@ -96,10 +96,17 @@ TypeMismatch
 reportCollection(DiagCode code, const Object& first, const Object& second)
 {
     auto firstType{first.printType()};
-    auto secondType{second.printType()};
+    auto secondType{IS_VALID(second) ? second.printType() : ""};
 
     switch (code)
     {
+        case OBJ_NOT_COLLECTION:
+            return { code, CH_STR("({}) cannot be indexed into", firstType) };
+        case OBJ_NOT_INDEX:
+        {
+            return { code, CH_STR("({}) cannot be used as an index for ({})",
+                secondType, firstType) };
+        }
         case OBJ_NOT_ITERABLE:
             return { code, CH_STR("({}) is not an iterable type", firstType)};
         case OBJ_WRONG_ITER_TYPE:

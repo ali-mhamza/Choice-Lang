@@ -202,6 +202,28 @@ bool Object::in(const Object& other) const
         throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
 }
 
+Object Object::getIndex(const Object& index)
+{
+    CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index operator.");
+
+    switch (this->type)
+    {
+        case OBJ_LIST:  return AS_LIST(*this)->getIndex(index);
+        default: CH_UNREACHABLE();
+    }
+}
+
+void Object::setIndex(const Object& index, const Object& value)
+{
+    CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index operator.");
+
+    switch (this->type)
+    {
+        case OBJ_LIST:  return AS_LIST(*this)->setIndex(index, value);
+        default: CH_UNREACHABLE();
+    }
+}
+
 [[nodiscard]] static std::string doubleToStr(double d)
 {
     auto output{CH_STR("{:.6f}", d)};
@@ -544,6 +566,24 @@ bool List::operator==(const List& other) const
 {
     // For now: comparing identity.
     return (this == &other);
+}
+
+Object List::getIndex(const Object& index)
+{
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, this, index);
+
+    // Handle out-of-bound access.
+    return array[AS_INT(index)];
+}
+
+void List::setIndex(const Object& index, const Object& value)
+{
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, this, index);
+
+    // Handle out-of-bound access.
+    array[AS_INT(index)] = value;
 }
 
 bool List::contains(const Object& obj) const

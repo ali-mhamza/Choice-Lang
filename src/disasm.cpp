@@ -199,6 +199,22 @@ void Disassembler::iterOp(u8 byte)
 	}
 }
 
+void Disassembler::indexOp(u8 byte)
+{
+	printOpcode(opNames[byte]);
+
+	u8 objReg{restoreByte()};
+	ip++;
+
+	u8 indexReg{restoreByte()};
+	ip++;
+
+	u8 tempReg{restoreByte()};
+	ip += 2;
+
+	CH_PRINT("R[{}] R[{}] R[{}]\n", objReg, indexReg, tempReg);
+}
+
 void Disassembler::collectionOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
@@ -304,6 +320,9 @@ void Disassembler::disassembleOp(u8 byte)
 			break;
 		case OP_CALL_NAT:	case OP_CALL_DEF:
 			callOp(byte);
+			break;
+		case OP_GET_INDEX:	case OP_SET_INDEX:
+			indexOp(byte);
 			break;
 		case OP_CLOSURE:	case OP_NEG:		case OP_NOT:		case OP_INCR:
 		case OP_DECR:		case OP_COMP:		case OP_RETURN:		case OP_VOID:

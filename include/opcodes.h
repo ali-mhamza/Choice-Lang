@@ -77,6 +77,11 @@ enum Opcode : u8 // Each opcode is a single byte.
 
 	OP_FORMAT_STR,		// Create a formatted string from multiple parts.
 
+	/* Collections. */
+
+	OP_GET_INDEX,		// Get an element of another object.
+	OP_SET_INDEX,		// Assign to an element of another object.
+
 	/* Functions. */
 
 	OP_CALL_NAT,		// Call a native/built-in function.

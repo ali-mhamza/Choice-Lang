@@ -85,7 +85,7 @@ class ASTCompiler
         /* Variables. */
 
         // Emit an appropriate get or set instruction.
-        void addVariableOp(bool type, const VarInfo& info, u8 dest, u8 src);
+        void emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src);
 
         // Define a variable with a register location and mutability
         // state.
@@ -210,20 +210,41 @@ class ASTCompiler
 
         /* Expressions. */
 
-        void compoundAssign(
+        Opcode getCompoundAssignOpcode(
+            const AST::Expression::AssignExpr* node
+        );
+
+        void assignToVar(
+            const AST::Expression::AssignExpr* node
+        );
+        void compoundAssignToVar(
             const AST::Expression::AssignExpr* node,
             const VarInfo& info
         );
+
+        void assignToElement(
+            const AST::Expression::AssignExpr* node
+        );
+        void compoundAssignToElement(
+            const AST::Expression::AssignExpr* node,
+            u8 objReg,
+            u8 indexReg
+        );
+
         DECL_EXPR(AssignExpr);
         DECL_EXPR(LogicExpr);
         DECL_EXPR(CompareExpr);
         DECL_EXPR(BitExpr);
         DECL_EXPR(ShiftExpr);
         DECL_EXPR(BinaryExpr);
-        void _crementExpr(
+        void _crementVar(
+            const AST::Expression::UnaryExpr* node
+        );
+        void _crementElement(
             const AST::Expression::UnaryExpr* node
         );
         DECL_EXPR(UnaryExpr);
+        DECL_EXPR(IndexExpr);
         DECL_EXPR(CallExpr);
         DECL_EXPR(IfExpr);
         DECL_EXPR(LambdaExpr);

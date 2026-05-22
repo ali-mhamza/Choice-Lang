@@ -32,6 +32,9 @@ using namespace AST::Expression;
 #define CONSUME_RETURN_TYPE()                   \
     if (consumeTok(TOK_RARROW)) consumeType();
 
+#define CAN_ASSIGN(node) \
+    (((node)->type == E_VAR_EXPR) || ((node)->type == E_INDEX_EXPR))
+
 void Parser::nextTok()
 {
     if (currentTok.type != TOK_EOF)
@@ -597,7 +600,7 @@ ExprUP Parser::assignment()
     {
         nextTok();
         Token oper{previousTok};
-        if ((target == nullptr) || (target->type != E_VAR_EXPR)) // Temporary.
+        if ((target == nullptr) || !CAN_ASSIGN(target))
             REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok);
         target = std::make_unique<AssignExpr>(target, oper, logicOr());
     }
@@ -782,7 +785,7 @@ ExprUP Parser::unary()
 ExprUP Parser::exponent()
 {
     u64 start{currentTok.byteOffset};
-    ExprUP expr{call()};
+    ExprUP expr{post()};
     while (consumeTok(TOK_STAR_STAR))
     {
         TokenType oper{previousTok.type};
@@ -793,56 +796,48 @@ ExprUP Parser::exponent()
     return expr;
 }
 
-ExprUP Parser::call()
+ExprUP Parser::call(ExprUP&& expr, u64 start)
 {
     // Callee does not need to be an identifier.
     // Just has to evaluate to a callable object.
     // Exception: builtin with ! token.
 
-    u64 start{currentTok.byteOffset};
-    ExprUP expr{post()};
-
-    while (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
+    bool builtin{false};
+    if (previousTok.type == TOK_BANG)
     {
-        bool builtin{false};
-        if (previousTok.type == TOK_BANG)
-        {
-            if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
-                REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, previousTok);
-            MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name and '!'");
-            builtin = true;
-        }
-
-        ExprVec args{};
-        while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
-        {
-            do {
-                if (args.size() == CODE_MAX)
-                    REPORT_SEMANTIC(HIT_ARGS_MAX, currentTok);
-
-                if (consumeTok(TOK_STAR))
-                {
-                    u64 offset{previousTok.byteOffset};
-                    MATCH_TOK(TOK_IDENTIFIER, "expect reference name");
-                    args.push_back(
-                        std::make_unique<ReferenceExpr>(offset, previousTok)
-                    );
-                    setExprLocation(args.back(), offset);
-                    continue;
-                }
-
-                args.push_back(expression());
-            } while (consumeTok(TOK_COMMA));
-        }
-
-        MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' following function arguments");
-        expr = std::make_unique<CallExpr>(expr, args, builtin);
-        setExprLocation(expr, start);
-
-        start = currentTok.byteOffset;
+        if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
+            REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, previousTok);
+        MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name and '!'");
+        builtin = true;
     }
 
-    return expr;
+    ExprVec args{};
+    while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
+    {
+        do {
+            if (args.size() == CODE_MAX)
+                REPORT_SEMANTIC(HIT_ARGS_MAX, currentTok);
+
+            if (consumeTok(TOK_STAR))
+            {
+                u64 offset{previousTok.byteOffset};
+                MATCH_TOK(TOK_IDENTIFIER, "expect reference name");
+                args.push_back(
+                    std::make_unique<ReferenceExpr>(offset, previousTok)
+                );
+                setExprLocation(args.back(), offset);
+                continue;
+            }
+
+            args.push_back(expression());
+        } while (consumeTok(TOK_COMMA));
+    }
+
+    MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' following function arguments");
+    expr = std::make_unique<CallExpr>(expr, args, builtin);
+    setExprLocation(expr, start);
+
+    return std::move(expr);
 }
 
 ExprUP Parser::post()
@@ -850,18 +845,29 @@ ExprUP Parser::post()
     u64 start{currentTok.byteOffset};
     ExprUP expr{primary()};
 
-    if (consumeToks(TOK_INCR, TOK_DECR))
+    while (true)
     {
-        if ((expr == nullptr) || (expr->type != E_VAR_EXPR)) // Temporary.
-            REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, previousTok);
-        do {
+        if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
+            expr = call(std::move(expr), start);
+        else if (consumeTok(TOK_LEFT_BRACKET))
+        {
+            ExprUP index{expression()};
+            MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' following index");
+            expr = std::make_unique<IndexExpr>(expr, index);
+        }
+        else if (consumeToks(TOK_INCR, TOK_DECR))
+        {
+            if ((expr == nullptr) || !CAN_ASSIGN(expr))
+                REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, previousTok);
             Token oper{previousTok};
             expr = std::make_unique<UnaryExpr>(oper, std::move(expr), true);
-        } while (consumeToks(TOK_INCR, TOK_DECR));
-    }
+        }
+        else
+            return expr;
 
-    setExprLocation(expr, start);
-    return expr;
+        setExprLocation(expr, start);
+        start = currentTok.byteOffset;
+    }
 }
 
 ExprUP Parser::ifExpr()

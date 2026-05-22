@@ -344,6 +344,17 @@ namespace AST
             );
         };
 
+        struct IndexExpr : public Expr
+        {
+            const ExprUP obj{};
+            const ExprUP index{};
+
+            IndexExpr(
+                ExprUP& obj,
+                ExprUP& index
+            );
+        };
+
         struct CallExpr : public Expr
         {
             const ExprUP callee{};
