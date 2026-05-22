@@ -104,7 +104,8 @@ class linearTable
         // Searches for existing key.
         // Returns reference to available bucket
         // if not found.
-        EKV& findSlot(const Key& key, size_t* pos) const;
+        EKV& findSlot(const Key& key, size_t* pos);
+        const EKV& findSlot(const Key& key, size_t* pos) const;
         // Adds a key with no value.
         EKV& emptyAdd(const Key& key);
 
@@ -246,7 +247,7 @@ void linearTable<Key, Value, HashFunc>::resize()
 }
 
 KVHTEMP
-EKV& linearTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos) const
+EKV& linearTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos)
 {
     std::uint32_t hash = getHash(key);
     auto bitmask = static_cast<std::uint32_t>(entries.capacity() - 1);
@@ -255,6 +256,42 @@ EKV& linearTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos) co
     EKV* tombstone = nullptr;
 
     EKV* entry = &(entries.slot(index));
+    if (pos != nullptr)
+        *pos = index;
+    while (entry->state != EMPTY)
+    {
+        if (pos != nullptr)
+            *pos = index;
+        
+        if (entry->key == key)
+            return *entry;
+        
+        if (entry->state == TOMBSTONE)
+            tombstone = entry;
+
+        index = (index + 1) & bitmask;
+        if (pos != nullptr)
+            *pos = index;
+        entry = &(entries.slot(index));
+    }
+
+    // We didn't find an entry with the key.
+    // If we found a tombstone, return it (to reuse it).
+    // Otherwise, return the first empty slot we found.
+    return (tombstone == nullptr ? *entry : *tombstone);
+}
+
+KVHTEMP
+const EKV& linearTable<Key, Value, HashFunc>::
+findSlot(const Key& key, size_t* pos) const
+{
+    std::uint32_t hash = getHash(key);
+    auto bitmask = static_cast<std::uint32_t>(entries.capacity() - 1);
+    size_t index = hash & bitmask;
+
+    const EKV* tombstone = nullptr;
+
+    const EKV* entry = &(entries.slot(index));
     if (pos != nullptr)
         *pos = index;
     while (entry->state != EMPTY)
@@ -367,7 +404,7 @@ bool linearTable<Key, Value, HashFunc>::contains(const Key& key) const
 {
     if (count == 0) return false;
 
-    EKV& entry = findSlot(key, nullptr);
+    const EKV& entry = findSlot(key, nullptr);
     return (entry.state == VALID);
 }
 
