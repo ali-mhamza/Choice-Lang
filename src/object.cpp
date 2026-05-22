@@ -191,7 +191,7 @@ bool Object::in(const Object& other) const
         const Range& range{*(AS_RANGE(other))};
         return range.contains(AS_INT(obj));
     }
-    else  if (IS_LIST(other))
+    else if (IS_LIST(other))
     {
         const List& list{*(AS_LIST(other))};
         return list.contains(obj);
