@@ -62,7 +62,7 @@ u8 ASTCompiler::clearIndex{0};
 
 /* Compilation helpers. */
 
-void ASTCompiler::addVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
+void ASTCompiler::emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
 {
     if (info.type == GLOBAL)
     {
@@ -823,7 +823,7 @@ void ASTCompiler::compoundAssign(
 )
 {
     u8 varReg{nextReg};
-    addVariableOp(getVar, info, varReg, info.slot);
+    emitVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
     u8 valueReg{nextReg};
@@ -849,7 +849,7 @@ void ASTCompiler::compoundAssign(
     }
 
     code.addOp(op, varReg, valueReg);
-    addVariableOp(setVar, info, info.slot, varReg);
+    emitVariableOp(setVar, info, info.slot, varReg);
     freeReg(); // Free the temporary register used for the RHS value.
 }
 
@@ -1022,13 +1022,13 @@ void ASTCompiler::_crementExpr(const UnaryExpr* node)
     // In both cases, the result ends up in the first register,
     // which is the only reserved register.
 
-    addVariableOp(getVar, info, nextReg, info.slot);
+    emitVariableOp(getVar, info, nextReg, info.slot);
     reserveReg();
 
-    addVariableOp(getVar, info, nextReg, info.slot);
+    emitVariableOp(getVar, info, nextReg, info.slot);
     code.addOp((node->oper.type == TOK_INCR ?
         OP_INCR : OP_DECR), nextReg);
-    addVariableOp(setVar, info, info.slot, nextReg);
+    emitVariableOp(setVar, info, info.slot, nextReg);
 
     if (!node->prev)
     {
@@ -1223,7 +1223,7 @@ DEF(VarExpr)
     if (!info.found)
         REPORT_ERROR(VAR_NOT_DEFINED, node->name);
 
-    addVariableOp(getVar, info, nextReg, info.slot);
+    emitVariableOp(getVar, info, nextReg, info.slot);
     reserveReg();
 }
 
