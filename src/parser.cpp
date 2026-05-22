@@ -981,7 +981,7 @@ ExprUP Parser::formatString()
     ExprVec parts{};
     parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
     setExprLocation(parts.back(), previousTok.byteOffset);
-    while (!consumeTok(TOK_INTER_END))
+    while (!checkTok(TOK_INTER_END) && !checkTok(TOK_EOF))
     {
         if (consumeTok(TOK_INTER_PART))
         {
@@ -992,6 +992,7 @@ ExprUP Parser::formatString()
             parts.emplace_back(expression());
     }
 
+    MATCH_TOK(TOK_INTER_END, "expect end of format string");
     parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
     setExprLocation(parts.back(), previousTok.byteOffset);
     return std::make_unique<FormatExpr>(parts);
