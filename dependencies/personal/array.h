@@ -70,6 +70,7 @@ class Array
         [[nodiscard]] inline const T& back() const;
 
         inline T& slot(size_t index); // index < capacity.
+        inline const T& slot(size_t index) const; // index < capacity.
         void slotInsert(const T& element, size_t index); // index < capacity.
         void fillArray(const T& element, bool capacity = false);
 
@@ -288,7 +289,7 @@ void Array<T>::push(const T& element)
 
 TEMP
 int Array<T>::find(const T& element) const
-{   
+{
     static_assert(has_equal_v<T>, "Type is not comparable.");
 
     if constexpr (can_compare_v<T>)
@@ -492,6 +493,14 @@ inline const T& Array<T>::back() const
 
 TEMP
 inline T& Array<T>::slot(size_t index)
+{
+    if (index >= _capacity)
+        throw std::out_of_range("Index out of range.");
+    return entries[index];
+}
+
+TEMP
+inline const T& Array<T>::slot(size_t index) const
 {
     if (index >= _capacity)
         throw std::out_of_range("Index out of range.");
