@@ -930,7 +930,9 @@ DEF(CompareExpr)
     code.addOp(op, firstOper, secondOper);
     if ((node->oper == TOK_NOT) || (node->oper == TOK_GT_EQ)
         || (node->oper == TOK_LT_EQ) || (node->oper == TOK_BANG_EQ))
-            code.addOp(OP_NOT, firstOper);
+    {
+        code.addOp(OP_NOT, firstOper);
+    }
     freeReg();
 }
 
