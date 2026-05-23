@@ -197,6 +197,9 @@ void Natives::len(Natives::iter it, u8 args)
         case OBJ_LIST:
             len = AS_LIST(obj)->array.count();
             break;
+        case OBJ_TABLE:
+            len = AS_TABLE(obj)->table.size();
+            break;
         default:
             CH_UNREACHABLE();
     }

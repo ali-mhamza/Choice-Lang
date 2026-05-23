@@ -34,7 +34,7 @@ class Disassembler
         void callOp(u8 byte);
         void iterOp(u8 byte);
         void indexOp(u8 byte);
-        // Currently: lists and tuples.
+        // Currently: lists and tables.
         void collectionOp(u8 byte);
         // For closure captures.
         void captureOp(u8 byte);

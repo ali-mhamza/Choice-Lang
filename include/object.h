@@ -119,6 +119,7 @@ class Object
         [[nodiscard]] Object getIndex(const Object& index);
         void setIndex(const Object& index, const Object& value);
 
+        [[nodiscard]] Hash hash() const;
         [[nodiscard]] std::string printVal() const;
         [[nodiscard]] std::string_view printType() const;
         void emit(std::ofstream& os) const;
@@ -206,9 +207,9 @@ TYPE_LIST
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
 // Object is iterable.
-#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_TABLE))
+#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_LIST))
 // Object is a collection (i.e., implements the [] operator).
-#define IS_COLLECTION(obj)  ((obj).type == OBJ_LIST)
+#define IS_COLLECTION(obj)  (((obj).type == OBJ_LIST) || ((obj).type == OBJ_TABLE))
 // Object can be compared with <, >, or == operators.
 #define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type == OBJ_STRING))
 // Object data is stored in-line within the object as a payload.
@@ -331,9 +332,27 @@ struct List : public HeapObj
     [[nodiscard]] std::string printVal() const;
 };
 
+struct ObjectHasher
+{
+    [[nodiscard]] Hash operator()(const Object& obj) const
+    {
+        return obj.hash();
+    }
+};
+
 struct Table : public HeapObj
 {
-    linearTable<Object, Object> table{};
+    linearTable<Object, Object, ObjectHasher> table{};
+
+    Table();
+
+    [[nodiscard]] bool operator==(const Table& other) const;
+    [[nodiscard]] bool contains(const Object& obj) const;
+
+    [[nodiscard]] Object getIndex(const Object& key);
+    void setIndex(const Object& key, const Object& value);
+
+    [[nodiscard]] std::string printVal() const;
 };
 
 struct Void : public HeapObj

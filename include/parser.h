@@ -96,6 +96,7 @@ class Parser
         [[nodiscard]] ExprUP lambda(bool skipParams);
         [[nodiscard]] ExprUP comprehension();
         [[nodiscard]] ExprUP list();
+        [[nodiscard]] ExprUP table();
         [[nodiscard]] ExprUP formatString();
         [[nodiscard]] ExprUP primary();
 

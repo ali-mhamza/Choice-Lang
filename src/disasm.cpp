@@ -222,7 +222,8 @@ void Disassembler::collectionOp(u8 byte)
 	u8 reg{restoreByte()};
 	ip++;
 
-	if (static_cast<Opcode>(byte) == OP_EXT_LIST)
+	if ((static_cast<Opcode>(byte) == OP_EXT_LIST)
+		|| (static_cast<Opcode>(byte) == OP_EXT_TABLE))
 	{
 		u8 startReg{restoreByte()};
 		ip++;
@@ -332,7 +333,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_LOAD_R:
 			loadOp();
 			break;
-		case OP_LIST:		case OP_EXT_LIST:
+		case OP_LIST:		case OP_EXT_LIST:	case OP_TABLE:		case OP_EXT_TABLE:
 			collectionOp(byte);
 			break;
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:

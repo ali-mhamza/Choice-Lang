@@ -72,6 +72,7 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_EXT_LIST,		// Extend a list with additional elements.
 
 	OP_TABLE,			// Create a key-value table.
+	OP_EXT_TABLE,		// Extend a table with additional key-value pairs.
 
 	OP_RANGE,			// Create a range from two integers.
 

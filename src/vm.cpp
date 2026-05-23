@@ -788,6 +788,28 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        CASE(OP_TABLE):
+        {
+            registers[readByte()] = CH_ALLOC(Table);
+            SET_REGSLOT(*(ip - 1));
+            DISPATCH();
+        }
+        CASE(OP_EXT_TABLE):
+        {
+            u8 tableReg{readByte()};
+            u8 startReg{readByte()};
+            u8 count{readByte()};
+
+            auto& table{AS_TABLE(registers[tableReg])->table};
+            for (u8 i{0}; i < count; i++)
+            {
+                u8 pos{static_cast<u8>(startReg + i * 2)};
+                table.add(registers[pos], registers[pos + 1]);
+            }
+
+            DISPATCH();
+        }
+
         CASE(OP_RANGE):
         {
             Object& start{registers[readByte()]};

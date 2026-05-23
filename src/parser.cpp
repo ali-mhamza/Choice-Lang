@@ -982,6 +982,30 @@ ExprUP Parser::list()
     return std::make_unique<ListExpr>(entries);
 }
 
+ExprUP Parser::table()
+{
+    std::vector<TableExpr::TablePair> pairs{};
+    pairs.reserve(TABLE_ENTRY_GROUP);
+
+    if (!checkTok(TOK_RIGHT_BRACE))
+    {
+        do {
+            MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before table pair");
+            ExprUP key{expression()};
+            MATCH_TOK(TOK_COMMA, "expect ',' after key");
+            ExprUP value{expression()};
+            MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after table pair");
+
+            pairs.emplace_back(TableExpr::TablePair{
+                std::move(key), std::move(value)
+            });
+        } while (consumeTok(TOK_COMMA));
+    }
+    MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude table literal");
+
+    return std::make_unique<TableExpr>(pairs);
+}
+
 ExprUP Parser::formatString()
 {
     ExprVec parts{};
@@ -1035,6 +1059,9 @@ ExprUP Parser::primary()
 
     else if (type == TOK_LEFT_BRACKET)
         expr = list();
+
+    else if (type == TOK_LEFT_BRACE)
+        expr = table();
 
     else
         REPORT_SYNTAX(INVALID_TOKEN, previousTok);

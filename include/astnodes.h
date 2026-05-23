@@ -232,6 +232,7 @@ namespace AST
             E_LAMBDA_EXPR,
             E_COMPREHEN_EXPR,
             E_LIST_EXPR,
+            E_TABLE_EXPR,
             E_REF_EXPR,
             E_VAR_EXPR,
             E_STR_PART_EXPR,
@@ -410,6 +411,19 @@ namespace AST
             const ExprVec entries{};
 
             ListExpr(ExprVec& entries);
+        };
+
+        struct TableExpr : public Expr
+        {
+            struct TablePair
+            {
+                ExprUP key;
+                ExprUP value;
+            };
+
+            const std::vector<TablePair> pairs{};
+
+            TableExpr(std::vector<TablePair>& pairs);
         };
 
         struct ReferenceExpr : public Expr

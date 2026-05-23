@@ -6,6 +6,7 @@
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
+#include <personal/hashFunctions.h>
 #include <array>
 #include <cstddef>
 #include <cstdio>
@@ -141,6 +142,7 @@ bool Object::operator==(const Object& other) const
         case OBJ_STRING:    return *(AS_STRING(*this)) == *(AS_STRING(other));
         case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
         case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
+        case OBJ_TABLE:     return *(AS_TABLE(*this)) == *(AS_TABLE(other));
         case OBJ_VOID:      return true;
         default: CH_UNREACHABLE();
     }
@@ -187,19 +189,16 @@ bool Object::in(const Object& other) const
         return s2.contains(s1);
     }
     else if (IS_INT(obj) && IS_RANGE(other))
-    {
-        const Range& range{*(AS_RANGE(other))};
-        return range.contains(AS_INT(obj));
-    }
+        return AS_RANGE(other)->contains(AS_INT(obj));
     else if (IS_LIST(other))
-    {
-        const List& list{*(AS_LIST(other))};
-        return list.contains(obj);
-    }
+        return AS_LIST(other)->contains(obj);
+    else if (IS_TABLE(other))
+        return AS_TABLE(other)->contains(obj);
+
     else if (!IS_STRING(obj) && !IS_RANGE(other))
-        throw reportCollection(OBJ_NOT_ITERABLE, obj, other);
+        throw reportCollection(OBJ_NOT_ITERABLE, other, obj);
     else
-        throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
+        throw reportCollection(OBJ_WRONG_ITER_TYPE, other, obj);
 }
 
 Object Object::getIndex(const Object& index)
@@ -209,6 +208,7 @@ Object Object::getIndex(const Object& index)
     switch (this->type)
     {
         case OBJ_LIST:  return AS_LIST(*this)->getIndex(index);
+        case OBJ_TABLE: return AS_TABLE(*this)->getIndex(index);
         default: CH_UNREACHABLE();
     }
 }
@@ -220,6 +220,7 @@ void Object::setIndex(const Object& index, const Object& value)
     switch (this->type)
     {
         case OBJ_LIST:  return AS_LIST(*this)->setIndex(index, value);
+        case OBJ_TABLE: return AS_TABLE(*this)->setIndex(index, value);
         default: CH_UNREACHABLE();
     }
 }
@@ -236,6 +237,42 @@ void Object::setIndex(const Object& index, const Object& value)
         output.pop_back();
 
     return output;
+}
+
+template<typename T>
+[[nodiscard]] static Hash hashPointer(T* ptr)
+{
+    const u8* temp{reinterpret_cast<const u8*>(ptr)};
+    return hashBytes(temp, sizeof(T));
+}
+
+Hash Object::hash() const
+{
+    switch (type)
+    {
+        case OBJ_INT:       return hashKey(AS_INT(*this));
+        case OBJ_DEC:       return hashKey(AS_DEC(*this));
+        case OBJ_BOOL:      return hashKey(AS_BOOL(*this));
+        case OBJ_NULL:      return 0;
+        case OBJ_TYPE:      return hashKey(static_cast<u8>(AS_TYPE(*this)));
+        case OBJ_NATIVE:    return hashKey(static_cast<u8>(AS_NATIVE(*this)));
+        case OBJ_FUNC:      return hashPointer(AS_FUNC(*this));
+        case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
+        case OBJ_LAMBDA:    return hashPointer(AS_FUNC(*this));
+        case OBJ_STRING:    return hashKey(AS_STRING(*this)->str);
+        case OBJ_RANGE:
+        {
+            const Range* range{AS_RANGE(*this)};
+            return hashKey(range->start) + hashKey(range->stop)
+                + hashKey(range->step);
+        }
+        // For now, at least.
+        case OBJ_LIST:      return hashPointer(AS_LIST(*this));
+        case OBJ_TABLE:     return hashPointer(AS_TABLE(*this));
+        case OBJ_REF:       return AS_REF(*this)->location->hash();
+        case OBJ_VOID:      return 0;
+        default: CH_UNREACHABLE();
+    }
 }
 
 // Need to support internal types in this function as well
@@ -256,7 +293,7 @@ std::string Object::printVal() const
         case OBJ_STRING:    return AS_STRING(*this)->printVal();
         case OBJ_RANGE:     return AS_RANGE(*this)->printVal();
         case OBJ_LIST:      return AS_LIST(*this)->printVal();
-        case OBJ_TABLE:     return ""; // TODO.
+        case OBJ_TABLE:     return AS_TABLE(*this)->printVal();
         case OBJ_REF:       return CH_STR("*({})", AS_REF(*this)->location->printVal());
         case OBJ_VOID:      return "()";
         case OBJ_ITER:
@@ -609,6 +646,55 @@ std::string List::printVal() const
     }
 
     ret += "]";
+    return ret;
+}
+
+Table::Table() :
+    HeapObj{OBJ_TABLE}, table{} {}
+
+bool Table::operator==(const Table& other) const
+{
+    // For now: comparing identity.
+    return (this == &other);
+}
+
+bool Table::contains(const Object& obj) const
+{
+    return (table.contains(obj));
+}
+
+Object Table::getIndex(const Object& key)
+{
+    static Object empty{CH_ALLOC(Void)};
+
+    Object* value{table.get(key)};
+    if (value == nullptr)
+        return empty;
+    else
+        return *value;
+}
+
+void Table::setIndex(const Object& key, const Object& value)
+{
+    table[key] = value;
+}
+
+std::string Table::printVal() const
+{
+    std::string ret{"{"};
+
+    for (const auto& [key, value] : table)
+        ret += "(" + key.printVal() + ", " + value.printVal() + "), ";
+
+    if (table.empty())
+        ret += "}";
+    else
+    {
+        // Clear the last ", ".
+        ret.pop_back();
+        ret.back() = '}';
+    }
+
     return ret;
 }
 

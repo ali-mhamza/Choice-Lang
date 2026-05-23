@@ -137,6 +137,10 @@ ListExpr::ListExpr(ExprVec& entries) :
     Expr{E_LIST_EXPR},
     entries{std::move(entries)} {}
 
+TableExpr::TableExpr(std::vector<TablePair>& pairs) :
+    Expr{E_TABLE_EXPR},
+    pairs{std::move(pairs)} {}
+
 ReferenceExpr::ReferenceExpr(u64 offset, const Token& name) :
     Expr{E_REF_EXPR},
     operOffset{offset}, name(name) {}

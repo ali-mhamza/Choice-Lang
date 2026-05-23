@@ -26,6 +26,8 @@ constexpr inline unsigned int MATCH_CASES_MAX{100};
 constexpr inline unsigned int DEFAULT_LIST_SIZE{16};
 // Default partition size for list elements (we add X elements at a time).
 constexpr inline unsigned int LIST_ENTRY_GROUP{50};
+// Default partition size for table pairs.
+constexpr inline unsigned int TABLE_ENTRY_GROUP{20};
 // Cut-off for errors across lexer, parser, or compiler.
 constexpr inline unsigned int COMPILE_ERROR_MAX{10};
 

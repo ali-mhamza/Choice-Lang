@@ -1313,6 +1313,31 @@ DEF(ListExpr)
     if (count > 0) extendList();
 }
 
+DEF(TableExpr)
+{
+    u8 tableReg{nextReg};
+    code.addOp(OP_TABLE, tableReg);
+    reserveReg();
+
+    u8 count{0};
+    u8 startReg{nextReg};
+    auto extendTable = [this, tableReg, &count, startReg] {
+        code.addOp(OP_EXT_TABLE, tableReg, startReg, count);
+        nextReg = startReg;
+        count = 0;
+    };
+
+    for (const TableExpr::TablePair& pair : node->pairs)
+    {
+        compileExpr(pair.key);
+        compileExpr(pair.value);
+        if (++count == TABLE_ENTRY_GROUP)
+            extendTable();
+    }
+
+    if (count > 0) extendTable();
+}
+
 DEF(ReferenceExpr)
 {
     VarInfo info{resolveVariable(node->name)};
@@ -1472,6 +1497,7 @@ void ASTCompiler::compileExpr(const ExprUP& node)
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
         case E_COMPREHEN_EXPR:  COMPILE(ComprehensionExpr); break;
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
+        case E_TABLE_EXPR:      COMPILE(TableExpr);         break;
         case E_REF_EXPR:        COMPILE(ReferenceExpr);     break;
         case E_VAR_EXPR:        COMPILE(VarExpr);           break;
         case E_STR_PART_EXPR:   COMPILE(StringPartExpr);    break;
