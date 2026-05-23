@@ -207,8 +207,9 @@ Object Object::getIndex(const Object& index)
 
     switch (this->type)
     {
-        case OBJ_LIST:  return AS_LIST(*this)->getIndex(index);
-        case OBJ_TABLE: return AS_TABLE(*this)->getIndex(index);
+        case OBJ_STRING:    return AS_STRING(*this)->getIndex(index);
+        case OBJ_LIST:      return AS_LIST(*this)->getIndex(index);
+        case OBJ_TABLE:     return AS_TABLE(*this)->getIndex(index);
         default: CH_UNREACHABLE();
     }
 }
@@ -219,8 +220,9 @@ void Object::setIndex(const Object& index, const Object& value)
 
     switch (this->type)
     {
-        case OBJ_LIST:  return AS_LIST(*this)->setIndex(index, value);
-        case OBJ_TABLE: return AS_TABLE(*this)->setIndex(index, value);
+        case OBJ_STRING:    return AS_STRING(*this)->setIndex(index, value);
+        case OBJ_LIST:      return AS_LIST(*this)->setIndex(index, value);
+        case OBJ_TABLE:     return AS_TABLE(*this)->setIndex(index, value);
         default: CH_UNREACHABLE();
     }
 }
@@ -503,6 +505,23 @@ bool String::operator==(const String& other) const
 bool String::contains(const String& substr) const
 {
     return (this->str.find(substr.str) != std::string::npos);
+}
+
+Object String::getIndex(const Object& index)
+{
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, this, index);
+
+    // Handle out-of-bound access.
+    return CH_ALLOC(String, str.data() + AS_INT(index), 1);
+}
+
+void String::setIndex(const Object& index, const Object& value)
+{
+    (void) index; (void) value;
+
+    // Does nothing for now.
+    // Error reporting to be added later.
 }
 
 std::string String::printVal() const

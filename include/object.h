@@ -209,7 +209,8 @@ TYPE_LIST
 // Object is iterable.
 #define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_LIST))
 // Object is a collection (i.e., implements the [] operator).
-#define IS_COLLECTION(obj)  (((obj).type == OBJ_LIST) || ((obj).type == OBJ_TABLE))
+#define IS_COLLECTION(obj) \
+    (((obj).type == OBJ_STRING) || ((obj).type == OBJ_LIST) || ((obj).type == OBJ_TABLE))
 // Object can be compared with <, >, or == operators.
 #define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type == OBJ_STRING))
 // Object data is stored in-line within the object as a payload.
@@ -296,6 +297,9 @@ struct String : public HeapObj
 
     [[nodiscard]] bool operator==(const String& other) const;
     [[nodiscard]] bool contains(const String& substr) const;
+
+    [[nodiscard]] Object getIndex(const Object& index);
+    void setIndex(const Object& index, const Object& value);
 
     [[nodiscard]] std::string printVal() const;
     void emit(std::ofstream& os) const;
