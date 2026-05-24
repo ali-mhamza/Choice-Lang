@@ -1,4 +1,4 @@
-#include "../include/astcompiler.h"
+#include "../include/compiler.h"
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/config.h"
@@ -20,7 +20,7 @@ using namespace AST::Expression;
 
 /* General macros. */
 
-#define DEF(type) void ASTCompiler::compile##type(const type* node)
+#define DEF(type) void Compiler::compile##type(const type* node)
 #define COMPILE(type)                                   \
     do {                                                \
         auto* ptr = static_cast<type*>(node.get());     \
@@ -41,7 +41,7 @@ constexpr bool setVar{false};
 
 /* Constructors/destructors. */
 
-ASTCompiler::ASTCompiler(ASTCompiler* comp) :
+Compiler::Compiler(Compiler* comp) :
     scopeCompiler{comp},
     depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)}
 {
@@ -54,15 +54,15 @@ ASTCompiler::ASTCompiler(ASTCompiler* comp) :
         this->id = scopeCompiler->id;
 }
 
-ASTCompiler::~ASTCompiler() = default;
+Compiler::~Compiler() = default;
 
-std::vector<ASTCompiler::DeclarationPair> ASTCompiler::declaredVars{};
-bool ASTCompiler::clearDeclaredVars{false};
-u8 ASTCompiler::clearIndex{0};
+std::vector<Compiler::DeclarationPair> Compiler::declaredVars{};
+bool Compiler::clearDeclaredVars{false};
+u8 Compiler::clearIndex{0};
 
 /* Compilation helpers. */
 
-void ASTCompiler::emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
+void Compiler::emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
 {
     if (info.type == GLOBAL)
     {
@@ -86,7 +86,7 @@ void ASTCompiler::emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src
 // likely be destroyed soon after (if using the REPL),
 // and thus we must take ownership of the string first
 // to avoid invalidating the view.
-void ASTCompiler::defVar(const std::string& name, u8 reg, bool access)
+void Compiler::defVar(const std::string& name, u8 reg, bool access)
 {
     (*varLocations)[{ name, scope }] = reg;
     (*varAccess)[reg] = access;
@@ -97,7 +97,7 @@ void ASTCompiler::defVar(const std::string& name, u8 reg, bool access)
         declaredVars.push_back({ name, reg });
 }
 
-void ASTCompiler::removeVar(const std::string& name, u8 reg)
+void Compiler::removeVar(const std::string& name, u8 reg)
 {
     varLocations->remove({ name, scope });
     varAccess->remove(reg);
@@ -108,7 +108,7 @@ void ASTCompiler::removeVar(const std::string& name, u8 reg)
         declaredVars.pop_back();
 }
 
-void ASTCompiler::clearDeclarations()
+void Compiler::clearDeclarations()
 {
     if (clearDeclaredVars)
     {
@@ -126,7 +126,7 @@ void ASTCompiler::clearDeclarations()
     clearIndex = 0;
 }
 
-bool ASTCompiler::getAccess(u8 reg) const
+bool Compiler::getAccess(u8 reg) const
 {
     bool* ret{varAccess->get(reg)};
     CH_ASSERT(ret != nullptr,
@@ -134,7 +134,7 @@ bool ASTCompiler::getAccess(u8 reg) const
     return *ret;
 }
 
-ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
+Compiler::LocalInfo Compiler::getScopeLocal(const Token& token) const
 {
     VarEntry entry{token.text, scope};
     u8* slot{varLocations->get(entry)};
@@ -144,7 +144,7 @@ ASTCompiler::LocalInfo ASTCompiler::getScopeLocal(const Token& token) const
     return { false };
 }
 
-ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
+Compiler::VarInfo Compiler::resolveVariable(const Token& token)
 {
     // Check if variable is local first.
     for (u8 i{0}; i <= scope; i++)
@@ -178,7 +178,7 @@ ASTCompiler::VarInfo ASTCompiler::resolveVariable(const Token& token)
     return { false };
 }
 
-u8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
+u8 Compiler::captureVariable(const Token& token, const VarInfo& info)
 {
     if (info.type == GLOBAL)
         return info.slot;
@@ -194,7 +194,7 @@ u8 ASTCompiler::captureVariable(const Token& token, const VarInfo& info)
     return cellIndex;
 }
 
-void ASTCompiler::pushScope()
+void Compiler::pushScope()
 {
     scope++;
     scopeStart = nextReg;
@@ -202,7 +202,7 @@ void ASTCompiler::pushScope()
     code.addOp(OP_ENTER_SCOPE, scopeStart);
 }
 
-void ASTCompiler::popScope()
+void Compiler::popScope()
 {
     auto& scopeVars{varScopes.top()};
     for (std::string& var : scopeVars)
@@ -214,17 +214,17 @@ void ASTCompiler::popScope()
     code.addOp(OP_EXIT_SCOPE);
 }
 
-void ASTCompiler::startDeclaration()
+void Compiler::startDeclaration()
 {
     if (inRepl) code.addOp(OP_DEF_START, declaredVars.size());
 }
 
-void ASTCompiler::endDeclaration()
+void Compiler::endDeclaration()
 {
     if (inRepl) code.addOp(OP_DEF_END);
 }
 
-void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
+void Compiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 {
     if (label.type == TOK_EOF) return;
 
@@ -247,7 +247,7 @@ void ASTCompiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
 /* String helper. */
 
-std::string ASTCompiler::parseStringToken(
+std::string Compiler::parseStringToken(
     const Token& token,
     size_t start,
     size_t offset
@@ -312,7 +312,7 @@ std::string ASTCompiler::parseStringToken(
 
 /* Error reporting. */
 
-void ASTCompiler::reportError(
+void Compiler::reportError(
     DiagCode code,
     const Token& token,
     std::string_view message
@@ -325,7 +325,7 @@ void ASTCompiler::reportError(
     diagEngine.recordError(id, code, token, std::string{message});
 }
 
-void ASTCompiler::reportPart(
+void Compiler::reportPart(
     bool isError,
     DiagCode code,
     u64 offset,
@@ -341,7 +341,7 @@ void ASTCompiler::reportPart(
         diagEngine.recordWarning(id, code, offset, length, std::string{message});
 }
 
-void ASTCompiler::reportPartError(
+void Compiler::reportPartError(
     DiagCode code,
     const Token& token,
     u64 offset,
@@ -402,14 +402,14 @@ DEF(VarDecl)
     endDeclaration();
 }
 
-void ASTCompiler::funcBodyHelper(
+void Compiler::funcBodyHelper(
     const vT& params,
     const StmtUP& body,
     const u8 funcReg,
     const std::string& name
 )
 {
-    ASTCompiler miniCompiler{this};
+    Compiler miniCompiler{this};
     // The number of "parameter" tokens that aren't identifiers.
     u8 removeCount{0};
     for (auto it{params.begin()}; it != params.end(); it++)
@@ -561,7 +561,7 @@ DEF(WhileStmt)
     continueJumps = prevContinues;
 }
 
-void ASTCompiler::forLoopHelper(
+void Compiler::forLoopHelper(
     const ForStmt* node,
     const u8 varReg,
     const u8 iterReg
@@ -642,7 +642,7 @@ DEF(ForStmt)
     popScope();
 }
 
-void ASTCompiler::matchCaseHelper(
+void Compiler::matchCaseHelper(
     const MatchStmt::MatchCase& checkCase,
     const u8 matchReg,
     u64& fallJump,
@@ -817,7 +817,7 @@ DEF(BlockStmt)
     popScope();
 }
 
-Opcode ASTCompiler::getCompoundAssignOpcode(
+Opcode Compiler::getCompoundAssignOpcode(
     const AST::Expression::AssignExpr* node
 )
 {
@@ -840,7 +840,7 @@ Opcode ASTCompiler::getCompoundAssignOpcode(
     }
 }
 
-void ASTCompiler::assignToVar(
+void Compiler::assignToVar(
     const AssignExpr* node
 )
 {
@@ -864,7 +864,7 @@ void ASTCompiler::assignToVar(
     emitVariableOp(setVar, info, info.slot, reg);
 }
 
-void ASTCompiler::compoundAssignToVar(
+void Compiler::compoundAssignToVar(
     const AssignExpr* node,
     const VarInfo& info
 )
@@ -882,7 +882,7 @@ void ASTCompiler::compoundAssignToVar(
     freeReg(); // Free the temporary register used for the RHS value.
 }
 
-void ASTCompiler::assignToElement(
+void Compiler::assignToElement(
     const AssignExpr* node
 )
 {
@@ -910,7 +910,7 @@ void ASTCompiler::assignToElement(
     nextReg -= 2; // Free the index and value registers.
 }
 
-void ASTCompiler::compoundAssignToElement(
+void Compiler::compoundAssignToElement(
     const AssignExpr* node,
     u8 objReg,
     u8 indexReg
@@ -1079,7 +1079,7 @@ DEF(BinaryExpr)
 // In both cases, the result ends up in the first register,
 // which is the only reserved register.
 
-void ASTCompiler::_crementVar(
+void Compiler::_crementVar(
     const UnaryExpr* node
 )
 {
@@ -1103,7 +1103,7 @@ void ASTCompiler::_crementVar(
         code.addOp(OP_MOVE_R, tempReg, nextReg);
 }
 
-void ASTCompiler::_crementElement(
+void Compiler::_crementElement(
     const UnaryExpr* node    
 )
 {
@@ -1473,7 +1473,7 @@ DEF(LiteralExpr)
 
 /* General compilation functions. */
 
-void ASTCompiler::compileExpr(const ExprUP& node)
+void Compiler::compileExpr(const ExprUP& node)
 {
     if (node == nullptr) return;
 
@@ -1508,7 +1508,7 @@ void ASTCompiler::compileExpr(const ExprUP& node)
     metadata[lastIndex].byteEnd = code.codeSize();
 }
 
-void ASTCompiler::compileStmt(const StmtUP& node)
+void Compiler::compileStmt(const StmtUP& node)
 {
     if (node == nullptr) return;
 
@@ -1538,13 +1538,13 @@ void ASTCompiler::compileStmt(const StmtUP& node)
     metadata[lastIndex].byteEnd = code.codeSize();
 }
 
-ByteCode& ASTCompiler::getCode()
+ByteCode& Compiler::getCode()
 {
     code.setDebugData(id, metadata);
     return code;
 }
 
-Function* ASTCompiler::compile(FileID id, const StmtVec& program)
+Function* Compiler::compile(FileID id, const StmtVec& program)
 {
     this->id = id;
     code.clear();

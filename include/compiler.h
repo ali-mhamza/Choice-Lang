@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 
-class ASTCompiler
+class Compiler
 {
     #define DECL_STMT(type) \
         void compile##type(const AST::Statement::type* node)
@@ -56,7 +56,7 @@ class ASTCompiler
         };
 
         ByteCode code{};
-        ASTCompiler* const scopeCompiler{};
+        Compiler* const scopeCompiler{};
         FileID id{};
         DebugMetadata metadata{};
 
@@ -274,8 +274,8 @@ class ASTCompiler
         static bool clearDeclaredVars;
         static u8 clearIndex;
 
-        ASTCompiler(ASTCompiler* comp = nullptr);
-        ~ASTCompiler();
+        Compiler(Compiler* comp = nullptr);
+        ~Compiler();
 
         [[nodiscard]] Function* compile(FileID id, const StmtVec& program);
 };

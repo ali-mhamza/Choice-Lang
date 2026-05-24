@@ -1,5 +1,5 @@
 #include "../include/options.h"
-#include "../include/astcompiler.h"
+#include "../include/compiler.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/disasm.h"
@@ -23,7 +23,7 @@ static inline vT& runLexer(FileID id, const std::string_view source)
 static Function* runCompiler(FileID id, const vT& tokens)
 {
 	static Parser parser{};
-	static ASTCompiler compiler{};
+	static Compiler compiler{};
 	const StmtVec& program = parser.parseToAST(id, tokens);
 
 	#ifdef TYPE

@@ -1,5 +1,5 @@
 #include "../include/vm.h"
-#include "../include/astcompiler.h"
+#include "../include/compiler.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
@@ -1049,8 +1049,8 @@ void VM::executeCode(Function* script)
 
         if (inDeclaration)
         {
-            ASTCompiler::clearDeclaredVars = true;
-            ASTCompiler::clearIndex = this->clearIndex;
+            Compiler::clearDeclaredVars = true;
+            Compiler::clearIndex = this->clearIndex;
             inDeclaration = false;
             this->clearIndex = 0;
         }
