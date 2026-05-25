@@ -37,8 +37,6 @@
         do {                        \
             regSlot = MAX(a, b);    \
         } while (false)
-
-    #undef MAX
 #else
     #define SET_REGSLOT(slot)
     #define SET_REGSLOT_MAX(a, b)
