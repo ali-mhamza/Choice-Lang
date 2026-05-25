@@ -151,7 +151,7 @@ void Natives::format(Natives::iter it, u8 args)
         }
 
     #else
-        result = defaultFormat(it, args, error);
+        result = defaultFormat(it, args);
     #endif
 
     it[-1] = Object{CH_ALLOC(String, result)};
