@@ -195,10 +195,10 @@ bool Object::in(const Object& other) const
     else if (IS_TABLE(other))
         return AS_TABLE(other)->contains(obj);
 
-    else if (!IS_STRING(obj) && !IS_RANGE(other))
-        throw reportCollection(OBJ_NOT_ITERABLE, other, obj);
+    else if (!IS_STRING(other) && !IS_RANGE(other))
+        throw reportCollection(OBJ_NOT_ITERABLE, other);
     else
-        throw reportCollection(OBJ_WRONG_ITER_TYPE, other, obj);
+        throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
 }
 
 Object Object::getIndex(const Object& index)
