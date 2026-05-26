@@ -512,7 +512,12 @@ void VM::updateIter()
 
 void VM::printRegister()
 {
-    u8 i{0};
+    u8 i{};
+    if (frames.size() == 0)
+        i = Natives::FuncType::NUM_FUNCS;
+    else
+        i = 0;
+
     while (i <= regSlot)
     {
         if (!IS_VALID(registers[i]))
