@@ -338,5 +338,6 @@ class DiagnosticEngine
         // Directly reports a runtime error with a stack trace.
         void emitStackTrace(const std::vector<CallFrame>& frames);
         // For when debug metadata is not available.
+        // Only used with files (never in the REPL).
         void emitMiniStackTrace(const std::vector<CallFrame>& frames);
 };
