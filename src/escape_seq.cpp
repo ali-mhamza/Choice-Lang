@@ -141,11 +141,11 @@ bool parseCharSequence(
     if ((it >= end) || !rules.check(*it))
     {
         #if MISSING_ARG_ERROR
-        setCode(pair.first, WRONG_CHAR_FOUND);
-        setError(
-            pair.second,
-            CH_STR("missing arguments for '\\{}' escape character", rules.escape)
-        );
+            setCode(pair.first, WRONG_CHAR_FOUND);
+            setError(
+                pair.second,
+                CH_STR("missing arguments for '\\{}' escape character", rules.escape)
+            );
         #endif
 
         return false;
