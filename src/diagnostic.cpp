@@ -17,14 +17,14 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     INVALID_UTF_CODEPOINT, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
-    FORMAT_STR_PROBLEM, HIT_ARGS_MAX, MOD_CONST_VARIABLE,
-    IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE, REF_TO_CONST_VAR
+    FORMAT_STR_PROBLEM, HIT_ARGS_MAX, MOD_CONST_VALUE,
+    IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Type Error",
-    "Value Error", "Function-Call Error", "Assignment Error",
-    "Control-Flow Error", "Unused Warning", "Reference Warning"
+    "Value Error", "Function-Call Error", "Mutation Error",
+    "Control-Flow Error", "Unused Warning"
 };
 
 // Temporarily.
@@ -72,12 +72,13 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Built-in (called with '!') must be called by name.",
     "Too many arguments in function call.",
 
-    // Assign errors.
+    // Mutation errors.
 
     "Invalid assignment target.",
     "Invalid increment/decrement target.",
-    "Cannot assign value to a fixed-value variable.",
-    "Cannot modify a fixed-value variable.",
+    "Cannot assign new value to an immutable variable.",
+    "Cannot modify the value of an immutable variable.",
+    "Cannot modify an immutable value.",
 
     // Control-flow errors.
 
@@ -94,10 +95,6 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     "Unused variable.", "Expression result not used.",
     "Unreachable code segment.",
-
-    // Constant reference warning.
-
-    "Reference created to fixed-value variable."
 };
 
 FileID SourceManager::id{0};

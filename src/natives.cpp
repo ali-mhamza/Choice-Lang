@@ -44,7 +44,7 @@ void Natives::print(Natives::iter it, u8 args)
 {
     for (u8 i{0}; i < args; i++)
     {
-        switch (it[i].type)
+        switch (it[i].type())
         {
             // Fast path printing.
             case OBJ_INT:   CH_PRINT("{}", AS_INT(it[i]));      break;
@@ -166,7 +166,7 @@ void Natives::type(Natives::iter it, u8 args)
         );
     }
 
-    it[-1] = Object{it->type};
+    it[-1] = Object{it->type()};
 }
 
 void Natives::len(Natives::iter it, u8 args)
@@ -183,7 +183,7 @@ void Natives::len(Natives::iter it, u8 args)
         throw RuntimeError(OBJ_NOT_ITERABLE, "argument provided is not iterable");
 
     i64 len{0};
-    switch (obj.type)
+    switch (obj.type())
     {
         case OBJ_STRING:
             len = AS_STRING(obj)->str.size();

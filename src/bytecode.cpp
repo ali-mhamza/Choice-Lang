@@ -148,7 +148,7 @@ u64 ByteCode::countPool() const
 
 	for (const Object& obj : pool)
 	{
-		switch (obj.type)
+		switch (obj.type())
 		{
 			case OBJ_INT:	case OBJ_DEC:
 			{

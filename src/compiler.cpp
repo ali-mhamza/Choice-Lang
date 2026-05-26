@@ -398,6 +398,8 @@ DEF(VarDecl)
         reserveReg();
     }
 
+    if (node->declType == TOK_FIX) code.addOp(OP_CONST, varSlot);
+
     if (!inError && hitError) removeVar(varName, varSlot);
     endDeclaration();
 }
@@ -417,6 +419,7 @@ void Compiler::funcBodyHelper(
         bool access{accessVar};
         if (it->type == TOK_FIX)
         {
+            miniCompiler.code.addOp(OP_CONST, miniCompiler.nextReg);
             access = accessFix;
             removeCount++;
             it++;
@@ -817,6 +820,38 @@ DEF(BlockStmt)
     popScope();
 }
 
+template<typename NodeT>
+std::pair<bool, Compiler::VarInfo> Compiler::checkMutability(
+    const NodeT* node,
+    const ExprUP& expr
+)
+{
+    if (expr->type != E_VAR_EXPR) return std::make_pair(true, VarInfo{});
+
+    VarExpr* temp{static_cast<VarExpr*>(expr.get())};
+    VarInfo info{resolveVariable(temp->name)};
+
+    if (!info.found)
+        reportError(VAR_NOT_DEFINED, temp->name);
+    else if (info.access == accessFix)
+    {
+        if constexpr (std::is_same_v<NodeT, AssignExpr>)
+        {
+            if (node->target->type == E_VAR_EXPR)
+                reportError(ASSIGN_CONST_VARIABLE, node->oper);
+            else
+                reportError(MOD_CONST_VARIABLE, node->oper);
+        }
+        else
+            reportError(MOD_CONST_VARIABLE, node->oper);
+    }
+
+    return std::make_pair(
+        (info.found && (info.access == accessVar)),
+        info
+    );
+}
+
 Opcode Compiler::getCompoundAssignOpcode(
     const AST::Expression::AssignExpr* node
 )
@@ -844,14 +879,16 @@ void Compiler::assignToVar(
     const AssignExpr* node
 )
 {
-    // Temporarily assuming regular variables only.
-    VarExpr* temp{static_cast<VarExpr*>(node->target.get())};
-    VarInfo info{resolveVariable(temp->name)};
-
-    if (!info.found)
-        REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
-    else if (info.access == accessFix)
-        REPORT_ERROR(ASSIGN_CONST_VARIABLE, node->oper);
+    const auto [mut, info] = checkMutability(node, node->target);
+    if (!mut)
+    {
+        // ExprStmt assumes each expression uses at least one
+        // register. Since we're aborting here, we reserve a dummy
+        // register for it to free (so we don't eat into variable
+        // registers).
+        reserveReg();
+        return;
+    }
 
     if (node->oper.type != TOK_EQUAL)
     {
@@ -887,6 +924,11 @@ void Compiler::assignToElement(
 )
 {
     IndexExpr* item{static_cast<IndexExpr*>(node->target.get())};
+    if (!checkMutability(node, item->obj).first)
+    {
+        reserveReg();
+        return;
+    }
 
     u8 objReg{nextReg};
     compileExpr(item->obj);
@@ -1083,12 +1125,12 @@ void Compiler::_crementVar(
     const UnaryExpr* node
 )
 {
-    VarExpr* temp{static_cast<VarExpr*>(node->expr.get())};
-    VarInfo info{resolveVariable(temp->name)};
-    if (!info.found)
-        REPORT_ERROR(VAR_NOT_DEFINED, temp->name);
-    else if (info.access == accessFix)
-        REPORT_ERROR(MOD_CONST_VARIABLE, node->oper);
+    const auto [mut, info] = checkMutability(node, node->expr);
+    if (!mut)
+    {
+        reserveReg();
+        return;
+    }
 
     u8 tempReg{nextReg};
     emitVariableOp(getVar, info, tempReg, info.slot);
@@ -1345,12 +1387,6 @@ DEF(ReferenceExpr)
     {
         REPORT_ERROR(VAR_NOT_DEFINED, node->name,
             "cannot construct reference to undefined variable");
-    }
-
-    if (info.access == accessFix)
-    {
-        reportPart(false, REF_TO_CONST_VAR, node->operOffset, 1,
-            "variable may be modified through this reference");
     }
 
     code.addOp(OP_MAKE_REF, nextReg, static_cast<u8>(info.type),

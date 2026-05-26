@@ -34,7 +34,7 @@ constexpr std::array<std::string_view, NUM_TYPES> objTypes{
 /* Object. */
 
 Object::Object() :
-    type{OBJ_INVALID}
+    type_{OBJ_INVALID}
 {
     AS_INT(*this) = 0;
 }
@@ -64,7 +64,7 @@ void Object::clean()
 }
 
 Object::Object(const Object& other) noexcept :
-    type{other.type}, as{other.as}
+    type_{other.type_}, as{other.as}
 {
     CH_ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
 
@@ -82,7 +82,7 @@ Object& Object::operator=(const Object& other) noexcept
     {
         clean();
 
-        this->type = other.type;
+        this->type_ = other.type_;
         this->as = other.as;
 
         #if !CH_USE_ALLOC
@@ -95,9 +95,9 @@ Object& Object::operator=(const Object& other) noexcept
 }
 
 Object::Object(Object&& other) noexcept :
-    type{other.type}, as{other.as}
+    type_{other.type_}, as{other.as}
 {
-    other.type = OBJ_INVALID; // To prevent deallocation when it is destroyed.
+    other.type_ = OBJ_INVALID; // To prevent deallocation when it is destroyed.
     AS_INT(other) = 0;
 }
 
@@ -107,10 +107,10 @@ Object& Object::operator=(Object&& other) noexcept
     {
         clean();
 
-        this->type = other.type;
+        this->type_ = other.type_;
         this->as = other.as;
 
-        other.type = OBJ_INVALID;
+        other.type_ = OBJ_INVALID;
         AS_INT(other) = 0;
     }
 
@@ -128,9 +128,9 @@ bool Object::operator==(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
         return double(AS_NUM(*this)) == double(AS_NUM(other));
-    if (this->type != other.type) return false;
+    if (this->type() != other.type()) return false;
 
-    switch (this->type)
+    switch (this->type())
     {
         case OBJ_BOOL:      return AS_BOOL(*this) == AS_BOOL(other);
         case OBJ_NULL:      return true;
@@ -205,7 +205,7 @@ Object Object::getIndex(const Object& index)
 {
     CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index operator.");
 
-    switch (this->type)
+    switch (this->type())
     {
         case OBJ_STRING:    return AS_STRING(*this)->getIndex(index);
         case OBJ_LIST:      return AS_LIST(*this)->getIndex(index);
@@ -218,7 +218,14 @@ void Object::setIndex(const Object& index, const Object& value)
 {
     CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index operator.");
 
-    switch (this->type)
+    if (IS_CONST(*this))
+    {
+        throw RuntimeError(MOD_CONST_VALUE,
+            CH_STR("immutable ({}) being implicitly modified here", this->printType())
+        );
+    }
+
+    switch (this->type())
     {
         case OBJ_STRING:    return AS_STRING(*this)->setIndex(index, value);
         case OBJ_LIST:      return AS_LIST(*this)->setIndex(index, value);
@@ -250,7 +257,7 @@ template<typename T>
 
 Hash Object::hash() const
 {
-    switch (type)
+    switch (type())
     {
         case OBJ_INT:       return hashKey(AS_INT(*this));
         case OBJ_DEC:       return hashKey(AS_DEC(*this));
@@ -281,7 +288,7 @@ Hash Object::hash() const
 // since this is used for register printing in debug builds.
 std::string Object::printVal() const
 {
-    switch (type)
+    switch (type())
     {
         case OBJ_INT:       return std::to_string(AS_INT(*this));
         case OBJ_DEC:       return doubleToStr(AS_DEC(*this));
@@ -314,14 +321,14 @@ std::string Object::printVal() const
 
 std::string_view Object::printType() const
 {
-    return objTypes[type];
+    return objTypes[type()];
 }
 
 void Object::emit(std::ofstream& os) const
 {
-    os.put(static_cast<char>(type));
+    os.put(static_cast<char>(type()));
 
-    switch (type)
+    switch (type())
     {
         case OBJ_INT:       Bytes::encodeValue(os, AS_INT(*this));  break;
         case OBJ_DEC:       Bytes::encodeValue(os, AS_DEC(*this));  break;
@@ -922,7 +929,7 @@ bool ListIter::next(Object& var)
 
 ObjIter::ObjIter(Object& obj)
 {
-    switch (obj.type)
+    switch (obj.type())
     {
         case OBJ_STRING:
             // Use emplace instead of assignment so we construct the

@@ -68,7 +68,6 @@ enum DiagFamily : u8
     // Warnings.
 
     UNUSED_WARNING,     // Variable, value or code is unused.
-    CONST_REF_WARNING,  // Reference to constant variable is created (may lead to mutation).
 
     NUM_FAMILIES
 };
@@ -186,7 +185,7 @@ enum DiagCode : u8
     HIT_ARGS_MAX,
 
 
-    /* Assignment errors. */
+    /* Mutation errors. */
 
     // LHS is not a variable or valid assignment target.
     // Also applies to compound-assignment operators.
@@ -195,8 +194,10 @@ enum DiagCode : u8
     INVALID_INCR_DECR_TARGET,
     // Variable is immutable (cannot be assigned to).
     ASSIGN_CONST_VARIABLE,
-    // Variable is immutable (cannot be incremented/decremented).
+    // Variable is immutable (cannot be modified).
     MOD_CONST_VARIABLE,
+    // Value is immutable (cannot be modified).
+    MOD_CONST_VALUE,
 
 
     /* Control-flow errors. */
@@ -228,15 +229,6 @@ enum DiagCode : u8
     UNUSED_EXPRESSION,
     // Code segment is not logically reachable.
     UNREACHABLE_CODE,
-
-
-    /* Constant reference warnings. */
-
-    // Reference is created in a function call to an immutable variable.
-    // References cannot be constant (and only shallow copies are
-    // performed), so this likely implies the intention is to modify the
-    // variable.
-    REF_TO_CONST_VAR,
 
     NUM_CODES
 };

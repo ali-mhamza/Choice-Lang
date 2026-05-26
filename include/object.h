@@ -7,9 +7,15 @@
 #include <array>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <variant>
 
 using Natives::FuncType;
+
+/* Constants. */
+
+inline constexpr u8 CONST_FLAG = 0x80;
+inline constexpr u8 TYPE_MASK = 0x7f;
 
 /* Type list macro. */
 
@@ -80,7 +86,7 @@ class Object
         #endif
 
     public:
-        ObjType type{};
+        u8 type_{};
         union Value {
             i64         intVal;
             double      decVal;
@@ -110,6 +116,9 @@ class Object
             Object& operator=(Object&& other) noexcept;
             ~Object();
         #endif
+
+        [[nodiscard]]
+        ObjType type() const { return static_cast<ObjType>(type_ & TYPE_MASK); }
 
         [[nodiscard]] bool operator==(const Object& other) const;
         [[nodiscard]] bool operator>(const Object& other) const;
@@ -150,44 +159,44 @@ Object::Object(T val)
 {
     if constexpr (std::is_same_v<T, i64>)
     {
-        type = OBJ_INT;
+        type_ = OBJ_INT;
         as.intVal = val;
     }
     else if constexpr (std::is_same_v<T, double>)
     {
-        type = OBJ_DEC;
+        type_ = OBJ_DEC;
         as.decVal = val;
     }
     else if constexpr (std::is_same_v<T, bool>)
     {
-        type = OBJ_BOOL;
+        type_ = OBJ_BOOL;
         as.boolVal = val;
     }
     else if constexpr (std::is_same_v<T, std::nullptr_t>)
     {
-        type = OBJ_NULL;
+        type_ = OBJ_NULL;
         as.heapVal = val; // Dummy assignment.
     }
     else if constexpr (std::is_same_v<T, ObjType>)
     {
-        type = OBJ_TYPE;
+        type_ = OBJ_TYPE;
         as.typeVal = val;
     }
     else if constexpr (std::is_same_v<T, FuncType>)
     {
-        type = OBJ_NATIVE;
+        type_ = OBJ_NATIVE;
         as.nativeVal = val;
     }
     else if constexpr (std::is_same_v<T, ObjIter*>)
     {
-        type = OBJ_ITER;
+        type_ = OBJ_ITER;
         // Iterators should never be copied, so we
         // don't use a refcount.
         as.iterVal = val;
     }
     else
     {
-        type = getObjectType(val);
+        type_ = getObjectType(val);
 
         #if !CH_USE_ALLOC
             val->refCount++;
@@ -202,7 +211,7 @@ Object::Object(T val)
 
 #define X(TYPE, field) \
     [[nodiscard]] static inline bool IS_##TYPE(const Object& obj) { \
-        return (obj.type == OBJ_##TYPE);                            \
+        return (obj.type() == OBJ_##TYPE);                          \
     }                                                               \
     [[nodiscard]] static inline auto AS_##TYPE(const Object& obj) { \
         return obj.as.field;                                        \
@@ -217,25 +226,38 @@ TYPE_LIST
 
 // Object is a function object.
 #define IS_FUNCOBJ(obj) \
-    (((obj).type == OBJ_FUNC) || ((obj).type == OBJ_LAMBDA) || ((obj).type == OBJ_CLOSURE))
+    (((obj).type() == OBJ_FUNC) || ((obj).type() == OBJ_LAMBDA) \
+    || ((obj).type() == OBJ_CLOSURE))
+
 // Object can be called.
 #define IS_CALLABLE(obj)    (IS_NATIVE(obj) || IS_FUNCOBJ(obj))
+
 // Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type >= OBJ_FUNC) && ((obj).type <= OBJ_VOID))
+#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_FUNC) && ((obj).type() <= OBJ_VOID))
+
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
+
+#define IS_CONST(obj)       (((obj).type_ & CONST_FLAG) != 0)
+
 // Object is iterable.
-#define IS_ITERABLE(obj)    (((obj).type >= OBJ_STRING) && ((obj).type <= OBJ_LIST))
+#define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_LIST))
+
 // Object is a collection (i.e., implements the [] operator).
 #define IS_COLLECTION(obj) \
-    (((obj).type == OBJ_STRING) || ((obj).type == OBJ_LIST) || ((obj).type == OBJ_TABLE))
+    (((obj).type() == OBJ_STRING) || ((obj).type() == OBJ_LIST) \
+    || ((obj).type() == OBJ_TABLE))
+
 // Object can be compared with <, >, or == operators.
-#define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type == OBJ_STRING))
+#define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type() == OBJ_STRING))
+
 // Object data is stored in-line within the object as a payload.
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_ITER(obj))
-// Object is a valid, initialized object.
-#define IS_VALID(obj)       ((obj).type != OBJ_INVALID)
 
+// Object is a valid, initialized object.
+#define IS_VALID(obj)       ((obj).type() != OBJ_INVALID)
+
+#define MAKE_CONST(obj)     ((obj).type_ |= CONST_FLAG)
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))

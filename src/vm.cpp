@@ -80,7 +80,7 @@ inline u32 VM::readLong()
 
 inline bool VM::isTruthy(const Object& obj)
 {
-    switch (obj.type)
+    switch (obj.type())
     {
         case OBJ_INT:       return (AS_INT(obj) != 0);
         case OBJ_DEC:       return (AS_DEC(obj) != 0.0);
@@ -140,7 +140,7 @@ inline void VM::closeCells(Object* limit)
     {
         if (IS_PRIMITIVE(dest) && IS_PRIMITIVE(src))
         {
-            dest.type = src.type;
+            dest.type_ = src.type_;
             dest.as = src.as;
             return;
         }
@@ -189,6 +189,24 @@ Object VM::makeReference()
     }
 
     return CH_ALLOC(Cell, addr);
+}
+
+Object& VM::deref(Object& ref, bool willAssign)
+{
+    Cell* cell{AS_REF(ref)};
+    Object& obj{*(cell->location)};
+
+    if (IS_CONST(obj) && willAssign)
+    {
+        throw RuntimeError(MOD_CONST_VALUE,
+            CH_STR(
+                "immutable ({}) being implicitly modified "
+                "through a reference here", obj.printType()
+            )
+        );
+    }
+
+    return obj;
 }
 
 inline Object VM::loadOper()
@@ -441,7 +459,7 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
     if (!IS_CALLABLE(callee))
         throw TypeMismatch{OBJ_NOT_CALLABLE};
 
-    switch (callee.type)
+    switch (callee.type())
     {
         case OBJ_NATIVE:
             callNative(callee, start, argCount);
@@ -679,13 +697,11 @@ void VM::executeOp(Opcode op)
             u8 dest{readByte()};
             u8 src{readByte()};
 
-            if (IS_REF(registers[dest]))
-            {
-                Cell* cell{AS_REF(registers[dest])};
-                COPY(*(cell->location), globalRegisters[src]);
-            }
-            else
-                COPY(registers[dest], globalRegisters[src]);
+            // Global objects cannot be references.
+            // We also do not use GET instructions for assignments,
+            // so we don't check if the destination is a reference here.
+
+            COPY(registers[dest], globalRegisters[src]);
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -694,13 +710,11 @@ void VM::executeOp(Opcode op)
             u8 dest{readByte()};
             u8 src{readByte()};
 
-            if (IS_REF(registers[src]))
-            {
-                Cell* cell{AS_REF(registers[src])};
-                COPY(globalRegisters[dest], *(cell->location));
-            }
+            if UNLIKELY(IS_REF(registers[src]))
+                COPY(globalRegisters[dest], deref(registers[src]));
             else
                 COPY(globalRegisters[dest], registers[src]);
+
             DISPATCH();
         }
 
@@ -710,13 +724,11 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             Object& obj{*(currentClosure->cells[src]->location)};
 
-            if (IS_REF(obj))
-            {
-                Cell* cell{AS_REF(obj)};
-                COPY(registers[dest], *(cell->location));
-            }
+            if UNLIKELY(IS_REF(obj))
+                COPY(registers[dest], deref(obj));
             else
                 COPY(registers[dest], obj);
+
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -726,13 +738,11 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             Object& obj{*(currentClosure->cells[dest]->location)};
 
-            if (IS_REF(obj))
-            {
-                Cell* cell{AS_REF(obj)};
-                COPY(*(cell->location), registers[src]);
-            }
+            if UNLIKELY(IS_REF(obj))
+                COPY(deref(obj, true), registers[src]);
             else
                 COPY(obj, registers[src]);
+
             DISPATCH();
         }
 
@@ -744,10 +754,10 @@ void VM::executeOp(Opcode op)
             Object* destObj{&registers[dest]};
             Object* srcObj{&registers[src]};
 
-            if (IS_REF(*destObj))
-                destObj = AS_REF(*destObj)->location;
-            if (IS_REF(*srcObj))
-                srcObj = AS_REF(*srcObj)->location;
+            if UNLIKELY(IS_REF(*destObj))
+                destObj = &deref(*destObj, true);
+            if UNLIKELY(IS_REF(*srcObj))
+                srcObj = &deref(*srcObj);
 
             COPY(*destObj, *srcObj);
             SET_REGSLOT_MAX(dest, src);
@@ -759,7 +769,13 @@ void VM::executeOp(Opcode op)
             u8 destReg{readByte()};
             u8 objReg{readByte()};
             u8 indexReg{readByte()};
+
+            // We check here since getIndex may modify the value
+            // stored in objReg (in the case that destReg == objReg).
+            bool isConst{IS_CONST(registers[objReg])};
             registers[destReg] = getIndex(objReg, indexReg);
+            if (isConst) MAKE_CONST(registers[destReg]);
+
             SET_REGSLOT(destReg);
             DISPATCH();
         }
@@ -768,7 +784,9 @@ void VM::executeOp(Opcode op)
             u8 objReg{readByte()};
             u8 indexReg{readByte()};
             u8 valueReg{readByte()};
+
             setIndex(objReg, indexReg, valueReg);
+
             SET_REGSLOT(valueReg);
             DISPATCH();
         }
@@ -970,6 +988,13 @@ void VM::executeOp(Opcode op)
             u8 index{readByte()};
 
             closure->addCell(currentClosure->cells[index]);
+            DISPATCH();
+        }
+
+        CASE(OP_CONST):
+        {
+            u8 reg{readByte()};
+            MAKE_CONST(registers[reg]);
             DISPATCH();
         }
 

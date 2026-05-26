@@ -9,6 +9,7 @@
 #include <stack>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 class Compiler
@@ -209,6 +210,17 @@ class Compiler
         DECL_STMT(BlockStmt);
 
         /* Expressions. */
+
+        // Returns the mutability and variable information for
+        // a variable.
+        // Returns true if `expr` is a variable expression with
+        // an existing, mutable variable, or if it isn't a variable
+        // expression at all, and reports errors accordingly.
+        template<typename NodeT>
+        [[nodiscard]] std::pair<bool, VarInfo> checkMutability(
+            const NodeT* node,
+            const ExprUP& expr
+        );
 
         Opcode getCompoundAssignOpcode(
             const AST::Expression::AssignExpr* node
