@@ -338,17 +338,9 @@ ObjIter* Object::makeIter()
     return CH_ALLOC(ObjIter, *this);
 }
 
-
-/* HeapObj. */
-
-HeapObj::HeapObj() :
-    type{OBJ_INVALID} {}
-
-HeapObj::HeapObj(ObjType type) :
-    type{type} {}
+/* Object structs. */
 
 Cell::Cell(Object* location) :
-    HeapObj{OBJ_REF},
     location{location} {}
 
 void Cell::close()
@@ -358,7 +350,6 @@ void Cell::close()
 }
 
 Function::Function(const ByteCode& code, const u8 argCount) :
-    HeapObj{OBJ_LAMBDA},
     name{nullptr}, code{code}, argCount{argCount}, lambda{true} {}
 
 // strdup is not a standard C++ function, but is instead from POSIX.
@@ -374,8 +365,7 @@ Function::Function(
     const std::string& name,
     const ByteCode& code,
     const u8 argCount
-) : HeapObj{OBJ_FUNC},
-    name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
+) : name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
     lambda{false} {}
 
 Function::~Function()
@@ -445,7 +435,6 @@ u64 Function::byteSize() const
 }
 
 Closure::Closure(Function* function) :
-    HeapObj{OBJ_CLOSURE},
     function{function}
 {
     #if !CH_USE_ALLOC
@@ -483,15 +472,12 @@ void Closure::addCell(Cell* cell)
 }
 
 String::String(const std::string& str) :
-    HeapObj{OBJ_STRING},
     str{str} {}
 
 String::String(const std::string_view& view) :
-    HeapObj{OBJ_STRING},
     str{view} {}
 
-String::String(const char* str, size_t len) :
-    HeapObj{OBJ_STRING}
+String::String(const char* str, size_t len)
 {
     len = (len == SIZE_MAX ? strlen(str) : len);
     this->str = std::string{str, len};
@@ -542,7 +528,6 @@ u64 String::byteSize() const
 }
 
 Range::Range(const std::array<i64, 3>& limits) :
-    HeapObj{OBJ_RANGE},
     start{limits[0]}, stop{limits[1]}, step{limits[2]} {}
 
 bool Range::operator==(const Range& other) const
@@ -615,7 +600,6 @@ std::string Range::printVal() const
 }
 
 List::List(u32 size) :
-    HeapObj{OBJ_LIST},
     array{size} {}
 
 bool List::operator==(const List& other) const
@@ -668,9 +652,6 @@ std::string List::printVal() const
     return ret;
 }
 
-Table::Table() :
-    HeapObj{OBJ_TABLE}, table{} {}
-
 bool Table::operator==(const Table& other) const
 {
     // For now: comparing identity.
@@ -716,9 +697,6 @@ std::string Table::printVal() const
 
     return ret;
 }
-
-Void::Void() :
-    HeapObj{OBJ_VOID} {}
 
 
 /* Object iterator struct types. */

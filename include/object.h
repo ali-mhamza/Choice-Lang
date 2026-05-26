@@ -128,6 +128,24 @@ class Object
 };
 
 template<typename T>
+ObjType getObjectType(T val)
+{
+    if constexpr (std::is_same_v<T, Function*>)
+    {
+        if (val->name == nullptr) return OBJ_LAMBDA;
+        return OBJ_FUNC;
+    }
+
+    if constexpr (std::is_same_v<T, Closure*>)  return OBJ_CLOSURE;
+    if constexpr (std::is_same_v<T, String*>)   return OBJ_STRING;
+    if constexpr (std::is_same_v<T, Range*>)    return OBJ_RANGE;
+    if constexpr (std::is_same_v<T, List*>)     return OBJ_LIST;
+    if constexpr (std::is_same_v<T, Table*>)    return OBJ_TABLE;
+    if constexpr (std::is_same_v<T, Cell*>)     return OBJ_REF;
+    if constexpr (std::is_same_v<T, Void*>)     return OBJ_VOID;
+}
+
+template<typename T>
 Object::Object(T val)
 {
     if constexpr (std::is_same_v<T, i64>)
@@ -169,12 +187,12 @@ Object::Object(T val)
     }
     else
     {
-        type = val->type;
+        type = getObjectType(val);
 
         #if !CH_USE_ALLOC
             val->refCount++;
         #endif
-    
+
         as.heapVal = val;
     }
 }
@@ -227,14 +245,11 @@ TYPE_LIST
 
 struct HeapObj
 {
-    ObjType type{};
-
     #if !CH_USE_ALLOC
         int refCount{0};
     #endif
 
-    HeapObj();
-    HeapObj(ObjType type);
+    HeapObj() = default;
 
     #if !CH_USE_ALLOC
         virtual ~HeapObj() = default;
@@ -349,7 +364,7 @@ struct Table : public HeapObj
 {
     linearTable<Object, Object, ObjectHasher> table{};
 
-    Table();
+    Table() = default;
 
     [[nodiscard]] bool operator==(const Table& other) const;
     [[nodiscard]] bool contains(const Object& obj) const;
@@ -362,7 +377,7 @@ struct Table : public HeapObj
 
 struct Void : public HeapObj
 {
-    Void();
+    Void() = default;
 };
 
 
