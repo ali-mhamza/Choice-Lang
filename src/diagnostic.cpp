@@ -62,8 +62,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     // Value errors.
 
-    "Division by zero.", "Modulus with base zero.", "Shift value too large.",
-    "Invalid format argument.",
+    "Division by zero.", "Index out of bounds.", "Modulus with base zero.",
+    "Shift value too large.", "Invalid format argument.",
 
     // Call errors.
 

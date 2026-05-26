@@ -498,6 +498,18 @@ Object String::getIndex(const Object& index)
     if (!IS_INT(index))
         throw reportCollection(OBJ_NOT_INDEX, this, index);
 
+    // For now.
+    if (AS_INT(index) < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+    if (AS_UINT(index) >= str.size())
+    {
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+            CH_STR(
+                "index is {}, while string has length {}", AS_INT(index), str.size()
+            )
+        );
+    }
+
     // Handle out-of-bound access.
     return CH_ALLOC(String, str.data() + AS_INT(index), 1);
 }
@@ -505,6 +517,18 @@ Object String::getIndex(const Object& index)
 void String::setIndex(const Object& index, const Object& value)
 {
     (void) index; (void) value;
+
+    // For now.
+    if (AS_INT(index) < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+    if (AS_UINT(index) >= str.size())
+    {
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+            CH_STR(
+                "index is {}, while string has length {}", AS_INT(index), str.size()
+            )
+        );
+    }
 
     // Does nothing for now.
     // Error reporting to be added later.
@@ -613,6 +637,18 @@ Object List::getIndex(const Object& index)
     if (!IS_INT(index))
         throw reportCollection(OBJ_NOT_INDEX, this, index);
 
+    // For now.
+    if (AS_INT(index) < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+    if (AS_UINT(index) >= array.count())
+    {
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+            CH_STR(
+                "index is {}, while list has length {}", AS_INT(index), array.count()
+            )
+        );
+    }
+
     // Handle out-of-bound access.
     return array[AS_INT(index)];
 }
@@ -621,6 +657,18 @@ void List::setIndex(const Object& index, const Object& value)
 {
     if (!IS_INT(index))
         throw reportCollection(OBJ_NOT_INDEX, this, index);
+
+    // For now.
+    if (AS_INT(index) < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+    if (AS_UINT(index) >= array.count())
+    {
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+            CH_STR(
+                "index is {}, while list has length {}", AS_INT(index), array.count()
+            )
+        );
+    }
 
     // Handle out-of-bound access.
     array[AS_INT(index)] = value;

@@ -158,6 +158,8 @@ enum DiagCode : u8
 
     // Attempt to divide by zero.
     DIVISION_BY_ZERO,
+    // Collection index is out of bounds.
+    INDEX_OUT_OF_BOUNDS,
     // Attempt to apply the modulus operator with base zero.
     MODULUS_WITH_ZERO,
     // Bit-shift operator shift value is too high.
