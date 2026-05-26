@@ -269,6 +269,7 @@ struct Function : public HeapObj
 
     [[nodiscard]] bool operator==(const Function& other) const;
 
+    [[nodiscard]] FileID getID() const { return code.id; }
     const DebugRange& getErrorRange(const u8* ip) const;
     void emit(std::ofstream& os) const;
     u64 byteSize() const;

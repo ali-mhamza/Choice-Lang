@@ -132,6 +132,23 @@ FileID SourceManager::addFile(
     return id - 1;
 }
 
+// Worth revising for different cases.
+// Needs more detailed review.
+bool SourceManager::hasLineData(FileID id) const
+{
+    const FileData& data{sourceData[id]};
+    bool lineMarkersAvailable{!data.lineMarkers.empty()};
+    bool singleLine{!data.content.empty()
+        && (data.content.find('\n') == data.content.npos)
+    };
+    return (lineMarkersAvailable || singleLine);
+}
+
+void SourceManager::setFile(FileID id, const std::string& name)
+{
+    sourceData[id].fileName = name;
+}
+
 void SourceManager::setContent(FileID id, const std::string& content)
 {
     sourceData[id].content = content;
@@ -145,18 +162,6 @@ void SourceManager::setLineMarkers(
 )
 {
     sourceData[id].lineMarkers = lineMarkers;
-}
-
-// Worth revising for different cases.
-// Needs more detailed review.
-bool SourceManager::hasLineData(FileID id) const
-{
-    const FileData& data{sourceData[id]};
-    bool lineMarkersAvailable{!data.lineMarkers.empty()};
-    bool singleLine{!data.content.empty()
-        && (data.content.find('\n') == data.content.npos)
-    };
-    return (lineMarkersAvailable || singleLine);
 }
 
 const std::string& SourceManager::getFile(FileID id) const
@@ -308,8 +313,6 @@ void Diagnostic::displayReportTitle() const
 
 void Diagnostic::displayErrorLine(u64 line, u64 start, sv text) const
 {
-    if (text.empty()) return;
-
     constexpr auto EXTRA_SPACES{2u};
 
     // If the pointing caret isn't just past the end of the line,
@@ -521,7 +524,7 @@ void DiagnosticEngine::displayErrorLine(
     const auto& text{sourceManager.getLineText(id, line)};
 
     // In case we aren't using the original source code.
-    if (text.empty()) return;
+    if (!inRepl && text.empty()) return;
 
     // If the pointing caret isn't just past the end of the line,
     // we truncate it so it doesn't go past the line.
@@ -546,10 +549,10 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
 {
     const auto& diag{reports.back()}; // Is invalidated after calling emitReports.
     const auto id{diag.id};
-    const auto& fileName{sourceManager.getFile(diag.id)};
     emitReports(); // Emits the only runtime error (since they don't aggregate).
 
     auto size{frames.size()};
+    // Line data is either available for each stack frame, or for none.
     bool lineDataExists{sourceManager.hasLineData(id)};
     std::vector<std::string> outputLines(size);
     std::vector<std::pair<u64, u64>> positions(lineDataExists ? size : 0);
@@ -561,9 +564,11 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
         outputLines[i] = printStackEntry(frames, i);
         if (!lineDataExists) continue;
 
-        const auto& range{frames[i].function->getErrorRange(frames[i].ip)};
-        positions[i] = sourceManager.getLineColumn(id, range.sourceStart);
-        recordError(id, DiagCode{}, range.sourceStart,
+        const Function* func{frames[i].function};
+        const auto& range{func->getErrorRange(frames[i].ip)};
+
+        positions[i] = sourceManager.getLineColumn(func->getID(), range.sourceStart);
+        recordError(func->getID(), DiagCode{}, range.sourceStart,
             range.sourceEnd - range.sourceStart, "");
     }
 
@@ -577,8 +582,10 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
     CH_PRINT(stderr, "Stack Trace:\n");
     for (u64 i{0}; i < size; i++)
     {
+        const Function* func{frames[size - 1 - i].function};
+
         CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
-        CH_PRINT(stderr, "     {}", fileName);
+        CH_PRINT(stderr, "     {}", sourceManager.getFile(func->getID()));
         if (!lineDataExists)
         {
             CH_PRINT("\n");
@@ -587,7 +594,7 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
 
         const auto& pos{positions[size - 1 - i]};
         CH_PRINT(stderr, " ({}:{})\n", pos.first, pos.second);
-        displayErrorLine(id, pos.first, pos.second, maxLineNo);
+        displayErrorLine(func->getID(), pos.first, pos.second, maxLineNo);
         reports.pop_back();
     }
 }

@@ -34,10 +34,11 @@ class SourceManager
 
         [[nodiscard]]
         FileID addFile(const std::string& name, const std::string& content = "");
+        [[nodiscard]] bool hasLineData(FileID id) const;
+
+        void setFile(FileID id, const std::string& name);
         void setContent(FileID id, const std::string& content);
         void setLineMarkers(FileID id, const std::vector<u64>& lineMarkers);
-
-        [[nodiscard]] bool hasLineData(FileID id) const;
 
         [[nodiscard]] const std::string& getFile(FileID id) const;
         [[nodiscard]] const std::vector<u64>& getLineMarkers(FileID id) const;

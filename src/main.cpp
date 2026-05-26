@@ -177,7 +177,8 @@ static void repl(Args::Config& config)
 			#endif
 
 			normalizeInput(line);
-			FileID id{sourceManager.addFile("<repl>", line)};
+			FileID id{sourceManager.addFile("", line)};
+			sourceManager.setFile(id, CH_STR("<repl #{}>", id + 1));
 			config.run(id, line);
 		}
 		else
