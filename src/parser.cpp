@@ -1073,7 +1073,9 @@ ExprUP Parser::primary()
 StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
 {
     program.clear(); // In case we want to reuse the parser.
-    if (tokens.empty()) return program;
+    // Abort upon lexer error or empty input.
+    if (tokens.empty() || tokens.front().type == TOK_EOF)
+        return program;
 
     this->id = id;
     it = tokens.begin();

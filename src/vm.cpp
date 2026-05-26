@@ -1006,6 +1006,14 @@ void VM::executeOp(Opcode op)
 
 void VM::executeCode(Function* script)
 {
+    // Compilation error -> early return.
+    if (script->code.codeSize() == 0)
+        return;
+
+    // Nothing to run (empty input) -> early return.
+    if (script->code.block.front() == OP_HALT)
+        return;
+
     currentFunc = script;
     // The global scope doesn't capture any variables,
     // so it doesn't need to have an active closure.

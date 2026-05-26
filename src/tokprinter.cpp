@@ -132,6 +132,8 @@ void TokenPrinter::printToken(const Token& token) const
 
 void TokenPrinter::printTokens() const
 {
+    if (tokens.empty()) return;
+
     for (const Token& token : tokens)
         printToken(token);
     CH_PRINT("TOK COUNT: {}\n", tokens.size());

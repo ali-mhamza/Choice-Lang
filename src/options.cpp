@@ -55,8 +55,8 @@ void optionExecute(FileID id, std::string_view input)
 
 	if (diagEngine.hasReports())
 		diagEngine.emitReports();
-	else
-		runVM(script);
+
+	runVM(script);
 
 	#if !CH_USE_ALLOC
         delete script;
@@ -69,8 +69,8 @@ void optionEmitTokens(FileID id, std::string_view input)
 
     if (diagEngine.hasReports())
         diagEngine.emitReports();
-    else
-        TokenPrinter{id, tokens}.printTokens();
+
+    TokenPrinter{id, tokens}.printTokens();
 }
 
 void optionEmitBytecode(FileID id, std::string_view input)
@@ -80,8 +80,8 @@ void optionEmitBytecode(FileID id, std::string_view input)
 
     if (diagEngine.hasReports())
         diagEngine.emitReports();
-    else
-        Disassembler{script}.disassembleCode();
+
+    Disassembler{script}.disassembleCode();
 
     #if !CH_USE_ALLOC
         delete script;

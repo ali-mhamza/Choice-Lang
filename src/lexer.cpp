@@ -678,8 +678,11 @@ void Lexer::singleToken()
 vT& Lexer::tokenize(FileID id, const std::string_view code)
 {
 	setUp(id, code);
+
 	while (!hitEnd())
 		singleToken();
+
+	// Stream is only empty if an error occurred.
 	if (hitError)
 		stream.clear();
 	else

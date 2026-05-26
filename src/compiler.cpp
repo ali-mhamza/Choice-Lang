@@ -1555,6 +1555,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     for (const StmtUP& node : program)
         compileStmt(node);
 
+    // Bytecode chunk is only empty upon error.
     if (hitError)
     {
         code.clear();
