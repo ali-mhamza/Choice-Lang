@@ -42,6 +42,19 @@
 
 #define CH_FALLTHROUGH() [[fallthrough]]
 
+// Likely and unlikely branches.
+
+#if __cplusplus >= 202002L
+    #define LIKELY(x)	(x) [[likely]]
+    #define UNLIKELY(x)	(x) [[unlikely]]
+#elif defined(__GNUC__) || defined(__clang__)
+    #define LIKELY(x)   (__builtin_expect(!!(x), 1))
+    #define UNLIKELY(x) (__builtin_expect(!!(x), 0))
+#else
+    #define LIKELY(x)   (x)
+    #define UNLIKELY(x) (x)
+#endif
+
 // Format printing and string-building.
 
 #if defined(__cpp_lib_print) && defined(__cpp_lib_format)
