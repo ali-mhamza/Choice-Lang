@@ -364,13 +364,21 @@ void Disassembler::disassembleOp(u8 byte)
 
 void Disassembler::disassembleCode()
 {
+	// We only abort completely if a compilation error occurred.
+	// Bytecode for empty input is still displayed.
+	if (func->code.codeSize() == 0)
+		return;
+
 	inVM = false;
 	auto end{func->code.block.end()};
+
 	// ip < end -> We have some bytecode to print.
 	if (topLevel && !inRepl && (ip < end))
 		CH_PRINT("=== CODE [{}] ===\n", sourceManager.getFile(func->code.id));
+
 	CH_PRINT("(bytes: {}, args: {}, constants: {})\n\n",
 		func->code.block.size(), func->argCount, func->code.pool.size());
+
 	while (ip < end)
 		disassembleOp(*ip);
 }
