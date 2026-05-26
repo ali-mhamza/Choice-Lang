@@ -179,7 +179,9 @@ void Natives::len(Natives::iter it, u8 args)
     }
 
     const Object& obj{*it};
-    if (!IS_ITERABLE(obj))
+    // Some may be collections but not iterable (for now), like tables.
+    // Some may be iterable but not collections, like ranges.
+    if (!IS_COLLECTION(obj) && !IS_ITERABLE(obj))
         throw RuntimeError(OBJ_NOT_ITERABLE, "argument provided is not iterable");
 
     i64 len{0};
