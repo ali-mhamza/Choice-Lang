@@ -141,6 +141,8 @@ static void buildLine(std::string& line)
 		#if LOAD_REPL_HISTORY
 			rx.history_load("history.txt");
 		#elif CLEAR_REPL_HISTORY
+			(void) rx; // Since we don't use it in this case.
+
 			std::ofstream history{"history.txt", std::ios::trunc};
 			if (history.is_open()) history.close();
 		#endif
