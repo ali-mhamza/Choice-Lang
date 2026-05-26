@@ -148,6 +148,11 @@ bool Object::operator==(const Object& other) const
     }
 }
 
+bool Object::operator!=(const Object& other) const
+{
+    return !(*this == other);
+}
+
 bool Object::operator>(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
@@ -275,8 +280,8 @@ Hash Object::hash() const
             return hashKey(range->start) + hashKey(range->stop)
                 + hashKey(range->step);
         }
+        case OBJ_LIST:      return AS_LIST(*this)->hash();
         // For now, at least.
-        case OBJ_LIST:      return hashPointer(AS_LIST(*this));
         case OBJ_TABLE:     return hashPointer(AS_TABLE(*this));
         case OBJ_REF:       return AS_REF(*this)->location->hash();
         case OBJ_VOID:      return 0;
@@ -635,8 +640,16 @@ List::List(u32 size) :
 
 bool List::operator==(const List& other) const
 {
-    // For now: comparing identity.
-    return (this == &other);
+    if (this->array.count() != other.array.count()) return false;
+
+    const size_t size{this->array.count()};
+    for (size_t i{0}; i < size; i++)
+    {
+        if (this->array[i] != other.array[i])
+            return false;
+    }
+
+    return true;
 }
 
 Object List::getIndex(const Object& index)
@@ -690,6 +703,16 @@ bool List::contains(const Object& obj) const
     }
 
     return false;
+}
+
+Hash List::hash() const
+{
+    Hash hash{0};
+
+    for (const Object& obj : array)
+        hash += obj.hash();
+
+    return hash;
 }
 
 std::string List::printVal() const

@@ -121,6 +121,7 @@ class Object
         ObjType type() const { return static_cast<ObjType>(type_ & TYPE_MASK); }
 
         [[nodiscard]] bool operator==(const Object& other) const;
+        [[nodiscard]] bool operator!=(const Object& other) const;
         [[nodiscard]] bool operator>(const Object& other) const;
         [[nodiscard]] bool operator<(const Object& other) const;
         [[nodiscard]] bool in(const Object& other) const;
@@ -371,6 +372,7 @@ struct List : public HeapObj
     [[nodiscard]] Object getIndex(const Object& index);
     void setIndex(const Object& index, const Object& value);
 
+    Hash hash() const;
     [[nodiscard]] std::string printVal() const;
 };
 
