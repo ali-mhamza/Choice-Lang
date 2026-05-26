@@ -6,6 +6,11 @@ for (i in x)
 
 println!();
 
+for (i in 0..9)
+    print!(x[i]);       // Expect: 0123456789
+
+println!();
+
 println!(0 in x);       // Expect: true
 println!(9 in x);       // Expect: true
 println!(10 not in x);  // Expect: true
