@@ -226,9 +226,7 @@ TYPE_LIST
 #undef X
 
 // Object is a function object.
-#define IS_FUNCOBJ(obj) \
-    (((obj).type() == OBJ_FUNC) || ((obj).type() == OBJ_LAMBDA) \
-    || ((obj).type() == OBJ_CLOSURE))
+#define IS_FUNCOBJ(obj)     (IS_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj))
 
 // Object can be called.
 #define IS_CALLABLE(obj)    (IS_NATIVE(obj) || IS_FUNCOBJ(obj))
@@ -245,9 +243,7 @@ TYPE_LIST
 #define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_LIST))
 
 // Object is a collection (i.e., implements the [] operator).
-#define IS_COLLECTION(obj) \
-    (((obj).type() == OBJ_STRING) || ((obj).type() == OBJ_LIST) \
-    || ((obj).type() == OBJ_TABLE))
+#define IS_COLLECTION(obj)  (IS_STRING(obj) || IS_LIST(obj) || IS_TABLE(obj))
 
 // Object can be compared with <, >, or == operators.
 #define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type() == OBJ_STRING))
