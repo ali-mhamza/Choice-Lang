@@ -522,7 +522,6 @@ Object String::getIndex(const Object& index)
         );
     }
 
-    // Handle out-of-bound access.
     return CH_ALLOC(String, str.data() + AS_INT(index), 1);
 }
 
@@ -669,7 +668,6 @@ Object List::getIndex(const Object& index)
         );
     }
 
-    // Handle out-of-bound access.
     return array[AS_INT(index)];
 }
 
@@ -690,7 +688,6 @@ void List::setIndex(const Object& index, const Object& value)
         );
     }
 
-    // Handle out-of-bound access.
     array[AS_INT(index)] = value;
 }
 
