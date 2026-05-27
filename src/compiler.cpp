@@ -430,7 +430,7 @@ void Compiler::funcBodyHelper(
         LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
             REPORT_ERROR(PARAM_ALREADY_DEFINED, param);
-        miniCompiler.defVar(std::string(param.text), reg, access);
+        miniCompiler.defVar(std::string{param.text}, reg, access);
         miniCompiler.reserveReg();
     }
     miniCompiler.compileStmt(body);
