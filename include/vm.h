@@ -13,6 +13,7 @@
 
 class Disassembler;
 class Error;
+enum DiagCode : u8;
 
 struct CallFrame
 {
@@ -111,6 +112,7 @@ class VM
         #endif
 
         void reportError(const Error& error);
+        void reportWarning(DiagCode code, const std::string& label = "");
         void executeOp(Opcode op);
 
     public:

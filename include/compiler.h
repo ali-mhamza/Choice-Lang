@@ -243,6 +243,7 @@ class Compiler
             u8 indexReg
         );
 
+        DECL_EXPR(MutExpr);
         DECL_EXPR(AssignExpr);
         DECL_EXPR(LogicExpr);
         DECL_EXPR(CompareExpr);

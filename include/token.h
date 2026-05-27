@@ -66,6 +66,8 @@ enum TokenType : u8
 
 	// Miscellaneous.
 
+	TOK_IMMUT,			// immut
+	TOK_MUT,			// mut
 	TOK_AND,			// and
 	TOK_OR,				// or
 	TOK_NOT,			// not

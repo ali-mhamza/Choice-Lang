@@ -71,6 +71,7 @@ class Parser
 
         [[nodiscard]] ExprUP returnExpr();
         [[nodiscard]] ExprUP expression();
+        [[nodiscard]] ExprUP mutation();
         [[nodiscard]] ExprUP assignment();
         [[nodiscard]] ExprUP range();
         [[nodiscard]] ExprUP logicOr();

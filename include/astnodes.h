@@ -219,6 +219,7 @@ namespace AST
     {
         enum ExprType : u8
         {
+            E_MUT_EXPR,
             E_ASSIGN_EXPR,
             E_LOGIC_EXPR,
             E_COMPARE_EXPR,
@@ -249,6 +250,17 @@ namespace AST
 
             Expr(ExprType type);
             virtual ~Expr() = default;
+        };
+
+        struct MutExpr : public Expr
+        {
+            bool mut;
+            const ExprUP value{};
+
+            MutExpr(
+                bool mut,
+                ExprUP value
+            );
         };
 
         struct AssignExpr : public Expr

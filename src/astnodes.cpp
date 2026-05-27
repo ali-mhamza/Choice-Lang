@@ -82,6 +82,10 @@ BlockStmt::BlockStmt(StmtVec& block) :
 Expr::Expr(ExprType type) :
     type{type} {}
 
+MutExpr::MutExpr(bool mut, ExprUP value) :
+    Expr{E_MUT_EXPR},
+    mut{mut}, value{std::move(value)} {}
+
 AssignExpr::AssignExpr(ExprUP& target, const Token& oper, ExprUP value) :
     Expr{E_ASSIGN_EXPR},
     target{std::move(target)}, oper{oper}, value{std::move(value)} {}

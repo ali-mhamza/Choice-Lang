@@ -589,7 +589,26 @@ ExprUP Parser::returnExpr()
 
 ExprUP Parser::expression()
 {
-    return assignment();
+    return mutation();
+}
+
+ExprUP Parser::mutation()
+{
+    u64 start{currentTok.byteOffset};
+    ExprUP expr{nullptr};
+
+    if (consumeToks(TOK_MUT, TOK_IMMUT))
+    {
+        expr = std::make_unique<MutExpr>(
+            (previousTok.type == TOK_MUT),
+            mutation()
+        );
+    }
+    else
+        expr = assignment();
+
+    setExprLocation(expr, start);
+    return expr;
 }
 
 ExprUP Parser::assignment()

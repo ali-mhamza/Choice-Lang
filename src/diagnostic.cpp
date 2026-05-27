@@ -17,14 +17,16 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     INVALID_UTF_CODEPOINT, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
-    FORMAT_STR_PROBLEM, HIT_ARGS_MAX, MOD_CONST_VALUE,
-    IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE
+    FORMAT_STR_PROBLEM, HIT_ARGS_MAX, INVALID_INCR_DECR_TARGET,
+    IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
+    MUT_TO_IMMUT
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Type Error",
-    "Value Error", "Function-Call Error", "Mutation Error",
-    "Control-Flow Error", "Unused Warning"
+    "Value Error", "Function-Call Error", "Assignment Error",
+    "Mutation Error", "Control-Flow Error", "Unused Warning",
+    "Mutability Warning"
 };
 
 // Temporarily.
@@ -72,13 +74,17 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Built-in (called with '!') must be called by name.",
     "Too many arguments in function call.",
 
-    // Mutation errors.
+    // Assignment errors.
 
     "Invalid assignment target.",
     "Invalid increment/decrement target.",
+
+    // Mutation errors.
+
     "Cannot assign new value to an immutable variable.",
     "Cannot modify the value of an immutable variable.",
     "Cannot modify an immutable value.",
+    "Attempt to make immutable value mutable.",
 
     // Control-flow errors.
 
@@ -95,6 +101,12 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     "Unused variable.", "Expression result not used.",
     "Unreachable code segment.",
+
+    // Mutability warning.
+
+    "Mutability specifier is redundant.",
+    "Mutability specifiers used conflict with each other.",
+    "'immut' specifier used on mutable object."
 };
 
 FileID SourceManager::id{0};

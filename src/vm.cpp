@@ -196,9 +196,9 @@ Object& VM::deref(Object& ref, bool willAssign)
     Cell* cell{AS_REF(ref)};
     Object& obj{*(cell->location)};
 
-    if (IS_CONST(obj) && willAssign)
+    if (IS_FIXED(obj) && willAssign)
     {
-        throw RuntimeError(MOD_CONST_VALUE,
+        throw RuntimeError(MOD_FIXED_VARIABLE,
             CH_STR(
                 "immutable ({}) being implicitly modified "
                 "through a reference here", obj.printType()
@@ -556,7 +556,7 @@ void VM::reportError(const Error& error)
     if (debugInfoState != DEBUG_STRIPPED)
     {
         const auto& range{currentFunc->getErrorRange(ip)};
-        diagEngine.recordError(currentFunc->code.id, error.code,
+        diagEngine.recordError(currentFunc->getID(), error.code,
             range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
         diagEngine.emitStackTrace(frames);
     }
@@ -564,9 +564,27 @@ void VM::reportError(const Error& error)
     {
         // We can put dummy offsets and lengths since no lines will
         // be printed anyway.
-        diagEngine.recordError(currentFunc->code.id, error.code, 0, 0,
+        diagEngine.recordError(currentFunc->getID(), error.code, 0, 0,
             error.label);
         diagEngine.emitMiniStackTrace(frames);
+    }
+}
+
+void VM::reportWarning(DiagCode code, const std::string& label)
+{
+    diagEngine.source = ErrorSource::VM;
+
+    if (debugInfoState != DEBUG_STRIPPED)
+    {
+        const auto& range{currentFunc->getErrorRange(ip)};
+        diagEngine.recordWarning(currentFunc->getID(), code,
+            range.sourceStart, range.sourceEnd - range.sourceStart, label);
+        diagEngine.emitReports();
+    }
+    else
+    {
+        diagEngine.recordWarning(currentFunc->getID(), code, 0, 0, label);
+        diagEngine.emitReports();
     }
 }
 
@@ -772,9 +790,9 @@ void VM::executeOp(Opcode op)
 
             // We check here since getIndex may modify the value
             // stored in objReg (in the case that destReg == objReg).
-            bool isConst{IS_CONST(registers[objReg])};
+            bool isImmut{IS_IMMUT(registers[objReg])};
             registers[destReg] = getIndex(objReg, indexReg);
-            if (isConst) MAKE_CONST(registers[destReg]);
+            if (isImmut) MAKE_IMMUT(registers[destReg]);
 
             SET_REGSLOT(destReg);
             DISPATCH();
@@ -991,10 +1009,51 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
-        CASE(OP_CONST):
+        CASE(OP_VAR):
         {
             u8 reg{readByte()};
-            MAKE_CONST(registers[reg]);
+
+            MAKE_VAR(registers[reg]);
+            if (!IS_IMMUT(registers[reg]))
+                MAKE_MUT(registers[reg]);
+
+            DISPATCH();
+        }
+        CASE(OP_FIX):
+        {
+            u8 reg{readByte()};
+
+            MAKE_FIXED(registers[reg]);
+            if (!IS_MUT(registers[reg]))
+                MAKE_IMMUT(registers[reg]);
+
+            DISPATCH();
+        }
+        CASE(OP_IMMUT):
+        {
+            // Must read here since macro uses it twice.
+            u8 reg{readByte()};
+
+            if (IS_MUT(registers[reg]))
+            {
+                reportWarning(MUT_TO_IMMUT,
+                    "value here may still be modified through other handles to it");
+            }
+
+            MAKE_IMMUT(registers[reg]);
+            DISPATCH();
+        }
+        CASE(OP_MUT):
+        {
+            u8 reg{readByte()};
+
+            if (IS_IMMUT(registers[reg]))
+            {
+                throw RuntimeError(IMMUT_TO_MUT,
+                    "mutable handle may modify immutable value");
+            }
+
+            MAKE_MUT(registers[reg]);
             DISPATCH();
         }
 

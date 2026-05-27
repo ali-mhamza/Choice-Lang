@@ -223,10 +223,10 @@ void Object::setIndex(const Object& index, const Object& value)
 {
     CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index operator.");
 
-    if (IS_CONST(*this))
+    if (IS_IMMUT(*this))
     {
-        throw RuntimeError(MOD_CONST_VALUE,
-            CH_STR("immutable ({}) being implicitly modified here", this->printType())
+        throw RuntimeError(MOD_IMMUT_VALUE,
+            CH_STR("immutable ({}) being modified here", this->printType())
         );
     }
 

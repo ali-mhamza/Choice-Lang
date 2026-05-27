@@ -82,8 +82,8 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_WHERE", "TOK_REPEAT", "TOK_UNTIL", "TOK_BREAK", "TOK_CONT",
     "TOK_MATCH", "TOK_IS", "TOK_FALL", "TOK_END",
 
-    "TOK_AND", "TOK_OR", "TOK_NOT", "TOK_RETURN", "TOK_NEW",
-    "TOK_DEF", "TOK_FIELDS", "TOK_IN",
+    "TOK_IMMUT", "TOK_MUT", "TOK_AND", "TOK_OR", "TOK_NOT",
+    "TOK_RETURN", "TOK_NEW", "TOK_DEF", "TOK_FIELDS", "TOK_IN",
 
     "TOK_PLUS", "TOK_MINUS", "TOK_STAR", "TOK_SLASH", "TOK_PERCENT",
     "TOK_STAR_STAR", "TOK_INCR", "TOK_DECR",

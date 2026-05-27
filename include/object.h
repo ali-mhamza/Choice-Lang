@@ -14,8 +14,10 @@ using Natives::FuncType;
 
 /* Constants. */
 
-inline constexpr u8 CONST_FLAG = 0x80;
-inline constexpr u8 TYPE_MASK = 0x7f;
+inline constexpr u8 FIXED_FLAG  = 0x80;     // Bit 7.
+inline constexpr u8 INIT_FLAG   = 0x40;     // Bit 6.
+inline constexpr u8 IMMUT_FLAG  = 0x20;     // Bit 5.
+inline constexpr u8 TYPE_MASK   = 0x1f;     // Remaining bits (max. 32 values).
 
 /* Type list macro. */
 
@@ -237,8 +239,6 @@ TYPE_LIST
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
 
-#define IS_CONST(obj)       (((obj).type_ & CONST_FLAG) != 0)
-
 // Object is iterable.
 #define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_LIST))
 
@@ -254,7 +254,32 @@ TYPE_LIST
 // Object is a valid, initialized object.
 #define IS_VALID(obj)       ((obj).type() != OBJ_INVALID)
 
-#define MAKE_CONST(obj)     ((obj).type_ |= CONST_FLAG)
+// Object has internal state that may be mutated without rebinding.
+// For now only applies to collection types.
+#define HAS_MUT_STATE(obj)  (IS_COLLECTION(obj))
+
+// Object was declared with "make" (mutable by default, can be reassigned).
+#define IS_VAR(obj)         (((obj).type_ & FIXED_FLAG) == 0)
+
+// Object was declared with "fix" (immutable by default, cannot be reassigned).
+#define IS_FIXED(obj)       (((obj).type_ & FIXED_FLAG) != 0)
+
+// Object has a mutability status/flag (only relevant for mutable types).
+#define IS_INIT(obj)        (HAS_MUT_STATE(obj) && ((obj).type_ & INIT_FLAG) != 0)
+
+// Object is immutable.
+#define IS_IMMUT(obj)       (IS_INIT(obj) && (((obj).type_ & IMMUT_FLAG) != 0))
+
+// Object is mutable.
+#define IS_MUT(obj)         (IS_INIT(obj) && (((obj).type_ & IMMUT_FLAG) == 0))
+
+#define MAKE_VAR(obj)       ((obj).type_ &= ~FIXED_FLAG)
+#define MAKE_FIXED(obj)     ((obj).type_ |= FIXED_FLAG)
+
+#define MAKE_INIT(obj)      ((obj).type_ |= INIT_FLAG)
+#define MAKE_IMMUT(obj)     (MAKE_INIT(obj), ((obj).type_ |= IMMUT_FLAG))
+#define MAKE_MUT(obj)       (MAKE_INIT(obj), ((obj).type_ &= ~IMMUT_FLAG))
+
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))

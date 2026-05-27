@@ -362,6 +362,8 @@ DEF(VarDecl)
     startDeclaration();
 
     LocalInfo localInfo{getScopeLocal(node->name)};
+    bool fixed{node->declType == TOK_FIX};
+
     if (localInfo.found)
     {
         if (inRepl && (depth == 0) && (scope == 0))
@@ -370,6 +372,7 @@ DEF(VarDecl)
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
+                (*varAccess)[localInfo.slot] = (fixed ? accessFix : accessVar);
                 // Always a local variable.
                 code.addOp(OP_SET_LOCAL, localInfo.slot, reg);
             }
@@ -386,8 +389,7 @@ DEF(VarDecl)
     u8 varSlot{nextReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
-    defVar(varName, varSlot,
-        node->declType == TOK_MAKE ? accessVar : accessFix);
+    defVar(varName, varSlot, (fixed ? accessFix : accessVar));
 
     bool inError{hitError};
     if (node->init != nullptr)
@@ -398,8 +400,7 @@ DEF(VarDecl)
         reserveReg();
     }
 
-    if (node->declType == TOK_FIX) code.addOp(OP_CONST, varSlot);
-
+    code.addOp((fixed ? OP_FIX : OP_VAR), varSlot);
     if (!inError && hitError) removeVar(varName, varSlot);
     endDeclaration();
 }
@@ -419,7 +420,7 @@ void Compiler::funcBodyHelper(
         bool access{accessVar};
         if (it->type == TOK_FIX)
         {
-            miniCompiler.code.addOp(OP_CONST, miniCompiler.nextReg);
+            miniCompiler.code.addOp(OP_FIX, miniCompiler.nextReg);
             access = accessFix;
             removeCount++;
             it++;
@@ -836,14 +837,9 @@ std::pair<bool, Compiler::VarInfo> Compiler::checkMutability(
     else if (info.access == accessFix)
     {
         if constexpr (std::is_same_v<NodeT, AssignExpr>)
-        {
-            if (node->target->type == E_VAR_EXPR)
-                reportError(ASSIGN_CONST_VARIABLE, node->oper);
-            else
-                reportError(MOD_CONST_VARIABLE, node->oper);
-        }
+            reportError(ASSIGN_FIXED_VARIABLE, node->oper);
         else
-            reportError(MOD_CONST_VARIABLE, node->oper);
+            reportError(MOD_FIXED_VARIABLE, node->oper);
     }
 
     return std::make_pair(
@@ -924,11 +920,6 @@ void Compiler::assignToElement(
 )
 {
     IndexExpr* item{static_cast<IndexExpr*>(node->target.get())};
-    if (!checkMutability(node, item->obj).first)
-    {
-        reserveReg();
-        return;
-    }
 
     u8 objReg{nextReg};
     compileExpr(item->obj);
@@ -975,6 +966,42 @@ void Compiler::compoundAssignToElement(
     // i.e., object register.
     code.addOp(OP_MOVE_R, objReg, elementReg);
     nextReg -= 2; // Free the index and element registers.
+}
+
+DEF(MutExpr)
+{
+    if (node->value->type == E_MUT_EXPR)
+    {
+        const MutExpr* temp{static_cast<const MutExpr*>(node->value.get())};
+        std::string_view nodeType{node->mut ? "mut" : "immut"};
+        std::string_view nestedType{temp->mut ? "mut" : "immut"};
+
+        if (node->mut == temp->mut)
+        {
+            reportPart(
+                false, REDUNDANT_MUT_SPECIFIER, node->sourceStart,
+                (node->mut ? 3 : 5),
+                CH_STR(
+                    "'{}' specifier has no effect with another '{}'", nodeType, nestedType
+                )
+            );
+        }
+        else
+        {
+            reportPart(
+                false, CONFLICT_MUT_SPECIFIER, node->sourceStart,
+                (node->mut ? 3 : 5),
+                CH_STR(
+                    "'{}' is incompatible with '{}' specifier appearing after it",
+                    nodeType, nestedType
+                )
+            );
+        }
+    }
+
+    u8 reg{nextReg};
+    compileExpr(node->value);
+    code.addOp((node->mut ? OP_MUT : OP_IMMUT), reg);
 }
 
 DEF(AssignExpr)
@@ -1520,6 +1547,7 @@ void Compiler::compileExpr(const ExprUP& node)
 
     switch (node->type)
     {
+        case E_MUT_EXPR:        COMPILE(MutExpr);           break;
         case E_ASSIGN_EXPR:     COMPILE(AssignExpr);        break;
         case E_LOGIC_EXPR:      COMPILE(LogicExpr);         break;
         case E_COMPARE_EXPR:    COMPILE(CompareExpr);       break;

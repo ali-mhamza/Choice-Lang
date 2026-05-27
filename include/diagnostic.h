@@ -62,12 +62,14 @@ enum DiagFamily : u8
     TYPE_ERROR,         // Incorrect type for statement/expression.
     VALUE_ERROR,        // Valus is not permissible in context (e.g., division by zero).
     CALL_ERROR,         // General issue with function call (arity, callee type, etc.).
-    ASSIGN_ERROR,       // Invalid assignment target, immutable variable, etc.
+    ASSIGN_ERROR,       // Invalid assignment target.
+    MUTATION_ERROR,     // Mutation of an immutable variable or value.
     CONTROL_FLOW_ERROR, // Invalid use of control-flow keyword or structure.
 
     // Warnings.
 
     UNUSED_WARNING,     // Variable, value or code is unused.
+    MUTABILITY_WARNING, // Misuse of mutability modifiers.
 
     NUM_FAMILIES
 };
@@ -185,19 +187,25 @@ enum DiagCode : u8
     HIT_ARGS_MAX,
 
 
-    /* Mutation errors. */
+    /* Assignment errors. */
 
     // LHS is not a variable or valid assignment target.
     // Also applies to compound-assignment operators.
     INVALID_ASSIGN_TARGET,
     // LHS is not a variable or valid increment/decrement target.
     INVALID_INCR_DECR_TARGET,
+
+
+    /* Mutation errors. */
+
     // Variable is immutable (cannot be assigned to).
-    ASSIGN_CONST_VARIABLE,
+    ASSIGN_FIXED_VARIABLE,
     // Variable is immutable (cannot be modified).
-    MOD_CONST_VARIABLE,
+    MOD_FIXED_VARIABLE,
     // Value is immutable (cannot be modified).
-    MOD_CONST_VALUE,
+    MOD_IMMUT_VALUE,
+    // Attempt to make immutable value mutable.
+    IMMUT_TO_MUT,
 
 
     /* Control-flow errors. */
@@ -229,6 +237,15 @@ enum DiagCode : u8
     UNUSED_EXPRESSION,
     // Code segment is not logically reachable.
     UNREACHABLE_CODE,
+
+    /* Mutability warnings. */
+
+    // Mutability specifier is redundant (e.g., immut immut 1).
+    REDUNDANT_MUT_SPECIFIER,
+    // Mutability specifier conflicts following one (e.g., immut mut 1).
+    CONFLICT_MUT_SPECIFIER,
+    // 'immut' specifier used on mutable object.
+    MUT_TO_IMMUT,
 
     NUM_CODES
 };
