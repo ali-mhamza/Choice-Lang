@@ -527,6 +527,9 @@ Object String::getIndex(const Object& index)
 
 void String::setIndex(const Object& index, const Object& value)
 {
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, this, index);
+
     // For now.
     if (AS_INT(index) < 0)
         throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
