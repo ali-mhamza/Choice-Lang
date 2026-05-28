@@ -105,10 +105,13 @@
 #elif defined(NDEBUG)
 	#if __cplusplus >= 202302L
 		#define CH_ASSERT(expr, msg) [[assume(expr)]]
-	#elif defined(__GNUC__)
-		#define CH_ASSERT(expr, msg) __attribute__((assume(expr)))
+	// Check Clang first, since __GNUC__ may be defined on
+	// Clang despite it not supporting the GNU version of this
+	// attribute.
 	#elif defined(__clang__)
 		#define CH_ASSERT(expr, msg) __builtin_assume(expr)
+	#elif defined(__GNUC__)
+		#define CH_ASSERT(expr, msg) __attribute__((assume(expr)))
 	#elif defined(_MSC_VER)
 		#define CH_ASSERT(expr, msg) __assume(expr)
 	#else
