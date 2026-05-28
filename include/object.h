@@ -22,8 +22,6 @@ inline constexpr u8 INIT_FLAG   = 0x40;
 inline constexpr u8 IMMUT_FLAG  = 0x20;
 // Remaining bits (max. 32 values).
 inline constexpr u8 TYPE_MASK   = 0x1f;
-// Full flag section in type byte.
-inline constexpr u8 FLAG_MASK   = FIXED_FLAG | INIT_FLAG | IMMUT_FLAG;
 
 /* Type list macro. */
 
@@ -289,18 +287,6 @@ TYPE_LIST
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
-
-
-static inline u8 getFlags(const Object& obj)
-{
-    return (obj.type_ & FLAG_MASK);
-}
-
-static inline void setFlags(Object& obj, u8 flags)
-{
-    if (!IS_INIT(obj))
-        obj.type_ = (flags | (obj.type_ & ~FLAG_MASK));
-}
 
 
 /* Heap-allocated object structs. */

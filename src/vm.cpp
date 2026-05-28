@@ -727,14 +727,18 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
-            u8 flags{getFlags(globalRegisters[dest])};
+            bool fixed(IS_FIXED(globalRegisters[dest]));
 
             if UNLIKELY(IS_REF(registers[src]))
                 COPY(globalRegisters[dest], deref(registers[src]));
             else
                 COPY(globalRegisters[dest], registers[src]);
 
-            setFlags(globalRegisters[dest], flags);
+            if (fixed && !IS_MUT(globalRegisters[dest]))
+                MAKE_IMMUT(globalRegisters[dest]);
+            else if (!IS_IMMUT(globalRegisters[dest]))
+                MAKE_MUT(globalRegisters[dest]);
+
             DISPATCH();
         }
 
@@ -758,9 +762,13 @@ void VM::executeOp(Opcode op)
 
             if UNLIKELY(IS_REF(*obj)) obj = &deref(*obj, true);
 
-            u8 flags{getFlags(*obj)};
+            bool fixed{IS_FIXED(*obj)};
             COPY(*obj, registers[src]);
-            setFlags(*obj, flags);
+
+            if (fixed && !IS_MUT(*obj))
+                MAKE_IMMUT(*obj);
+            else if (!IS_IMMUT(*obj))
+                MAKE_MUT(*obj);
             DISPATCH();
         }
 
@@ -777,9 +785,13 @@ void VM::executeOp(Opcode op)
             if UNLIKELY(IS_REF(*srcObj))
                 srcObj = &deref(*srcObj);
 
-            u8 flags{getFlags(*destObj)};
+            bool fixed{IS_FIXED(*destObj)};
             COPY(*destObj, *srcObj);
-            setFlags(*destObj, flags);
+
+            if (fixed && !IS_MUT(*destObj))
+                MAKE_IMMUT(*destObj);
+            else if (!IS_IMMUT(*destObj))
+                MAKE_MUT(*destObj);
 
             SET_REGSLOT_MAX(dest, src);
             DISPATCH();
