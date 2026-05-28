@@ -35,10 +35,10 @@ WhileStmt::WhileStmt(ExprUP& condition, const Token& label, StmtUP& body,
     condition{std::move(condition)}, label{label}, body{std::move(body)},
     elseClause{std::move(elseClause)} {}
 
-ForStmt::ForStmt(const Token& var, ExprUP& iter, ExprUP& where,
+ForStmt::ForStmt(bool fix, const Token& var, ExprUP& iter, ExprUP& where,
     const Token& label, StmtUP& body, StmtUP& elseClause) :
     Stmt{S_FOR_STMT},
-    var{var}, iter{std::move(iter)}, where{std::move(where)},
+    fix{fix}, var{var}, iter{std::move(iter)}, where{std::move(where)},
     label{label}, body{std::move(body)}, elseClause{std::move(elseClause)} {}
 
 MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body,
@@ -131,10 +131,10 @@ LambdaExpr::LambdaExpr(const vT& params, StmtUP& body) :
     Expr{E_LAMBDA_EXPR},
     params{params}, body{std::move(body)} {}
 
-ComprehensionExpr::ComprehensionExpr(const Token& token, ExprUP& iter,
-    ExprUP& where, ExprUP& expr) :
+ComprehensionExpr::ComprehensionExpr(bool fix, const Token& token,
+    ExprUP& iter, ExprUP& where, ExprUP& expr) :
     Expr{E_COMPREHEN_EXPR},
-    var{token}, iter{std::move(iter)}, where{std::move(where)},
+    fix{fix}, var{token}, iter{std::move(iter)}, where{std::move(where)},
     expr{std::move(expr)} {}
 
 ListExpr::ListExpr(ExprVec& entries) :

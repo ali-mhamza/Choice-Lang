@@ -787,8 +787,8 @@ std::string Table::printVal() const
 
 /* Object iterator struct types. */
 
-StringIter::StringIter(String* obj) :
-    obj{obj}, pos{0}
+StringIter::StringIter(Object& obj) :
+    obj{AS_STRING(obj)}, pos{0}, flags{getMutFlags(obj)}
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -829,7 +829,10 @@ StringIter::~StringIter()
 bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
+
     var = Object{CH_ALLOC(String, &(obj->str[pos]), 1)};
+    setMutFlags(var, flags);
+
     return true;
 }
 
@@ -837,12 +840,15 @@ bool StringIter::next(Object& var)
 {
     if (++pos == obj->str.size())
         return false;
+
     var = Object{CH_ALLOC(String, &(obj->str[pos]), 1)};
+    setMutFlags(var, flags);
+
     return true;
 }
 
-RangeIter::RangeIter(Range* obj) :
-    obj{obj}
+RangeIter::RangeIter(Object& obj) :
+    obj{AS_RANGE(obj)}
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -896,12 +902,13 @@ bool RangeIter::next(Object& var)
     {
         return false;
     }
+
     AS_INT(var) = val;
     return true;
 }
 
-ListIter::ListIter(List* obj) :
-    obj{obj}
+ListIter::ListIter(Object& obj) :
+    obj{AS_LIST(obj)}, flags{getMutFlags(obj)}
 {
     #if !CH_USE_ALLOC
         obj->refCount++;
@@ -946,6 +953,8 @@ bool ListIter::start(Object& var)
 
     it = obj->array.begin();
     var = *it;
+    setMutFlags(var, flags);
+
     return true;
 }
 
@@ -955,27 +964,24 @@ bool ListIter::next(Object& var)
         return false;
 
     var = *it;
+    setMutFlags(var, flags);
+
     return true;
 }
 
 ObjIter::ObjIter(Object& obj)
 {
+    // Use emplace instead of assignment so we construct the
+    // iterator in-place with no intermediate temporary object
+    // (otherwise the temporary's destructor will mess with
+    // the potential refcount).
+
     switch (obj.type())
     {
-        case OBJ_STRING:
-            // Use emplace instead of assignment so we construct the
-            // iterator in-place with no intermediate temporary object
-            // (otherwise the temporary's destructor will mess with
-            // the refcount).
-            iter.emplace<StringIter>(AS_STRING(obj));
-            break;
-        case OBJ_RANGE:
-            iter.emplace<RangeIter>(AS_RANGE(obj));
-            break;
-        case OBJ_LIST:
-            iter.emplace<ListIter>(AS_LIST(obj));
-            break;
-        default: break;
+        case OBJ_STRING:    iter.emplace<StringIter>(obj);  break;
+        case OBJ_RANGE:     iter.emplace<RangeIter>(obj);   break;
+        case OBJ_LIST:      iter.emplace<ListIter>(obj);    break;
+        default: CH_UNREACHABLE();
     }
 }
 

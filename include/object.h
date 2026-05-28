@@ -288,6 +288,19 @@ TYPE_LIST
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
+static inline u8 getMutFlags(const Object& obj)
+{
+    return (obj.type_ & (INIT_FLAG | IMMUT_FLAG));
+}
+
+static inline void setMutFlags(Object& obj, u8 flags)
+{
+    // Clear flags.
+    obj.type_ &= ~(INIT_FLAG | IMMUT_FLAG);
+    // Set new flags.
+    obj.type_ |= flags;
+}
+
 
 /* Heap-allocated object structs. */
 
@@ -436,9 +449,10 @@ struct StringIter
 {
     String* obj{};
     u64 pos;
+    const u8 flags{}; // Mutability flags for original object.
 
     StringIter() = default;
-    StringIter(String* obj);
+    StringIter(Object& obj);
     StringIter(const StringIter&) = delete;
     StringIter& operator=(const StringIter&) = delete;
     StringIter(StringIter&& other) noexcept;
@@ -452,10 +466,12 @@ struct StringIter
 struct RangeIter
 {
     Range* obj{};
+    // Integers are inherently immutable, so no
+    // flags needed.
     i64 val{};
 
     RangeIter() = default;
-    RangeIter(Range* obj);
+    RangeIter(Object& obj);
     RangeIter(const RangeIter&) = delete;
     RangeIter& operator=(const RangeIter&) = delete;
     RangeIter(RangeIter&& other) noexcept;
@@ -470,9 +486,10 @@ struct ListIter
 {
     List* obj{};
     Array<Object>::iterator it{};
+    const u8 flags{};
 
     ListIter() = default;
-    ListIter(List* obj);
+    ListIter(Object& obj);
     ListIter(const ListIter&) = delete;
     ListIter& operator=(const ListIter&) = delete;
     ListIter(ListIter&& other) noexcept;

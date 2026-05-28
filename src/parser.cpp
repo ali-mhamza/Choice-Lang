@@ -406,6 +406,7 @@ StmtUP Parser::whileStmt()
 StmtUP Parser::forStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
+    bool fix{consumeTok(TOK_FIX)};
     MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
 
     Token var{previousTok};
@@ -431,7 +432,7 @@ StmtUP Parser::forStmt()
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
-    return std::make_unique<ForStmt>(var, iter, where, label, body, elseClause);
+    return std::make_unique<ForStmt>(fix, var, iter, where, label, body, elseClause);
 }
 
 StmtUP Parser::matchStmt()
@@ -963,6 +964,7 @@ ExprUP Parser::lambda(bool skipParams)
 ExprUP Parser::comprehension()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
+    bool fix{consumeTok(TOK_FIX)};
     MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
 
     Token var{previousTok};
@@ -980,7 +982,7 @@ ExprUP Parser::comprehension()
     ExprUP expr{expression()};
     MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' to conclude list comprehension");
 
-    return std::make_unique<ComprehensionExpr>(var, iter, where, expr);
+    return std::make_unique<ComprehensionExpr>(fix, var, iter, where, expr);
 }
 
 ExprUP Parser::list()

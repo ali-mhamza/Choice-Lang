@@ -574,6 +574,8 @@ void Compiler::forLoopHelper(
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
     u64 loopStart{code.getLoopStart()};
+    if (node->fix) code.addOp(OP_FIX, varReg);
+
     u64 whereJump{0};
     if (node->where != nullptr)
     {
@@ -631,7 +633,10 @@ DEF(ForStmt)
     continueJumps = &continues;
 
     u8 varReg{nextReg};
-    defVar(std::string{node->var.text}, varReg, accessFix); // For now.
+    defVar(
+        std::string{node->var.text}, varReg,
+        (node->fix ? accessFix : accessVar)
+    );
     reserveReg();
 
     u8 iterReg{nextReg};
@@ -1319,7 +1324,10 @@ DEF(ComprehensionExpr)
 
     pushScope();
     u8 varReg{nextReg};
-    defVar(std::string(node->var.text), varReg, accessFix); // For now.
+    defVar(
+        std::string{node->var.text}, varReg,
+        (node->fix ? accessFix : accessVar)
+    );
     reserveReg();
 
     u8 iterReg{nextReg};
@@ -1329,6 +1337,8 @@ DEF(ComprehensionExpr)
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
     u64 loopStart{code.getLoopStart()};
+    if (node->fix) code.addOp(OP_FIX, varReg);
+
     u64 whereJump{0};
     if (node->where != nullptr)
     {

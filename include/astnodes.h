@@ -117,6 +117,7 @@ namespace AST
 
         struct ForStmt : public Stmt
         {
+            const bool fix{};
             const Token var{};
             const ExprUP iter{}; // Must be an iterable.
             const ExprUP where{};
@@ -124,6 +125,7 @@ namespace AST
             const StmtUP body{}, elseClause{};
 
             ForStmt(
+                bool fix,
                 const Token& var,
                 ExprUP& iter,
                 ExprUP& where,
@@ -405,12 +407,14 @@ namespace AST
 
         struct ComprehensionExpr : public Expr
         {
+            const bool fix{};
             const Token var{};
             const ExprUP iter{}; // Must be an iterable.
             const ExprUP where{};
             const ExprUP expr{};
 
             ComprehensionExpr(
+                bool fix,
                 const Token& var,
                 ExprUP& iter,
                 ExprUP& where,
