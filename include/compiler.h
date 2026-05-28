@@ -281,7 +281,6 @@ class Compiler
     public:
         // So they can be modified directly.
         bool hitError{false};
-        int errorCount{0};
 
         static std::vector<DeclarationPair> declaredVars;
         static bool clearDeclaredVars;

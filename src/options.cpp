@@ -36,9 +36,6 @@ static Function* runCompiler(FileID id, const vT& tokens)
 
 	// To stop after compilation if either hit an error.
 	compiler.hitError = parser.hitError;
-	// To not report too many errors when using an
-	// AST.
-	compiler.errorCount = parser.errorCount;
 	return compiler.compile(id, program);
 }
 

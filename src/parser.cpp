@@ -1104,7 +1104,6 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
     hitError = false;
     syntaxError = false;
     semanticError = false;
-    errorCount = 0;
 
     while (!checkTok(TOK_EOF))
         program.push_back(declaration());

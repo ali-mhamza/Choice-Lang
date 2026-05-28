@@ -102,8 +102,8 @@ class Parser
         [[nodiscard]] ExprUP primary();
 
     public:
+        // So it can be modified directly.
         bool hitError{false};
-        int errorCount{0}; // So it can be modified directly.
 
         Parser() = default;
         [[nodiscard]] StmtVec& parseToAST(FileID id, const vT& tokens);

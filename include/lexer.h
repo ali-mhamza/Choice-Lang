@@ -18,9 +18,7 @@ class Lexer
         vT stream{};
         u64 offset{0};
         NumBase base{DEC};
-
         bool hitError{false};
-        int errorCount{0};
 
         /* Utilities. */
 

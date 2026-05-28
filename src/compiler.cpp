@@ -1629,7 +1629,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     code.clear();
     metadata.clear();
     clearDeclarations();
-    // Inherit hitError and errorCount from parser.
+    // Inherit hitError from parser.
 
     for (const StmtUP& node : program)
         compileStmt(node);
