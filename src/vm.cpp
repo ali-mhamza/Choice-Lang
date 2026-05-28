@@ -727,12 +727,14 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
+            u8 flags{getFlags(globalRegisters[dest])};
 
             if UNLIKELY(IS_REF(registers[src]))
                 COPY(globalRegisters[dest], deref(registers[src]));
             else
                 COPY(globalRegisters[dest], registers[src]);
 
+            setFlags(globalRegisters[dest], flags);
             DISPATCH();
         }
 
@@ -740,13 +742,11 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
-            Object& obj{*(currentClosure->cells[src]->location)};
+            Object* obj{currentClosure->cells[src]->location};
 
-            if UNLIKELY(IS_REF(obj))
-                COPY(registers[dest], deref(obj));
-            else
-                COPY(registers[dest], obj);
+            if UNLIKELY(IS_REF(*obj)) obj = &deref(*obj);
 
+            COPY(registers[dest], *obj);
             SET_REGSLOT(dest);
             DISPATCH();
         }
@@ -754,13 +754,13 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
-            Object& obj{*(currentClosure->cells[dest]->location)};
+            Object* obj{currentClosure->cells[dest]->location};
 
-            if UNLIKELY(IS_REF(obj))
-                COPY(deref(obj, true), registers[src]);
-            else
-                COPY(obj, registers[src]);
+            if UNLIKELY(IS_REF(*obj)) obj = &deref(*obj, true);
 
+            u8 flags{getFlags(*obj)};
+            COPY(*obj, registers[src]);
+            setFlags(*obj, flags);
             DISPATCH();
         }
 
@@ -777,7 +777,10 @@ void VM::executeOp(Opcode op)
             if UNLIKELY(IS_REF(*srcObj))
                 srcObj = &deref(*srcObj);
 
+            u8 flags{getFlags(*destObj)};
             COPY(*destObj, *srcObj);
+            setFlags(*destObj, flags);
+
             SET_REGSLOT_MAX(dest, src);
             DISPATCH();
         }

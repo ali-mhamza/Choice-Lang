@@ -14,10 +14,16 @@ using Natives::FuncType;
 
 /* Constants. */
 
-inline constexpr u8 FIXED_FLAG  = 0x80;     // Bit 7.
-inline constexpr u8 INIT_FLAG   = 0x40;     // Bit 6.
-inline constexpr u8 IMMUT_FLAG  = 0x20;     // Bit 5.
-inline constexpr u8 TYPE_MASK   = 0x1f;     // Remaining bits (max. 32 values).
+// Variable is fixed/not fixed (bit 7).
+inline constexpr u8 FIXED_FLAG  = 0x80;
+// Value has an active mutable/immutable flag (bit 6).
+inline constexpr u8 INIT_FLAG   = 0x40;
+// Value is mutable/immutable (bit 5).
+inline constexpr u8 IMMUT_FLAG  = 0x20;
+// Remaining bits (max. 32 values).
+inline constexpr u8 TYPE_MASK   = 0x1f;
+// Full flag section in type byte.
+inline constexpr u8 FLAG_MASK   = FIXED_FLAG | INIT_FLAG | IMMUT_FLAG;
 
 /* Type list macro. */
 
@@ -210,7 +216,7 @@ Object::Object(T val)
 }
 
 
-/* Type check, validation and conversion macros. */
+/* Type check, validation and conversion macros/functions. */
 
 #define X(TYPE, field) \
     [[nodiscard]] static inline bool IS_##TYPE(const Object& obj) { \
@@ -283,6 +289,18 @@ TYPE_LIST
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
+
+
+static inline u8 getFlags(const Object& obj)
+{
+    return (obj.type_ & FLAG_MASK);
+}
+
+static inline void setFlags(Object& obj, u8 flags)
+{
+    if (!IS_INIT(obj))
+        obj.type_ = (flags | (obj.type_ & ~FLAG_MASK));
+}
 
 
 /* Heap-allocated object structs. */
