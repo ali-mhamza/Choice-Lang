@@ -16,7 +16,7 @@ class LinearAlloc
         Arena* const start{};
         Arena* arena{};
         size_t used{0};
-        CH_UNUSED const size_t cap{}; // Only used in debug builds.
+        [[maybe_unused]] const size_t cap{}; // Only used in debug builds.
         Array<AllocPair> allocs{};
 
     public:

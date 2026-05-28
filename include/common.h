@@ -42,16 +42,6 @@
 
 #define CH_FALLTHROUGH() [[fallthrough]]
 
-// Possibly unused.
-
-#if __cplusplus >= 201703L
-	#define CH_UNUSED [[maybe_unused]]
-#elif defined(__GNUC__) || defined(__clang__)
-	#define CH_UNUSED __attribute__((unused))
-#else
-	#define CH_UNUSED
-#endif
-
 // Likely and unlikely branches.
 
 #if __cplusplus >= 202002L
