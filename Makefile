@@ -10,7 +10,7 @@ DEFINES += $(CH_ALLOCATOR)
 
 DEBUG_FLAGS = -g -O0 -fno-omit-frame-pointer -fsanitize=address,undefined -D DEBUG
 RELEASE_FLAGS = -O2 -D NDEBUG
-WARNINGS = -Wall -Wextra -Werror
+WARNINGS = -Wall -Wextra -Werror -Wno-assume
 
 # Prints out date and time (without time zone) of last commit.
 COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci | awk '{printf "%s %s\n", $$1, $$2}')
