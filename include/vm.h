@@ -12,7 +12,7 @@
 #define COPY_INLINE 0
 
 class Disassembler;
-class Error;
+struct Error;
 enum DiagCode : u8;
 
 struct CallFrame
