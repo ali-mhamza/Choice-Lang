@@ -621,7 +621,7 @@ ExprUP Parser::assignment()
         Token oper{previousTok};
         if ((target == nullptr) || !CAN_ASSIGN(target))
             REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok);
-        target = std::make_unique<AssignExpr>(target, oper, logicOr());
+        target = std::make_unique<AssignExpr>(target, oper, expression());
     }
 
     setExprLocation(target, start);
