@@ -1210,11 +1210,14 @@ DEF(UnaryExpr)
 {
     if ((node->oper.type == TOK_INCR) || (node->oper.type == TOK_DECR))
     {
-        switch (node->expr->type)
+        if (node->expr != nullptr)
         {
-            case E_VAR_EXPR:    _crementVar(node);      return;
-            case E_INDEX_EXPR:  _crementElement(node);  return;
-            default: CH_UNREACHABLE();
+            switch (node->expr->type)
+            {
+                case E_VAR_EXPR:    _crementVar(node);      return;
+                case E_INDEX_EXPR:  _crementElement(node);  return;
+                default: CH_UNREACHABLE();
+            }
         }
     }
 

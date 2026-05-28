@@ -789,11 +789,19 @@ ExprUP Parser::unary()
 {
     u64 start{currentTok.byteOffset};
     ExprUP expr{nullptr};
-    if (consumeToks(TOK_INCR, TOK_DECR, TOK_MINUS,
-        TOK_BANG, TOK_NOT, TOK_TILDE))
+
+    if (consumeToks(TOK_INCR, TOK_DECR))
     {
         Token oper{previousTok};
-        expr = std::make_unique<UnaryExpr>(oper, unary(), false);
+        ExprUP target{unary()};
+        if ((target == nullptr) || !CAN_ASSIGN(target))
+            REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, oper);
+        expr = std::make_unique<UnaryExpr>(oper, std::move(target), false);
+    }
+    else if (consumeToks(TOK_MINUS, TOK_BANG, TOK_NOT, TOK_TILDE))
+    {
+        Token oper{previousTok};
+        expr = std::make_unique<UnaryExpr>(oper, unary());
     }
     else
         expr = exponent();

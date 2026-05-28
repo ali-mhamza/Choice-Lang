@@ -355,7 +355,7 @@ namespace AST
             UnaryExpr(
                 const Token& oper,
                 ExprUP expr,
-                bool prev
+                bool prev = false
             );
         };
 
