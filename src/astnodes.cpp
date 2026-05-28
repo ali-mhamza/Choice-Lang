@@ -41,8 +41,7 @@ ForStmt::ForStmt(bool fix, const Token& var, ExprUP& iter, ExprUP& where,
     fix{fix}, var{var}, iter{std::move(iter)}, where{std::move(where)},
     label{label}, body{std::move(body)}, elseClause{std::move(elseClause)} {}
 
-MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body,
-    const bool fall) :
+MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body, bool fall) :
     value{std::move(value)}, body{std::move(body)},
     fallthrough{fall} {}
 
@@ -110,7 +109,7 @@ BinaryExpr::BinaryExpr(ExprUP& left, TokenType oper, ExprUP right) :
     Expr{E_BINARY_EXPR},
     left{std::move(left)}, oper{oper}, right{std::move(right)} {}
 
-UnaryExpr::UnaryExpr(const Token& oper, ExprUP expr, const bool prev) :
+UnaryExpr::UnaryExpr(const Token& oper, ExprUP expr, bool prev) :
     Expr{E_UNARY_EXPR},
     oper{oper}, expr{std::move(expr)}, prev{prev} {}
 
@@ -118,7 +117,7 @@ IndexExpr::IndexExpr(ExprUP& obj, ExprUP& index) :
     Expr{E_INDEX_EXPR},
     obj{std::move(obj)}, index{std::move(index)} {}
 
-CallExpr::CallExpr(ExprUP& callee, ExprVec& args, const bool builtin) :
+CallExpr::CallExpr(ExprUP& callee, ExprVec& args, bool builtin) :
     Expr{E_CALL_EXPR},
     callee{std::move(callee)}, args{std::move(args)}, builtin{builtin} {}
 

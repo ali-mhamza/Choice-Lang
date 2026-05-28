@@ -355,7 +355,7 @@ namespace AST
             UnaryExpr(
                 const Token& oper,
                 ExprUP expr,
-                const bool prev
+                bool prev
             );
         };
 
@@ -379,7 +379,7 @@ namespace AST
             CallExpr(
                 ExprUP& callee,
                 ExprVec& args,
-                const bool builtin
+                bool builtin
             );
         };
 
