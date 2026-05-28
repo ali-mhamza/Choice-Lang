@@ -527,8 +527,6 @@ Object String::getIndex(const Object& index)
 
 void String::setIndex(const Object& index, const Object& value)
 {
-    (void) index; (void) value;
-
     // For now.
     if (AS_INT(index) < 0)
         throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
@@ -541,8 +539,21 @@ void String::setIndex(const Object& index, const Object& value)
         );
     }
 
-    // Does nothing for now.
-    // Error reporting to be added later.
+    if (!IS_STRING(value))
+    {
+        throw RuntimeError(WRONG_ELEM_TYPE,
+            CH_STR("cannot store ({}) in a string", value.printType())
+        );
+    }
+
+    const auto& insert{AS_STRING(value)->str};
+    if (insert.size() > 1)
+    {
+        throw RuntimeError(WRONG_ELEM_TYPE,
+            "cannot store more than one character at a single index");
+    }
+
+    str[0] = insert[0];
 }
 
 std::string String::printVal() const

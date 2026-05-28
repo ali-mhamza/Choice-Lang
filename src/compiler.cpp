@@ -1453,6 +1453,10 @@ DEF(StringPartExpr)
 
     Object obj{CH_ALLOC(String, parseStringToken(node->part, start, offset))};
     code.loadRegConst(obj, nextReg);
+    // The parts of a format string/string interpolation do not
+    // exist on their own (the entire string + format arguments
+    // is formed at runtime). Thus, the user cannot directly access
+    // or modify them, so we don't mark them as immutable.
     reserveReg();
 }
 
@@ -1510,6 +1514,7 @@ DEF(LiteralExpr)
     {
         Object obj{CH_ALLOC(String, parseStringToken(tok, 1, 2))};
         code.loadRegConst(obj, nextReg);
+        code.addOp(OP_IMMUT, nextReg);
         reserveReg();
     }
 
@@ -1517,6 +1522,7 @@ DEF(LiteralExpr)
     {
         Object obj{CH_ALLOC(String, getRawString(tok.text))};
         code.loadRegConst(obj, nextReg);
+        code.addOp(OP_IMMUT, nextReg);
         reserveReg();
     }
 

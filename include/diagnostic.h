@@ -144,6 +144,9 @@ enum DiagCode : u8
     OBJ_NOT_COLLECTION,
     // Object cannot be used as an index.
     OBJ_NOT_INDEX,
+    // Wrong element type to store in a collection.
+    // Primarily for strings.
+    WRONG_ELEM_TYPE,
     // Object to iterate over is not iterable.
     // Primarily for for-loops and the 'in' operator.
     OBJ_NOT_ITERABLE,
