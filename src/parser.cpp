@@ -280,7 +280,7 @@ StmtUP Parser::varDecl()
     }
 
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after variable declaration");
-    return std::make_unique<VarDecl>(declType, name, init);
+    return std::make_unique<VarDecl>((declType == TOK_FIX), name, init);
 }
 
 StmtUP Parser::funcBodyHelper(vT& params)

@@ -362,7 +362,6 @@ DEF(VarDecl)
     startDeclaration();
 
     LocalInfo localInfo{getScopeLocal(node->name)};
-    bool fixed{node->declType == TOK_FIX};
 
     if (localInfo.found)
     {
@@ -372,7 +371,7 @@ DEF(VarDecl)
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
-                (*varAccess)[localInfo.slot] = (fixed ? accessFix : accessVar);
+                (*varAccess)[localInfo.slot] = (node->fix ? accessFix : accessVar);
                 // Always a local variable.
                 code.addOp(OP_SET_LOCAL, localInfo.slot, reg);
             }
@@ -389,7 +388,7 @@ DEF(VarDecl)
     u8 varSlot{nextReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
-    defVar(varName, varSlot, (fixed ? accessFix : accessVar));
+    defVar(varName, varSlot, (node->fix ? accessFix : accessVar));
 
     bool inError{hitError};
     if (node->init != nullptr)
@@ -400,7 +399,7 @@ DEF(VarDecl)
         reserveReg();
     }
 
-    code.addOp((fixed ? OP_FIX : OP_VAR), varSlot);
+    code.addOp((node->fix ? OP_FIX : OP_VAR), varSlot);
     if (!inError && hitError) removeVar(varName, varSlot);
     endDeclaration();
 }

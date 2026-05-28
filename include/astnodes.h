@@ -52,12 +52,12 @@ namespace AST
 
         struct VarDecl : public Stmt
         {
-            const TokenType declType{};
+            const bool fix{};
             const Token name{};
             const ExprUP init{};
 
             VarDecl(
-                TokenType declType,
+                bool fix,
                 const Token& name,
                 ExprUP& init
             );
