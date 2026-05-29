@@ -302,6 +302,8 @@ def run_tests(
 def get_max_test_length(tests: dict[str, list[str]]) -> int:
     max_length = 0
     for collection in tests.values():
+        if len(collection) == 0:
+            continue
         length = len(max(collection, key=lambda l: len(l)))
         if max_length < length:
             max_length = length
