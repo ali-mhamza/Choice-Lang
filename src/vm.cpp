@@ -160,7 +160,11 @@ Object VM::makeRange(const Object& start, const Object& stop)
     if (!IS_INT(start) || !IS_INT(stop))
         throw reportBinaryOperator(OP_RANGE, start, stop);
 
-    std::array<i64, 3> nums{AS_INT(start), AS_INT(stop), 1};
+    i64 start_{AS_INT(start)};
+    i64 stop_{AS_INT(stop)};
+
+    std::array nums{start_, stop_, ((stop_ >= start_) ? i64(1) : i64(-1))};
+    Range::validateRange(nums); // May throw on error.
     return CH_ALLOC(Range, nums);
 }
 

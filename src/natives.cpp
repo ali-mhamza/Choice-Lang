@@ -238,13 +238,19 @@ void Natives::range(Natives::iter it, u8 args)
     }
     if (!IS_INT(it[0]) || !IS_INT(it[1]) || ((args == 3) && !IS_INT(it[2])))
         throw RuntimeError(WRONG_ARG_TYPE, "arguments must be integers");
-    if ((args == 3) && (AS_INT(it[2]) == 0))
+
+    i64 start{AS_INT(it[0])};
+    i64 stop{AS_INT(it[1])};
+
+    // Step size 0 is allowed if start == stop (step size will never be used).
+    if ((args == 3) && (AS_INT(it[2]) == 0) && (start != stop))
         throw RuntimeError(WRONG_ARG_TYPE, "cannot have a step size of zero");
 
-    std::array<i64, 3> limits{AS_INT(it[0]), AS_INT(it[1]), 1};
-    if (args == 3)
-        limits[2] = AS_INT(it[2]);
-    it[-1] = Object{CH_ALLOC(Range, limits)};
+    std::array nums{start, stop, ((stop >= start) ? i64(1) : i64(-1))};
+    if (args == 3) nums[2] = AS_INT(it[2]);
+
+    Range::validateRange(nums); // May throw on error.
+    it[-1] = Object{CH_ALLOC(Range, nums)};
 }
 
 void Natives::read(Natives::iter it, u8 args)

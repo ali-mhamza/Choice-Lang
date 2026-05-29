@@ -150,6 +150,8 @@ enum DiagCode : u8
     // Object to iterate over is not iterable.
     // Primarily for for-loops and the 'in' operator.
     OBJ_NOT_ITERABLE,
+    // Object does not support element assignment.
+    OBJ_NO_ELEM_ASSIGN,
     // Wrong type for iterator variable given iterable type.
     // Primarily for the 'in' operator.
     OBJ_WRONG_ITER_TYPE,
@@ -164,6 +166,8 @@ enum DiagCode : u8
     DIVISION_BY_ZERO,
     // Collection index is out of bounds.
     INDEX_OUT_OF_BOUNDS,
+    // Invalid step value for a range object.
+    INVALID_RANGE_STEP,
     // Attempt to apply the modulus operator with base zero.
     MODULUS_WITH_ZERO,
     // Bit-shift operator shift value is too high.

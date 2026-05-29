@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <ios>
@@ -213,6 +214,7 @@ Object Object::getIndex(const Object& index)
     switch (this->type())
     {
         case OBJ_STRING:    return AS_STRING(*this)->getIndex(index);
+        case OBJ_RANGE:     return AS_RANGE(*this)->getIndex(index);
         case OBJ_LIST:      return AS_LIST(*this)->getIndex(index);
         case OBJ_TABLE:     return AS_TABLE(*this)->getIndex(index);
         default: CH_UNREACHABLE();
@@ -233,6 +235,7 @@ void Object::setIndex(const Object& index, const Object& value)
     switch (this->type())
     {
         case OBJ_STRING:    return AS_STRING(*this)->setIndex(index, value);
+        case OBJ_RANGE:     return AS_RANGE(*this)->setIndex(index, value);
         case OBJ_LIST:      return AS_LIST(*this)->setIndex(index, value);
         case OBJ_TABLE:     return AS_TABLE(*this)->setIndex(index, value);
         default: CH_UNREACHABLE();
@@ -576,8 +579,24 @@ u64 String::byteSize() const
     return sizeof(u8) + sizeof(u64) + str.size();
 }
 
-Range::Range(const std::array<i64, 3>& limits) :
-    start{limits[0]}, stop{limits[1]}, step{limits[2]} {}
+Range::Range(const std::array<i64, 3>& nums) :
+    start{nums[0]}, stop{nums[1]}, step{nums[2]} {}
+
+void Range::validateRange(const std::array<i64, 3>& nums)
+{
+    // Checks:
+
+    // 1. Step size cannot be zero (unless start == stop).
+    // Checked by range!() function.
+
+    // 2. Step cannot be negative if stop > start, and
+    // cannot be positive if stop < start.
+
+    const i64 start{nums[0]}, stop{nums[1]}, step{nums[2]};
+
+    if (((stop > start) && (step < 0)) || ((stop < start) && (step > 0)))
+        throw RuntimeError(INVALID_RANGE_STEP, "range has infinite size");
+}
 
 bool Range::operator==(const Range& other) const
 {
@@ -588,56 +607,44 @@ bool Range::operator==(const Range& other) const
 
 bool Range::contains(const i64 num) const
 {
-    if (start <= stop)
-    {
-        for (i64 i{start}; i <= stop; i += step)
-        {
-            if (num == i)
-                return true;
-        }
-    }
-    else
-    {
-        for (i64 i{start}; i >= stop; i -= step)
-        {
-            if (num == i)
-                return true;
-        }
-    }
+    if (step == 0) return (num == start); // Equivalent to num == stop.
 
-    return false;
+    if ((step > 0) && ((num < start) || (num > stop))) return false;
+    if ((step < 0) && ((num > start) || (num < stop))) return false;
+
+    return ((num - start) % step == 0);
 }
 
 i64 Range::length() const
 {
-    if (step == 1)
+    if ((step == 0) ||(step == 1)) return std::abs(stop - start) + 1;
+    return std::abs((stop - start) / step) + 1;
+}
+
+Object Range::getIndex(const Object& index)
+{
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, this, index);
+
+    i64 indexValue{AS_INT(index)};
+    bool reverse{start > stop};
+
+    // For now.
+    if (indexValue < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+    if ((!reverse && (start + indexValue * step > stop))
+        || (reverse && (start + indexValue * step < stop)))
     {
-        if (start <= stop)
-            return stop - start + 1;
-        else
-            return start - stop + 1;
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index value too large");
     }
 
-    i64 temp{start};
-    i64 len{0};
-    if (start <= stop)
-    {
-        while (temp <= stop)
-        {
-            len++;
-            temp += step;
-        }
-    }
-    else
-    {
-        while (temp >= stop)
-        {
-            len++;
-            temp -= step;
-        }
-    }
+    return (start + indexValue * step);
+}
 
-    return len;
+void Range::setIndex(const Object& index, const Object& value)
+{
+    (void) index; (void) value;
+    throw RuntimeError(OBJ_NO_ELEM_ASSIGN);
 }
 
 std::string Range::printVal() const
@@ -898,10 +905,12 @@ bool RangeIter::start(Object& var)
 
 bool RangeIter::next(Object& var)
 {
-    bool reverse{obj->start > obj->stop};
-    val += (reverse ? -1 : 1) * obj->step;
-    if ((!reverse && (val > obj->stop))
-        || (reverse && (val < obj->stop)))
+    // Step size of 0 can only allow a single iteration.
+    if (obj->step == 0) return false;
+
+    val += obj->step;
+    if (((obj->step > 0) && (val > obj->stop))
+        || ((obj->step < 0) && (val < obj->stop)))
     {
         return false;
     }

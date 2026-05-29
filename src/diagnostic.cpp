@@ -59,13 +59,14 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Failed to apply binary operator.", "Failed to apply unary operator.",
     "Object is not an index-able collection type.",
     "Object cannot be used as an index.", "Wrong element type for collection.",
-    "Object is not iterable.",
+    "Object is not iterable.", "Object cannot be modified with the [] operator.",
     "Operand does not match member type of iterable object.",
     "Wrong argument type or value.",
 
     // Value errors.
 
-    "Division by zero.", "Index out of bounds.", "Modulus with base zero.",
+    "Division by zero.", "Index out of bounds.",
+    "Invalid step value for range object.", "Modulus with base zero.",
     "Shift value too large.", "Invalid format argument.",
 
     // Call errors.

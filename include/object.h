@@ -247,7 +247,7 @@ TYPE_LIST
 #define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_LIST))
 
 // Object is a collection (i.e., implements the [] operator).
-#define IS_COLLECTION(obj)  (IS_STRING(obj) || IS_LIST(obj) || IS_TABLE(obj))
+#define IS_COLLECTION(obj)  (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_TABLE))
 
 // Object can be compared with <, >, or == operators.
 #define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type() == OBJ_STRING))
@@ -395,12 +395,16 @@ struct Range : public HeapObj
     const i64 stop{};
     const i64 step{};
 
-    Range(const std::array<i64, 3>& limits);
+    Range(const std::array<i64, 3>& nums);
+    static void validateRange(const std::array<i64, 3>& nums);
 
     [[nodiscard]] bool operator==(const Range& other) const;
     [[nodiscard]] bool contains(const i64 num) const;
 
     [[nodiscard]] i64 length() const;
+    [[nodiscard]] Object getIndex(const Object& index);
+    void setIndex(const Object& index, const Object& value);
+
     [[nodiscard]] std::string printVal() const;
 };
 
