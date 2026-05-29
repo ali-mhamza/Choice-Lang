@@ -11,6 +11,8 @@ println!(-1 in range!(0, 0));       // Expect: false
 
 println!(len!(range!(0, 0)));       // Expect: 1
 
+println!(range!(0, 0)[0]);          // Expect: 0
+
 
 //================== Negative only ======================//
 
@@ -34,6 +36,13 @@ println!(0 in range!(-5, -1));      // Expect: false
 println!(len!(range!(-5, -1)));     // Expect: 5
 println!(len!(range!(-1, -5)));     // Expect: 5
 
+println!(range!(-5, -1)[0]);        // Expect: -5
+println!(range!(-5, -1)[2]);        // Expect: -3
+println!(range!(-5, -1)[4]);        // Expect: -1
+println!(range!(-1, -5)[0]);        // Expect: -1
+println!(range!(-1, -5)[2]);        // Expect: -3
+println!(range!(-1, -5)[4]);        // Expect: -5
+
 
 // Step = 2.
 
@@ -42,7 +51,7 @@ for (i in range!(-6, -1, 2))
 
 println!();
 
-for (i in range!(-1, -6, 2))
+for (i in range!(-1, -6, -2))
     print!(i);                      // Expect: -1-3-5
 
 println!();
@@ -52,7 +61,14 @@ println!(-5 in range!(-6, -1, 2));  // Expect: false
 println!(-1 in range!(-6, -1, 2));  // Expect: false
 
 println!(len!(range!(-6, -1, 2)));  // Expect: 3
-println!(len!(range!(-1, -6, 2)));  // Expect: 3
+println!(len!(range!(-1, -6, -2))); // Expect: 3
+
+println!(range!(-6, -1, 2)[0]);     // Expect: -6
+println!(range!(-6, -1, 2)[1]);     // Expect: -4
+println!(range!(-6, -1, 2)[2]);     // Expect: -2
+println!(range!(-1, -6, -2)[0]);    // Expect: -1
+println!(range!(-1, -6, -2)[1]);    // Expect: -3
+println!(range!(-1, -6, -2)[2]);    // Expect: -5
 
 
 //================== Crossing zero ======================//
@@ -77,6 +93,13 @@ println!(4 in range!(-3, 3));       // Expect: false
 println!(len!(range!(-3, 3)));      // Expect: 7
 println!(len!(range!(3, -3)));      // Expect: 7
 
+println!(range!(-3, 3)[0]);         // Expect: -3
+println!(range!(-3, 3)[3]);         // Expect: 0
+println!(range!(-3, 3)[6]);         // Expect: 3
+println!(range!(3, -3)[0]);         // Expect: 3
+println!(range!(3, -3)[3]);         // Expect: 0
+println!(range!(3, -3)[6]);         // Expect: -3
+
 
 // Step = 2.
 
@@ -85,7 +108,7 @@ for (i in range!(-4, 4, 2))
 
 println!();
 
-for (i in range!(4, -4, 2))
+for (i in range!(4, -4, -2))
     print!(i);                      // Expect: 420-2-4
 
 println!();
@@ -95,7 +118,14 @@ println!(2 in range!(-4, 4, 2));    // Expect: true
 println!(3 in range!(-4, 4, 2));    // Expect: false
 
 println!(len!(range!(-4, 4, 2)));   // Expect: 5
-println!(len!(range!(4, -4, 2)));   // Expect: 5
+println!(len!(range!(4, -4, -2)));  // Expect: 5
+
+println!(range!(-4, 4, 2)[0]);      // Expect: -4
+println!(range!(-4, 4, 2)[2]);      // Expect: 0
+println!(range!(-4, 4, 2)[4]);      // Expect: 4
+println!(range!(4, -4, -2)[0]);     // Expect: 4
+println!(range!(4, -4, -2)[2]);     // Expect: 0
+println!(range!(4, -4, -2)[4]);     // Expect: -4
 
 
 //================== Mixed edge cases ======================//
@@ -107,16 +137,11 @@ for (i in range!(1, 3, 5))
 
 println!();
 
-for (i in range!(3, 1, 5))
-    print!(i);                      // Expect: 3
-
-println!();
-
 println!(1 in range!(1, 3, 5));     // Expect: true
 println!(3 in range!(1, 3, 5));     // Expect: false
 
 println!(len!(range!(1, 3, 5)));    // Expect: 1
-println!(len!(range!(3, 1, 5)));    // Expect: 1
+println!(range!(1, 3, 5)[0]);       // Expect: 1
 
 
 // Step = exact jump to end.
@@ -130,3 +155,5 @@ println!(10 in range!(2, 10, 8));   // Expect: true
 println!(6 in range!(2, 10, 8));    // Expect: false
 
 println!(len!(range!(2, 10, 8)));   // Expect: 2
+println!(range!(2, 10, 8)[0]);      // Expect: 2
+println!(range!(2, 10, 8)[1]);      // Expect: 10
