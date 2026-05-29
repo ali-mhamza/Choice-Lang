@@ -540,7 +540,7 @@ void VM::printRegister()
     {
         if (!IS_VALID(registers[i]))
             break;
-        CH_PRINT("[{}]", registers[i].printVal());
+        CH_PRINT("[{}]", getElementText(registers[i]));
         i++;
     }
     if (i != 0) CH_PRINT("\n");

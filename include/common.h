@@ -79,6 +79,11 @@
 	>;
 #endif
 
+// Inserting quote-marks.
+
+#define CH_QUOTE_MARK "'"
+#define CH_QUOTED(expr) CH_STR("{}{}{}", CH_QUOTE_MARK, (expr), CH_QUOTE_MARK)
+
 // Goto usage.
 
 #if defined(__GNUC__) || defined(__clang__)

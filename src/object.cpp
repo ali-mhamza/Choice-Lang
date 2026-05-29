@@ -732,7 +732,7 @@ std::string List::printVal() const
     size_t size{array.count()};
     for (size_t i{0}; i < size; i++)
     {
-        ret += array[i].printVal();
+        ret += getElementText(array[i]);
         if (i != size - 1)
             ret += ", ";
     }
@@ -773,7 +773,7 @@ std::string Table::printVal() const
     std::string ret{"{"};
 
     for (const auto& [key, value] : table)
-        ret += "(" + key.printVal() + ", " + value.printVal() + "), ";
+        ret += "(" + getElementText(key) + ", " + getElementText(value) + "), ";
 
     if (table.empty())
         ret += "}";

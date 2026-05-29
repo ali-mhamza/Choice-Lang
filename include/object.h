@@ -214,7 +214,7 @@ Object::Object(T val)
 }
 
 
-/* Type check, validation and conversion macros/functions. */
+/* Object helper functions and macros. */
 
 #define X(TYPE, field) \
     [[nodiscard]] static inline bool IS_##TYPE(const Object& obj) { \
@@ -287,6 +287,12 @@ TYPE_LIST
 #define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
+
+inline std::string getElementText(const Object& obj)
+{
+    if (IS_STRING(obj)) return CH_QUOTED(obj.printVal());
+    return obj.printVal();
+}
 
 static inline u8 getMutFlags(const Object& obj)
 {
