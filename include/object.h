@@ -111,9 +111,9 @@ class Object
             ObjIter*    iterVal;
         } as;
 
-        Object();
+        Object() noexcept;
         template<typename T>
-        Object(T val);
+        Object(T val) noexcept;
 
         #if !CH_USE_ALLOC
             Object(const Object& other) noexcept;
@@ -162,7 +162,7 @@ ObjType getObjectType(T val)
 }
 
 template<typename T>
-Object::Object(T val)
+Object::Object(T val) noexcept
 {
     if constexpr (std::is_same_v<T, i64>)
     {
@@ -310,13 +310,20 @@ static inline void setMutFlags(Object& obj, u8 flags)
 
 /* Heap-allocated object structs. */
 
+// NOTE:
+// All object struct constructors must be marked noexcept.
+// This is because the allocation function used to allocate
+// objects (when using an allocator) is marked noexcept.
+// Any exception use in a constructor will thus result in
+// std::terminate being called.
+
 struct HeapObj
 {
     #if !CH_USE_ALLOC
         int refCount{0};
     #endif
 
-    HeapObj() = default;
+    HeapObj() noexcept = default;
 
     #if !CH_USE_ALLOC
         virtual ~HeapObj() = default;
@@ -328,7 +335,7 @@ struct Cell : public HeapObj
     Object* location{};
     Object obj{};
 
-    Cell(Object* location);
+    Cell(Object* location) noexcept;
     void close();
 };
 
@@ -341,13 +348,13 @@ struct Function : public HeapObj
     const u8 argCount{};
     const bool lambda{};
 
-    Function(const ByteCode& code, const u8 argCount);
+    Function(const ByteCode& code, const u8 argCount) noexcept;
     Function(
         const std::string& name,
         const ByteCode& code,
         const u8 argCount
-    );
-    ~Function();
+    ) noexcept;
+    ~Function() noexcept;
 
     [[nodiscard]] bool operator==(const Function& other) const;
 
@@ -362,8 +369,8 @@ struct Closure : public HeapObj
     Function* function{};
     Array<Cell*> cells{};
 
-    Closure(Function* function);
-    ~Closure();
+    Closure(Function* function) noexcept;
+    ~Closure() noexcept;
 
     [[nodiscard]] bool operator==(const Closure& other) const;
 
@@ -374,9 +381,9 @@ struct String : public HeapObj
 {
     std::string str{};
 
-    String(const std::string& str);
-    String(const std::string_view& view);
-    String(const char* str, size_t len = -1);
+    String(const std::string& str) noexcept;
+    String(const std::string_view& view) noexcept;
+    String(const char* str, size_t len = -1) noexcept;
 
     [[nodiscard]] bool operator==(const String& other) const;
     [[nodiscard]] bool contains(const String& substr) const;
@@ -395,7 +402,7 @@ struct Range : public HeapObj
     const i64 stop{};
     const i64 step{};
 
-    Range(const std::array<i64, 3>& nums);
+    Range(const std::array<i64, 3>& nums) noexcept;
     static void validateRange(const std::array<i64, 3>& nums);
 
     [[nodiscard]] bool operator==(const Range& other) const;
@@ -412,7 +419,7 @@ struct List : public HeapObj
 {
     Array<Object> array{};
 
-    List(u32 size);
+    List(u32 size) noexcept;
 
     [[nodiscard]] bool operator==(const List& other) const;
     [[nodiscard]] bool contains(const Object& obj) const;
@@ -436,7 +443,7 @@ struct Table : public HeapObj
 {
     linearTable<Object, Object, ObjectHasher> table{};
 
-    Table() = default;
+    Table() noexcept = default;
 
     [[nodiscard]] bool operator==(const Table& other) const;
     [[nodiscard]] bool contains(const Object& obj) const;
@@ -449,7 +456,7 @@ struct Table : public HeapObj
 
 struct Void : public HeapObj
 {
-    Void() = default;
+    Void() noexcept = default;
 };
 
 
@@ -461,8 +468,8 @@ struct StringIter
     u64 pos;
     const u8 flags{}; // Mutability flags for original object.
 
-    StringIter() = default;
-    StringIter(Object& obj);
+    StringIter() noexcept = default;
+    StringIter(Object& obj) noexcept;
     StringIter(const StringIter&) = delete;
     StringIter& operator=(const StringIter&) = delete;
     StringIter(StringIter&& other) noexcept;
@@ -480,8 +487,8 @@ struct RangeIter
     // flags needed.
     i64 val{};
 
-    RangeIter() = default;
-    RangeIter(Object& obj);
+    RangeIter() noexcept = default;
+    RangeIter(Object& obj) noexcept;
     RangeIter(const RangeIter&) = delete;
     RangeIter& operator=(const RangeIter&) = delete;
     RangeIter(RangeIter&& other) noexcept;
@@ -498,8 +505,8 @@ struct ListIter
     Array<Object>::iterator it{};
     const u8 flags{};
 
-    ListIter() = default;
-    ListIter(Object& obj);
+    ListIter() noexcept = default;
+    ListIter(Object& obj) noexcept;
     ListIter(const ListIter&) = delete;
     ListIter& operator=(const ListIter&) = delete;
     ListIter(ListIter&& other) noexcept;
@@ -520,9 +527,9 @@ struct ObjIter
 
     Iter iter{};
 
-    ObjIter() = default;
-    ObjIter(Object& obj);
-    ~ObjIter() = default;
+    ObjIter() noexcept = default;
+    ObjIter(Object& obj) noexcept;
+    ~ObjIter() noexcept = default;
 
     [[nodiscard]] bool start(Object& var);
     [[nodiscard]] bool next(Object& var);
@@ -534,7 +541,7 @@ struct ObjIter
 template<typename ObjT>
 struct CustomDealloc
 {
-    void operator()(void* mem)
+    void operator()(void* mem) noexcept
     {
         ObjT* obj = reinterpret_cast<ObjT*>(mem);
         obj->~ObjT();

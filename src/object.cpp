@@ -34,7 +34,7 @@ constexpr std::array<std::string_view, NUM_TYPES> objTypes{
 
 /* Object. */
 
-Object::Object() :
+Object::Object() noexcept :
     type_{OBJ_INVALID}
 {
     AS_INT(*this) = 0;
@@ -355,7 +355,7 @@ ObjIter* Object::makeIter()
 
 /* Object structs. */
 
-Cell::Cell(Object* location) :
+Cell::Cell(Object* location) noexcept:
     location{location} {}
 
 void Cell::close()
@@ -364,7 +364,7 @@ void Cell::close()
     location = &obj;
 }
 
-Function::Function(const ByteCode& code, const u8 argCount) :
+Function::Function(const ByteCode& code, const u8 argCount) noexcept:
     name{nullptr}, code{code}, argCount{argCount}, lambda{true} {}
 
 // strdup is not a standard C++ function, but is instead from POSIX.
@@ -380,10 +380,11 @@ Function::Function(
     const std::string& name,
     const ByteCode& code,
     const u8 argCount
-) : name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
+) noexcept:
+    name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
     lambda{false} {}
 
-Function::~Function()
+Function::~Function() noexcept
 {
     delete[] name;
 }
@@ -449,7 +450,7 @@ u64 Function::byteSize() const
     return size;
 }
 
-Closure::Closure(Function* function) :
+Closure::Closure(Function* function) noexcept:
     function{function}
 {
     #if !CH_USE_ALLOC
@@ -457,7 +458,7 @@ Closure::Closure(Function* function) :
     #endif
 }
 
-Closure::~Closure()
+Closure::~Closure() noexcept
 {
     #if !CH_USE_ALLOC
         for (Cell* cell : cells)
@@ -486,13 +487,13 @@ void Closure::addCell(Cell* cell)
     cells.push(cell);
 }
 
-String::String(const std::string& str) :
+String::String(const std::string& str) noexcept:
     str{str} {}
 
-String::String(const std::string_view& view) :
+String::String(const std::string_view& view) noexcept:
     str{view} {}
 
-String::String(const char* str, size_t len)
+String::String(const char* str, size_t len) noexcept
 {
     len = (len == SIZE_MAX ? strlen(str) : len);
     this->str = std::string{str, len};
@@ -579,7 +580,7 @@ u64 String::byteSize() const
     return sizeof(u8) + sizeof(u64) + str.size();
 }
 
-Range::Range(const std::array<i64, 3>& nums) :
+Range::Range(const std::array<i64, 3>& nums) noexcept:
     start{nums[0]}, stop{nums[1]}, step{nums[2]} {}
 
 void Range::validateRange(const std::array<i64, 3>& nums)
@@ -655,7 +656,7 @@ std::string Range::printVal() const
     return str;
 }
 
-List::List(u32 size) :
+List::List(u32 size) noexcept:
     array{size} {}
 
 bool List::operator==(const List& other) const
@@ -797,7 +798,7 @@ std::string Table::printVal() const
 
 /* Object iterator struct types. */
 
-StringIter::StringIter(Object& obj) :
+StringIter::StringIter(Object& obj) noexcept:
     obj{AS_STRING(obj)}, pos{0}, flags{getMutFlags(obj)}
 {
     #if !CH_USE_ALLOC
@@ -857,7 +858,7 @@ bool StringIter::next(Object& var)
     return true;
 }
 
-RangeIter::RangeIter(Object& obj) :
+RangeIter::RangeIter(Object& obj) noexcept:
     obj{AS_RANGE(obj)}
 {
     #if !CH_USE_ALLOC
@@ -919,7 +920,7 @@ bool RangeIter::next(Object& var)
     return true;
 }
 
-ListIter::ListIter(Object& obj) :
+ListIter::ListIter(Object& obj) noexcept:
     obj{AS_LIST(obj)}, flags{getMutFlags(obj)}
 {
     #if !CH_USE_ALLOC
@@ -981,7 +982,7 @@ bool ListIter::next(Object& var)
     return true;
 }
 
-ObjIter::ObjIter(Object& obj)
+ObjIter::ObjIter(Object& obj) noexcept
 {
     // Use emplace instead of assignment so we construct the
     // iterator in-place with no intermediate temporary object
