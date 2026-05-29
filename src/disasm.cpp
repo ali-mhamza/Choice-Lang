@@ -43,8 +43,8 @@ void Disassembler::disFunction(const Function* func) const
 
 void Disassembler::printOperValue(const Object& oper) const
 {
-	CH_PRINT("'{}' {}\n",
-		oper.printVal(), oper.printType());
+	CH_PRINT("'{}' {}\n", oper.printVal(), oper.printType());
+
 	// We only disassemble functions when requested, and not
 	// with concurrent disassembler output during VM execution.
 	if (DIS_FUNCTION_OBJS && IS_FUNCOBJ(oper) && !inVM)
