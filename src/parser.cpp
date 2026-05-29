@@ -824,6 +824,23 @@ ExprUP Parser::exponent()
     return expr;
 }
 
+ExprUP Parser::reference()
+{
+    u64 offset{previousTok.byteOffset};
+    MATCH_TOK(TOK_IDENTIFIER, "expect reference name");
+
+    ExprUP expr{std::make_unique<ReferenceExpr>(offset, previousTok)};
+
+    if (!checkTok(TOK_COMMA) && !checkTok(TOK_RIGHT_PAREN))
+    {
+        REPORT_SYNTAX(WRONG_TOKEN_FOUND, currentTok,
+            "expect ',' after function argument");
+    }
+
+    setExprLocation(expr, offset);
+    return expr;
+}
+
 ExprUP Parser::call(ExprUP&& expr, u64 start)
 {
     // Callee does not need to be an identifier.
@@ -846,18 +863,7 @@ ExprUP Parser::call(ExprUP&& expr, u64 start)
             if (args.size() == CODE_MAX)
                 REPORT_SEMANTIC(HIT_ARGS_MAX, currentTok);
 
-            if (consumeTok(TOK_STAR))
-            {
-                u64 offset{previousTok.byteOffset};
-                MATCH_TOK(TOK_IDENTIFIER, "expect reference name");
-                args.push_back(
-                    std::make_unique<ReferenceExpr>(offset, previousTok)
-                );
-                setExprLocation(args.back(), offset);
-                continue;
-            }
-
-            args.push_back(expression());
+            args.push_back(consumeTok(TOK_STAR) ? reference() : expression());
         } while (consumeTok(TOK_COMMA));
     }
 

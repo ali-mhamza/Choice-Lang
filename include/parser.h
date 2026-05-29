@@ -86,6 +86,7 @@ class Parser
         [[nodiscard]] ExprUP product();
         [[nodiscard]] ExprUP unary();
         [[nodiscard]] ExprUP exponent();
+        [[nodiscard]] ExprUP reference();
         [[nodiscard]] ExprUP call(ExprUP&& expr, u64 start);
         // All post-fix operators.
         [[nodiscard]] ExprUP post();
