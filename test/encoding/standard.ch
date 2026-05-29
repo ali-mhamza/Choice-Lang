@@ -2,7 +2,7 @@ println!("Hello\nworld!");	// Expect: Hello
                             // Expect: world!
 println!("A\tB");           // Expect: [bytes] A\tB
 // Test expects both words to be printed separately.
-println("Hello\rWorld!");   // Expect: Hello
+println!("Hello\rWorld!");  // Expect: Hello
                             // Expect: World!
 println!("A\\B");           // Expect: A\B
 println!("A\"B");           // Expect: A"B
