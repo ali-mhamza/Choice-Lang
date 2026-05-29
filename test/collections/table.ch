@@ -4,7 +4,7 @@ println!(type!(x));         // Expect: Table
 x[1] = 1;
 x[2] = 2;
 x["hello"] = 3;
-println!(x);                // Expect: {(1, 1), (2, 2), (hello, 3)}
+println!(x);                // Expect: {(1, 1), (2, 2), ('hello', 3)}
 
 println!(x[1]);             // Expect: 1
 println!(x[2]);             // Expect: 2
