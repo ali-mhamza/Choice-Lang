@@ -322,7 +322,7 @@ void Diagnostic::displayReportTitle() const
     }
 }
 
-void Diagnostic::displayErrorLine(u64 line, u64 start, sv text) const
+void Diagnostic::displayErrorLine(u64 line, u64 col, sv text) const
 {
     constexpr auto EXTRA_SPACES{2u};
 
@@ -334,7 +334,7 @@ void Diagnostic::displayErrorLine(u64 line, u64 start, sv text) const
     if (byteOffset != text.size())
         caretLength = std::min(length, text.size() - byteOffset);
 
-    std::string space(start - 1, ' ');
+    std::string space(col - 1, ' ');
     std::string highlight(caretLength, '^');
     auto size{std::to_string(line).size()};
     std::string gap(size + EXTRA_SPACES, ' ');
@@ -375,17 +375,15 @@ void Diagnostic::displayErrorLine(u64 line, u64 start, sv text) const
 
 void Diagnostic::report() const
 {
-    const auto [lineNo, start, lineStr] = sourceManager.getPositionData(
+    const auto [lineNo, col, lineStr] = sourceManager.getPositionData(
         id, byteOffset
     );
 
     sv fileName{sourceManager.getFile(id)};
 
     displayReportTitle();
-    CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo, start);
-    displayErrorLine(lineNo, start, lineStr);
-
-    // displayNoteHelp(lineStr, lineNo, gap);
+    CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo, col);
+    displayErrorLine(lineNo, col, lineStr);
     CH_PRINT("\n");
 }
 

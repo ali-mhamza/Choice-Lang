@@ -276,7 +276,7 @@ struct Diagnostic
     [[nodiscard]] static DiagFamily getDiagCodeFamily(DiagCode code);
     [[nodiscard]] DiagFamily getDiagCodeFamily() const;
     void displayReportTitle() const;
-    void displayErrorLine(u64 line, u64 start, sv text) const;
+    void displayErrorLine(u64 line, u64 col, sv text) const;
     // void displayNoteHelp(
     //     const sv& lineStr,
     //     const u64& lineNo,
