@@ -119,5 +119,5 @@ re: fclean all
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all type opt debug release release-workflow debug-workflow \
+.PHONY: all type opt release debug release-workflow debug-workflow \
 		test $(TEST_SUBDIRS) tidy clean-tidy clean fclean re
