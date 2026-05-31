@@ -64,8 +64,6 @@ type: all
 opt: $(CXXFLAGS) += $(OPT)
 opt: all
 
-# Assuming only AST version with this Makefile (for now).
-
 debug: CXXFLAGS += $(DEBUG_FLAGS)
 debug: NAME = $(DEBUG)
 debug: all
