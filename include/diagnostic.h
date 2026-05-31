@@ -117,6 +117,10 @@ enum DiagCode : u8
     HIT_OCTAL_CHAR_MAX,
     // Codepoint value is not within valid UTF-8 range.
     INVALID_UTF_CODEPOINT,
+    // Maximum block nesting depth reached.
+    HIT_BLOCK_NESTING_MAX,
+    // Maximum expression nesting depth reached.
+    HIT_EXPR_NESTING_MAX,
 
 
     /* Variable errors. */

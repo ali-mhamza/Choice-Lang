@@ -30,6 +30,10 @@ constexpr inline unsigned int LIST_ENTRY_GROUP{50};
 constexpr inline unsigned int TABLE_ENTRY_GROUP{20};
 // Cut-off for errors across lexer, parser, or compiler.
 constexpr inline unsigned int COMPILE_ERROR_MAX{10};
+// Maximum expression nesting.
+constexpr inline unsigned int MAX_EXPR_NEST_DEPTH{100};
+// Maximum block scope nesting.
+constexpr inline unsigned int MAX_BLOCK_SCOPE_DEPTH{100};
 
 /* VM */
 

@@ -7,6 +7,16 @@
 class Parser
 {
     private:
+        struct DepthCounter
+        {
+            static u64 depthCount;
+            bool hitError{false};
+            bool incremented{false};
+
+            DepthCounter(FileID id, const Token& token);
+            ~DepthCounter();
+        };
+
         StmtVec program{};
         FileID id{};
 

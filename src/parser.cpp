@@ -35,6 +35,37 @@ using namespace AST::Expression;
 #define CAN_ASSIGN(node) \
     (((node)->type == E_VAR_EXPR) || ((node)->type == E_INDEX_EXPR))
 
+#define CHECK_DEPTH(tok)            \
+    DepthCounter counter_{id, tok}; \
+    if (counter_.hitError) {        \
+        hitError = true;            \
+        syntaxError = true;         \
+        return nullptr;             \
+    }
+
+u64 Parser::DepthCounter::depthCount{0};
+
+Parser::DepthCounter::DepthCounter(FileID id, const Token& token)
+{
+    if (depthCount > MAX_EXPR_NEST_DEPTH)
+        hitError = true;
+
+    else if (++depthCount > MAX_EXPR_NEST_DEPTH)
+    {
+        diagEngine.source = ErrorSource::PARSER;
+        hitError = true;
+
+        diagEngine.recordError(id, HIT_EXPR_NESTING_MAX,
+            token, CH_STR("maximum depth is {}", MAX_EXPR_NEST_DEPTH));
+        incremented = false;
+    }
+}
+
+Parser::DepthCounter::~DepthCounter()
+{
+    if (incremented) depthCount--;
+}
+
 void Parser::nextTok()
 {
     if (currentTok.type != TOK_EOF)
@@ -146,6 +177,7 @@ void Parser::consumeType()
 
 void Parser::reset()
 {
+    nextTok();
     while (!checkTok(TOK_EOF))
     {
         if ((previousTok.type == TOK_SEMICOLON)
@@ -545,16 +577,31 @@ StmtUP Parser::continueStmt()
 
 StmtUP Parser::blockStmt()
 {
+    static u64 nestingDepth{0};
+
+    if (nestingDepth > MAX_BLOCK_SCOPE_DEPTH) return nullptr;
+    if (++nestingDepth > MAX_BLOCK_SCOPE_DEPTH)
+    {
+        REPORT_SEMANTIC(HIT_BLOCK_NESTING_MAX, previousTok, 
+            CH_STR("maximum depth is {}", MAX_BLOCK_SCOPE_DEPTH)
+        );
+    }
+
     u64 start{previousTok.byteOffset}; // The left '{'.
     StmtVec block{};
     block.reserve(10);
 
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
+    {
+        if (hitError) return nullptr;
         block.push_back(declaration());
+    }
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after block");
 
     StmtUP blockStmt{std::make_unique<BlockStmt>(block)};
     setStmtLocation(blockStmt, start);
+
+    nestingDepth--;
     return blockStmt;
 }
 
@@ -600,6 +647,7 @@ ExprUP Parser::mutation()
 
     if (consumeToks(TOK_MUT, TOK_IMMUT))
     {
+        CHECK_DEPTH(previousTok);
         expr = std::make_unique<MutExpr>(
             (previousTok.type == TOK_MUT),
             mutation()
@@ -622,6 +670,8 @@ ExprUP Parser::assignment()
         Token oper{previousTok};
         if ((target == nullptr) || !CAN_ASSIGN(target))
             REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok);
+
+        CHECK_DEPTH(previousTok);
         target = std::make_unique<AssignExpr>(target, oper, expression());
     }
 
@@ -792,14 +842,17 @@ ExprUP Parser::unary()
 
     if (consumeToks(TOK_INCR, TOK_DECR))
     {
+        CHECK_DEPTH(previousTok);
         Token oper{previousTok};
         ExprUP target{unary()};
+
         if ((target == nullptr) || !CAN_ASSIGN(target))
             REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, oper);
         expr = std::make_unique<UnaryExpr>(oper, std::move(target), false);
     }
     else if (consumeToks(TOK_MINUS, TOK_BANG, TOK_NOT, TOK_TILDE))
     {
+        CHECK_DEPTH(previousTok);
         Token oper{previousTok};
         expr = std::make_unique<UnaryExpr>(oper, unary());
     }
@@ -816,6 +869,7 @@ ExprUP Parser::exponent()
     ExprUP expr{post()};
     while (consumeTok(TOK_STAR_STAR))
     {
+        CHECK_DEPTH(previousTok);
         TokenType oper{previousTok.type};
         expr = std::make_unique<BinaryExpr>(expr, oper, exponent());
     }
@@ -857,7 +911,7 @@ ExprUP Parser::call(ExprUP&& expr, u64 start)
     }
 
     ExprVec args{};
-    while (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
+    if (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
     {
         do {
             if (args.size() == CODE_MAX)
@@ -882,15 +936,20 @@ ExprUP Parser::post()
     while (true)
     {
         if (consumeToks(TOK_BANG, TOK_LEFT_PAREN))
+        {
+            CHECK_DEPTH(previousTok);
             expr = call(std::move(expr), start);
+        }
         else if (consumeTok(TOK_LEFT_BRACKET))
         {
+            CHECK_DEPTH(previousTok);
             ExprUP index{expression()};
             MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' following index");
             expr = std::make_unique<IndexExpr>(expr, index);
         }
         else if (consumeToks(TOK_INCR, TOK_DECR))
         {
+            CHECK_DEPTH(previousTok);
             if ((expr == nullptr) || !CAN_ASSIGN(expr))
                 REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, previousTok);
             Token oper{previousTok};
@@ -906,6 +965,8 @@ ExprUP Parser::post()
 
 ExprUP Parser::ifExpr()
 {
+    CHECK_DEPTH(previousTok);
+
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before condition");
     ExprUP condition{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after condition");
@@ -950,6 +1011,7 @@ StmtUP Parser::lambdaBodyHelper(vT& params, bool skipParams)
     u64 start{currentTok.byteOffset};
     if (consumeTok(TOK_THICK_ARROW))
     {
+        CHECK_DEPTH(currentTok);
         ExprUP result{expression()};
         body = std::make_unique<ReturnStmt>(Token{}, result);
         setStmtLocation(body, start);
@@ -970,6 +1032,8 @@ StmtUP Parser::lambdaBodyHelper(vT& params, bool skipParams)
 
 ExprUP Parser::lambda(bool skipParams)
 {
+    CHECK_DEPTH(previousTok);
+
     vT params{};
     StmtUP body{lambdaBodyHelper(params, skipParams)};
     return std::make_unique<LambdaExpr>(params, body);
@@ -977,6 +1041,8 @@ ExprUP Parser::lambda(bool skipParams)
 
 ExprUP Parser::comprehension()
 {
+    // No depth-checking here, since list() takes care of that.
+
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
     bool fix{consumeTok(TOK_FIX)};
     MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
@@ -1001,6 +1067,8 @@ ExprUP Parser::comprehension()
 
 ExprUP Parser::list()
 {
+    CHECK_DEPTH(previousTok);
+
     ExprVec entries{};
     entries.reserve(LIST_ENTRY_GROUP); // Minimal size to start off with.
     if (!checkTok(TOK_RIGHT_BRACKET))
@@ -1009,6 +1077,7 @@ ExprUP Parser::list()
             return comprehension();
 
         do {
+            CHECK_DEPTH(currentTok);
             entries.emplace_back(expression());
         } while (consumeTok(TOK_COMMA));
     }
@@ -1019,12 +1088,16 @@ ExprUP Parser::list()
 
 ExprUP Parser::table()
 {
+    CHECK_DEPTH(previousTok);
+
     std::vector<TableExpr::TablePair> pairs{};
     pairs.reserve(TABLE_ENTRY_GROUP);
 
     if (!checkTok(TOK_RIGHT_BRACE))
     {
         do {
+            CHECK_DEPTH(currentTok);
+
             MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before table pair");
             ExprUP key{expression()};
             MATCH_TOK(TOK_COMMA, "expect ',' after key");
@@ -1043,18 +1116,25 @@ ExprUP Parser::table()
 
 ExprUP Parser::formatString()
 {
+    CHECK_DEPTH(previousTok);
+
     ExprVec parts{};
     parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
     setExprLocation(parts.back(), previousTok.byteOffset);
     while (!checkTok(TOK_INTER_END) && !checkTok(TOK_EOF))
     {
+        if (hitError) return nullptr; // To not get into an infinite loop.
+
         if (consumeTok(TOK_INTER_PART))
         {
             parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
             setExprLocation(parts.back(), previousTok.byteOffset);
         }
         else
+        {
+            CHECK_DEPTH(currentTok);
             parts.emplace_back(expression());
+        }
     }
 
     MATCH_TOK(TOK_INTER_END, "expect end of format string");
@@ -1082,6 +1162,7 @@ ExprUP Parser::primary()
 
     else if (type == TOK_LEFT_PAREN)
     {
+        CHECK_DEPTH(previousTok);
         expr = expression();
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after grouped expression");
     }
@@ -1115,6 +1196,7 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
     this->id = id;
     it = tokens.begin();
     currentTok = tokens[0];
+
     hitError = false;
     syntaxError = false;
     semanticError = false;
