@@ -48,7 +48,7 @@ Compiler::Compiler(Compiler* comp) :
     if (depth == 0) // Global scope compiler.
     {
         for (const auto* func : Natives::funcNames)
-            defVar(func, nextReg++, accessFix); // For now.
+            defVar(func, nextReg++, accessVar);
     }
     else
         this->id = scopeCompiler->id;
@@ -488,7 +488,7 @@ DEF(FuncDecl)
     std::string name{node->name.text};
     if (!redefined)
     {
-        defVar(name, varSlot, accessFix); // Temporarily.
+        defVar(name, varSlot, accessVar);
         reserveReg();
     }
 
