@@ -124,6 +124,12 @@ clean:
 	@rm -rf $(OBJ_DEFAULT_DIR)
 	@make --no-print-directory -C $(REPL_DIR) clean
 
+clean-release:
+	@rm -rf $(OBJ_RELEASE_DIR)
+
+clean-debug:
+	@rm -rf $(OBJ_DEBUG_DIR)
+
 fclean: clean
 	@rm -f $(NAME)
 	@rm -f $(DEBUG)
