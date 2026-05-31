@@ -19,11 +19,6 @@
 #include <variant>
 using Natives::funcNames;
 
-#ifndef SIZE_MAX
-    #include <limits>
-    #define SIZE_MAX std::numeric_limits<std::size_t>::max()
-#endif
-
 constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
     "Function", "Function", "Lambda", "BigInt",

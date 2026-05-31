@@ -28,6 +28,8 @@ static std::string formatMultiLineString(const std::string_view& sv)
     return newStr;
 }
 
+#undef NEWLINE_REPLACEMENT
+
 std::pair<size_t, size_t>
 TokenPrinter::stringTokenValues(TokenType type) const
 {

@@ -154,6 +154,8 @@ bool parseCharSequence(
     return true;
 }
 
+#undef MISSING_ARG_ERROR
+
 [[nodiscard]] static u32 parseEscapeString(
     svIter& it,
     const svIter end,

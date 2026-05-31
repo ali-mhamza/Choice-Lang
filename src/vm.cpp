@@ -602,7 +602,10 @@ void VM::executeOp(Opcode op)
             #define LABEL(op, state) LABEL_##state(op),
             #include "../include/opcode_list.inc"
             &&CASE_NO_REACH
+
             #undef LABEL
+            #undef LABEL_ENABLE
+            #undef LABEL_DISABLE
         };
 
         #if WATCH_EXEC
@@ -1110,6 +1113,14 @@ void VM::executeOp(Opcode op)
             #endif
         }
     }
+
+    #undef SWITCH
+    #undef CASE
+    #undef DEFAULT
+    #undef DISPATCH
+    #undef DISPATCH_OP
+    #undef DEBUG_OP
+    #undef PRINT_REGS
 }
 
 void VM::executeCode(Function* script)
@@ -1189,3 +1200,8 @@ CallFrame::CallFrame(const Args& args) :
     , dis(args.dis)
     #endif
     {}
+
+#undef COPY
+#undef SET_REGSLOT
+#undef SET_REGSLOT_MAX
+#undef MAX

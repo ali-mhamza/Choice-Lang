@@ -1209,3 +1209,11 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
     // nodes that parsed just fine.
     return program;
 }
+
+#undef REPORT_SYNTAX
+#undef REPORT_SEMATIC
+#undef MATCH_TOK
+#undef CONSUME_VAR_TYPE
+#undef CONSUME_RETURN_TYPE
+#undef CAN_ASSIGN
+#undef CHECK_DEPTH

@@ -10,6 +10,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#pragma push_macro("EOF")
 #undef EOF
 #define EOF static_cast<char>(-1)
 
@@ -17,7 +18,6 @@
 #define CURRENT_OFFSET	(offset)
 #define NEXT_OFFSET		(offset + 1)
 
-#undef REPORT_RETURN
 #define REPORT_RETURN(...)         	\
 	do {                        	\
 		reportError(__VA_ARGS__);	\
@@ -694,3 +694,9 @@ vT& Lexer::tokenize(FileID id, const std::string_view code)
 	}
 	return stream;
 }
+
+#pragma pop_macro("EOF")
+#undef PREVIOUS_OFFSET
+#undef CURRENT_OFFSET
+#undef NEXT_OFFSET
+#undef REPORT_RETURN

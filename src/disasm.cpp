@@ -383,3 +383,5 @@ void Disassembler::disassembleCode()
 	while (ip < end)
 		disassembleOp(*ip);
 }
+
+#undef PRINT_FULL_OFFSET

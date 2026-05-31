@@ -491,6 +491,8 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
     }
 
     return static_cast<DiagCode>(explainCode);
+
+    #undef IS_VALID_CODE
 }
 
 void DiagnosticEngine::explain(sv code)
