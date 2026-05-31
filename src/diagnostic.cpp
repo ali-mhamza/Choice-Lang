@@ -42,7 +42,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "String interpolation not terminated.",
     "Interpolation nesting exceeded maximum depth.", "Unrecognized token.",
     "Missing initializer for immutable variable.", "Unexpected token.",
-    "Invalid token in current position.", "Maximum scope depth exceeded.",
+    "Invalid token in current position.",
     "Too many parameters in function/lambda declaration.",
     "Unexpected end of input.", "Octal escape value too large.",
     "Codepoint value outside valid UTF-8 range.",

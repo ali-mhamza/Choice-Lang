@@ -107,8 +107,6 @@ enum DiagCode : u8
     WRONG_TOKEN_FOUND,
     // Token makes no sense in current location.
     INVALID_TOKEN,
-    // Reached/exceeded maximum scope depth.
-    HIT_SCOPE_MAX,
     // Too many parameters in function/lambda declaration.
     HIT_PARAM_MAX,
     // Hit end of line or end of input unexpectedly.

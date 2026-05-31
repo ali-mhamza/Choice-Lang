@@ -475,11 +475,6 @@ DEF(FuncDecl)
             REPORT_ERROR(FUNC_ALREADY_DEFINED, node->name);
     }
 
-    // MAX_SCOPE_DEPTH involves block scopes as well.
-    // Fix.
-    if (depth + 1 == MAX_SCOPE_DEPTH)
-        REPORT_ERROR(HIT_SCOPE_MAX, node->name);
-
     if (node->params.size() > PARAMETER_MAX)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX]);
 
