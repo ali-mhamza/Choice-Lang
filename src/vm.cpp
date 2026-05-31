@@ -736,7 +736,7 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             bool fixed(IS_FIXED(globalRegisters[dest]));
 
-            if UNLIKELY(IS_REF(registers[src]))
+            if CH_UNLIKELY(IS_REF(registers[src]))
                 COPY(globalRegisters[dest], deref(registers[src]));
             else
                 COPY(globalRegisters[dest], registers[src]);
@@ -755,7 +755,7 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             Object* obj{currentClosure->cells[src]->location};
 
-            if UNLIKELY(IS_REF(*obj)) obj = &deref(*obj);
+            if CH_UNLIKELY(IS_REF(*obj)) obj = &deref(*obj);
 
             COPY(registers[dest], *obj);
             SET_REGSLOT(dest);
@@ -767,7 +767,7 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             Object* obj{currentClosure->cells[dest]->location};
 
-            if UNLIKELY(IS_REF(*obj)) obj = &deref(*obj, true);
+            if CH_UNLIKELY(IS_REF(*obj)) obj = &deref(*obj, true);
 
             bool fixed{IS_FIXED(*obj)};
             COPY(*obj, registers[src]);
@@ -787,9 +787,9 @@ void VM::executeOp(Opcode op)
             Object* destObj{&registers[dest]};
             Object* srcObj{&registers[src]};
 
-            if UNLIKELY(IS_REF(*destObj))
+            if CH_UNLIKELY(IS_REF(*destObj))
                 destObj = &deref(*destObj, true);
-            if UNLIKELY(IS_REF(*srcObj))
+            if CH_UNLIKELY(IS_REF(*srcObj))
                 srcObj = &deref(*srcObj);
 
             bool fixed{IS_FIXED(*destObj)};

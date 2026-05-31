@@ -312,13 +312,13 @@ void Diagnostic::displayReportTitle() const
 
     if (isError)
     {
-        PRINT_ERROR_ARGS("{} [E{:0>4}]", familyTitles[family],
+        CH_PRINT_ERROR_ARGS("{} [E{:0>4}]", familyTitles[family],
             static_cast<u8>(code) + 1);
         CH_PRINT(stderr, ": {}{}{}\n", BOLD, entry, NORMAL);
     }
     else
     {
-        PRINT_WARNING_ARGS("{} [W{:0>4}]", familyTitles[family],
+        CH_PRINT_WARNING_ARGS("{} [W{:0>4}]", familyTitles[family],
             static_cast<u8>(code) - warningStart + 1);
         CH_PRINT(stderr, ": {}{}{}\n", BOLD, entry, NORMAL);
     }
@@ -472,7 +472,7 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
 
     if ((!isError && !isWarning) || (code.size() != codeLength))
     {
-        PRINT_ERROR("Invalid error/warning code.\n");
+        CH_PRINT_ERROR("Invalid error/warning code.\n");
         return std::nullopt;
     }
 
@@ -486,7 +486,7 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
 
     if (!result || !IS_VALID_CODE(explainCode))
     {
-        PRINT_ERROR("Invalid error/warning code.\n");
+        CH_PRINT_ERROR("Invalid error/warning code.\n");
         return std::nullopt;
     }
 
@@ -568,7 +568,7 @@ void DiagnosticEngine::emitReports()
     {
         if ((source != ErrorSource::VM) && (i == COMPILE_ERROR_MAX))
         {
-            PRINT_ERROR("COMPILATION ERROR MAXIMUM REACHED.\n");
+            CH_PRINT_ERROR("COMPILATION ERROR MAXIMUM REACHED.\n");
             break;
         }
 

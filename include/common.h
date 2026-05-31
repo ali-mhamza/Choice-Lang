@@ -45,14 +45,14 @@
 // Likely and unlikely branches.
 
 #if __cplusplus >= 202002L
-    #define LIKELY(x)	(x) [[likely]]
-    #define UNLIKELY(x)	(x) [[unlikely]]
+    #define CH_LIKELY(x)	(x) [[likely]]
+    #define CH_UNLIKELY(x)	(x) [[unlikely]]
 #elif defined(__GNUC__) || defined(__clang__)
-    #define LIKELY(x)   (__builtin_expect(!!(x), 1))
-    #define UNLIKELY(x) (__builtin_expect(!!(x), 0))
+    #define CH_LIKELY(x)	(__builtin_expect(!!(x), 1))
+    #define CH_UNLIKELY(x)	(__builtin_expect(!!(x), 0))
 #else
-    #define LIKELY(x)   (x)
-    #define UNLIKELY(x) (x)
+    #define CH_LIKELY(x)	(x)
+    #define CH_UNLIKELY(x)	(x)
 #endif
 
 // Format printing and string-building.

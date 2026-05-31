@@ -19,16 +19,16 @@ constexpr std::string_view YELLOW{"\033[33m"};
 constexpr std::string_view BOLD{"\033[1m"};
 constexpr std::string_view NORMAL{"\033[0m"};
 
-#define PRINT_SUCCESS(msg) CH_PRINT(stdout, "{}" msg "{}", GREEN, NORMAL)
-#define PRINT_SUCCESS_ARGS(msg, ...)                            \
+#define CH_PRINT_SUCCESS(msg) CH_PRINT(stdout, "{}" msg "{}", GREEN, NORMAL)
+#define CH_PRINT_SUCCESS_ARGS(msg, ...)                            \
     CH_PRINT(stdout, "{}" msg "{}", GREEN, __VA_ARGS__, NORMAL)
 
-#define PRINT_WARNING(msg) CH_PRINT(stderr, "{}" msg "{}", YELLOW, NORMAL)
-#define PRINT_WARNING_ARGS(msg, ...)                            \
+#define CH_PRINT_WARNING(msg) CH_PRINT(stderr, "{}" msg "{}", YELLOW, NORMAL)
+#define CH_PRINT_WARNING_ARGS(msg, ...)                            \
     CH_PRINT(stderr, "{}" msg "{}", YELLOW, __VA_ARGS__, NORMAL)
 
-#define PRINT_ERROR(msg) CH_PRINT(stderr, "{}" msg "{}", RED, NORMAL)
-#define PRINT_ERROR_ARGS(msg, ...)                              \
+#define CH_PRINT_ERROR(msg) CH_PRINT(stderr, "{}" msg "{}", RED, NORMAL)
+#define CH_PRINT_ERROR_ARGS(msg, ...)                              \
     CH_PRINT(stderr, "{}" msg "{}", RED, __VA_ARGS__, NORMAL)
 
 /* General helpers. */
