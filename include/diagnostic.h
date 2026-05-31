@@ -279,8 +279,32 @@ struct Diagnostic
 
     [[nodiscard]] static DiagFamily getDiagCodeFamily(DiagCode code);
     [[nodiscard]] DiagFamily getDiagCodeFamily() const;
+
     void displayReportTitle() const;
-    void displayErrorLine(u64 line, u64 col, sv text) const;
+
+    // `maxLineNo`: The largest line number among a series of
+    // diagnostics (to properly align line numbers when
+    // printing a stack trace).
+
+    void displayTruncatedErrorPart(
+        u64 line,
+        u64 col,
+        sv text,
+        u64 maxLineNo = 0
+    ) const;
+    void displayTruncatedLine(
+        u64 line,
+        u64 col,
+        sv text,
+        u64 maxLineNo = 0
+    ) const;
+    void displayErrorLine(
+        u64 line,
+        u64 col,
+        sv text,
+        u64 maxLineNo = 0
+    ) const;
+
     // void displayNoteHelp(
     //     const sv& lineStr,
     //     const u64& lineNo,
@@ -357,7 +381,6 @@ class DiagnosticEngine
         );
 
         void emitReports();
-
         // Directly reports a runtime error with a stack trace.
         void emitStackTrace(const std::vector<CallFrame>& frames);
         // For when debug metadata is not available.

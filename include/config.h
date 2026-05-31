@@ -46,3 +46,10 @@ constexpr inline unsigned int CALL_FRAMES_DEFAULT{10};
 
 // Whether or not to disassemble loaded function objects.
 constexpr inline bool DIS_FUNCTION_OBJS{true};
+
+/* Diagnostics. */
+
+// Maximum line length for diagnostics (in characters).
+constexpr inline unsigned int DIAG_LINE_LENGTH_MAX{80};
+// Maximum length for offending part/line upon truncation (if too long).
+constexpr inline unsigned int DIAG_MAX_TRUNC_LENGTH{10};

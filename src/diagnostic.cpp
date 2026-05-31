@@ -324,9 +324,79 @@ void Diagnostic::displayReportTitle() const
     }
 }
 
-void Diagnostic::displayErrorLine(u64 line, u64 col, sv text) const
+void Diagnostic::displayTruncatedErrorPart(
+    u64 line,
+    u64 col,
+    sv text,
+    u64 maxLineNo
+) const
 {
     constexpr auto EXTRA_SPACES{2u};
+    constexpr auto ELLIPSIS_SIZE{3u};
+    if (maxLineNo == 0) maxLineNo = line;
+
+    text = text.substr(col - 1, DIAG_MAX_TRUNC_LENGTH);
+    sv before{(col == 1) ? "" : "..."};
+
+    std::string space(before.size(), ' ');
+    std::string highlight(DIAG_MAX_TRUNC_LENGTH + ELLIPSIS_SIZE, '^');
+    auto size{std::to_string(maxLineNo).size()};
+    std::string gap(size + EXTRA_SPACES, ' ');
+
+    if (!label.empty()) highlight += " " + label;
+
+    CH_PRINT(stderr, "{}|\n", gap);
+    CH_PRINT(stderr, " {:>{}} | {}{}...\n", line, size, before, text);
+    CH_PRINT(stderr, "{}| {}{}\n", gap, space, highlight);
+    if (!label.empty())
+        CH_PRINT(stderr, "{}|\n", gap);
+}
+
+void Diagnostic::displayTruncatedLine(
+    u64 line,
+    u64 col,
+    sv text,
+    u64 maxLineNo
+) const
+{
+    constexpr auto EXTRA_SPACES{2u};
+    if (maxLineNo == 0) maxLineNo = line;
+
+    // If the pointing caret isn't just past the end of the line,
+    // we truncate it so it doesn't go past the line (if the token
+    // is long, like with a multi-line string).
+
+    u64 caretLength{length};
+    if (byteOffset != text.size())
+        caretLength = std::min(length, text.size() - byteOffset);
+
+    sv before{(col == 1) ? "" : "..."};
+    sv after{(col + length >= text.size()) ? "" : "..."};
+    text = text.substr(col - 1, length);
+
+    std::string space(before.length(), ' ');
+    std::string highlight(caretLength, '^');
+    auto size{std::to_string(maxLineNo).size()};
+    std::string gap(size + EXTRA_SPACES, ' ');
+
+    if (!label.empty()) highlight += " " + label;
+
+    CH_PRINT(stderr, "{}|\n", gap);
+    CH_PRINT(stderr, " {:>{}} | {}{}{}\n", line, size, before, text, after);
+    CH_PRINT(stderr, "{}| {}{}\n", gap, space, highlight);
+    if (!label.empty())
+        CH_PRINT(stderr, "{}|\n", gap);
+}
+
+void Diagnostic::displayErrorLine(
+    u64 line,
+    u64 col,
+    sv text,
+    u64 maxLineNo
+) const
+{
+    constexpr auto EXTRA_SPACES{2u};
+    if (maxLineNo == 0) maxLineNo = line;
 
     // If the pointing caret isn't just past the end of the line,
     // we truncate it so it doesn't go past the line (if the token
@@ -338,13 +408,13 @@ void Diagnostic::displayErrorLine(u64 line, u64 col, sv text) const
 
     std::string space(col - 1, ' ');
     std::string highlight(caretLength, '^');
-    auto size{std::to_string(line).size()};
+    auto size{std::to_string(maxLineNo).size()};
     std::string gap(size + EXTRA_SPACES, ' ');
 
     if (!label.empty()) highlight += " " + label;
 
     CH_PRINT(stderr, "{}|\n", gap);
-    CH_PRINT(stderr, " {} | {}\n", line, text);
+    CH_PRINT(stderr, " {:>{}} | {}\n", line, size, text);
     CH_PRINT(stderr, "{}| {}{}\n", gap, space, highlight);
     if (!label.empty())
         CH_PRINT(stderr, "{}|\n", gap);
@@ -381,7 +451,14 @@ void Diagnostic::report() const
 
     displayReportTitle();
     CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo, col);
-    displayErrorLine(lineNo, col, lineStr);
+
+    if (length > DIAG_LINE_LENGTH_MAX)
+        displayTruncatedErrorPart(lineNo, col, lineStr);
+    else if (lineStr.length() > DIAG_LINE_LENGTH_MAX)
+        displayTruncatedLine(lineNo, col, lineStr);
+    else
+        displayErrorLine(lineNo, col, lineStr);
+
     CH_PRINT("\n");
 }
 
@@ -527,28 +604,22 @@ void DiagnosticEngine::displayErrorLine(
     u64 maxLineNo
 )
 {
-    constexpr auto EXTRA_SPACES{2u};
     const auto& text{sourceManager.getLineText(id, line)};
 
     // In case we aren't using the original source code.
+    // Must check before trying to fetch (non-existent) diagnostics.
     if (!inRepl && text.empty()) return;
 
-    // If the pointing caret isn't just past the end of the line,
-    // we truncate it so it doesn't go past the line.
-
     const auto& diag{reports.back()};
-    u64 caretLength{diag.length};
-    if (diag.byteOffset != text.size())
-        caretLength = std::min(diag.length, text.size() - diag.byteOffset);
 
-    std::string space(col - 1, ' ');
-    std::string highlight(caretLength, '^');
-    auto size{std::to_string(maxLineNo).size()};
-    std::string gap(size + EXTRA_SPACES, ' ');
+    if (diag.length > DIAG_LINE_LENGTH_MAX)
+        diag.displayTruncatedErrorPart(line, col, text, maxLineNo);
+    else if (text.length() > DIAG_LINE_LENGTH_MAX)
+        diag.displayTruncatedLine(line, col, text, maxLineNo);
+    else
+        diag.displayErrorLine(line, col, text, maxLineNo);
 
-    CH_PRINT(stderr, "  {}|\n", gap);
-    CH_PRINT(stderr, "   {:>{}} | {}\n", line, size, text);
-    CH_PRINT(stderr, "  {}| {}{}\n\n", gap, space, highlight);
+    CH_PRINT("\n");
 }
 
 void
