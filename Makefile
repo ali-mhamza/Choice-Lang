@@ -28,14 +28,19 @@ OPT = -D OPT
 NAME = choice
 RELEASE = choice-release
 DEBUG = choice-debug
+
 SRC_DIR = src
-OBJ_DIR = build
+OBJ_DEFAULT_DIR = build
+OBJ_RELEASE_DIR = build/release
+OBJ_DEBUG_DIR = build/debug
 
 BYTES_EXT = .chbc
 DEBUG_EXT = .chdbg
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
+OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DEFAULT_DIR)/%.o, $(SRCS))
+RELEASE_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_RELEASE_DIR)/%.o, $(SRCS))
+DEBUG_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DEBUG_DIR)/%.o, $(SRCS))
 TIDY = $(SRCS:.cpp=.tidy)
 
 # Testing.
@@ -53,10 +58,8 @@ else
 	TEST_CMD = $(PYTHON) $(TEST_DIR)/$(PY_TEST_FILE) --quiet
 endif
 
-all: $(NAME)
-
-$(NAME): $(OBJS) $(REPL_LIB)
-	@$(CXX) $(CXXFLAGS) $^ $(LIBS) -o $(NAME)
+all: $(OBJS) $(REPL_LIB)
+	@$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o $(NAME)
 
 type: CXXFLAGS += $(TYPE)
 type: all
@@ -64,13 +67,13 @@ type: all
 opt: $(CXXFLAGS) += $(OPT)
 opt: all
 
-debug: CXXFLAGS += $(DEBUG_FLAGS)
-debug: NAME = $(DEBUG)
-debug: all
-
 release: CXXFLAGS += $(RELEASE_FLAGS)
-release: NAME = $(RELEASE)
-release: all
+release: $(RELEASE_OBJS) $(REPL_LIB)
+	@$(CXX) $(CXXFLAGS) $(RELEASE_OBJS) $(LIBS) -o $(RELEASE)
+
+debug: CXXFLAGS += $(DEBUG_FLAGS)
+debug: $(DEBUG_OBJS) $(REPL_LIB)
+	@$(CXX) $(CXXFLAGS) $(DEBUG_OBJS) $(LIBS) -o $(DEBUG)
 
 release-workflow: release test tidy
 
@@ -92,10 +95,22 @@ clean-tidy:
 %.tidy: %.cpp
 	@clang-tidy $< -p . > $@ 2> /dev/null
 
-$(OBJ_DIR):
-	@mkdir -p $(OBJ_DIR)
+$(OBJ_DEFAULT_DIR):
+	@mkdir -p $(OBJ_DEFAULT_DIR)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+$(OBJ_RELEASE_DIR): $(OBJ_DEFAULT_DIR)
+	@mkdir -p $(OBJ_RELEASE_DIR)
+
+$(OBJ_DEBUG_DIR): $(OBJ_DEFAULT_DIR)
+	@mkdir -p $(OBJ_DEBUG_DIR)
+
+$(OBJ_DEFAULT_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DEFAULT_DIR)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_RELEASE_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_RELEASE_DIR)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DEBUG_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DEBUG_DIR)
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(REPL_LIB):
@@ -106,8 +121,7 @@ clear:
 	@rm -f *$(DEBUG_EXT)
 
 clean:
-	@rm -f $(OBJ_DIR)/*.o
-	@rm -f $(OBJ_DIR)/*.d
+	@rm -rf $(OBJ_DEFAULT_DIR)
 	@make --no-print-directory -C $(REPL_DIR) clean
 
 fclean: clean
