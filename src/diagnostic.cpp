@@ -339,11 +339,7 @@ void Diagnostic::displayErrorLine(u64 line, u64 col, sv text) const
     auto size{std::to_string(line).size()};
     std::string gap(size + EXTRA_SPACES, ' ');
 
-    if (!label.empty())
-    {
-        highlight += " ";
-        highlight += label;
-    }
+    if (!label.empty()) highlight += " " + label;
 
     CH_PRINT(stderr, "{}|\n", gap);
     CH_PRINT(stderr, " {} | {}\n", line, text);
@@ -395,7 +391,7 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
     bool isError{starts_with(code, "E")};
     bool isWarning{starts_with(code, "W")};
 
-    if ((!isError && !isWarning) || (code.size() != 5))
+    if ((!isError && !isWarning) || (code.size() != codeLength))
     {
         PRINT_ERROR("Invalid error/warning code.\n");
         return std::nullopt;
