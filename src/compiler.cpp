@@ -360,18 +360,17 @@ void Compiler::reportPartError(
 DEF(VarDecl)
 {
     startDeclaration();
-
     LocalInfo localInfo{getScopeLocal(node->name)};
 
     if (localInfo.found)
     {
         if (inRepl && (depth == 0) && (scope == 0))
         {
+            (*varAccess)[localInfo.slot] = (node->fix ? accessFix : accessVar);
             u8 reg{nextReg};
             if (node->init != nullptr)
             {
                 compileExpr(node->init);
-                (*varAccess)[localInfo.slot] = (node->fix ? accessFix : accessVar);
                 // Always a local variable.
                 code.addOp(OP_SET_LOCAL, localInfo.slot, reg);
             }
