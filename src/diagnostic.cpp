@@ -698,6 +698,7 @@ DiagnosticEngine::emitMiniStackTrace(const std::vector<CallFrame>& frames)
     for (u64 i{0}; i < size; i++)
     {
         CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
-        CH_PRINT(stderr, "     {}\n", fileName);
+        u64 id{frames[i].function->getID()};
+        CH_PRINT(stderr, "     {}\n", sourceManager.getFile(id));
     }
 }
