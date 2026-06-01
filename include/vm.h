@@ -12,7 +12,7 @@
 #define COPY_INLINE 0
 
 class Disassembler;
-struct Error;
+struct RuntimeError;
 enum DiagCode : u8;
 
 struct CallFrame
@@ -111,7 +111,7 @@ class VM
         void printRegister();
         #endif
 
-        void reportError(const Error& error);
+        void reportError(const RuntimeError& error);
         void reportWarning(DiagCode code, const std::string& label = "");
         void executeOp(Opcode op);
 

@@ -461,7 +461,7 @@ void VM::callNative(const Object& callee, u8 start, u8 argCount)
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
 {
     if (!IS_CALLABLE(callee))
-        throw TypeMismatch{OBJ_NOT_CALLABLE};
+        throw RuntimeError(OBJ_NOT_CALLABLE);
 
     switch (callee.type())
     {
@@ -552,7 +552,7 @@ void VM::printRegister()
 
 #endif
 
-void VM::reportError(const Error& error)
+void VM::reportError(const RuntimeError& error)
 {
     pushCurrentStackFrame();
     diagEngine.source = ErrorSource::VM;
@@ -1168,7 +1168,7 @@ void VM::executeCode(Function* script)
             executeOp(static_cast<Opcode>(0));
         #endif
     }
-    catch (Error& error)
+    catch (RuntimeError& error)
     {
         reportError(error);
 

@@ -3,14 +3,10 @@
 #include <string>
 #include <string_view>
 
-// RuntimeError.
-
 RuntimeError::RuntimeError(DiagCode code, const std::string& label) :
-    Error{code, label} {}
+    code{code}, label{label} {}
 
-// TypeMismatch.
-
-TypeMismatch
+RuntimeError
 reportBinaryOperator(Opcode oper, const Object& first, const Object& second)
 {
     std::string_view sv{};
@@ -71,7 +67,7 @@ reportBinaryOperator(Opcode oper, const Object& first, const Object& second)
         secondType) };
 }
 
-TypeMismatch
+RuntimeError
 reportUnaryOperator(Opcode oper, const Object& obj)
 {
     std::string_view sv{};
@@ -92,7 +88,7 @@ reportUnaryOperator(Opcode oper, const Object& obj)
     return { code, CH_STR("cannot {} ({})", sv, type) };
 }
 
-TypeMismatch
+RuntimeError
 reportCollection(DiagCode code, const Object& first, const Object& second)
 {
     auto firstType{first.printType()};

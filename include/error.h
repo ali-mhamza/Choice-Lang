@@ -7,24 +7,19 @@
 #include <string>
 #include <string_view>
 
-struct Error
+struct RuntimeError
 {
-   	DiagCode code{};
+	DiagCode code{};
 	const std::string label{};
-};
 
-struct RuntimeError : public Error
-{
 	RuntimeError(DiagCode code, const std::string& label = "");
 };
 
-struct TypeMismatch : public Error {};
-
-TypeMismatch
+RuntimeError
 reportBinaryOperator(Opcode oper, const Object& first, const Object& second);
-TypeMismatch
+RuntimeError
 reportUnaryOperator(Opcode oper, const Object& obj);
-TypeMismatch
+RuntimeError
 reportCollection(DiagCode code, const Object& first, const Object& second = Object{});
 
 class TypeError; // For static type-checking.

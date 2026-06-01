@@ -60,7 +60,6 @@ enum ObjType : u8
 {
     TYPE_LIST
 
-    // Used in TypeMismatch errors.
     NUM_TYPES,
     OBJ_INVALID,
 };
