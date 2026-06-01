@@ -761,7 +761,7 @@ Object Table::getIndex(const Object& key)
     if (value != nullptr) return *value;
 
     throw RuntimeError(TABLE_KEY_NOT_FOUND,
-        CH_STR("table does not contain key: {}", key.printVal()));
+        CH_STR("table does not contain key: {}", getElementText(key)));
 }
 
 void Table::setIndex(const Object& key, const Object& value)
