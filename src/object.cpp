@@ -254,8 +254,8 @@ void Object::setIndex(const Object& index, const Object& value)
 template<typename T>
 [[nodiscard]] static Hash hashPointer(T* ptr)
 {
-    const u8* temp{reinterpret_cast<const u8*>(ptr)};
-    return hashBytes(temp, sizeof(T));
+    const u8* temp{reinterpret_cast<const u8*>(&ptr)};
+    return hashBytes(temp, sizeof(T*));
 }
 
 Hash Object::hash() const
