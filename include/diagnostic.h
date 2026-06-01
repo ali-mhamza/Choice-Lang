@@ -168,6 +168,8 @@ enum DiagCode : u8
     DIVISION_BY_ZERO,
     // Collection index is out of bounds.
     INDEX_OUT_OF_BOUNDS,
+    // Table key not found.
+    TABLE_KEY_NOT_FOUND,
     // Invalid step value for a range object.
     INVALID_RANGE_STEP,
     // Attempt to apply the modulus operator with base zero.

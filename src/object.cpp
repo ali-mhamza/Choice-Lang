@@ -757,13 +757,11 @@ bool Table::contains(const Object& obj) const
 
 Object Table::getIndex(const Object& key)
 {
-    static Object empty{CH_ALLOC(Void)};
-
     Object* value{table.get(key)};
-    if (value == nullptr)
-        return empty;
-    else
-        return *value;
+    if (value != nullptr) return *value;
+
+    throw RuntimeError(TABLE_KEY_NOT_FOUND,
+        CH_STR("table does not contain key: {}", key.printVal()));
 }
 
 void Table::setIndex(const Object& key, const Object& value)
