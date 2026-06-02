@@ -3,6 +3,7 @@
 #include "common.h"
 #include "debug.h"
 #include <climits>
+#include <cstring>
 #include <fstream>
 #include <string>
 
@@ -13,12 +14,15 @@ namespace Bytes
     template<typename T>
     void encodeMemValue(u8* mem, const T value)
     {
+        static_assert(sizeof(T) <= sizeof(u64), "Encoded value too large.");
+
         if (mem == nullptr) return;
 
         constexpr auto size{sizeof(T)};
-        const u64* asBytes{reinterpret_cast<const u64*>(&value)};
+        u64 asBytes{};
+        memcpy(&asBytes, &value, size);
         for (size_t i{0}; i < size; i++)
-            mem[i] = (*asBytes >> ((size - 1 - i) * CHAR_BIT)) & 0xff;
+            mem[i] = (asBytes >> ((size - 1 - i) * CHAR_BIT)) & 0xff;
     }
 
     template<typename T>
