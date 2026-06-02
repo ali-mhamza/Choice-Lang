@@ -147,14 +147,14 @@ static bool loadRecentSourceFile(
 
 	if (exists(originalFile))
 	{
-		PRINT_WARNING(
+		CH_PRINT_WARNING(
 			"Warning: original source file more recent than bytecode file.\n"
 			"Diagnostic reporting may be limited accordingly.\n\n"
 		);
 	}
 	else
 	{
-		PRINT_WARNING(
+		CH_PRINT_WARNING(
 			"Warning: original source file not found.\n"
 			"Diagnostic reporting may be limited accordingly.\n\n"
 		);
@@ -247,7 +247,7 @@ void optionCheckProgram(FileID id, std::string_view input)
 	else
 	{
 		const auto& sourceFile{sourceManager.getFile(id)};
-		PRINT_SUCCESS_ARGS("File '{}' compiles successfully.\n", sourceFile);
+		CH_PRINT_SUCCESS_ARGS("File '{}' compiles successfully.\n", sourceFile);
 	}
 
 	#if !CH_USE_ALLOC
