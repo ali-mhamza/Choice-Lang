@@ -17,7 +17,7 @@
 
 static void eofError()
 {
-	PRINT_ERROR("Reached end of file prematurely.\n");
+	CH_PRINT_ERROR("Reached end of file prematurely.\n");
 	exit(65);
 }
 
@@ -74,7 +74,7 @@ void CodeReader::readMagic()
 	readBytes(magic.data(), 6);
 	if (strncmp(magic.data(), "choice", 6) != 0)
 	{
-		PRINT_ERROR("Improper magic flag for bytecode file.\n");
+		CH_PRINT_ERROR("Improper magic flag for bytecode file.\n");
 		exit(65);
 	}
 }
@@ -86,7 +86,7 @@ void CodeReader::readVersionNum()
 
 	if (num[0] != CH_VERSION_MAJOR)
 	{
-		PRINT_ERROR(
+		CH_PRINT_ERROR(
 			"File version is incompatible with current language implementation.\n" \
 			"Please update to a newer, compatible version."
 		);
@@ -166,7 +166,7 @@ vObj CodeReader::reconstructPool(u64 poolByteSize)
 			{
 				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
 				{
-					PRINT_ERROR_ARGS("Error: byte {} is {}.\n", it - cacheBytes.begin(),
+					CH_PRINT_ERROR_ARGS("Error: byte {} is {}.\n", it - cacheBytes.begin(),
 						static_cast<u8>(type));
 					exit(65);
 				}
