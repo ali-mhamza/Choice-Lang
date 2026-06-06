@@ -16,9 +16,13 @@ VarDecl::VarDecl(bool fix, const Token& name, ExprUP& init) :
     Stmt{S_VAR_DECL},
     fix{fix}, name{name}, init{std::move(init)} {}
 
-FuncDecl::FuncDecl(const Token& name, const vT& params, StmtUP& body) :
+FuncDecl::Param::Param(bool fix, const Token& param, ExprUP& defaultVal) :
+    fix{fix}, param{param}, defaultVal{std::move(defaultVal)} {}
+
+FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
+    StmtUP& body) :
     Stmt{S_FUNC_DECL},
-    name{name}, params{params}, body{std::move(body)} {}
+    name{name}, params{std::move(params)}, body{std::move(body)} {}
 
 ClassDecl::ClassDecl(const Token& name, const vT& fields, StmtVec& methods) :
     Stmt{S_CLASS_DECL},
@@ -126,9 +130,12 @@ IfExpr::IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr) :
     condition{std::move(condition)}, trueExpr{std::move(trueExpr)},
     falseExpr{std::move(falseExpr)} {}
 
-LambdaExpr::LambdaExpr(const vT& params, StmtUP& body) :
+LambdaExpr::Param::Param(bool fix, const Token& param, ExprUP& defaultVal) :
+    fix{fix}, param{param}, defaultVal{std::move(defaultVal)} {}
+
+LambdaExpr::LambdaExpr(std::vector<Param>& params, StmtUP& body) :
     Expr{E_LAMBDA_EXPR},
-    params{params}, body{std::move(body)} {}
+    params{std::move(params)}, body{std::move(body)} {}
 
 ComprehensionExpr::ComprehensionExpr(bool fix, const Token& token,
     ExprUP& iter, ExprUP& where, ExprUP& expr) :

@@ -42,7 +42,7 @@ static Function* runCompiler(FileID id, const vT& tokens)
 static void runVM(Function* script)
 {
     static VM vm{};
-    vm.executeCode(script);
+    vm.execute(script);
 }
 
 void optionExecute(FileID id, std::string_view input)
@@ -213,7 +213,7 @@ void optionDisProgram(FileID id, std::string_view input)
 	(void) id;
 
 	ByteCode chunk{readByteCode(input)};
-	Function* script{CH_ALLOC(Function, chunk, 0)};
+	Function* script{CH_ALLOC(Function, chunk)};
 	Disassembler{script}.disassembleCode();
 
 	#if !CH_USE_ALLOC
@@ -226,7 +226,7 @@ void optionLoadProgram(FileID id, std::string_view input)
 	(void) id;
 
 	ByteCode chunk{readByteCode(input)};
-	Function* script{CH_ALLOC(Function, chunk, 0)};
+	Function* script{CH_ALLOC(Function, chunk)};
 	runVM(script); // Reports errors through diagEngine directly.
 
 	#if !CH_USE_ALLOC

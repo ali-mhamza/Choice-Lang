@@ -403,35 +403,63 @@ DEF(VarDecl)
     endDeclaration();
 }
 
+template<typename ParamT>
+std::pair<ByteCode*, u8> Compiler::paramHelper(
+    Compiler& miniCompiler,
+    const std::vector<ParamT>& params
+)
+{
+    ByteCode* defaultArgs{new ByteCode[params.size()]};
+    ByteCode* temp{defaultArgs};
+    // Temporary bytecode storage since we recycle the compiler's
+    // bytecode.
+    ByteCode store{};
+
+    for (auto it{params.begin()}; it != params.end(); it++)
+    {
+        bool access{accessVar};
+        if (it->fix)
+        {
+            store.addOp(OP_FIX, miniCompiler.nextReg);
+            access = accessFix;
+        }
+
+        const Token& param{it->param};
+        u8 reg{miniCompiler.nextReg};
+        LocalInfo info{miniCompiler.getScopeLocal(param)};
+        if (info.found)
+            reportError(PARAM_ALREADY_DEFINED, param);
+
+        // We evaluate the default value before binding the parameter
+        // so parameters can't reference themselves.
+        if (it->defaultVal != nullptr)
+        {
+            miniCompiler.compileExpr(it->defaultVal);
+            *temp = miniCompiler.getCode();
+            temp->addOp(OP_HALT);
+            temp++;
+            miniCompiler.code.clearCode();
+        }
+        else
+            miniCompiler.reserveReg();
+        miniCompiler.defVar(std::string{param.text}, reg, access);
+    }
+
+    miniCompiler.code = store;
+    return std::make_pair(defaultArgs, static_cast<u8>(temp - defaultArgs));
+}
+
+template<typename ParamT>
 void Compiler::funcBodyHelper(
-    const vT& params,
+    const std::vector<ParamT>& params,
     const StmtUP& body,
     const u8 funcReg,
     const std::string& name
 )
 {
     Compiler miniCompiler{this};
-    // The number of "parameter" tokens that aren't identifiers.
-    u8 removeCount{0};
-    for (auto it{params.begin()}; it != params.end(); it++)
-    {
-        bool access{accessVar};
-        if (it->type == TOK_FIX)
-        {
-            miniCompiler.code.addOp(OP_FIX, miniCompiler.nextReg);
-            access = accessFix;
-            removeCount++;
-            it++;
-        }
+    auto [defaultArgs, defaultCount] = paramHelper(miniCompiler, params);
 
-        const Token& param{*it};
-        u8 reg{miniCompiler.nextReg};
-        LocalInfo info{miniCompiler.getScopeLocal(param)};
-        if (info.found)
-            REPORT_ERROR(PARAM_ALREADY_DEFINED, param);
-        miniCompiler.defVar(std::string{param.text}, reg, access);
-        miniCompiler.reserveReg();
-    }
     miniCompiler.compileStmt(body);
     miniCompiler.code.addOp(OP_VOID, 0);
     miniCompiler.code.addOp(OP_RETURN, 0);
@@ -441,11 +469,13 @@ void Compiler::funcBodyHelper(
         this->hitError = true;
 
     Object func{};
-    u8 arity{static_cast<u8>(params.size() - removeCount)};
+    u8 arity{static_cast<u8>(params.size())};
     if (name.empty()) // Compiling a lambda.
-        func = CH_ALLOC(Function, funcCode, arity);
+        func = CH_ALLOC(Function, funcCode, arity - defaultCount, arity);
     else
-        func = CH_ALLOC(Function, name, funcCode, arity);
+        func = CH_ALLOC(Function, name, funcCode, arity - defaultCount, arity);
+
+    AS_FUNC(func)->defaultArgs = defaultArgs;
 
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
@@ -476,7 +506,7 @@ DEF(FuncDecl)
     }
 
     if (node->params.size() > PARAMETER_MAX)
-        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX]);
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
 
     u8 varSlot{redefined ? localInfo.slot : nextReg};
     std::string name{node->name.text};
@@ -1171,7 +1201,7 @@ void Compiler::_crementVar(
 }
 
 void Compiler::_crementElement(
-    const UnaryExpr* node    
+    const UnaryExpr* node
 )
 {
     IndexExpr* item{static_cast<IndexExpr*>(node->expr.get())};
@@ -1306,7 +1336,7 @@ DEF(IfExpr)
 DEF(LambdaExpr)
 {
     if (node->params.size() > PARAMETER_MAX)
-        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX]);
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
 
     funcBodyHelper(node->params, node->body, nextReg,
         std::string());
@@ -1640,7 +1670,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     else
         code.addOp(OP_HALT);
 
-    return CH_ALLOC(Function, getCode(), 0);
+    return CH_ALLOC(Function, getCode());
 }
 
 #undef DEF

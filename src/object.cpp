@@ -359,8 +359,8 @@ void Cell::close()
     location = &obj;
 }
 
-Function::Function(const ByteCode& code, const u8 argCount) noexcept:
-    name{nullptr}, code{code}, argCount{argCount}, lambda{true} {}
+Function::Function(const ByteCode& code, u8 arityMin, u8 arityMax) noexcept:
+    name{nullptr}, code{code}, arityMin{arityMin}, arityMax{arityMax} {}
 
 // strdup is not a standard C++ function, but is instead from POSIX.
 [[nodiscard]] static char* choiceStrdup(const char* str)
@@ -374,14 +374,16 @@ Function::Function(const ByteCode& code, const u8 argCount) noexcept:
 Function::Function(
     const std::string& name,
     const ByteCode& code,
-    const u8 argCount
+    u8 arityMin,
+    u8 arityMax
 ) noexcept:
-    name{choiceStrdup(name.c_str())}, code{code}, argCount{argCount},
-    lambda{false} {}
+    name{choiceStrdup(name.c_str())}, code{code}, arityMin{arityMin},
+    arityMax{arityMax} {}
 
 Function::~Function() noexcept
 {
     delete[] name;
+    delete[] defaultArgs;
 }
 
 bool Function::operator==(const Function& other) const
@@ -414,12 +416,14 @@ void Function::emit(std::ofstream& os) const
     else
         os.put(static_cast<char>(0));
 
-    os.put(static_cast<char>(argCount));
-    os.put(static_cast<char>(lambda));
+    os.put(static_cast<char>(arityMin));
+    os.put(static_cast<char>(arityMax));
 
     code.encodeData(os);
     if (debugInfoState == DEBUG_COMBINED)
         code.encodeMetadata(os);
+
+    // TODO: Need to encode default parameters here somehow.
 }
 
 u64 Function::byteSize() const
@@ -429,7 +433,7 @@ u64 Function::byteSize() const
     if (name != nullptr) size += strlen(name);
 
     // Added type byte (1) and name length byte (1)
-    // and argCount byte (1) and lambda Boolean byte (1).
+    // and arity bytes (2).
     size += 4 * sizeof(u8);
 
     // Added code size and pool size values,

@@ -124,13 +124,14 @@ Object CodeReader::reconstructFunc()
         readBytes(name.data(), nameLen);
 	}
 
-	u8 argCount{readValue<u8>()};
-	bool lambda{readValue<bool>()};
+	u8 arityMin{readValue<u8>()};
+	u8 arityMax{readValue<u8>()};
+	ByteCode code{reconstructByteCode()};
 
-	if (lambda)
-		return Object{CH_ALLOC(Function, reconstructByteCode(), argCount)};
+	if (nameLen == 0) // Lambda.
+		return Object{CH_ALLOC(Function, code, arityMin, arityMax)};
 	else
-		return Object{CH_ALLOC(Function, name, reconstructByteCode(), argCount)};
+		return Object{CH_ALLOC(Function, name, code, arityMin, arityMax)};
 }
 
 Object CodeReader::reconstructString()

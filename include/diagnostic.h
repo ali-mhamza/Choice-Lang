@@ -119,6 +119,8 @@ enum DiagCode : u8
     HIT_BLOCK_NESTING_MAX,
     // Maximum expression nesting depth reached.
     HIT_EXPR_NESTING_MAX,
+    // Expect default paramater.
+    EXPECT_DEFAULT_PARAM,
 
 
     /* Variable errors. */

@@ -65,13 +65,26 @@ namespace AST
 
         struct FuncDecl : public Stmt
         {
+            struct Param
+            {
+                const bool fix{};
+                const Token param{};
+                ExprUP defaultVal{};
+
+                Param(
+                    bool fix,
+                    const Token& param,
+                    ExprUP& defaultVal
+                );
+            };
+
             const Token name{};
-            const vT params{};
+            const std::vector<Param> params{};
             const StmtUP body{};
 
             FuncDecl(
                 const Token& name,
-                const vT& params,
+                std::vector<Param>& params,
                 StmtUP& body
             );
         };
@@ -396,11 +409,24 @@ namespace AST
 
         struct LambdaExpr : public Expr
         {
-            const vT params{};
+            struct Param
+            {
+                const bool fix{};
+                const Token param{};
+                ExprUP defaultVal{};
+
+                Param(
+                    bool fix,
+                    const Token& param,
+                    ExprUP& defaultVal
+                );
+            };
+
+            const std::vector<Param> params{};
             const StmtUP body{};
 
             LambdaExpr(
-                const vT& params,
+                std::vector<Param>& params,
                 StmtUP& body
             );
         };

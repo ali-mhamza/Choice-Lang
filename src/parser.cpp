@@ -315,16 +315,28 @@ StmtUP Parser::varDecl()
     return std::make_unique<VarDecl>((declType == TOK_FIX), name, init);
 }
 
-StmtUP Parser::funcBodyHelper(vT& params)
+StmtUP Parser::funcBodyHelper(std::vector<FuncDecl::Param>& params)
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name");
 
+    bool startedDefaultArgs{false};
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
-            if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
+            bool fix{consumeTok(TOK_FIX)};
             MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
-            params.emplace_back(previousTok);
+            Token param{previousTok};
+
+            ExprUP defaultVal{};
+            if (consumeTok(TOK_EQUAL))
+            {
+                defaultVal = expression();
+                startedDefaultArgs = true;
+            }
+            else if (startedDefaultArgs)
+                REPORT_SYNTAX(EXPECT_DEFAULT_PARAM, param);
+
+            params.emplace_back(fix, param, defaultVal);
             CONSUME_VAR_TYPE();
         } while (consumeTok(TOK_COMMA));
     }
@@ -347,7 +359,7 @@ StmtUP Parser::funDecl()
     MATCH_TOK(TOK_IDENTIFIER, "expect function name");
     Token name{previousTok};
 
-    vT params{};
+    std::vector<FuncDecl::Param> params{};
     StmtUP body{funcBodyHelper(params)};
 
     return std::make_unique<FuncDecl>(name, params, body);
@@ -582,7 +594,7 @@ StmtUP Parser::blockStmt()
     if (nestingDepth > MAX_BLOCK_SCOPE_DEPTH) return nullptr;
     if (++nestingDepth > MAX_BLOCK_SCOPE_DEPTH)
     {
-        REPORT_SEMANTIC(HIT_BLOCK_NESTING_MAX, previousTok, 
+        REPORT_SEMANTIC(HIT_BLOCK_NESTING_MAX, previousTok,
             CH_STR("maximum depth is {}", MAX_BLOCK_SCOPE_DEPTH)
         );
     }
@@ -755,7 +767,7 @@ ExprUP Parser::bitOr()
 {
     u64 start{currentTok.byteOffset};
     ExprUP expr{bitXor()};
-    while (consumeTok(TOK_BAR))
+    while (!inLambdaParams && consumeTok(TOK_BAR))
     {
         TokenType oper{previousTok.type};
         expr = std::make_unique<BitExpr>(expr, oper, bitXor());
@@ -990,20 +1002,39 @@ ExprUP Parser::ifExpr()
     return std::make_unique<IfExpr>(condition, trueBranch, falseBranch);
 }
 
-StmtUP Parser::lambdaBodyHelper(vT& params, bool skipParams)
+StmtUP Parser::lambdaBodyHelper(
+    std::vector<LambdaExpr::Param>& params,
+    bool skipParams
+)
 {
     if (!skipParams)
     {
+        bool lambdaState{inLambdaParams};
+        inLambdaParams = true;
+
+        bool startedDefaultArgs{false};
         if (!checkTok(TOK_BAR))
         {
             do {
-                if (consumeTok(TOK_FIX)) params.emplace_back(previousTok);
+                bool fix{consumeTok(TOK_FIX)};
                 MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
-                params.emplace_back(previousTok);
+                Token param{previousTok};
+
+                ExprUP defaultVal{};
+                if (consumeTok(TOK_EQUAL))
+                {
+                    defaultVal = expression();
+                    startedDefaultArgs = true;
+                }
+                else if (startedDefaultArgs)
+                    REPORT_SYNTAX(EXPECT_DEFAULT_PARAM, param);
+
+                params.emplace_back(fix, param, defaultVal);
                 CONSUME_VAR_TYPE();
             } while (consumeTok(TOK_COMMA));
         }
 
+        inLambdaParams = lambdaState;
         MATCH_TOK(TOK_BAR, "expect '|' after lambda parameters");
     }
 
@@ -1034,7 +1065,7 @@ ExprUP Parser::lambda(bool skipParams)
 {
     CHECK_DEPTH(previousTok);
 
-    vT params{};
+    std::vector<LambdaExpr::Param> params{};
     StmtUP body{lambdaBodyHelper(params, skipParams)};
     return std::make_unique<LambdaExpr>(params, body);
 }
@@ -1163,7 +1194,12 @@ ExprUP Parser::primary()
     else if (type == TOK_LEFT_PAREN)
     {
         CHECK_DEPTH(previousTok);
+
+        bool lambdaState{inLambdaParams};
+        inLambdaParams = false;
         expr = expression();
+        inLambdaParams = lambdaState;
+
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after grouped expression");
     }
 

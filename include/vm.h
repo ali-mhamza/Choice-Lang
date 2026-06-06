@@ -99,10 +99,13 @@ class VM
         void setIndex(u8 objReg, u8 indexReg, u8 valueReg);
 
         void pushCurrentStackFrame();
+        void checkFuncArgs(const Function* func, u8 argCount);
+        void prepFuncArgs(const Function* func, u8 argCount);
+        void restoreData();
+
         void callFunc(const Object& callee, u8 start, u8 argCount);
         void callNative(const Object& callee, u8 start, u8 argCount);
         void callObj(const Object& callee, u8 start, u8 argCount);
-        void restoreData();
 
         void startIter();
         void updateIter();
@@ -114,10 +117,11 @@ class VM
         void reportError(const RuntimeError& error);
         void reportWarning(DiagCode code, const std::string& label = "");
         void executeOp(Opcode op);
+        void executeCode();
 
     public:
         VM();
         ~VM();
 
-        void executeCode(Function* script);
+        void execute(Function* script);
 };

@@ -23,8 +23,13 @@ class Parser
         Token previousTok{}, currentTok{};
 
         vT::const_iterator it{};
-        bool inMatch{false}, inFunc{false}, fall{false};    // For functions and control-flow.
-        bool syntaxError{false}, semanticError{false};      // We are currently in an error state.
+        // For functions and control-flow.
+        bool inMatch{false}, inFunc{false}, fall{false};
+        // We are currently in an error state.
+        bool syntaxError{false}, semanticError{false};
+        // Currently parsing lambda parameter list (don't consume
+        // the closing '|' except if inside grouping expression).
+        bool inLambdaParams{false};
 
         // Utilities.
 
@@ -59,7 +64,9 @@ class Parser
 
         [[nodiscard]] StmtUP declaration();
         [[nodiscard]] StmtUP varDecl();
-        [[nodiscard]] StmtUP funcBodyHelper(vT& params);
+        [[nodiscard]] StmtUP funcBodyHelper(
+            std::vector<AST::Statement::FuncDecl::Param>& params
+        );
         [[nodiscard]] StmtUP funDecl();
         [[nodiscard]] StmtUP classDecl();
 
@@ -102,7 +109,7 @@ class Parser
         [[nodiscard]] ExprUP post();
         [[nodiscard]] ExprUP ifExpr();
         [[nodiscard]] StmtUP lambdaBodyHelper(
-            vT& params,
+            std::vector<AST::Expression::LambdaExpr::Param>& params,
             bool skipParams = false
         );
         [[nodiscard]] ExprUP lambda(bool skipParams);

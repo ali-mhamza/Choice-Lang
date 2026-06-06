@@ -26,7 +26,7 @@ void Disassembler::printOpcode(std::string_view opName) const
 
 void Disassembler::disFunction(const Function* func) const
 {
-	if (func->lambda)
+	if (func->name == nullptr)
 		CH_PRINT("\n===== [start] <lambda> =====\n\n");
 	else
 		CH_PRINT("\n===== [start] func {} =====\n\n", func->name);
@@ -35,7 +35,7 @@ void Disassembler::disFunction(const Function* func) const
 	miniDis.topLevel = false;
 	miniDis.disassembleCode();
 
-	if (func->lambda)
+	if (func->name == nullptr)
 		CH_PRINT("\n====== [end] <lambda> ======\n\n");
 	else
 		CH_PRINT("\n====== [end] func {} ======\n\n", func->name);
@@ -377,8 +377,12 @@ void Disassembler::disassembleCode()
 	if (topLevel && !inRepl && (ip < end))
 		CH_PRINT("=== CODE [{}] ===\n", sourceManager.getFile(func->code.id));
 
-	CH_PRINT("(bytes: {}, args: {}, constants: {})\n\n",
-		func->code.block.size(), func->argCount, func->code.pool.size());
+	CH_PRINT("(bytes: {}, ", func->code.codeSize());
+	if (func->arityMin == func->arityMax)
+		CH_PRINT("args: {}, ", func->arityMax);
+	else
+		CH_PRINT("args: {}-{}, ", func->arityMin, func->arityMax);
+	CH_PRINT("constants: {})\n\n", func->code.pool.size());
 
 	while (ip < end)
 		disassembleOp(*ip);

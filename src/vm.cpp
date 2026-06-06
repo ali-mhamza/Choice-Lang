@@ -413,6 +413,62 @@ void VM::pushCurrentStackFrame()
     });
 }
 
+void VM::checkFuncArgs(const Function* func, u8 argCount)
+{
+    if (argCount < func->arityMin)
+    {
+        throw RuntimeError(
+            ARITY_MISMATCH,
+            CH_STR("expected at least {} argument{} but found {}",
+            func->arityMin, (func->arityMin == 1 ? "" : "s"), argCount)
+        );
+    }
+
+    if (argCount > func->arityMax)
+    {
+        throw RuntimeError(
+            ARITY_MISMATCH,
+            CH_STR("expected at most {} argument{} but found {}",
+            func->arityMax, (func->arityMax == 1 ? "" : "s"), argCount)
+        );
+    }
+}
+
+void VM::prepFuncArgs(const Function* func, u8 argCount)
+{
+    const u8* ip{this->ip};
+    const Object* pool{this->pool};
+
+    u8 funcDefaultArgs{static_cast<u8>(func->arityMax - func->arityMin)};
+    u8 withDefault{static_cast<u8>(argCount - func->arityMin)};
+
+    while (withDefault < funcDefaultArgs)
+    {
+        const auto& chunk{func->defaultArgs[withDefault++]};
+        this->ip = chunk.block.data();
+        this->pool = chunk.pool.data();
+        executeCode();
+    }
+
+    this->ip = ip;
+    this->pool = pool;
+}
+
+void VM::restoreData()
+{
+    CallFrame& frame{frames.back()};
+    currentFunc = frame.function;
+    registers = frame.regStart;
+    ip = frame.ip;
+    pool = currentFunc->code.pool.data();
+    #if WATCH_EXEC
+        delete this->dis;
+        this->dis = frame.dis;
+    #endif
+
+    frames.pop_back();
+}
+
 void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 {
     Function* func{};
@@ -429,15 +485,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
         func = AS_FUNC(callee);
     }
 
-    if (func->argCount != argCount)
-    {
-        throw RuntimeError(
-            ARITY_MISMATCH,
-            CH_STR("expected {} argument{} but found {}",
-            func->argCount, (func->argCount == 1 ? "" : "s"), argCount)
-        );
-    }
-
+    checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
     const ByteCode& code{func->code};
 
@@ -446,6 +494,10 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     registers += start;
     ip = code.block.data();
     pool = code.pool.data();
+
+    // TODO: Disassembler should follow any argument-prep code
+    // here as well.
+    prepFuncArgs(func, argCount);
 
     #if WATCH_EXEC
         this->dis = new Disassembler(func);
@@ -476,21 +528,6 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
         default:
             CH_UNREACHABLE();
     }
-}
-
-inline void VM::restoreData()
-{
-    CallFrame& frame{frames.back()};
-    currentFunc = frame.function;
-    registers = frame.regStart;
-    ip = frame.ip;
-    pool = currentFunc->code.pool.data();
-    #if WATCH_EXEC
-        delete this->dis;
-        this->dis = frame.dis;
-    #endif
-
-    frames.pop_back();
 }
 
 // Handle regSlot.
@@ -1123,32 +1160,8 @@ void VM::executeOp(Opcode op)
     #undef PRINT_REGS
 }
 
-void VM::executeCode(Function* script)
+void VM::executeCode()
 {
-    // Compilation error -> early return.
-    if (script->code.codeSize() == 0)
-        return;
-
-    // Nothing to run (empty input) -> early return.
-    if (script->code.block.front() == OP_HALT)
-        return;
-
-    currentFunc = script;
-    // The global scope doesn't capture any variables,
-    // so it doesn't need to have an active closure.
-    registers = globalRegisters;
-    ip = script->code.block.data();
-    pool = script->code.pool.data();
-
-    #if WATCH_EXEC
-        Disassembler dis(script);
-        this->dis = &dis;
-    #endif
-
-    frames.reserve(CALL_FRAMES_DEFAULT);
-    scopeStarts.reserve(MAX_SCOPE_DEPTH);
-    activeCells.reserve(CODE_MAX);
-
     try
     {
         #if !CH_COMPUTED_GOTO
@@ -1180,6 +1193,35 @@ void VM::executeCode(Function* script)
             this->clearIndex = 0;
         }
     }
+}
+
+void VM::execute(Function* script)
+{
+    // Compilation error -> early return.
+    if (script->code.codeSize() == 0)
+        return;
+
+    // Nothing to run (empty input) -> early return.
+    if (script->code.block.front() == OP_HALT)
+        return;
+
+    currentFunc = script;
+    // The global scope doesn't capture any variables,
+    // so it doesn't need to have an active closure.
+    registers = globalRegisters;
+    ip = script->code.block.data();
+    pool = script->code.pool.data();
+
+    #if WATCH_EXEC
+        Disassembler dis(script);
+        this->dis = &dis;
+    #endif
+
+    frames.reserve(CALL_FRAMES_DEFAULT);
+    scopeStarts.reserve(MAX_SCOPE_DEPTH);
+    activeCells.reserve(CODE_MAX);
+
+    executeCode();
 
     #if WATCH_EXEC
         this->dis = nullptr;

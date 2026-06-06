@@ -344,14 +344,20 @@ struct Function : public HeapObj
 {
     const char* name{};
     const ByteCode code{};
-    const u8 argCount{};
-    const bool lambda{};
+    const u8 arityMin{};
+    const u8 arityMax{};
+    const ByteCode* defaultArgs{};
 
-    Function(const ByteCode& code, const u8 argCount) noexcept;
+    Function(
+        const ByteCode& code,
+        u8 arityMin = 0,
+        u8 arityMax = 0
+    ) noexcept;
     Function(
         const std::string& name,
         const ByteCode& code,
-        const u8 argCount
+        u8 arityMin = 0,
+        u8 arityMax = 0
     ) noexcept;
     ~Function() noexcept;
 
