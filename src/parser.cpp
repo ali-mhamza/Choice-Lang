@@ -1238,7 +1238,10 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
     semanticError = false;
 
     while (!checkTok(TOK_EOF))
+    {
+        DepthCounter::depthCount = 0; // Reset depth.
         program.push_back(declaration());
+    }
 
     // Do not clear the AST nodes, even if errors occurred.
     // This allows the AST compiler to report errors on valid
