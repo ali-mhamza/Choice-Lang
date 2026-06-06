@@ -23,7 +23,7 @@ class Parser
         Token previousTok{}, currentTok{};
 
         vT::const_iterator it{};
-        bool inMatch{false}, inFunc{false}, fall{false};    // For structures.
+        bool inMatch{false}, inFunc{false}, fall{false};    // For functions and control-flow.
         bool syntaxError{false}, semanticError{false};      // We are currently in an error state.
 
         // Utilities.
