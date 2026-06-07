@@ -151,7 +151,12 @@ FileID SourceManager::addFile(
 bool SourceManager::hasLineData(FileID id) const
 {
     const FileData& data{sourceData[id]};
-    bool lineMarkersAvailable{!data.lineMarkers.empty()};
+    // We may have line markers without any actual line content,
+    // since line markers can also be taken from debug metadata.
+    // Thus, we check for both.
+    bool lineMarkersAvailable{
+        !data.content.empty() && !data.lineMarkers.empty()
+    };
     bool singleLine{!data.content.empty()
         && (data.content.find('\n') == data.content.npos)
     };
@@ -453,12 +458,15 @@ void Diagnostic::report() const
     displayReportTitle();
     CH_PRINT(stderr, "  --> {} ({}:{})\n", fileName, lineNo, col);
 
-    if (length > DIAG_LINE_LENGTH_MAX)
-        displayTruncatedErrorPart(lineNo, col, lineStr);
-    else if (lineStr.length() > DIAG_LINE_LENGTH_MAX)
-        displayTruncatedLine(lineNo, col, lineStr);
-    else
-        displayErrorLine(lineNo, col, lineStr);
+    if (sourceManager.hasLineData(id))
+    {
+        if (length > DIAG_LINE_LENGTH_MAX)
+            displayTruncatedErrorPart(lineNo, col, lineStr);
+        else if (lineStr.length() > DIAG_LINE_LENGTH_MAX)
+            displayTruncatedLine(lineNo, col, lineStr);
+        else
+            displayErrorLine(lineNo, col, lineStr);
+    }
 
     CH_PRINT("\n");
 }
