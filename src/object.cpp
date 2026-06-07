@@ -423,27 +423,43 @@ void Function::emit(std::ofstream& os) const
     if (debugInfoState == DEBUG_COMBINED)
         code.encodeMetadata(os);
 
-    // TODO: Need to encode default parameters here somehow.
+    // Can be computed from cached bytes with arityMax - arityMin.
+    u8 defaultCount{static_cast<u8>(arityMax - arityMin)};
+    for (u8 i{0}; i < defaultCount; i++)
+    {
+        defaultArgs[i].encodeData(os);
+        if (debugInfoState == DEBUG_COMBINED)
+            defaultArgs[i].encodeMetadata(os);
+    }
 }
 
 u64 Function::byteSize() const
 {
     u64 size{0};
-
     if (name != nullptr) size += strlen(name);
 
     // Added type byte (1) and name length byte (1)
     // and arity bytes (2).
     size += 4 * sizeof(u8);
-
     // Added code size and pool size values,
     // as well as the actual sizes of the code and pool.
     size += 2 * sizeof(u64) + code.codeSize() + code.countPool();
+    // Same as above for default arguments.
+    u8 defaultCount{static_cast<u8>(arityMax - arityMin)};
+    for (u8 i{0}; i < defaultCount; i++)
+    {
+        size += 2 * sizeof(u64);
+        size += defaultArgs[i].codeSize() + defaultArgs[i].countPool();
+    }
 
     if (debugInfoState == DEBUG_COMBINED)
     {
         // Added metadata + metadata size value (8 bytes).
-        size += (code.metadata.size() * sizeof(DebugRange)) + sizeof(u64);
+        size += code.metadata.size() * sizeof(DebugRange) + sizeof(u64);
+
+        // Same as above for default arguments.
+        for (u8 i{0}; i < defaultCount; i++)
+            size += defaultArgs[i].metadata.size() * sizeof(DebugRange) + sizeof(u64);
     }
 
     return size;

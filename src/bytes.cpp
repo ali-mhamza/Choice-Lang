@@ -128,10 +128,19 @@ Object CodeReader::reconstructFunc()
 	u8 arityMax{readValue<u8>()};
 	ByteCode code{reconstructByteCode()};
 
+	Object func{};
 	if (nameLen == 0) // Lambda.
-		return Object{CH_ALLOC(Function, code, arityMin, arityMax)};
+		func = CH_ALLOC(Function, code, arityMin, arityMax);
 	else
-		return Object{CH_ALLOC(Function, name, code, arityMin, arityMax)};
+		func = CH_ALLOC(Function, name, code, arityMin, arityMax);
+
+	u8 defaultCount{static_cast<u8>(arityMax - arityMin)};
+	ByteCode* defaultArgs{new ByteCode[defaultCount]};
+	for (u8 i{0}; i < defaultCount; i++)
+	    defaultArgs[i] = reconstructByteCode();
+	AS_FUNC(func)->defaultArgs = defaultArgs;
+
+	return func;
 }
 
 Object CodeReader::reconstructString()
