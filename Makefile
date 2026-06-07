@@ -83,8 +83,8 @@ test:
 	@echo "Running $(TEST_COUNT) tests...\n"
 	@$(TEST_CMD)
 
-test-%:
-	@DIR=$(TEST_DIR)/$*; \
+test-group:
+	@DIR=$(TEST_DIR)/$(GROUP); \
 	$(TEST_CMD) $$DIR
 
 tidy: $(TIDY)
