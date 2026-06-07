@@ -100,5 +100,5 @@ To reduce the need for redundant recompilation of source files that have not cha
 - [Display Bytecode](#display-bytecode)
 
 If such a cache file is found, and the source file's modification time is not later than that of the cache file, compilation is skipped entirely.\
-If the chosen option was to cache the source file's compile bytecode, the interpreter does nothing and exits (as the bytecode is already up to date).\
+If the chosen option was to cache the source file's compile bytecode (and the cache file follows the same debug metadata encoding being requested by the user), the interpreter does nothing and exits (as the bytecode is already up to date).\
 Otherwise, the bytecode object is reconstructed from the cache and executed or disassembled, depending on the chosen option.
