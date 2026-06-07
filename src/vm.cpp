@@ -424,7 +424,7 @@ void VM::checkFuncArgs(const Function* func, u8 argCount)
         );
     }
 
-    if (argCount > func->arityMax)
+    if (!func->variadic && (argCount > func->arityMax))
     {
         throw RuntimeError(
             ARITY_MISMATCH,
@@ -1020,6 +1020,7 @@ void VM::executeOp(Opcode op)
             const Object& callee{registers[readByte()]};
             u8 start{readByte()};
             u8 argCount{readByte()};
+            this->args = argCount;
 
             callObj(callee, start, argCount);
             SET_REGSLOT(0);
@@ -1041,6 +1042,23 @@ void VM::executeOp(Opcode op)
             // To avoid reallocating the return value each time.
             static Object ret{CH_ALLOC(Void)};
             registers[readByte()] = ret;
+            DISPATCH();
+        }
+
+        CASE(OP_VAR_ARGS):
+        {
+            u8 reg{readByte()};
+
+            Object list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
+            auto& array{AS_LIST(list)->array};
+            for (u8 i{reg}; i < args; i++)
+            {
+                if (registers + i > globalRegisters + regSize)
+                    break;
+                array.push(registers[i]);
+            }
+
+            registers[reg] = list;
             DISPATCH();
         }
 

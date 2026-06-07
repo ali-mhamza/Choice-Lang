@@ -328,7 +328,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_CLOSURE:	case OP_NEG:		case OP_NOT:		case OP_INCR:
 		case OP_DECR:		case OP_COMP:		case OP_RETURN:		case OP_VOID:
 		case OP_VAR:        case OP_FIX:		case OP_IMMUT:		case OP_MUT:
-		case OP_ENTER_SCOPE:    case OP_PRINT_VALID:
+		case OP_ENTER_SCOPE:	case OP_VAR_ARGS:    case OP_PRINT_VALID:
 			singleOper(byte);
 			break;
 		case OP_LOAD_R:
@@ -378,10 +378,15 @@ void Disassembler::disassembleCode()
 		CH_PRINT("=== CODE [{}] ===\n", sourceManager.getFile(func->code.id));
 
 	CH_PRINT("(bytes: {}, ", func->code.codeSize());
-	if (func->arityMin == func->arityMax)
-		CH_PRINT("args: {}, ", func->arityMax);
+	if (func->variadic)
+	    CH_PRINT("args: {}-{}, ", func->arityMin, CODE_MAX);
 	else
-		CH_PRINT("args: {}-{}, ", func->arityMin, func->arityMax);
+	{
+		if (func->arityMin == func->arityMax)
+			CH_PRINT("args: {}, ", func->arityMax);
+		else
+			CH_PRINT("args: {}-{}, ", func->arityMin, func->arityMax);
+	}
 	CH_PRINT("constants: {})\n\n", func->code.pool.size());
 
 	while (ip < end)

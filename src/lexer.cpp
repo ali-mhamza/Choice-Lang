@@ -589,8 +589,15 @@ void Lexer::singleToken()
 		case '%':	conditionalToken('=', TOK_PERCENT_EQ, TOK_PERCENT);	break;
 		case '^':	conditionalToken('=', TOK_UARROW_EQ, TOK_UARROW);	break;
 		case '~':	conditionalToken('=', TOK_TILDE_EQ, TOK_TILDE);		break;
-		case '.':	conditionalToken('.', TOK_DOT_DOT, TOK_DOT);		break;
 		case '!':	conditionalToken('=', TOK_BANG_EQ, TOK_BANG);		break;
+		case '.':
+		{
+			if (consumeChar('.'))
+				conditionalToken('.', TOK_ELLIPSIS, TOK_DOT_DOT);
+			else
+				makeToken(TOK_DOT);
+			break;
+		}
 		case '=':
 		{
 			if (consumeChar('>'))

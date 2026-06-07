@@ -121,6 +121,8 @@ enum DiagCode : u8
     HIT_EXPR_NESTING_MAX,
     // Expect default paramater.
     EXPECT_DEFAULT_PARAM,
+    // Parameter after variadic parameter.
+    PARAM_AFTER_VARIADIC,
 
 
     /* Variable errors. */

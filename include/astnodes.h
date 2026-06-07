@@ -68,11 +68,13 @@ namespace AST
             struct Param
             {
                 const bool fix{};
+                const bool variadic{};
                 const Token param{};
                 ExprUP defaultVal{};
 
                 Param(
                     bool fix,
+                    bool variadic,
                     const Token& param,
                     ExprUP& defaultVal
                 );
@@ -412,11 +414,13 @@ namespace AST
             struct Param
             {
                 const bool fix{};
+                const bool variadic{};
                 const Token param{};
                 ExprUP defaultVal{};
 
                 Param(
                     bool fix,
+                    bool variadic,
                     const Token& param,
                     ExprUP& defaultVal
                 );

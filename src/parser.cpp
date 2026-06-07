@@ -319,10 +319,12 @@ StmtUP Parser::funcBodyHelper(std::vector<FuncDecl::Param>& params)
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name");
 
-    bool startedDefaultArgs{false};
+    bool startedDefaultArgs{false}, variadic{false};
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
+            if (variadic) REPORT_SYNTAX(PARAM_AFTER_VARIADIC, previousTok);
+
             bool fix{consumeTok(TOK_FIX)};
             MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
             Token param{previousTok};
@@ -333,10 +335,12 @@ StmtUP Parser::funcBodyHelper(std::vector<FuncDecl::Param>& params)
                 defaultVal = expression();
                 startedDefaultArgs = true;
             }
+            else if (consumeTok(TOK_ELLIPSIS))
+                variadic = true;
             else if (startedDefaultArgs)
                 REPORT_SYNTAX(EXPECT_DEFAULT_PARAM, param);
 
-            params.emplace_back(fix, param, defaultVal);
+            params.emplace_back(fix, variadic, param, defaultVal);
             CONSUME_VAR_TYPE();
         } while (consumeTok(TOK_COMMA));
     }
@@ -1012,10 +1016,12 @@ StmtUP Parser::lambdaBodyHelper(
         bool lambdaState{inLambdaParams};
         inLambdaParams = true;
 
-        bool startedDefaultArgs{false};
-        if (!checkTok(TOK_BAR))
+        bool startedDefaultArgs{false}, variadic{false};
+        if (!checkTok(TOK_RIGHT_PAREN))
         {
             do {
+                if (variadic) REPORT_SYNTAX(PARAM_AFTER_VARIADIC, previousTok);
+
                 bool fix{consumeTok(TOK_FIX)};
                 MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
                 Token param{previousTok};
@@ -1026,10 +1032,12 @@ StmtUP Parser::lambdaBodyHelper(
                     defaultVal = expression();
                     startedDefaultArgs = true;
                 }
+                else if (consumeTok(TOK_ELLIPSIS))
+                    variadic = true;
                 else if (startedDefaultArgs)
                     REPORT_SYNTAX(EXPECT_DEFAULT_PARAM, param);
 
-                params.emplace_back(fix, param, defaultVal);
+                params.emplace_back(fix, variadic, param, defaultVal);
                 CONSUME_VAR_TYPE();
             } while (consumeTok(TOK_COMMA));
         }

@@ -58,6 +58,8 @@ class VM
         std::vector<CallFrame> frames{};
         std::vector<Cell*> activeCells{};
 
+        u8 args{}; // Argument count for most recent call.
+
         bool inDeclaration{false};
         u8 clearIndex{}; // To communicate with compiler.
 

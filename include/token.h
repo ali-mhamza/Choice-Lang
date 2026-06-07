@@ -143,6 +143,7 @@ enum TokenType : u8
 
 	TOK_FUNC,			// func
 	TOK_THICK_ARROW,	// =>
+	TOK_ELLIPSIS,		// ...
 
 	/* Classes. */
 

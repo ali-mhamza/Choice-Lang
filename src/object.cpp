@@ -418,6 +418,7 @@ void Function::emit(std::ofstream& os) const
 
     os.put(static_cast<char>(arityMin));
     os.put(static_cast<char>(arityMax));
+    os.put(static_cast<char>(variadic));
 
     code.encodeData(os);
     if (debugInfoState == DEBUG_COMBINED)

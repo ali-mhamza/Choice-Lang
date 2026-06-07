@@ -126,6 +126,7 @@ Object CodeReader::reconstructFunc()
 
 	u8 arityMin{readValue<u8>()};
 	u8 arityMax{readValue<u8>()};
+	bool variadic{readValue<bool>()};
 	ByteCode code{reconstructByteCode()};
 
 	Object func{};
@@ -138,6 +139,8 @@ Object CodeReader::reconstructFunc()
 	ByteCode* defaultArgs{new ByteCode[defaultCount]};
 	for (u8 i{0}; i < defaultCount; i++)
 	    defaultArgs[i] = reconstructByteCode();
+
+	AS_FUNC(func)->variadic = variadic;
 	AS_FUNC(func)->defaultArgs = defaultArgs;
 
 	return func;

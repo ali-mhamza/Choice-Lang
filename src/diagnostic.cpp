@@ -16,7 +16,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    EXPECT_DEFAULT_PARAM, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
+    PARAM_AFTER_VARIADIC, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
     FORMAT_STR_PROBLEM, HIT_ARGS_MAX, INVALID_INCR_DECR_TARGET,
     IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
     MUT_TO_IMMUT
@@ -49,6 +49,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Reached maximum nesting depth for block scopes.",
     "Reached maximum nesting depth for expressions.",
     "Cannot have a regular parameter after a default parameter.",
+    "Cannot have a parameter after a variadic parameter (with '...').",
 
     // Variable errors.
 

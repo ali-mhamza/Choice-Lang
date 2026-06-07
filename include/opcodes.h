@@ -90,6 +90,8 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_RETURN,			// Return a value.
 	OP_VOID,			// Load an invalid (void) return value.
 
+	OP_VAR_ARGS,		// Initialize a parameter with a variable argument list.
+
 	OP_CLOSURE,			// Create a closure with an environment from a loaded function object.
 	OP_CAPTURE_VAL,		// Capture a value from a surrounding scope into a cell.
 	OP_CAPTURE_CELL,	// Capture a cell from a surrounding scope.

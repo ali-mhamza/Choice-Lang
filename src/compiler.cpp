@@ -417,13 +417,6 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
 
     for (auto it{params.begin()}; it != params.end(); it++)
     {
-        bool access{accessVar};
-        if (it->fix)
-        {
-            store.addOp(OP_FIX, miniCompiler.nextReg);
-            access = accessFix;
-        }
-
         const Token& param{it->param};
         u8 reg{miniCompiler.nextReg};
         LocalInfo info{miniCompiler.getScopeLocal(param)};
@@ -441,7 +434,20 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
             miniCompiler.code.clearCode();
         }
         else
+        {
+            if (it->variadic) store.addOp(OP_VAR_ARGS, reg);
             miniCompiler.reserveReg();
+        }
+
+        // Apply OP_FIX after (potential) OP_VAR_ARGS, since
+        // the latter may overwrite flags in the type byte for
+        // the fix-marked register.
+        bool access{accessVar};
+        if (it->fix)
+        {
+            store.addOp(OP_FIX, reg);
+            access = accessFix;
+        }
         miniCompiler.defVar(std::string{param.text}, reg, access);
     }
 
@@ -469,13 +475,16 @@ void Compiler::funcBodyHelper(
         this->hitError = true;
 
     Object func{};
-    u8 arity{static_cast<u8>(params.size())};
+    bool variadic{!params.empty() && params.back().variadic};
+    u8 arity{static_cast<u8>(params.size() - (variadic ? 1 : 0))};
+
     if (name.empty()) // Compiling a lambda.
         func = CH_ALLOC(Function, funcCode, arity - defaultCount, arity);
     else
         func = CH_ALLOC(Function, name, funcCode, arity - defaultCount, arity);
 
     AS_FUNC(func)->defaultArgs = defaultArgs;
+    AS_FUNC(func)->variadic = variadic;
 
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
