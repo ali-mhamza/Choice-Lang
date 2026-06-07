@@ -92,6 +92,19 @@ This option will load the cached bytecode from the given ".chbc" file, reconstru
 
 <hr>
 
+### Explain Error
+- Flags: `-e`, `-explain`
+- Applies to:
+  1. REPL - No
+  2. Source files - No
+  3. Bytecode files - No
+
+This option accepts a single error or warning code argument (an 'E' or 'W', respectively, followed immediately by the four-digit code) on the command-line, and displays further detail about the diagnostic to aid the user.\
+This option, as can be observed, does not interact with any files, and is instead to help the user understand foreign diagnostic messages or issues.\
+The option is currently a work-in-progress, providing only basic information about the provided diagnostic.
+
+<hr>
+
 **Optimization Note:**\
 To reduce the need for redundant recompilation of source files that have not changed, the interpreter will automatically check for the presence of bytecode cache files matching a given source file in the following options:
 <!-- no toc -->
