@@ -1,6 +1,7 @@
 #pragma once
 #include "astnodes.h"
 #include "bytecode.h"
+#include "config.h"
 #include "debug.h"
 #include "diagnostic.h"
 #include "vartable.h"
@@ -131,10 +132,16 @@ class Compiler
 
         /* Registers. */
 
-        inline void freeReg()      { nextReg--; }
-        inline void reserveReg()   { nextReg++; }
+        inline void freeReg()               { nextReg--; }
+        inline void reserveReg()            { nextReg++; }
+        inline void reserveBuiltinLocals()  { nextReg += BUILTIN_LOCALS; }
 
         /* General helpers. */
+
+        // Define any global built-in constant or function.
+        void defineBuiltinGlobals();
+        // Define any local built-in constant or function.
+        void defineBuiltinLocals();
 
         // `patchBreaks` - True if we are to patch 'break' jumps.
         //                 False otherwise.

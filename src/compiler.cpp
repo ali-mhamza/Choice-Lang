@@ -46,12 +46,12 @@ Compiler::Compiler(Compiler* comp) :
     depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)}
 {
     if (depth == 0) // Global scope compiler.
-    {
-        for (const auto* func : Natives::funcNames)
-            defVar(func, nextReg++, accessVar);
-    }
+        defineBuiltinGlobals();
     else
+    {
         this->id = scopeCompiler->id;
+        defineBuiltinLocals();
+    }
 }
 
 Compiler::~Compiler() = default;
@@ -59,6 +59,18 @@ Compiler::~Compiler() = default;
 std::vector<Compiler::DeclarationPair> Compiler::declaredVars{};
 bool Compiler::clearDeclaredVars{false};
 u8 Compiler::clearIndex{0};
+
+void Compiler::defineBuiltinGlobals()
+{
+    defVar("_file_", nextReg++, accessFix);
+    for (const auto* func : Natives::funcNames)
+        defVar(func, nextReg++, accessVar);
+}
+
+void Compiler::defineBuiltinLocals()
+{
+    defVar("_func_", nextReg++, accessFix);
+}
 
 /* Compilation helpers. */
 
@@ -1310,19 +1322,24 @@ DEF(CallExpr)
         compileExpr(node->callee); // Will reserve a register.
     }
 
-    u8 argsStart{nextReg};
+    u8 localStart{nextReg};
+    // We don't insert any extra local variables before arguments
+    // for built-ins (since they cannot use those locals in code
+    // anyway).
+    if (!node->builtin)
+        reserveBuiltinLocals();
     for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
     u8 size{static_cast<u8>(node->args.size())};
     code.addOp((node->builtin ? OP_CALL_NAT : OP_CALL_DEF),
-        location, argsStart, size);
+        location, localStart, size);
 
     // For user-defined functions, the return value replaces the
     // function object.
     // For built-ins, we place the return value in the empty register
     // reserved above.
-    nextReg = argsStart;
+    nextReg = localStart;
 }
 
 DEF(IfExpr)

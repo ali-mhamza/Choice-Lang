@@ -44,14 +44,46 @@
 
 VM::VM()
 {
-    for (u8 i{0}; i < Natives::FuncType::NUM_FUNCS; i++)
-        globalRegisters[i] = Object(Natives::FuncType(i));
-    SET_REGSLOT(Natives::NUM_FUNCS);
+    defineBuiltinGlobals();
 }
 
 VM::~VM()
 {
     delete[] globalRegisters;
+}
+
+void VM::defineBuiltinGlobals()
+{
+    Object* temp{globalRegisters};
+
+    temp[FILENAME_LOC] = Object{CH_ALLOC(String, "")};
+    MAKE_FIXED(temp[FILENAME_LOC]);
+    MAKE_IMMUT(temp[FILENAME_LOC]);
+    temp++;
+
+    for (u8 i{0}; i < Natives::FuncType::NUM_FUNCS; i++)
+    {
+        *temp = Object{Natives::FuncType(i)};
+        temp++;
+    }
+    SET_REGSLOT(temp - globalRegisters);
+}
+
+void VM::amendFileName()
+{
+    Object& name{globalRegisters[FILENAME_LOC]};
+    if (inRepl)
+        AS_STRING(name)->str = "<repl>";
+    else
+        AS_STRING(name)->str = sourceManager.getFile(currentFunc->getID());
+}
+
+void VM::amendFuncName(const Function* func)
+{
+    const char* funcName{(func->name == nullptr) ? "lambda" : func->name};
+    registers[FUNCNAME_LOC] = Object{CH_ALLOC(String, funcName)};
+    MAKE_FIXED(registers[FUNCNAME_LOC]);
+    MAKE_IMMUT(registers[FUNCNAME_LOC]);
 }
 
 inline u8 VM::readByte()
@@ -498,6 +530,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     // TODO: Disassembler should follow any argument-prep code
     // here as well.
     prepFuncArgs(func, argCount);
+    amendFuncName(func);
 
     #if WATCH_EXEC
         this->dis = new Disassembler(func);
@@ -506,6 +539,10 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 
 void VM::callNative(const Object& callee, u8 start, u8 argCount)
 {
+    // No need to call amendFuncName here, since users
+    // cannot directly interact with the code for built-ins,
+    // i.e., they cannot insert built-in constants into said code.
+
     auto* func{Natives::functions[AS_NATIVE(callee)]};
     func(&registers[start], argCount);
 }
@@ -573,9 +610,9 @@ void VM::printRegister()
 {
     u8 i{};
     if (frames.size() == 0)
-        i = Natives::FuncType::NUM_FUNCS;
+        i = BUILTIN_GLOBALS;
     else
-        i = 0;
+        i = BUILTIN_LOCALS;
 
     while (i <= regSlot)
     {
@@ -584,6 +621,7 @@ void VM::printRegister()
         CH_PRINT("[{}]", getElementText(registers[i]));
         i++;
     }
+
     if (i != 0) CH_PRINT("\n");
 }
 
@@ -1239,6 +1277,7 @@ void VM::execute(Function* script)
     scopeStarts.reserve(MAX_SCOPE_DEPTH);
     activeCells.reserve(CODE_MAX);
 
+    amendFileName();
     executeCode();
 
     #if WATCH_EXEC

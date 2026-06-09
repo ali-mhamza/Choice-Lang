@@ -35,6 +35,17 @@ constexpr inline unsigned int MAX_EXPR_NEST_DEPTH{100};
 // Maximum block scope nesting.
 constexpr inline unsigned int MAX_BLOCK_SCOPE_DEPTH{100};
 
+// Built-ins.
+
+// Number of pre-defined global identifiers (constants or functions).
+constexpr inline unsigned int BUILTIN_GLOBALS{10};
+// Number of pre-defined local identifiers (constant or functions).
+constexpr inline unsigned int BUILTIN_LOCALS{1};
+// Register location of '_file_' variable.
+constexpr inline unsigned int FILENAME_LOC{0};
+// Register location of '_func_' variable.
+constexpr inline unsigned int FUNCNAME_LOC{0};
+
 /* VM */
 
 // Maximum depth of nested scopes.
