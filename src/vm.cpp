@@ -470,6 +470,9 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
 {
     const u8* ip{this->ip};
     const Object* pool{this->pool};
+    #if WATCH_EXEC
+        Disassembler* const dis{this->dis};
+    #endif
 
     u8 funcDefaultArgs{static_cast<u8>(func->arityMax - func->arityMin)};
     u8 withDefault{static_cast<u8>(argCount - func->arityMin)};
@@ -479,11 +482,24 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
         const auto& chunk{func->defaultArgs[withDefault++]};
         this->ip = chunk.block.data();
         this->pool = chunk.pool.data();
+
+        #if WATCH_EXEC
+            const Function* temp{CH_ALLOC(Function, chunk)};
+            this->dis = new Disassembler{temp};
+        #endif
+
         executeCode();
+
+        #if WATCH_EXEC
+            CH_DEALLOC(temp);
+        #endif
     }
 
     this->ip = ip;
     this->pool = pool;
+    #if WATCH_EXEC
+        this->dis = dis;
+    #endif
 }
 
 void VM::restoreData()
