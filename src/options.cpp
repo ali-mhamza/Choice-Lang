@@ -54,10 +54,7 @@ void optionExecute(FileID id, std::string_view input)
 		diagEngine.emitReports();
 
 	runVM(script);
-
-	#if !CH_USE_ALLOC
-        delete script;
-    #endif
+	CH_DEALLOC(script);
 }
 
 void optionEmitTokens(FileID id, std::string_view input)
@@ -79,10 +76,7 @@ void optionEmitBytecode(FileID id, std::string_view input)
         diagEngine.emitReports();
 
     Disassembler{script}.disassembleCode();
-
-    #if !CH_USE_ALLOC
-        delete script;
-    #endif
+    CH_DEALLOC(script);
 }
 
 void optionCacheBytecode(FileID id, std::string_view input)
@@ -124,9 +118,7 @@ void optionCacheBytecode(FileID id, std::string_view input)
 			script->code.encodeMetadata(debugDestination);
 	}
 
-    #if !CH_USE_ALLOC
-        delete script;
-    #endif
+    CH_DEALLOC(script);
 }
 
 static bool loadRecentSourceFile(
@@ -215,10 +207,7 @@ void optionDisProgram(FileID id, std::string_view input)
 	ByteCode chunk{readByteCode(input)};
 	Function* script{CH_ALLOC(Function, chunk)};
 	Disassembler{script}.disassembleCode();
-
-	#if !CH_USE_ALLOC
-		delete script;
-	#endif
+	CH_DEALLOC(script);
 }
 
 void optionLoadProgram(FileID id, std::string_view input)
@@ -228,10 +217,7 @@ void optionLoadProgram(FileID id, std::string_view input)
 	ByteCode chunk{readByteCode(input)};
 	Function* script{CH_ALLOC(Function, chunk)};
 	runVM(script); // Reports errors through diagEngine directly.
-
-	#if !CH_USE_ALLOC
-		delete script;
-	#endif
+	CH_DEALLOC(script);
 }
 
 void optionCheckProgram(FileID id, std::string_view input)
@@ -250,9 +236,7 @@ void optionCheckProgram(FileID id, std::string_view input)
 		CH_PRINT_SUCCESS_ARGS("File '{}' compiles successfully.\n", sourceFile);
 	}
 
-	#if !CH_USE_ALLOC
-		delete script;
-	#endif
+	CH_DEALLOC(script);
 }
 
 void optionExplainError(FileID id, std::string_view input)

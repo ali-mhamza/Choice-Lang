@@ -136,6 +136,7 @@
 	#endif
 
 	#define CH_ALLOC(type, ...) allocator.alloc<type, CustomDealloc<type>>(__VA_ARGS__)
+	#define CH_DEALLOC(ptr)
 
 	#if defined(DEBUG)
 		#define CH_ASSERT_MEM(expr, msg, arena)								\
@@ -155,6 +156,7 @@
 	#endif /* defined(DEBUG) */
 #else
 	#define CH_ALLOC(type, ...) new type{__VA_ARGS__}
+	#define CH_DEALLOC(ptr) delete ptr
 #endif
 
 // Unreachable points.
