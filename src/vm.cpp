@@ -534,7 +534,7 @@ void VM::callNative(const Object& callee, u8 start, u8 argCount)
     // i.e., they cannot insert built-in constants into said code.
 
     auto* func{Natives::functions[AS_NATIVE(callee)]};
-    func(&registers[start], argCount);
+    func(&registers[start + BUILTIN_LOCALS], argCount);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)

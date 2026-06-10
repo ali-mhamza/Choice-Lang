@@ -1323,11 +1323,7 @@ DEF(CallExpr)
     }
 
     u8 localStart{nextReg};
-    // We don't insert any extra local variables before arguments
-    // for built-ins (since they cannot use those locals in code
-    // anyway).
-    if (!node->builtin)
-        reserveBuiltinLocals();
+    reserveBuiltinLocals();
     for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
