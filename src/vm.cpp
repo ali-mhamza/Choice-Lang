@@ -1054,7 +1054,7 @@ void VM::executeOp(Opcode op)
             SET_REGSLOT(start);
 
             const auto& func{Natives::functions[callee]};
-            func(&registers[start], argCount); // Temporarily.
+            func(&registers[start + BUILTIN_LOCALS], argCount); // Temporarily.
 
             SET_REGSLOT(currentSlot);
             DISPATCH();
