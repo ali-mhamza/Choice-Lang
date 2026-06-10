@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "config.h"
 #include "object.h"
 #include "opcodes.h"
 #include <vector>
