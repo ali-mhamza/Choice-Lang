@@ -503,19 +503,9 @@ void VM::restoreData()
 
 void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 {
-    Function* func{};
-    Closure* closure{};
-
-    if (IS_CLOSURE(callee))
-    {
-        closure = AS_CLOSURE(callee);
-        func = closure->function;
-    }
-    else
-    {
-        closure = nullptr;
-        func = AS_FUNC(callee);
-    }
+    bool isClosure{IS_CLOSURE(callee)};
+    Closure* closure{isClosure ? AS_CLOSURE(callee) : nullptr};
+    Function* func{isClosure ? closure->function : AS_FUNC(callee)};
 
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
