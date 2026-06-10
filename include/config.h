@@ -48,6 +48,8 @@ constexpr inline unsigned int FUNCNAME_LOC{0};
 
 /* VM */
 
+// Number of available registers across all stack frames.
+constexpr inline unsigned int NUM_REGS{1 << 12};
 // Maximum depth of nested scopes.
 constexpr inline unsigned int MAX_SCOPE_DEPTH{CODE_MAX + 1};
 // Used to estimate space to reserve early in call-stack.

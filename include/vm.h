@@ -49,8 +49,7 @@ class VM
         Closure* currentClosure{};
         const u8* ip{};
 
-        static constexpr size_t regSize{4096};
-        Object* globalRegisters{new Object[regSize]};
+        Object* globalRegisters{new Object[NUM_REGS]};
         Object* registers{globalRegisters};
         const Object* pool{};
 

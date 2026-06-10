@@ -1091,7 +1091,7 @@ void VM::executeOp(Opcode op)
             auto& array{AS_LIST(list)->array};
             for (u8 i{reg}; i < args; i++)
             {
-                if (registers + i > globalRegisters + regSize)
+                if (registers + i > globalRegisters + NUM_REGS)
                     break;
                 array.push(registers[i]);
             }
