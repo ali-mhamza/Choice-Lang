@@ -202,7 +202,7 @@ bool Object::in(const Object& other) const
         throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
 }
 
-Object Object::getIndex(const Object& index)
+Object Object::getIndex(const Object& index) const
 {
     CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index operator.");
 
@@ -525,7 +525,7 @@ bool String::contains(const String& substr) const
     return (this->str.find(substr.str) != std::string::npos);
 }
 
-Object String::getIndex(const Object& index)
+Object String::getIndex(const Object& index) const
 {
     if (!IS_INT(index))
         throw reportCollection(OBJ_NOT_INDEX, this, index);
@@ -638,7 +638,7 @@ i64 Range::length() const
     return std::abs((stop - start) / step) + 1;
 }
 
-Object Range::getIndex(const Object& index)
+Object Range::getIndex(const Object& index) const
 {
     if (!IS_INT(index))
         throw reportCollection(OBJ_NOT_INDEX, this, index);
@@ -689,7 +689,7 @@ bool List::operator==(const List& other) const
     return true;
 }
 
-Object List::getIndex(const Object& index)
+Object List::getIndex(const Object& index) const
 {
     if (!IS_INT(index))
         throw reportCollection(OBJ_NOT_INDEX, this, index);
@@ -776,9 +776,9 @@ bool Table::contains(const Object& obj) const
     return (table.contains(obj));
 }
 
-Object Table::getIndex(const Object& key)
+Object Table::getIndex(const Object& key) const
 {
-    Object* value{table.get(key)};
+    const Object* value{table.get(key)};
     if (value != nullptr) return *value;
 
     throw RuntimeError(TABLE_KEY_NOT_FOUND,

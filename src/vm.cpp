@@ -414,7 +414,7 @@ Object VM::unaryOper(Opcode op, u8 oper)
 
 Object VM::getIndex(u8 objReg, u8 indexReg)
 {
-    Object& obj{registers[objReg]};
+    const Object& obj{registers[objReg]};
     const Object& index{registers[indexReg]};
 
     if (!IS_COLLECTION(obj))

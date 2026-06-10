@@ -93,21 +93,22 @@ class Object
     public:
         u8 type_{};
         union Value {
-            i64         intVal;
-            double      decVal;
-            bool        boolVal;
-            ObjType     typeVal;
-            FuncType    nativeVal;
-            Function*   funcVal;
-            Closure*    closureVal;
-            String*     stringVal;
-            Range*      rangeVal;
-            List*       listVal;
-            Table*      tableVal;
-            Cell*       refVal;
-            Void*       voidVal;
-            HeapObj*    heapVal;
-            ObjIter*    iterVal;
+            i64             intVal;
+            double          decVal;
+            bool            boolVal;
+            ObjType         typeVal;
+            FuncType        nativeVal;
+            Function*       funcVal;
+            Closure*        closureVal;
+            String*         stringVal;
+            Range*          rangeVal;
+            List*           listVal;
+            Table*          tableVal;
+            Cell*           refVal;
+            Void*           voidVal;
+            HeapObj*        heapVal;
+            ObjIter*        iterVal;
+            const HeapObj*  dummyVal;
         } as;
 
         Object() noexcept;
@@ -131,7 +132,7 @@ class Object
         [[nodiscard]] bool operator<(const Object& other) const;
         [[nodiscard]] bool in(const Object& other) const;
 
-        [[nodiscard]] Object getIndex(const Object& index);
+        [[nodiscard]] Object getIndex(const Object& index) const;
         void setIndex(const Object& index, const Object& value);
 
         [[nodiscard]] Hash hash() const;
@@ -143,21 +144,25 @@ class Object
 };
 
 template<typename T>
-ObjType getObjectType(T val)
+ObjType getObjectType(const T val)
 {
-    if constexpr (std::is_same_v<T, Function*>)
+    using U = std::remove_const_t<T>;
+
+    if constexpr (std::is_same_v<U, Function*>)
     {
         if (val->name == nullptr) return OBJ_LAMBDA;
         return OBJ_FUNC;
     }
 
-    if constexpr (std::is_same_v<T, Closure*>)  return OBJ_CLOSURE;
-    if constexpr (std::is_same_v<T, String*>)   return OBJ_STRING;
-    if constexpr (std::is_same_v<T, Range*>)    return OBJ_RANGE;
-    if constexpr (std::is_same_v<T, List*>)     return OBJ_LIST;
-    if constexpr (std::is_same_v<T, Table*>)    return OBJ_TABLE;
-    if constexpr (std::is_same_v<T, Cell*>)     return OBJ_REF;
-    if constexpr (std::is_same_v<T, Void*>)     return OBJ_VOID;
+    if constexpr (std::is_same_v<U, Closure*>)  return OBJ_CLOSURE;
+    if constexpr (std::is_same_v<U, String*>)   return OBJ_STRING;
+    if constexpr (std::is_same_v<U, Range*>)    return OBJ_RANGE;
+    if constexpr (std::is_same_v<U, List*>)     return OBJ_LIST;
+    if constexpr (std::is_same_v<U, Table*>)    return OBJ_TABLE;
+    if constexpr (std::is_same_v<U, Cell*>)     return OBJ_REF;
+    if constexpr (std::is_same_v<U, Void*>)     return OBJ_VOID;
+
+    return OBJ_INVALID; // Dummy return value.
 }
 
 template<typename T>
@@ -208,7 +213,10 @@ Object::Object(T val) noexcept
             val->refCount++;
         #endif
 
-        as.heapVal = val;
+        if constexpr (std::is_const_v<std::remove_pointer_t<T>>)
+            as.dummyVal = val;
+        else
+            as.heapVal = val;
     }
 }
 
@@ -394,7 +402,7 @@ struct String : public HeapObj
     [[nodiscard]] bool operator==(const String& other) const;
     [[nodiscard]] bool contains(const String& substr) const;
 
-    [[nodiscard]] Object getIndex(const Object& index);
+    [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
     [[nodiscard]] std::string printVal() const;
@@ -415,7 +423,7 @@ struct Range : public HeapObj
     [[nodiscard]] bool contains(const i64 num) const;
 
     [[nodiscard]] i64 length() const;
-    [[nodiscard]] Object getIndex(const Object& index);
+    [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
     [[nodiscard]] std::string printVal() const;
@@ -430,7 +438,7 @@ struct List : public HeapObj
     [[nodiscard]] bool operator==(const List& other) const;
     [[nodiscard]] bool contains(const Object& obj) const;
 
-    [[nodiscard]] Object getIndex(const Object& index);
+    [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
     Hash hash() const;
@@ -454,7 +462,7 @@ struct Table : public HeapObj
     [[nodiscard]] bool operator==(const Table& other) const;
     [[nodiscard]] bool contains(const Object& obj) const;
 
-    [[nodiscard]] Object getIndex(const Object& key);
+    [[nodiscard]] Object getIndex(const Object& key) const;
     void setIndex(const Object& key, const Object& value);
 
     [[nodiscard]] std::string printVal() const;
