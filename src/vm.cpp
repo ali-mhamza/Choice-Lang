@@ -80,10 +80,7 @@ void VM::amendFileName()
 
 void VM::amendFuncName(const Function* func)
 {
-    const char* funcName{(func->name == nullptr) ? "lambda" : func->name};
-    registers[FUNCNAME_LOC] = Object{CH_ALLOC(String, funcName)};
-    MAKE_FIXED(registers[FUNCNAME_LOC]);
-    MAKE_IMMUT(registers[FUNCNAME_LOC]);
+    registers[FUNCNAME_LOC] = func->nameVariable;
 }
 
 inline u8 VM::readByte()

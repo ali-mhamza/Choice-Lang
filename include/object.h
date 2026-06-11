@@ -350,11 +350,15 @@ struct DebugRange;
 
 struct Function : public HeapObj
 {
-    const char* name{};
+    const char* name{nullptr};
+    // Used to initialize the '_func_' variable
+    // implicitly defined for every function/function call.
+    Object nameVariable{};
     const ByteCode code{};
-    const ByteCode* defaultArgs{};
+    const ByteCode* defaultArgs{nullptr};
     const u8 arityMin{}, arityMax{};
-    bool variadic{false}; // Non-const to allow assignment.
+    bool variadic{false};       // Non-const to allow assignment.
+    bool deallocated{false};    // To not double-free the name and defaultArgs. 
 
     Function(
         const ByteCode& code,
