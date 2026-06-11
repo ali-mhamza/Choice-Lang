@@ -14,7 +14,7 @@ This is a single-line comment.
 ```
 // Single-line comment.
 ```
-For multi-line comments, wrap the comment in a `#`:
+For multi-line comments, wrap the comment body in a `#`:
 ```
 #
 Multi-line
