@@ -43,13 +43,18 @@ ObjT* LinearAlloc::alloc(Args&&... args) noexcept
     ObjT* obj = static_cast<ObjT*>(
         alignMem(AS_VOID(AS_BYTES(arena) + used), alignof(ObjT))
     );
+    // Increment first before constructing the object, in case
+    // the constructor allocates memory using the allocator
+    // (since otherwise both would be sharing the same address).
+    used = (AS_BYTES(obj) + sizeof(ObjT)) - AS_BYTES(arena);
+
     CH_ASSERT_MEM(
         (AS_BYTES(obj) < AS_BYTES(start) + cap),
         "Ran out of memory",
         start
     );
+
     new (obj) ObjT(std::forward<Args>(args)...);
-    used = (AS_BYTES(obj) + sizeof(ObjT)) - AS_BYTES(arena);
     if constexpr (!std::is_trivially_destructible_v<ObjT>)
         allocs.push(AllocPair{AS_VOID(obj), Dealloc()});
     return obj;
