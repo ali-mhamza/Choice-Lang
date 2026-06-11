@@ -352,10 +352,9 @@ struct Function : public HeapObj
 {
     const char* name{};
     const ByteCode code{};
-    const u8 arityMin{};
-    const u8 arityMax{};
-    bool variadic{false}; // Non-const to allow assignment.
     const ByteCode* defaultArgs{};
+    const u8 arityMin{}, arityMax{};
+    bool variadic{false}; // Non-const to allow assignment.
 
     Function(
         const ByteCode& code,
