@@ -29,7 +29,7 @@ First
 comment.
 #
 
-var x = 1;
+make x = 1;
 
 #
 Second
