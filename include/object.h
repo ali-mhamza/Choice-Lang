@@ -358,7 +358,6 @@ struct Function : public HeapObj
     const ByteCode* defaultArgs{nullptr};
     const u8 arityMin{}, arityMax{};
     bool variadic{false};       // Non-const to allow assignment.
-    bool deallocated{false};    // To not double-free the name and defaultArgs. 
 
     Function(
         const ByteCode& code,
