@@ -166,7 +166,7 @@ void Disassembler::callOp(u8 byte)
 	if (byte == OP_CALL_NAT)
 	{
 		std::string_view func{Natives::funcNames[callee]};
-		CH_PRINT("'{}' R[{}] ({})\n", func, start, count);
+		CH_PRINT("'{}' R[{}] ({})\n", func, start + BUILTIN_LOCALS, count);
 	}
 	else
 	{
