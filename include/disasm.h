@@ -18,13 +18,15 @@ class Disassembler
         // VM execution.
         bool inVM{true};
 
-        void printOpcode(std::string_view opName) const;
+        void printOpcode(std::string_view opName);
+        // No padding or space after the opcode name.
+        void printBareOpcode(std::string_view opName);
         void printOperValue(const Object& oper) const;
         void disFunction(const Function* func) const;
 
-        [[nodiscard]] u8 restoreByte() const;
-        [[nodiscard]] u16 restoreShort() const;
-        [[nodiscard]] u32 restoreLong() const;
+        [[nodiscard]] u8 readByte();
+        [[nodiscard]] u16 readShort();
+        [[nodiscard]] u32 readLong();
 
         void singleOper(u8 byte);
         void doubleOper(u8 byte);

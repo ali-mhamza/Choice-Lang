@@ -14,7 +14,7 @@ Disassembler::Disassembler(const Function* function) :
 	func{function}, ip{func->code.block.begin()},
 	start{func->code.block.begin()} {}
 
-void Disassembler::printOpcode(std::string_view opName) const
+void Disassembler::printOpcode(std::string_view opName)
 {
 	#if PRINT_FULL_OFFSET
 		CH_PRINT("{:0>4} {:<15} ", ip - start, opName);
@@ -22,7 +22,22 @@ void Disassembler::printOpcode(std::string_view opName) const
 		// Prints leading spaces, not zeros.
 		CH_PRINT("{:>4} {:<15} ", ip - start, opName);
 	#endif
+
+	ip++;
 }
+
+void Disassembler::printBareOpcode(std::string_view opName)
+{
+	#if PRINT_FULL_OFFSET
+		CH_PRINT("{:0>4} {}\n", ip - start, opName);
+	#else
+		CH_PRINT("{:>4} {}\n", ip - start, opName);
+	#endif
+
+	ip++;
+}
+
+#undef PRINT_FULL_OFFSET
 
 void Disassembler::disFunction(const Function* func) const
 {
@@ -51,90 +66,87 @@ void Disassembler::printOperValue(const Object& oper) const
 		disFunction(AS_FUNC(oper));
 }
 
-u8 Disassembler::restoreByte() const
+u8 Disassembler::readByte()
 {
-	return ip[1];
+	u8 byteVal{*ip};
+	ip += sizeof(u8);
+
+	return byteVal;
 }
 
-u16 Disassembler::restoreShort() const
+u16 Disassembler::readShort()
 {
-	u16 value{static_cast<u16>(
-		(ip[1] << 8) | (ip[2])
+	u16 shortVal{static_cast<u16>(
+		(ip[0] << 8) | (ip[1])
 	)};
 
-	return value;
+	ip += sizeof(u16);
+	return shortVal;
 }
 
-u32 Disassembler::restoreLong() const
+u32 Disassembler::readLong()
 {
-	u32 value{static_cast<u32>(
-		(ip[1] << 24)
-		| (ip[2] << 16)
-		| (ip[3] << 8)
-		| ip[4]
+	u32 longVal{static_cast<u32>(
+	      (ip[0] << 24)
+		| (ip[1] << 16)
+		| (ip[2] << 8)
+		| ip[3]
 	)};
 
-	return value;
+	ip += sizeof(u32);
+	return longVal;
 }
 
 void Disassembler::singleOper(u8 byte)
 {
 	printOpcode(opNames[byte]);
-	CH_PRINT("R[{}]\n", ip[1]);
-
-	ip += 2;
+	CH_PRINT("R[{}]\n", readByte());
 }
 
 void Disassembler::doubleOper(u8 byte)
 {
 	printOpcode(opNames[byte]);
+	u8 first{readByte()}, second{readByte()};
 
 	Opcode op{static_cast<Opcode>(byte)};
 	if (op == OP_GET_CELL)
-		CH_PRINT("R[{}] C[{}]\n", ip[1], ip[2]);
+		CH_PRINT("R[{}] C[{}]\n", first, second);
 	else if (op == OP_SET_CELL)
-		CH_PRINT("C[{}] R[{}]\n", ip[1], ip[2]);
+		CH_PRINT("C[{}] R[{}]\n", first, second);
 	else
-		CH_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
-
-	ip += 3;
+		CH_PRINT("R[{}] R[{}]\n", first, second);
 }
 
 void Disassembler::loadOp()
 {
 	printOpcode("OP_LOAD_R");
-	CH_PRINT("R[{}] ", ip[1]);
+	CH_PRINT("R[{}] ", readByte());
 
-	ip += 2;
-	switch (*ip)
+	switch (readByte())
 	{
 		case OP_BYTE_OPER:
 		{
-			u8 operand{restoreByte()};
+			u8 operand{readByte()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(func->code.pool[operand]);
-			ip += 2;
 			break;
 		}
 		case OP_SHORT_OPER:
 		{
-			u16 operand{restoreShort()};
+			u16 operand{readShort()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(func->code.pool[operand]);
-			ip += 3;
 			break;
 		}
 		case OP_LONG_OPER:
 		{
-			u32 operand{restoreLong()};
+			u32 operand{readLong()};
 			CH_PRINT("C[{}] ", operand);
 			printOperValue(func->code.pool[operand]);
-			ip += 5;
 			break;
 		}
 		default: // Direct constant loading instruction.
-			CH_PRINT("{}\n", opNames[*ip]);
-			ip++;
+			CH_PRINT("{}\n", opNames[ip[-1]]);
 	}
 }
 
@@ -143,25 +155,20 @@ void Disassembler::jumpOp(u8 byte, int sign)
 	printOpcode(opNames[byte]);
 	if ((byte == OP_JUMP_TRUE) || (byte == OP_JUMP_FALSE))
 	{
-		u8 reg{restoreByte()};
-		ip++;
+		u8 reg{readByte()};
 		CH_PRINT("R[{}] ", reg);
 	}
 
-	u16 jump{restoreShort()};
-	ip += 3;
+	u16 jump{readShort()};
 	CH_PRINT("-> {}\n", ip - start + (sign * jump));
 }
 
 void Disassembler::callOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
-	u8 callee{restoreByte()};
-	ip++;
-	u8 start{restoreByte()};
-	ip++;
-	u8 count{restoreByte()};
-	ip += 2;
+	u8 callee{readByte()};
+	u8 start{readByte()};
+	u8 count{readByte()};
 
 	if (byte == OP_CALL_NAT)
 	{
@@ -183,18 +190,14 @@ void Disassembler::callOp(u8 byte)
 void Disassembler::iterOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
+	u8 varReg{readByte()}, iterReg{readByte()};
 
 	if (static_cast<Opcode>(byte) == OP_MAKE_ITER)
-	{
-		CH_PRINT("R[{}] R[{}]\n", ip[1], ip[2]);
-		ip += 3;
-	}
+		CH_PRINT("R[{}] R[{}]\n", varReg, iterReg);
 	else if (static_cast<Opcode>(byte) == OP_UPDATE_ITER)
 	{
-		ip += 2;
-		u16 jump{restoreShort()};
-		ip += 3;
-		CH_PRINT("R[{}] R[{}] -> {}\n", ip[-4], ip[-3],
+		u16 jump{readShort()};
+		CH_PRINT("R[{}] R[{}] -> {}\n", varReg, iterReg,
 			ip - start - jump);
 	}
 }
@@ -203,14 +206,9 @@ void Disassembler::indexOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
 
-	u8 objReg{restoreByte()};
-	ip++;
-
-	u8 indexReg{restoreByte()};
-	ip++;
-
-	u8 tempReg{restoreByte()};
-	ip += 2;
+	u8 objReg{readByte()};
+	u8 indexReg{readByte()};
+	u8 tempReg{readByte()};
 
 	CH_PRINT("R[{}] R[{}] R[{}]\n", objReg, indexReg, tempReg);
 }
@@ -218,39 +216,28 @@ void Disassembler::indexOp(u8 byte)
 void Disassembler::collectionOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
-
-	u8 reg{restoreByte()};
-	ip++;
+	u8 reg{readByte()};
 
 	if ((static_cast<Opcode>(byte) == OP_EXT_LIST)
 		|| (static_cast<Opcode>(byte) == OP_EXT_TABLE))
 	{
-		u8 startReg{restoreByte()};
-		ip++;
-
-		u8 count{restoreByte()};
-		ip += 2;
-
+		u8 startReg{readByte()};
+		u8 count{readByte()};
 		CH_PRINT("R[{}] R[{}] ({})\n", reg, startReg, count);
 	}
 	else
-	{
 		CH_PRINT("R[{}]\n", reg);
-		ip++;
-	}
 }
 
 void Disassembler::captureOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
-	u8 funcReg{restoreByte()};
-	ip++;
+	u8 funcReg{readByte()};
 
 	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
-		CH_PRINT("F[{}] R[{}]\n", funcReg, ip[1]);
+		CH_PRINT("F[{}] R[{}]\n", funcReg, readByte());
 	else
-		CH_PRINT("F[{}] C[{}]\n", funcReg, ip[1]);
-	ip += 2;
+		CH_PRINT("F[{}] C[{}]\n", funcReg, readByte());
 }
 
 void Disassembler::referenceOp()
@@ -260,15 +247,11 @@ void Disassembler::referenceOp()
 
 	printOpcode(opNames[OP_MAKE_REF]);
 
-	u8 reg{restoreByte()};
-	ip++;
+	u8 reg{readByte()};
+	VarType type{static_cast<VarType>(readByte())};
+	u8 target{readByte()};
+
 	CH_PRINT("R[{}] ", reg);
-
-	VarType type{static_cast<VarType>(restoreByte())};
-	ip++;
-
-	u8 target{restoreByte()};
-	ip += 2;
 
 	switch (type)
 	{
@@ -284,21 +267,15 @@ void Disassembler::formatOp()
 {
 	printOpcode(opNames[OP_FORMAT_STR]);
 
-	u8 reg{restoreByte()};
-	ip++;
-
-	u8 count{restoreByte()};
-	ip += 2;
-
+	u8 reg{readByte()};
+	u8 count{readByte()};
 	CH_PRINT("R[{}] ({})\n", reg, count);
 }
 
 void Disassembler::declOp()
 {
 	printOpcode(opNames[OP_DEF_START]);
-	CH_PRINT("V[{}]\n", ip[1]);
-
-	ip += 2;
+	CH_PRINT("V[{}]\n", readByte());
 }
 
 void Disassembler::disassembleOp(u8 byte)
@@ -344,22 +321,11 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_FORMAT_STR:	formatOp();		break;
 		case OP_DEF_START:	declOp();		break;
 		case OP_EXIT_SCOPE:		case OP_DEF_END:	case OP_HALT:
-		{
-			#if PRINT_FULL_OFFSET
-				CH_PRINT("{:0>4} {}\n", ip - start, opNames[byte]);
-			#else
-				CH_PRINT("{:>4} {}\n", ip - start, opNames[byte]);
-			#endif
-			ip++;
+			printBareOpcode(opNames[byte]);
 			break;
-		}
 		default:
-		{
-			CH_PRINT("{:0>4} UNKNOWN OPCODE {}\n",
-				ip - start, byte);
-			ip++;
+			printBareOpcode(CH_STR("UNKNOWN OPCODE {}", byte));
 			break;
-		}
 	}
 }
 
@@ -392,5 +358,3 @@ void Disassembler::disassembleCode()
 	while (ip < end)
 		disassembleOp(*ip);
 }
-
-#undef PRINT_FULL_OFFSET
