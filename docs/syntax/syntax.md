@@ -44,12 +44,17 @@ Below are all the reserved words within Choice:
 // Keywords.
 
 and, break, class, continue, def, elif, else, end, func, for,
-fallthrough, fix, false, if, is, in, match, make, null, not,
-or, repeat, true, until, while, where
+fallthrough, fix, false, if, is, immut, in, match, make, mut,
+null, not, or, repeat, true, until, while, where
 
 // Built-in types.
 
-Int, Dec, Boolean, String, Range, List
+Int, Dec, Boolean, Null, Type, Func, String, Range, List, Table, Void, Any, Class
+
+// Constants.
+
+_file_
+_func_ (inside functions)
 ```
 
 ## Identifiers
