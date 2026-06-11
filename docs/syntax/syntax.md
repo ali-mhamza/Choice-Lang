@@ -50,11 +50,13 @@ null, not, or, repeat, true, until, while, where
 // Built-in types.
 
 Int, Dec, Boolean, Null, Type, Func, String, Range, List, Table, Void, Any, Class
+```
 
-// Constants.
-
-_file_
-_func_ (inside functions)
+There are also pre-defined constants and identifiers. While they can still be used as identifiers for declarations, this should strictly be avoided, since they represent important data provided to the user as part of the VM runtime.\
+Below are the constants currently defined:
+```
+_file_  // At global (file or REPL) scope.
+_func_  // At function scope.
 ```
 
 ## Identifiers
