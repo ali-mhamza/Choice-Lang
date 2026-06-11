@@ -72,6 +72,8 @@ void VM::defineBuiltinGlobals()
 void VM::amendFileName()
 {
     Object& name{globalRegisters[FILENAME_LOC]};
+    if (!IS_STRING(name)) return; // '_file_' variable was redeclared in REPL.
+
     if (inRepl)
         AS_STRING(name)->str = "<repl>";
     else
