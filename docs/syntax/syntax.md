@@ -3,9 +3,10 @@
 Choice's syntax is primarily inspired by a mixture of Python, C, and (much less) Rust. It is primarily designed to be terse and concise, as well as having a good deal of variety between its different constructs (e.g., for-in, repeat-until, etc.) to reduce confusion between similar concepts or syntax.
 
 Choice source files are required to end with the ".ch" extension.\
-Additionally, the interpreter has an available option to compile and save the bytecode for a source file in a bytecode cache file of the same name (but with a ".bch" extension).\
-Bytecode cache files are, similarly, required to end with the ".bch" extension.\
-The extensions are not interchangeable (trying to execute a ".bch" file or directly disassemble a ".ch" file will not work).
+Additionally, the interpreter has an available option to compile and save the bytecode for a source file in a bytecode cache file of the same name (but with a ".chbc" extension).\
+Bytecode cache files are, similarly, required to end with the ".chbc" extension.\
+Files used to store debug metadata end instead with a ".chdbg" extension (see [interpreter options](../tools/interpreter_options.md) for more details on the relevant options here).\
+The extensions are not interchangeable (e.g., trying to execute a ".chbc" file or directly disassemble a ".ch" file will not work).
 
 ## Comments
 
