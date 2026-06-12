@@ -123,6 +123,8 @@ enum DiagCode : u8
     EXPECT_DEFAULT_PARAM,
     // Parameter after variadic parameter.
     PARAM_AFTER_VARIADIC,
+    // Function name too long.
+    FUNC_NAME_TOO_LONG,
 
 
     /* Variable errors. */

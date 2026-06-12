@@ -515,6 +515,11 @@ void Compiler::funcBodyHelper(
 DEF(FuncDecl)
 {
     startDeclaration();
+    if (node->name.text.size() > CODE_MAX)
+    {
+        REPORT_ERROR(FUNC_NAME_TOO_LONG, node->name,
+            "maximum length is 255 characters");
+    }
 
     LocalInfo localInfo{getScopeLocal(node->name)};
     bool redefined{false};
