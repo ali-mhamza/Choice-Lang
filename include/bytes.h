@@ -41,7 +41,7 @@ namespace Bytes
         private:
             // Debug info exists.
             bool debugInfoExists{};
-            // Debug info  is combined with the bytecode, so both
+            // Debug info is combined with the bytecode, so both
             // must be read together.
             bool debugInfoCombined{};
             FileID id{};
