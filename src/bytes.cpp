@@ -387,6 +387,38 @@ void BinaryInspector::printEntryTitle(sv title, u64 titleLength)
 	CH_PRINT("{:<{}}  ", title, titleLength);
 }
 
+void BinaryInspector::printStringWithTruncation(
+	std::string& str,
+	u64 displayLen,
+	sv truncMsg
+)
+{
+	constexpr u64 maxDisplayLen{30 - sizeof('\'') * 2};
+
+	if (displayLen <= maxDisplayLen)
+		CH_PRINT(" {:^30}\n", CH_QUOTED(str));
+	else
+	{
+		constexpr u64 newlineSize{CH_NEWLINE_REPLACEMENT.size()};
+		constexpr u64 newlineStart{25 - newlineSize};
+		constexpr u64 newlineEnd{25 - 1};
+
+		u64 pos{str.find(CH_NEWLINE_REPLACEMENT)};
+		// Check if truncating to 25 characters (30 - the quote marks
+		// and ellipsis) will cut into the newline replacement sequence.
+		if ((pos != str.npos) && (pos >= newlineStart) && (pos <= newlineEnd))
+		{
+			str = str.substr(0, pos);
+			CH_PRINT(" {:^30}  ({})\n", "'" + str + "...'", truncMsg);
+		}
+		else
+		{
+			str = str.substr(0, 25);
+			CH_PRINT(" {:.30}  ({})\n", "'" + str + "...'", truncMsg);
+		}
+	}
+}
+
 void BinaryInspector::inspectHeaders()
 {
 	// Not subtracting 1 to include the ':'.
@@ -622,7 +654,6 @@ void BinaryInspector::inspectBriefDec(u64 start)
 
 void BinaryInspector::inspectBriefString(u64 start)
 {
-	constexpr u64 maxStringDisplayLength{30 - sizeof('\'') * 2};
 	CH_PRINT(" ");
 	u64 nameLen{readValue<u64>()};
 	std::string str{};
@@ -636,14 +667,9 @@ void BinaryInspector::inspectBriefString(u64 start)
 	printStartEnd(start, getCurrentPosition(), false);
 	CH_PRINT(" {:^10}", "String");
 	CH_PRINT(" {:^7}", getCurrentPosition() - start);
-
-	if (nameLen <= maxStringDisplayLength)
-		CH_PRINT(" {:^30}\n", CH_QUOTED(str));
-	else
-	{
-		CH_PRINT(" '{:.25}...'  ", str);
-		CH_PRINT("(truncated; length={})\n", nameLen);
-	}
+	str = formatMultiLineString(str);
+	printStringWithTruncation(str, str.size(),
+		CH_STR("truncated; length={}", nameLen));
 }
 
 void BinaryInspector::skipFuncData()
@@ -753,8 +779,6 @@ void BinaryInspector::inspectDetailDec(u64 start)
 
 void BinaryInspector::inspectDetailString(u64 start)
 {
-	constexpr u64 maxStringDisplayLength{30 - sizeof('\'') * 2};
-
 	PRINT_ENTRY_RANGE();
 	CH_PRINT("Type: String\n");
 
@@ -771,11 +795,10 @@ void BinaryInspector::inspectDetailString(u64 start)
 		readBytes(str.data(), nameLen);
 	}
 
+	str = formatMultiLineString(str);
 	PRINT_ENTRY_RANGE();
-	if (nameLen <= maxStringDisplayLength)
-		CH_PRINT("String value: {:<30}\n", CH_QUOTED(str));
-	else
-		CH_PRINT("String value: '{:.25}...'  (truncated)\n", str);
+	CH_PRINT("String value:");
+	printStringWithTruncation(str, str.size(), "truncated");
 }
 
 void BinaryInspector::inspectDetailFuncName()
@@ -881,7 +904,7 @@ void BinaryInspector::inspectDetailFunc(u64 start)
 {
 	PRINT_ENTRY_RANGE();
 	if (it == end) eofError();
-	CH_PRINT("Type: {}\n", (*it == 0) ? "Lambda" : "Function"); 
+	CH_PRINT("Type: {}\n", (*it == 0) ? "Lambda" : "Function");
 
 	inspectDetailFuncName();
 

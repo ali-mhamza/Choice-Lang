@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string_view>
+#include <string>
 #include <vector>
 
 /* File extensions. */
@@ -10,6 +11,10 @@
 constexpr std::string_view CH_FILE_EXT{".ch"};
 constexpr std::string_view CH_BYTECODE_EXT{".chbc"};
 constexpr std::string_view CH_DEBUG_EXT{".chdbg"};
+
+/* Text normalization. */
+
+constexpr std::string_view CH_NEWLINE_REPLACEMENT{"<NL>"};
 
 /* Diagnostic colors. */
 
@@ -50,6 +55,8 @@ constexpr std::string_view NORMAL{"\033[0m"};
 );
 
 void normalizeInput(std::string& input);
+[[nodiscard]]
+std::string formatMultiLineString(const std::string_view& sv);
 
 [[nodiscard]]
 bool ends_with(const std::string_view str, const std::string_view suffix);

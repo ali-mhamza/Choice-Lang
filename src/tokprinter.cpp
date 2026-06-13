@@ -2,33 +2,15 @@
 #include "../include/common.h"
 #include "../include/diagnostic.h"
 #include "../include/token.h"
+#include "../include/utils.h"
 #include <array>
 #include <cstddef>
 #include <string>
 #include <string_view>
 #include <utility>
 
-#define NEWLINE_REPLACEMENT "<NL>"
-
 TokenPrinter::TokenPrinter(FileID id, const vT& tokens) :
     id{id}, tokens{tokens} {}
-
-[[nodiscard]]
-static std::string formatMultiLineString(const std::string_view& sv)
-{
-    std::string newStr{sv};
-
-    auto it{newStr.find('\n')};
-    while (it != newStr.npos)
-    {
-        newStr.replace(it, 1, NEWLINE_REPLACEMENT);
-        it = newStr.find('\n', it + 1);
-    }
-
-    return newStr;
-}
-
-#undef NEWLINE_REPLACEMENT
 
 std::pair<size_t, size_t>
 TokenPrinter::stringTokenValues(TokenType type) const

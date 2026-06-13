@@ -73,6 +73,20 @@ void normalizeInput(std::string& input)
     }
 }
 
+std::string formatMultiLineString(const std::string_view& sv)
+{
+    std::string newStr{sv};
+
+    auto it{newStr.find('\n')};
+    while (it != newStr.npos)
+    {
+        newStr.replace(it, 1, CH_NEWLINE_REPLACEMENT);
+        it = newStr.find('\n', it + 1);
+    }
+
+    return newStr;
+}
+
 // Credit for ends_with and starts_with: Pavel P.
 // Source: https://stackoverflow.com/questions/874134/.
 

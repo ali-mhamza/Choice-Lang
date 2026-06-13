@@ -132,6 +132,11 @@ namespace Bytes
             [[nodiscard]] u64 getCurrentPosition() const { return it - start; }
             static void printStartEnd(u64 start, u64 end, bool indent);
             static void printEntryTitle(sv title, u64 titleLength);
+            static void printStringWithTruncation(
+                std::string& str,
+                u64 displayLen,
+                sv truncMsg
+            );
 
             void inspectHeaders();
             void inspectFileName();
