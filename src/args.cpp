@@ -17,6 +17,7 @@ namespace Args
         {"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM},
         {"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
         {"-check", CHECK_PROGRAM},      {"-k", CHECK_PROGRAM},
+        {"-inspect", INSPECT_BYTECODE}, {"-i", INSPECT_BYTECODE},
         {"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
     };
 
@@ -27,6 +28,7 @@ namespace Args
         {DIS_PROGRAM, optionDisProgram},
         {LOAD_PROGRAM, optionLoadProgram},
         {CHECK_PROGRAM, optionCheckProgram},
+        {INSPECT_BYTECODE, optionInspectBytecode},
         {EXPLAIN_ERROR, optionExplainError}
     };
 
@@ -37,7 +39,8 @@ namespace Args
     };
 
     const std::array fileOnlyOptions{
-        CACHE_BYTECODE, DIS_PROGRAM, LOAD_PROGRAM, CHECK_PROGRAM
+        CACHE_BYTECODE, DIS_PROGRAM, LOAD_PROGRAM, CHECK_PROGRAM,
+        INSPECT_BYTECODE
     };
 
     // Options that potentially handle source files.

@@ -111,4 +111,67 @@ namespace Bytes
             DebugMetadata readMetadataBlock();
             std::vector<DebugMetadata> readMetadata();
     };
+
+    class BinaryInspector
+    {
+        private:
+            using sv = std::string_view;
+
+            vByte cacheBytes{};
+            vBit start{};
+            vBit it{};
+            vBit end{};
+            DebugInfoState state{};
+
+            /* Byte reading. */
+
+            void readBytes(void* mem, size_t memSize);
+            template<typename T>
+            [[nodiscard]] T readValue();
+
+            [[nodiscard]] u64 getCurrentPosition() const { return it - start; }
+            static void printStartEnd(u64 start, u64 end, bool indent);
+            static void printEntryTitle(sv title, u64 titleLength);
+
+            void inspectHeaders();
+            void inspectFileName();
+            void inspectLineMarkers();
+            void inspectByteCode();
+
+            void inspectConstantPool(u64 poolSize);
+
+            // Functions to display compact views of objects
+            // in a neat table.
+
+            void inspectBriefObject(u64& position);
+            void inspectBriefInt(u64 start);
+            void inspectBriefDec(u64 start);
+            void inspectBriefString(u64 start);
+
+            void skipFuncData();
+            void inspectBriefFunc(u64 start);
+
+            // Functions to display detailed views of objects
+            // and their components.
+
+            void inspectDetailObject(u64& position);
+            void inspectDetailInt(u64 start);
+            void inspectDetailDec(u64 start);
+            void inspectDetailString(u64 start);
+
+            // Function name.
+            void inspectDetailFuncName();
+            // Arity and bytecode.
+            void inspectDetailFuncComponents(u8& arityMin, u8& arityMax);
+            // Metadata and default arguments.
+            void inspectDetailFuncExtras(u8 arityMin, u8 arityMax);
+            void skipFuncDefaultArgs(u8 defaultArgs);
+            void inspectDetailFunc(u64 start);
+
+            void inspectMetadata();
+
+        public:
+            BinaryInspector(std::ifstream& cacheFile);
+            void inspect();
+    };
 }

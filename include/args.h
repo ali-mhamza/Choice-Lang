@@ -35,6 +35,9 @@ namespace Args
         // Emits a success message if so, and diagnostics otherwise.
         CHECK_PROGRAM,
 
+        // Inspect the sections and info in a bytecode file.
+        INSPECT_BYTECODE,
+
         // Explain a particular error/warning code.
         EXPLAIN_ERROR,
 

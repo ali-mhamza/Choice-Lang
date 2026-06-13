@@ -10,6 +10,7 @@
 #include "../include/parser.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
+#include <fstream>
 #include <string_view>
 
 [[nodiscard]]
@@ -218,6 +219,15 @@ void optionLoadProgram(FileID id, std::string_view input)
 	Function* script{CH_ALLOC(Function, chunk)};
 	runVM(script); // Reports errors through diagEngine directly.
 	CH_DEALLOC(script);
+}
+
+void optionInspectBytecode(FileID id, std::string_view input)
+{
+	(void) id;
+
+	std::ifstream cacheFile{openFile(input, true)};
+	Bytes::BinaryInspector inspector{cacheFile};
+	inspector.inspect();
 }
 
 void optionCheckProgram(FileID id, std::string_view input)
