@@ -1096,7 +1096,7 @@ void VM::executeOp(Opcode op)
 
             Object list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
             auto& array{AS_LIST(list)->array};
-            for (u8 i{reg}; i < args; i++)
+            for (u8 i{reg}; i < args + BUILTIN_LOCALS; i++)
             {
                 if (registers + i > globalRegisters + NUM_REGS)
                     break;
