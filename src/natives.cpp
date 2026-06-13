@@ -47,14 +47,10 @@ void Natives::print(Natives::iter it, u8 args)
         switch (it[i].type())
         {
             // Fast path printing.
-            case OBJ_INT:   CH_PRINT("{}", AS_INT(it[i]));      break;
-            case OBJ_BOOL:  CH_PRINT("{}", AS_BOOL(it[i]));     break;
-            case OBJ_NULL:  CH_PRINT("null");                   break;
-            case OBJ_STRING:
-            {
-                CH_PRINT("{}", AS_STRING(it[i])->str);
-                break;
-            }
+            case OBJ_INT:       CH_PRINT("{}", AS_INT(it[i]));          break;
+            case OBJ_BOOL:      CH_PRINT("{}", AS_BOOL(it[i]));         break;
+            case OBJ_NULL:      CH_PRINT("null");                       break;
+            case OBJ_STRING:    CH_PRINT("{}", AS_STRING(it[i])->str);  break;
             // Slower alternative.
             default: CH_PRINT("{}", it[i].printVal());
         }
