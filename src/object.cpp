@@ -16,6 +16,7 @@
 #include <ios>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <variant>
 using Natives::funcNames;
 
@@ -287,39 +288,67 @@ Hash Object::hash() const
     }
 }
 
+static std::unordered_map<const HeapObj*, u64> printedCollections{};
+
+#define PRINTING_ENTER(obj)                                                             \
+    do {                                                                                \
+        if (IS_COLLECTION(*obj))                                                        \
+        {                                                                               \
+            nested = (                                                                  \
+                printedCollections.find(AS_HEAP_PTR(*obj)) != printedCollections.end()  \
+            );                                                                          \
+            printedCollections[AS_HEAP_PTR(*obj)]++;                                    \
+        }                                                                               \
+    } while (false)
+#define PRINTING_EXIT(obj) \
+    do {                                                        \
+        if (IS_COLLECTION(*obj))                                \
+        {                                                       \
+            if ((--printedCollections[AS_HEAP_PTR(*obj)]) == 0) \
+                printedCollections.erase(AS_HEAP_PTR(*obj));    \
+        }                                                       \
+    } while (false)
+
 // Need to support internal types in this function as well
 // since this is used for register printing in debug builds.
 std::string Object::printVal() const
 {
+    std::string ret{};
+    bool nested{false};
+    PRINTING_ENTER(this);
+
     switch (type())
     {
-        case OBJ_INT:       return std::to_string(AS_INT(*this));
-        case OBJ_DEC:       return doubleToStr(AS_DEC(*this));
-        case OBJ_BOOL:      return (AS_BOOL(*this) ? "true" : "false");
-        case OBJ_NULL:      return "null";
-        case OBJ_TYPE:      return std::string(objTypes[AS_TYPE(*this)]);
-        case OBJ_NATIVE:    return CH_STR("<builtin {}>", funcNames[AS_NATIVE(*this)]);
-        case OBJ_FUNC:      return CH_STR("<func {}>", AS_FUNC(*this)->name);
-        case OBJ_CLOSURE:   return CH_STR("<func {}>", AS_CLOSURE(*this)->function->name);
-        case OBJ_LAMBDA:    return "<lambda>";
-        case OBJ_STRING:    return AS_STRING(*this)->printVal();
-        case OBJ_RANGE:     return AS_RANGE(*this)->printVal();
-        case OBJ_LIST:      return AS_LIST(*this)->printVal();
-        case OBJ_TABLE:     return AS_TABLE(*this)->printVal();
-        case OBJ_REF:       return CH_STR("*({})", AS_REF(*this)->location->printVal());
-        case OBJ_VOID:      return "()";
+        case OBJ_INT:       ret = std::to_string(AS_INT(*this));                            break;
+        case OBJ_DEC:       ret = doubleToStr(AS_DEC(*this));                               break;
+        case OBJ_BOOL:      ret = (AS_BOOL(*this) ? "true" : "false");                      break;
+        case OBJ_NULL:      ret = "null";                                                   break;
+        case OBJ_TYPE:      ret = objTypes[AS_TYPE(*this)];                                 break;
+        case OBJ_NATIVE:    ret = CH_STR("<builtin {}>", funcNames[AS_NATIVE(*this)]);      break;
+        case OBJ_FUNC:      ret = CH_STR("<func {}>", AS_FUNC(*this)->name);                break;
+        case OBJ_CLOSURE:   ret = CH_STR("<func {}>", AS_CLOSURE(*this)->function->name);   break;
+        case OBJ_LAMBDA:    ret = "<lambda>";                                               break;
+        // Pass nesting status to possibly nesting collection types.
+        // Only lists and tables actually need this.
+        case OBJ_STRING:    ret = AS_STRING(*this)->printVal(nested);                       break;
+        case OBJ_RANGE:     ret = AS_RANGE(*this)->printVal(nested);                        break;
+        case OBJ_LIST:      ret = AS_LIST(*this)->printVal(nested);                         break;
+        case OBJ_TABLE:     ret = AS_TABLE(*this)->printVal(nested);                        break;
+        case OBJ_REF:       ret = CH_STR("*({})", AS_REF(*this)->location->printVal());     break;
+        case OBJ_VOID:      ret = "()";                                                     break;
         case OBJ_ITER:
         {
             const auto& iter{AS_ITER(*this)->iter};
-            std::string ret{};
-            std::visit([&ret](auto&& iter) {
-                ret = "->" + iter.obj->printVal();
+            std::visit([&ret, nested](auto&& iter) {
+                ret = "->" + iter.obj->printVal(nested);
             }, iter);
-
-            return ret;
+            break;
         }
         default: CH_UNREACHABLE();
     }
+
+    PRINTING_EXIT(this);
+    return ret;
 }
 
 std::string_view Object::printType() const
@@ -575,8 +604,9 @@ void String::setIndex(const Object& index, const Object& value)
     str[0] = insert[0];
 }
 
-std::string String::printVal() const
+std::string String::printVal(bool nested) const
 {
+    (void) nested;
     return str;
 }
 
@@ -660,8 +690,10 @@ void Range::setIndex(const Object& index, const Object& value)
     throw RuntimeError(OBJ_NO_ELEM_ASSIGN);
 }
 
-std::string Range::printVal() const
+std::string Range::printVal(bool nested) const
 {
+    (void) nested;
+
     auto str{CH_STR("{}..{}", start, stop)};
     if (step != 1)
         str += CH_STR("..{}", step);
@@ -746,8 +778,10 @@ Hash List::hash() const
     return hash;
 }
 
-std::string List::printVal() const
+std::string List::printVal(bool nested) const
 {
+    if (nested) return "[...]";
+
     std::string ret{"["};
     size_t size{array.count()};
     for (size_t i{0}; i < size; i++)
@@ -786,10 +820,11 @@ void Table::setIndex(const Object& key, const Object& value)
     table[key] = value;
 }
 
-std::string Table::printVal() const
+std::string Table::printVal(bool nested) const
 {
-    std::string ret{"{"};
+    if (nested) return "{...}";
 
+    std::string ret{"{"};
     for (const auto& [key, value] : table)
         ret += "(" + getElementText(key) + ", " + getElementText(value) + "), ";
 

@@ -404,7 +404,9 @@ struct String : public HeapObj
     [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
-    [[nodiscard]] std::string printVal() const;
+    // Parameter is not used, but it keeps our iterators
+    // consistent.
+    [[nodiscard]] std::string printVal(bool nested) const;
     void emit(std::ofstream& os) const;
     u64 byteSize() const;
 };
@@ -425,7 +427,7 @@ struct Range : public HeapObj
     [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
-    [[nodiscard]] std::string printVal() const;
+    [[nodiscard]] std::string printVal(bool nested) const;
 };
 
 struct List : public HeapObj
@@ -441,7 +443,7 @@ struct List : public HeapObj
     void setIndex(const Object& index, const Object& value);
 
     Hash hash() const;
-    [[nodiscard]] std::string printVal() const;
+    [[nodiscard]] std::string printVal(bool nested) const;
 };
 
 struct ObjectHasher
@@ -464,7 +466,7 @@ struct Table : public HeapObj
     [[nodiscard]] Object getIndex(const Object& key) const;
     void setIndex(const Object& key, const Object& value);
 
-    [[nodiscard]] std::string printVal() const;
+    [[nodiscard]] std::string printVal(bool nested) const;
 };
 
 struct Void : public HeapObj
