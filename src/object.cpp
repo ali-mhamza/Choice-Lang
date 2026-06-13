@@ -401,20 +401,6 @@ bool Function::operator==(const Function& other) const
     return (this == &other);
 }
 
-const DebugRange& Function::getErrorRange(const u8 *ip) const
-{
-    CH_ASSERT(ip >= code.block.data(), "Wrong IP passed for error reporting.");
-
-    u64 offset{static_cast<u64>(ip - code.block.data())};
-    for (const auto& range : code.metadata)
-    {
-        if ((offset >= range.byteStart) && (offset <= range.byteEnd))
-            return range;
-    }
-
-    CH_UNREACHABLE();
-}
-
 void Function::emit(std::ofstream& os) const
 {
     if (name != nullptr)

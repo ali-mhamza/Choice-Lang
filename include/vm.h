@@ -20,7 +20,7 @@ struct CallFrame
 {
     struct Args
     {
-        Function* function{};
+        const ByteCode* code{};
         Closure* closure{};
         Object* regStart{};
         const u8* ip{};
@@ -30,7 +30,7 @@ struct CallFrame
         #endif
     };
 
-    Function* function{};
+    const ByteCode* code{};
     Closure* closure{};
     Object* regStart{};
     const u8* ip{};
@@ -46,7 +46,7 @@ struct CallFrame
 class VM
 {
     private:
-        Function* currentFunc{};
+        const ByteCode* currentCode{};
         Closure* currentClosure{};
         const u8* ip{};
 

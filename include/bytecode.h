@@ -38,6 +38,8 @@ class ByteCode
         template<typename... Bytes>
         void addOp(Opcode op, Bytes... opers);
 
+        FileID getID() const { return id; }
+        const DebugRange& getErrorRange(const u8* ip) const;
         void setDebugData(FileID id, const DebugMetadata& metadata);
 
         // Add a jump instruction with an optional condition

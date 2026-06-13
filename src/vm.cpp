@@ -77,7 +77,7 @@ void VM::amendFileName()
     if (inRepl)
         AS_STRING(name)->str = "<repl>";
     else
-        AS_STRING(name)->str = sourceManager.getFile(currentFunc->getID());
+        AS_STRING(name)->str = sourceManager.getFile(currentCode->getID());
 }
 
 void VM::amendFuncName(const Function* func)
@@ -437,7 +437,7 @@ void VM::setIndex(u8 objReg, u8 indexReg, u8 valueReg)
 void VM::pushCurrentStackFrame()
 {
     frames.emplace_back(CallFrame::Args{
-        currentFunc, currentClosure, registers, ip
+        currentCode, currentClosure, registers, ip
         #if WATCH_EXEC
         , this->dis
         #endif
@@ -467,6 +467,7 @@ void VM::checkFuncArgs(const Function* func, u8 argCount)
 
 void VM::prepFuncArgs(const Function* func, u8 argCount)
 {
+    const ByteCode* code{this->currentCode};
     const u8* ip{this->ip};
     const Object* pool{this->pool};
     #if WATCH_EXEC
@@ -478,7 +479,8 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
 
     while (withDefault < funcDefaultArgs)
     {
-        const auto& chunk{func->defaultArgs[withDefault++]};
+        const ByteCode& chunk{func->defaultArgs[withDefault++]};
+        this->currentCode = &chunk;
         this->ip = chunk.block.data();
         this->pool = chunk.pool.data();
 
@@ -494,6 +496,7 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
         #endif
     }
 
+    this->currentCode = code;
     this->ip = ip;
     this->pool = pool;
     #if WATCH_EXEC
@@ -504,10 +507,10 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
 void VM::restoreData()
 {
     CallFrame& frame{frames.back()};
-    currentFunc = frame.function;
+    currentCode = frame.code;
     registers = frame.regStart;
     ip = frame.ip;
-    pool = currentFunc->code.pool.data();
+    pool = currentCode->pool.data();
     #if WATCH_EXEC
         delete this->dis;
         this->dis = frame.dis;
@@ -524,13 +527,12 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
-    const ByteCode& code{func->code};
 
-    currentFunc = func;
+    currentCode = &(func->code);
     currentClosure = closure;
     registers += start;
-    ip = code.block.data();
-    pool = code.pool.data();
+    ip = currentCode->block.data();
+    pool = currentCode->pool.data();
 
     // TODO: Disassembler should follow any argument-prep code
     // here as well.
@@ -639,8 +641,8 @@ void VM::reportError(const RuntimeError& error)
 
     if (debugInfoState != DEBUG_STRIPPED)
     {
-        const auto& range{currentFunc->getErrorRange(ip)};
-        diagEngine.recordError(currentFunc->getID(), error.code,
+        const auto& range{currentCode->getErrorRange(ip)};
+        diagEngine.recordError(currentCode->getID(), error.code,
             range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
         diagEngine.emitStackTrace(frames);
     }
@@ -648,7 +650,7 @@ void VM::reportError(const RuntimeError& error)
     {
         // We can put dummy offsets and lengths since no lines will
         // be printed anyway.
-        diagEngine.recordError(currentFunc->getID(), error.code, 0, 0,
+        diagEngine.recordError(currentCode->getID(), error.code, 0, 0,
             error.label);
         diagEngine.emitMiniStackTrace(frames);
     }
@@ -660,14 +662,14 @@ void VM::reportWarning(DiagCode code, const std::string& label)
 
     if (debugInfoState != DEBUG_STRIPPED)
     {
-        const auto& range{currentFunc->getErrorRange(ip)};
-        diagEngine.recordWarning(currentFunc->getID(), code,
+        const auto& range{currentCode->getErrorRange(ip)};
+        diagEngine.recordWarning(currentCode->getID(), code,
             range.sourceStart, range.sourceEnd - range.sourceStart, label);
         diagEngine.emitReports();
     }
     else
     {
-        diagEngine.recordWarning(currentFunc->getID(), code, 0, 0, label);
+        diagEngine.recordWarning(currentCode->getID(), code, 0, 0, label);
         diagEngine.emitReports();
     }
 }
@@ -1266,12 +1268,12 @@ void VM::execute(Function* script)
     if (script->code.block.front() == OP_HALT)
         return;
 
-    currentFunc = script;
+    currentCode = &(script->code);
     // The global scope doesn't capture any variables,
     // so it doesn't need to have an active closure.
     registers = globalRegisters;
-    ip = script->code.block.data();
-    pool = script->code.pool.data();
+    ip = currentCode->block.data();
+    pool = currentCode->pool.data();
 
     #if WATCH_EXEC
         Disassembler dis(script);
@@ -1296,12 +1298,12 @@ void VM::execute(Function* script)
 /* CallFrame constructor. */
 
 CallFrame::CallFrame(const Args& args) :
-    function(args.function),
-    closure(args.closure),
-    regStart(args.regStart),
-    ip(args.ip)
+    code{args.code},
+    closure{args.closure},
+    regStart{args.regStart},
+    ip{args.ip}
     #if WATCH_EXEC
-    , dis(args.dis)
+    , dis{args.dis}
     #endif
     {}
 

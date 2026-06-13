@@ -42,6 +42,20 @@ void ByteCode::addOp(Opcode op)
 	addByte(static_cast<u8>(op));
 }
 
+const DebugRange& ByteCode::getErrorRange(const u8* ip) const
+{
+	CH_ASSERT(ip >= block.data(), "Wrong IP passed for error reporting.");
+
+    u64 offset{static_cast<u64>(ip - block.data())};
+    for (const auto& range : metadata)
+    {
+        if ((offset >= range.byteStart) && (offset <= range.byteEnd))
+            return range;
+    }
+
+    CH_UNREACHABLE();
+}
+
 void ByteCode::setDebugData(FileID id, const DebugMetadata& metadata)
 {
 	this->id = id;

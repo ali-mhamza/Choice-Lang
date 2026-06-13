@@ -595,7 +595,13 @@ std::string DiagnosticEngine::printStackEntry(
     u64 index
 )
 {
-    const Function* func{frames[index].function};
+    // The function object is always just before its respective
+    // register window, except script-level code (which has no
+    // function object).
+    const Function* func{
+        (index == 0) ? nullptr : AS_FUNC(frames[index].regStart[-1])
+    };
+
     std::string output{};
     if (index == frames.size() - 1)
         output = "  at ";
@@ -655,11 +661,11 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
         outputLines[i] = printStackEntry(frames, i);
         if (!lineDataExists) continue;
 
-        const Function* func{frames[i].function};
-        const auto& range{func->getErrorRange(frames[i].ip)};
+        const ByteCode* code{frames[i].code};
+        const auto& range{code->getErrorRange(frames[i].ip)};
 
-        positions[i] = sourceManager.getLineColumn(func->getID(), range.sourceStart);
-        recordError(func->getID(), DiagCode{}, range.sourceStart,
+        positions[i] = sourceManager.getLineColumn(code->getID(), range.sourceStart);
+        recordError(code->getID(), DiagCode{}, range.sourceStart,
             range.sourceEnd - range.sourceStart, "");
     }
 
@@ -673,10 +679,10 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
     CH_PRINT(stderr, "Stack Trace:\n");
     for (u64 i{0}; i < size; i++)
     {
-        const Function* func{frames[size - 1 - i].function};
+        const ByteCode* code{frames[size - 1 - i].code};
 
         CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
-        CH_PRINT(stderr, "     {}", sourceManager.getFile(func->getID()));
+        CH_PRINT(stderr, "     {}", sourceManager.getFile(code->getID()));
         if (!lineDataExists)
         {
             CH_PRINT("\n");
@@ -685,7 +691,7 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
 
         const auto& pos{positions[size - 1 - i]};
         CH_PRINT(stderr, " ({}:{})\n", pos.first, pos.second);
-        displayErrorLine(func->getID(), pos.first, pos.second, maxLineNo);
+        displayErrorLine(code->getID(), pos.first, pos.second, maxLineNo);
         reports.pop_back();
     }
 }
@@ -711,7 +717,7 @@ DiagnosticEngine::emitMiniStackTrace(const std::vector<CallFrame>& frames)
     for (u64 i{0}; i < size; i++)
     {
         CH_PRINT(stderr, "{:<{}}", outputLines[size - 1 - i], it->size());
-        u64 id{frames[i].function->getID()};
+        u64 id{frames[i].code->getID()};
         CH_PRINT(stderr, "     {}\n", sourceManager.getFile(id));
     }
 }
