@@ -185,11 +185,7 @@ bool Object::in(const Object& other) const
     const Object& obj{*this};
 
     if (IS_STRING(obj) && IS_STRING(other))
-    {
-        const String& s1{*(AS_STRING(obj))};
-        const String& s2{*(AS_STRING(other))};
-        return s2.contains(s1);
-    }
+        return AS_STRING(other)->contains(*AS_STRING(obj));
     else if (IS_INT(obj) && IS_RANGE(other))
         return AS_RANGE(other)->contains(AS_INT(obj));
     else if (IS_LIST(other))

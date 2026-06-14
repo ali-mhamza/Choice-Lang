@@ -25,7 +25,7 @@ static Function* runCompiler(FileID id, const vT& tokens)
 {
 	static Parser parser{};
 	static Compiler compiler{};
-	const StmtVec& program = parser.parseToAST(id, tokens);
+	const StmtVec& program{parser.parseToAST(id, tokens)};
 
 	#ifdef TYPE
 		// Perform type-checking here.
