@@ -46,7 +46,8 @@ println!(y);    // Prints: [10, 2, 3]
 
 ## Value Mutability
 
-Value mutability controls the interior mutation that a particular value accepts or does not accept. It should be clear that the following, therefore, only applies to object types that can accept interior mutation (e.g., lists), and thus integers, Booleans, etc. are excluded from the below explanation.
+Value mutability controls the interior mutation that a particular value accepts or does not accept.\
+It should be clear that the following, therefore, only applies to object types that can accept interior mutation (e.g., lists), and thus integers, Booleans, etc. are excluded from the below explanation. However, the `mut` and `immut` operators may still be used on these values without issue (though they will have no effect).
 
 The mutability of a value is primarily controlled in the language through the `mut` and `immut` keywords. The former makes the modified value mutable, while the latter makes it immutable.\
 These operators have the *lowest* precedence to allow them to be applied to any expression. The only exception to this is multiple return values (`return [EXPR], [EXPR], ...;`), where they only apply to the immediately following expression (rather than the entire collection).
