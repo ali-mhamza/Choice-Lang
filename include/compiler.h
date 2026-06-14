@@ -292,7 +292,7 @@ class Compiler
         ByteCode& getCode();
 
     public:
-        // So they can be modified directly.
+        // So it can be modified directly.
         bool hitError{false};
 
         static std::vector<DeclarationPair> declaredVars;
