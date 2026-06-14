@@ -300,6 +300,7 @@ static std::unordered_map<const HeapObj*, u64> printedCollections{};
             printedCollections[AS_HEAP_PTR(*obj)]++;                                    \
         }                                                                               \
     } while (false)
+
 #define PRINTING_EXIT(obj) \
     do {                                                        \
         if (IS_COLLECTION(*obj))                                \
