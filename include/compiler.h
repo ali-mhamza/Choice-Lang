@@ -5,7 +5,7 @@
 #include "debug.h"
 #include "diagnostic.h"
 #include "vartable.h"
-#include <personal/linearTable.h>
+#include <personal/hash_table.h>
 #include <memory>
 #include <stack>
 #include <string>
@@ -67,18 +67,18 @@ class Compiler
         u8 scopeStart{0};  // To mark the initial register for a new scope (to pop to on exit).
         const u8 depth{};  // Our current function scope depth.
 
-        using varTable = linearTable<VarEntry, u8, VarHasher>;
-        using accessTable = linearTable<u8, bool>;
-        using labelTable = linearTable<std::string_view, std::vector<u64>>;
+        using VarTable = HashTable<VarEntry, u8, VarHasher>;
+        using AccessTable = HashTable<u8, bool>;
+        using LabelTable = HashTable<std::string_view, std::vector<u64>>;
 
         std::stack<std::vector<std::string>> varScopes{};
-        const std::unique_ptr<varTable> varLocations{new varTable};
-        const std::unique_ptr<accessTable> varAccess{new accessTable};
-        const std::unique_ptr<labelTable> breakLabels{new labelTable};
-        const std::unique_ptr<labelTable> continueLabels{new labelTable};
+        const std::unique_ptr<VarTable> varLocations{new VarTable};
+        const std::unique_ptr<AccessTable> varAccess{new AccessTable};
+        const std::unique_ptr<LabelTable> breakLabels{new LabelTable};
+        const std::unique_ptr<LabelTable> continueLabels{new LabelTable};
 
         std::vector<CellInfo> captures{};
-        linearTable<std::string, u8> captureNames{};
+        HashTable<std::string, u8> captureNames{};
 
         std::vector<u64>* endJumps{};
         std::vector<u64>* breakJumps{};

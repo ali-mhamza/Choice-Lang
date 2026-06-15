@@ -1,6 +1,6 @@
 #include "../include/vartable.h"
 #include "../include/common.h"
-#include <personal/hashFunctions.h>
+#include <personal/hash_functions.h>
 #include <string>
 #include <string_view>
 

@@ -6,7 +6,7 @@
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/natives.h"
-#include <personal/hashFunctions.h>
+#include <personal/hash_functions.h>
 #include <array>
 #include <cstddef>
 #include <cstdio>

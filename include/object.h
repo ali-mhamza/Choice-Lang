@@ -3,7 +3,7 @@
 #include "common.h"
 #include "natives.h"
 #include <personal/array.h>
-#include <personal/linearTable.h>
+#include <personal/hash_table.h>
 #include <array>
 #include <string>
 #include <string_view>
@@ -456,7 +456,7 @@ struct ObjectHasher
 
 struct Table : public HeapObj
 {
-    linearTable<Object, Object, ObjectHasher> table{};
+    HashTable<Object, Object, ObjectHasher> table{};
 
     Table() noexcept = default;
 

@@ -7,8 +7,8 @@
 
 #pragma once
 #include "array.h"
-#include "entryStruct.h"
-#include "hashFunctions.h"
+#include "entry_struct.h"
+#include "hash_functions.h"
 #include <cstdint>
 #include <iostream>
 #include <tuple>
@@ -86,7 +86,7 @@ decltype(auto) get(Pair<Key, Value, EKVType>&& pair)
 }
 
 KVHTEMP_DEFAULT
-class linearTable
+class HashTable
 {
     private:
         HashFunc getHash;
@@ -97,7 +97,7 @@ class linearTable
         size_t count;
         size_t maxIndex;
 
-        linearTable(size_t size);
+        HashTable(size_t size);
 
         void reorder();
         void resize();
@@ -110,10 +110,10 @@ class linearTable
         EKV& emptyAdd(const Key& key);
 
     public:
-        linearTable();
-        linearTable(const linearTable& other);
-        ~linearTable() = default;
-        linearTable& operator=(const linearTable& other);
+        HashTable();
+        HashTable(const HashTable& other);
+        ~HashTable() = default;
+        HashTable& operator=(const HashTable& other);
         Value& operator[](const Key& key);
 
         void add(const Key& key, const Value& value);
@@ -122,7 +122,7 @@ class linearTable
         void set(const Key& key, const Value& value);
         bool contains(const Key& key) const;
         void remove(const Key& key);
-        void merge(const linearTable& other);
+        void merge(const HashTable& other);
 
         bool empty() const;
         size_t size() const;
@@ -186,28 +186,28 @@ class linearTable
 };
 
 KVHTEMP
-linearTable<Key, Value, HashFunc>::linearTable() :
+HashTable<Key, Value, HashFunc>::HashTable() :
     getHash(HashFunc()), entries(2), count(0), maxIndex(SIZE_MAX) {}
 
 KVHTEMP
-linearTable<Key, Value, HashFunc>::linearTable(const linearTable<Key, Value, HashFunc>& other) :
+HashTable<Key, Value, HashFunc>::HashTable(const HashTable<Key, Value, HashFunc>& other) :
     entries(other.entries), count(other.count),
     maxIndex(other.maxIndex) {}
 
 KVHTEMP
-linearTable<Key, Value, HashFunc>::linearTable(size_t size) :
+HashTable<Key, Value, HashFunc>::HashTable(size_t size) :
     getHash(HashFunc()), entries(size), count(0), maxIndex(SIZE_MAX) {}
 
 KVHTEMP
-linearTable<Key, Value, HashFunc>& linearTable<Key, Value, HashFunc>::
-operator=(const linearTable<Key, Value, HashFunc>& other)
+HashTable<Key, Value, HashFunc>& HashTable<Key, Value, HashFunc>::
+operator=(const HashTable<Key, Value, HashFunc>& other)
 {
     this->entries = other.entries;
     return *this;
 }
 
 KVHTEMP
-Value& linearTable<Key, Value, HashFunc>::operator[](const Key& key)
+Value& HashTable<Key, Value, HashFunc>::operator[](const Key& key)
 {
     EKV& existEntry = findSlot(key, nullptr);
     if (existEntry.state == VALID) // Key already exists.
@@ -216,10 +216,10 @@ Value& linearTable<Key, Value, HashFunc>::operator[](const Key& key)
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::reorder()
+void HashTable<Key, Value, HashFunc>::reorder()
 {
     size_t capacity = entries.capacity();
-    linearTable<Key, Value, HashFunc> newTable(capacity);
+    HashTable<Key, Value, HashFunc> newTable(capacity);
     for (size_t i = 0; i < maxIndex + 1; i++)
     {
         EKV& entry = entries.slot(i);
@@ -233,7 +233,7 @@ void linearTable<Key, Value, HashFunc>::reorder()
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::resize()
+void HashTable<Key, Value, HashFunc>::resize()
 {   
     if ((entries.capacity() * loadFactor) < count + 1)
     {
@@ -248,7 +248,7 @@ void linearTable<Key, Value, HashFunc>::resize()
 }
 
 KVHTEMP
-EKV& linearTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos)
+EKV& HashTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos)
 {
     std::uint32_t hash = getHash(key);
     auto bitmask = static_cast<std::uint32_t>(entries.capacity() - 1);
@@ -283,7 +283,7 @@ EKV& linearTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos)
 }
 
 KVHTEMP
-const EKV& linearTable<Key, Value, HashFunc>::
+const EKV& HashTable<Key, Value, HashFunc>::
 findSlot(const Key& key, size_t* pos) const
 {
     std::uint32_t hash = getHash(key);
@@ -319,7 +319,7 @@ findSlot(const Key& key, size_t* pos) const
 }
 
 KVHTEMP
-EKV& linearTable<Key, Value, HashFunc>::emptyAdd(const Key& key)
+EKV& HashTable<Key, Value, HashFunc>::emptyAdd(const Key& key)
 {
     // This method is only called internally,
     // so we can skip checks for the key existing
@@ -347,7 +347,7 @@ EKV& linearTable<Key, Value, HashFunc>::emptyAdd(const Key& key)
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::add(const Key& key,
+void HashTable<Key, Value, HashFunc>::add(const Key& key,
     const Value& value)
 {
     EKV& existEntry = findSlot(key, nullptr);
@@ -378,7 +378,7 @@ void linearTable<Key, Value, HashFunc>::add(const Key& key,
 }
 
 KVHTEMP
-Value* linearTable<Key, Value, HashFunc>::get(const Key& key)
+Value* HashTable<Key, Value, HashFunc>::get(const Key& key)
 {
     if (count == 0) return nullptr;
 
@@ -390,7 +390,7 @@ Value* linearTable<Key, Value, HashFunc>::get(const Key& key)
 }
 
 KVHTEMP
-const Value* linearTable<Key, Value, HashFunc>::get(const Key& key) const
+const Value* HashTable<Key, Value, HashFunc>::get(const Key& key) const
 {
     if (count == 0) return nullptr;
 
@@ -402,7 +402,7 @@ const Value* linearTable<Key, Value, HashFunc>::get(const Key& key) const
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::set(const Key& key,
+void HashTable<Key, Value, HashFunc>::set(const Key& key,
     const Value& value)
 {
     EKV& entry = findSlot(key, nullptr);
@@ -413,7 +413,7 @@ void linearTable<Key, Value, HashFunc>::set(const Key& key,
 }
 
 KVHTEMP
-bool linearTable<Key, Value, HashFunc>::contains(const Key& key) const
+bool HashTable<Key, Value, HashFunc>::contains(const Key& key) const
 {
     if (count == 0) return false;
 
@@ -422,7 +422,7 @@ bool linearTable<Key, Value, HashFunc>::contains(const Key& key) const
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::remove(const Key& key)
+void HashTable<Key, Value, HashFunc>::remove(const Key& key)
 {
     EKV& entry = findSlot(key, nullptr);
     if (entry.state == VALID) // Leave it if it's already empty.
@@ -430,8 +430,8 @@ void linearTable<Key, Value, HashFunc>::remove(const Key& key)
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::merge(
-    const linearTable<Key, Value, HashFunc>& other
+void HashTable<Key, Value, HashFunc>::merge(
+    const HashTable<Key, Value, HashFunc>& other
 )
 {
     for (const auto& [key, value] : other)
@@ -439,25 +439,25 @@ void linearTable<Key, Value, HashFunc>::merge(
 }
 
 KVHTEMP
-bool linearTable<Key, Value, HashFunc>::empty() const
+bool HashTable<Key, Value, HashFunc>::empty() const
 {
     return (count == 0);
 }
 
 KVHTEMP
-size_t linearTable<Key, Value, HashFunc>::size() const
+size_t HashTable<Key, Value, HashFunc>::size() const
 {
     return count;
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::clear()
+void HashTable<Key, Value, HashFunc>::clear()
 {
     entries.clear();
 }
 
 KVHTEMP
-void linearTable<Key, Value, HashFunc>::printTable()
+void HashTable<Key, Value, HashFunc>::printTable()
 {
     size_t cap = entries.capacity();
     for (size_t i = 0; i < cap; i++)
@@ -480,7 +480,7 @@ void linearTable<Key, Value, HashFunc>::printTable()
 
 // Iterator implementation.
 
-#define tableIter       linearTable<Key, Value, HashFunc>::iterator
+#define tableIter       HashTable<Key, Value, HashFunc>::iterator
 
 KVHTEMP
 tableIter::iterator(EKV* ptr, EKV* end) :
@@ -544,7 +544,7 @@ bool tableIter::operator!=(const tableIter& other) const
 }
 
 KVHTEMP
-typename tableIter linearTable<Key, Value, HashFunc>::begin() noexcept
+typename tableIter HashTable<Key, Value, HashFunc>::begin() noexcept
 {
     EKV* ptr = &(entries.front());
     EKV* end = ptr + entries.capacity();
@@ -555,7 +555,7 @@ typename tableIter linearTable<Key, Value, HashFunc>::begin() noexcept
 }
 
 KVHTEMP
-typename tableIter linearTable<Key, Value, HashFunc>::end() noexcept
+typename tableIter HashTable<Key, Value, HashFunc>::end() noexcept
 {
     EKV* end = &(entries.front()) + entries.capacity();
     return tableIter(end, end);
@@ -563,7 +563,7 @@ typename tableIter linearTable<Key, Value, HashFunc>::end() noexcept
 
 // Const iterator implementation.
 
-#define constTableIter  linearTable<Key, Value, HashFunc>::const_iterator
+#define constTableIter  HashTable<Key, Value, HashFunc>::const_iterator
 
 KVHTEMP
 constTableIter::const_iterator(const EKV* ptr, const EKV* end) :
@@ -627,21 +627,21 @@ bool constTableIter::operator!=(const constTableIter& other) const
 }
 
 KVHTEMP
-typename constTableIter linearTable<Key, Value, HashFunc>::begin()
+typename constTableIter HashTable<Key, Value, HashFunc>::begin()
 const noexcept
 {
     return cbegin();
 }
 
 KVHTEMP
-typename constTableIter linearTable<Key, Value, HashFunc>::end()
+typename constTableIter HashTable<Key, Value, HashFunc>::end()
 const noexcept
 {
     return cend();
 }
 
 KVHTEMP
-typename constTableIter linearTable<Key, Value, HashFunc>::cbegin()
+typename constTableIter HashTable<Key, Value, HashFunc>::cbegin()
 const noexcept
 {
     const EKV* ptr = &(entries.front());
@@ -653,7 +653,7 @@ const noexcept
 }
 
 KVHTEMP
-typename constTableIter linearTable<Key, Value, HashFunc>::cend()
+typename constTableIter HashTable<Key, Value, HashFunc>::cend()
 const noexcept
 {
     const EKV* end = &(entries.front()) + entries.capacity();
