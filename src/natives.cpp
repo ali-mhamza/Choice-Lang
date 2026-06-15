@@ -65,7 +65,7 @@ void Natives::print(Natives::iter it, u8 args)
 
     // To avoid reallocating the return value each time.
     static auto ret{Object{CH_ALLOC(Void)}};
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = ret;
+    it[-1] = ret;
 }
 
 void Natives::println(Natives::iter it, u8 args)
@@ -150,7 +150,7 @@ void Natives::format(Natives::iter it, u8 args)
         result = defaultFormat(it, args);
     #endif
 
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = Object{CH_ALLOC(String, result)};
+    it[-1] = Object{CH_ALLOC(String, result)};
 }
 
 void Natives::type(Natives::iter it, u8 args)
@@ -162,7 +162,7 @@ void Natives::type(Natives::iter it, u8 args)
         );
     }
 
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = Object{it->type()};
+    it[-1] = Object{it->type()};
 }
 
 void Natives::len(Natives::iter it, u8 args)
@@ -202,7 +202,7 @@ void Natives::len(Natives::iter it, u8 args)
             CH_UNREACHABLE();
     }
 
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = Object{len};
+    it[-1] = Object{len};
 }
 
 void Natives::clock(Natives::iter it, u8 args)
@@ -221,7 +221,7 @@ void Natives::clock(Natives::iter it, u8 args)
 
     auto time{clock::now()};
     auto ret{duration_cast<nanoseconds>(time - start)};
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = Object{i64(ret.count())};
+    it[-1] = Object{i64(ret.count())};
 }
 
 void Natives::range(Natives::iter it, u8 args)
@@ -246,7 +246,7 @@ void Natives::range(Natives::iter it, u8 args)
     if (args == 3) nums[2] = AS_INT(it[2]);
 
     Range::validateRange(nums); // May throw on error.
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = Object{CH_ALLOC(Range, nums)};
+    it[-1] = Object{CH_ALLOC(Range, nums)};
 }
 
 void Natives::read(Natives::iter it, u8 args)
@@ -268,7 +268,7 @@ void Natives::read(Natives::iter it, u8 args)
     std::ios_base::sync_with_stdio(false);
     std::string input{};
     std::getline(std::cin, input);
-    it[-static_cast<int>(BUILTIN_LOCALS + 1)] = Object{CH_ALLOC(String, input)};
+    it[-1] = Object{CH_ALLOC(String, input)};
 }
 
 void Natives::quit(Natives::iter it, u8 args)

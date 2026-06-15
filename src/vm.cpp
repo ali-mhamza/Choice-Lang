@@ -80,11 +80,6 @@ void VM::amendFileName()
         AS_STRING(name)->str = sourceManager.getFile(currentCode->getID());
 }
 
-void VM::amendFuncName(const Function* func)
-{
-    registers[FUNCNAME_LOC] = func->nameVariable;
-}
-
 inline u8 VM::readByte()
 {
     ip++;
@@ -534,10 +529,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     ip = currentCode->block.data();
     pool = currentCode->pool.data();
 
-    // TODO: Disassembler should follow any argument-prep code
-    // here as well.
     prepFuncArgs(func, argCount);
-    amendFuncName(func);
 
     #if WATCH_EXEC
         this->dis = new Disassembler(func);
@@ -551,7 +543,7 @@ void VM::callNative(const Object& callee, u8 start, u8 argCount)
     // i.e., they cannot insert built-in constants into said code.
 
     auto* func{Natives::functions[AS_NATIVE(callee)]};
-    func(&registers[start + BUILTIN_LOCALS], argCount);
+    func(&registers[start], argCount);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
@@ -619,7 +611,7 @@ void VM::printRegister()
     if (frames.size() == 0)
         i = BUILTIN_GLOBALS;
     else
-        i = BUILTIN_LOCALS;
+        i = 0;
 
     while (i <= regSlot)
     {
@@ -1055,7 +1047,7 @@ void VM::executeOp(Opcode op)
             SET_REGSLOT(start);
 
             const auto& func{Natives::functions[callee]};
-            func(&registers[start + BUILTIN_LOCALS], argCount); // Temporarily.
+            func(&registers[start], argCount); // Temporarily.
 
             SET_REGSLOT(currentSlot);
             DISPATCH();
@@ -1096,7 +1088,7 @@ void VM::executeOp(Opcode op)
 
             Object list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
             auto& array{AS_LIST(list)->array};
-            for (u8 i{reg}; i < args + BUILTIN_LOCALS; i++)
+            for (u8 i{reg}; i < args; i++)
             {
                 if (registers + i > globalRegisters + NUM_REGS)
                     break;

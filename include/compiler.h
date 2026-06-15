@@ -132,16 +132,15 @@ class Compiler
 
         /* Registers. */
 
-        inline void freeReg()               { nextReg--; }
-        inline void reserveReg()            { nextReg++; }
-        inline void reserveBuiltinLocals()  { nextReg += BUILTIN_LOCALS; }
+        inline void freeReg()       { nextReg--; }
+        inline void reserveReg()    { nextReg++; }
 
         /* General helpers. */
 
-        // Define any global built-in constant or function.
+        // Define all global built-in constants or functions.
         void defineBuiltinGlobals();
-        // Define any local built-in constant or function.
-        void defineBuiltinLocals();
+        // Define all local built-in constants or functions.
+        void defineBuiltinLocals(const std::string& funcName);
 
         // `patchBreaks` - True if we are to patch 'break' jumps.
         //                 False otherwise.

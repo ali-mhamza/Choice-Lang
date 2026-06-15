@@ -80,7 +80,6 @@ class VM
         // only determined upon receiving input.
 
         void amendFileName();
-        void amendFuncName(const Function* func);
 
         [[nodiscard]] u8 readByte();
         [[nodiscard]] u16 readShort();

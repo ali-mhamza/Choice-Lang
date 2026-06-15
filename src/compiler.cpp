@@ -48,10 +48,7 @@ Compiler::Compiler(Compiler* comp) :
     if (depth == 0) // Global scope compiler.
         defineBuiltinGlobals();
     else
-    {
         this->id = scopeCompiler->id;
-        defineBuiltinLocals();
-    }
 }
 
 Compiler::~Compiler() = default;
@@ -67,9 +64,15 @@ void Compiler::defineBuiltinGlobals()
         defVar(func, nextReg++, accessVar);
 }
 
-void Compiler::defineBuiltinLocals()
+void Compiler::defineBuiltinLocals(const std::string& funcName)
 {
-    defVar("_func_", nextReg++, accessFix);
+    defVar("_func_", nextReg, accessFix);
+    Object nameObj{};
+    if (funcName.empty()) // Lambda.
+        nameObj = CH_ALLOC(String, "lambda");
+    else
+        nameObj = CH_ALLOC(String, funcName);
+    code.loadRegConst(nameObj, nextReg++);
 }
 
 /* Compilation helpers. */
@@ -479,6 +482,7 @@ void Compiler::funcBodyHelper(
 {
     Compiler miniCompiler{this};
     auto [defaultArgs, defaultCount] = paramHelper(miniCompiler, params);
+    miniCompiler.defineBuiltinLocals(name);
 
     miniCompiler.compileStmt(body);
     miniCompiler.code.addOp(OP_VOID, 0);
@@ -1329,20 +1333,19 @@ DEF(CallExpr)
         compileExpr(node->callee); // Will reserve a register.
     }
 
-    u8 localStart{nextReg};
-    reserveBuiltinLocals();
+    u8 argsStart{nextReg};
     for (const ExprUP& arg : node->args)
         compileExpr(arg);
 
     u8 size{static_cast<u8>(node->args.size())};
     code.addOp((node->builtin ? OP_CALL_NAT : OP_CALL_DEF),
-        location, localStart, size);
+        location, argsStart, size);
 
     // For user-defined functions, the return value replaces the
     // function object.
     // For built-ins, we place the return value in the empty register
     // reserved above.
-    nextReg = localStart;
+    nextReg = argsStart;
 }
 
 DEF(IfExpr)
