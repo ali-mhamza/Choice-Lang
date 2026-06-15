@@ -97,7 +97,7 @@ class Compiler
         // Used as a primitive "rollback" if we hit an error during a
         // declaration.
         // Must always be called (if it is called at all) *after* defVar.
-        void removeVar(const std::string& name, u8 reg);
+        void removeVar(const std::string& name);
 
         // To clear declaredVars upon a compile-time or runtime error.
         void clearDeclarations();

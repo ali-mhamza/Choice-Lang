@@ -109,9 +109,11 @@ void Compiler::defVar(const std::string& name, u8 reg, bool access)
         declaredVars.push_back({ name, reg });
 }
 
-void Compiler::removeVar(const std::string& name, u8 reg)
+void Compiler::removeVar(const std::string& name)
 {
-    varLocations->remove({ name, scope });
+    VarEntry entry(name, scope);
+    u8 reg{(*varLocations)[entry]};
+    varLocations->remove(entry);
     varAccess->remove(reg);
 
     if (scope != 0)
@@ -411,7 +413,7 @@ DEF(VarDecl)
     }
 
     code.addOp((node->fix ? OP_FIX : OP_VAR), varSlot);
-    if (!inError && hitError) removeVar(varName, varSlot);
+    if (!inError && hitError) removeVar(varName);
     endDeclaration();
 }
 
@@ -544,7 +546,7 @@ DEF(FuncDecl)
 
     bool inError{hitError};
     funcBodyHelper(node->params, node->body, varSlot, name);
-    if (!inError && hitError) removeVar(name, varSlot);
+    if (!inError && hitError) removeVar(name);
     endDeclaration();
 }
 
