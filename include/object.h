@@ -349,9 +349,6 @@ struct Cell : public HeapObj
 struct Function : public HeapObj
 {
     const char* name{nullptr};
-    // Used to initialize the '_func_' variable
-    // implicitly defined for every function/function call.
-    Object nameVariable{};
     const ByteCode code{};
     const ByteCode* defaultArgs{nullptr};
     const u8 arityMin{}, arityMax{};

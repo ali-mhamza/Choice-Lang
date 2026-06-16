@@ -386,12 +386,7 @@ void Cell::close()
 }
 
 Function::Function(const ByteCode& code, u8 arityMin, u8 arityMax) noexcept:
-    code{code}, arityMin{arityMin}, arityMax{arityMax}
-{
-    nameVariable = Object{CH_ALLOC(String, "lambda")};
-    MAKE_FIXED(nameVariable);
-    MAKE_IMMUT(nameVariable);
-}
+    code{code}, arityMin{arityMin}, arityMax{arityMax} {}
 
 // strdup is not a standard C++ function, but is instead from POSIX.
 [[nodiscard]] static char* choiceStrdup(const char* str)
@@ -409,12 +404,7 @@ Function::Function(
     u8 arityMax
 ) noexcept:
     name{choiceStrdup(name.c_str())}, code{code}, arityMin{arityMin},
-    arityMax{arityMax}
-{
-    nameVariable = Object{CH_ALLOC(String, name)};
-    MAKE_FIXED(nameVariable);
-    MAKE_IMMUT(nameVariable);
-}
+    arityMax{arityMax} {}
 
 Function::~Function() noexcept
 {
