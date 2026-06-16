@@ -99,6 +99,8 @@ void ByteCode::addLoop(u64 start)
 	// *after* the two bytes by the time we've decoded the
 	// offset.
 
+	// TODO: add error-handling if jump is too large.
+
 	u16 diff{static_cast<u16>(block.size() - start + 3)};
 	addByte(OP_LOOP);
 	addByte(static_cast<u8>((diff >> 8) & 0xff));
