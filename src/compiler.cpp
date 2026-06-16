@@ -72,6 +72,9 @@ void Compiler::defineBuiltinLocals(const std::string& funcName)
         nameObj = CH_ALLOC(String, "lambda");
     else
         nameObj = CH_ALLOC(String, funcName);
+
+    MAKE_FIXED(nameObj);
+    MAKE_IMMUT(nameObj);
     code.loadRegConst(nameObj, nextReg++);
 }
 
