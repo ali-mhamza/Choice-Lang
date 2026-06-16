@@ -284,7 +284,7 @@ class Compiler
 
         /* Primary compilation functions. */
 
-        void compileExpr(const ExprUP& node);
+        u8 compileExpr(const ExprUP& node);
         void compileStmt(const StmtUP& node);
 
         // Finalize and return ByteCode object.

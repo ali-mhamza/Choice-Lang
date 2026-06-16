@@ -561,8 +561,7 @@ DEF(ClassDecl) { (void) node; }
 
 DEF(IfStmt)
 {
-    u8 reg{nextReg};
-    compileExpr(node->condition);
+    u8 reg{compileExpr(node->condition)};
     u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
     compileStmt(node->trueBranch);
@@ -638,8 +637,7 @@ void Compiler::forLoopHelper(
     u64 whereJump{0};
     if (node->where != nullptr)
     {
-        u8 whereReg{nextReg};
-        compileExpr(node->where);
+        u8 whereReg{compileExpr(node->where)};
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
@@ -698,9 +696,7 @@ DEF(ForStmt)
     );
     reserveReg();
 
-    u8 iterReg{nextReg};
-    compileExpr(node->iter);
-
+    u8 iterReg{compileExpr(node->iter)};
     forLoopHelper(node, varReg, iterReg);
 
     breakJumps = prevBreaks;
@@ -716,8 +712,7 @@ void Compiler::matchCaseHelper(
     u64& emptyJump
 )
 {
-    u8 caseReg{nextReg};
-    compileExpr(checkCase.value);
+    u8 caseReg{compileExpr(checkCase.value)};
     code.addOp(OP_EQUAL, caseReg, matchReg);
     u64 falseJump{code.addJump(OP_JUMP_FALSE, caseReg)};
     freeReg();
@@ -750,9 +745,7 @@ void Compiler::matchCaseHelper(
 
 DEF(MatchStmt)
 {
-    u8 matchReg{nextReg};
-    compileExpr(node->matchValue);
-
+    u8 matchReg{compileExpr(node->matchValue)};
     std::vector<u64> jumps{};
     auto* prevEndJumps{endJumps};
     endJumps = &jumps;
@@ -800,8 +793,7 @@ DEF(RepeatStmt)
     // Patch nested scope "continue" jumps.
     patchLoopLabelJumps(node->label, false);
 
-    u8 reg{nextReg};
-    compileExpr(node->condition);
+    u8 reg{compileExpr(node->condition)};
     u64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
     freeReg();
 
@@ -869,8 +861,7 @@ DEF(ExprStmt)
 {
     if (node->expr == nullptr) return;
 
-    u8 reg{nextReg};
-    compileExpr(node->expr);
+    u8 reg{compileExpr(node->expr)};
     if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
         code.addOp(OP_PRINT_VALID, reg);
     freeReg();
@@ -955,8 +946,7 @@ void Compiler::assignToVar(
         return;
     }
 
-    u8 reg{nextReg};
-    compileExpr(node->value);
+    u8 reg{compileExpr(node->value)};
     emitVariableOp(setVar, info, info.slot, reg);
 }
 
@@ -969,10 +959,9 @@ void Compiler::compoundAssignToVar(
     emitVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
-    u8 valueReg{nextReg};
-    compileExpr(node->value);
-
+    u8 valueReg{compileExpr(node->value)};
     Opcode op{getCompoundAssignOpcode(node)};
+
     code.addOp(op, varReg, valueReg);
     emitVariableOp(setVar, info, info.slot, varReg);
     freeReg(); // Free the temporary register used for the RHS value.
@@ -983,12 +972,8 @@ void Compiler::assignToElement(
 )
 {
     IndexExpr* item{static_cast<IndexExpr*>(node->target.get())};
-
-    u8 objReg{nextReg};
-    compileExpr(item->obj);
-
-    u8 indexReg{nextReg};
-    compileExpr(item->index);
+    u8 objReg{compileExpr(item->obj)};
+    u8 indexReg{compileExpr(item->index)};
 
     if (node->oper.type != TOK_EQUAL)
     {
@@ -996,9 +981,7 @@ void Compiler::assignToElement(
         return;
     }
 
-    u8 valueReg{nextReg};
-    compileExpr(node->value);
-
+    u8 valueReg{compileExpr(node->value)};
     code.addOp(OP_SET_INDEX, objReg, indexReg, valueReg);
     // Final result should be in the first register reserved,
     // i.e., object register.
@@ -1016,9 +999,7 @@ void Compiler::compoundAssignToElement(
     code.addOp(OP_GET_INDEX, elementReg, objReg, indexReg);
     reserveReg();
 
-    u8 valueReg{nextReg};
-    compileExpr(node->value);
-
+    u8 valueReg{compileExpr(node->value)};
     Opcode op{getCompoundAssignOpcode(node)};
     // E.g., ADD x[0], 1
     code.addOp(op, elementReg, valueReg);
@@ -1062,8 +1043,7 @@ DEF(MutExpr)
         }
     }
 
-    u8 reg{nextReg};
-    compileExpr(node->value);
+    u8 reg{compileExpr(node->value)};
     code.addOp((node->mut ? OP_MUT : OP_IMMUT), reg);
 }
 
@@ -1081,8 +1061,7 @@ DEF(LogicExpr)
 {
     if ((node->oper == TOK_AMP_AMP) || (node->oper == TOK_AND)) // &&, and
     {
-        u8 reg{nextReg};
-        compileExpr(node->left);
+        u8 reg{compileExpr(node->left)};
         u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
         nextReg = reg;
         compileExpr(node->right);
@@ -1090,8 +1069,7 @@ DEF(LogicExpr)
     }
     else if ((node->oper == TOK_BAR_BAR) || (node->oper == TOK_OR)) // ||, or
     {
-        u8 reg{nextReg};
-        compileExpr(node->left);
+        u8 reg{compileExpr(node->left)};
         u64 trueJump{code.addJump(OP_JUMP_TRUE, reg)};
         nextReg = reg;
         compileExpr(node->right);
@@ -1101,11 +1079,8 @@ DEF(LogicExpr)
 
 DEF(CompareExpr)
 {
-    u8 firstOper{nextReg};
-    compileExpr(node->left);
-
-    u8 secondOper{nextReg};
-    compileExpr(node->right);
+    u8 firstOper{compileExpr(node->left)};
+    u8 secondOper{compileExpr(node->right)};
 
     Opcode op{};
     switch (node->oper)
@@ -1140,11 +1115,8 @@ DEF(CompareExpr)
 
 DEF(BitExpr)
 {
-    u8 firstOper{nextReg};
-    compileExpr(node->left);
-
-    u8 secondOper{nextReg};
-    compileExpr(node->right);
+    u8 firstOper{compileExpr(node->left)};
+    u8 secondOper{compileExpr(node->right)};
 
     Opcode op{};
     switch (node->oper)
@@ -1161,11 +1133,8 @@ DEF(BitExpr)
 
 DEF(ShiftExpr)
 {
-    u8 firstOper{nextReg};
-    compileExpr(node->left);
-
-    u8 secondOper{nextReg};
-    compileExpr(node->right);
+    u8 firstOper{compileExpr(node->left)};
+    u8 secondOper{compileExpr(node->right)};
 
     code.addOp(node->oper == TOK_RIGHT_SHIFT ?
         OP_SHIFT_R : OP_SHIFT_L, firstOper, secondOper);
@@ -1174,11 +1143,8 @@ DEF(ShiftExpr)
 
 DEF(BinaryExpr)
 {
-    u8 firstOper{nextReg};
-    compileExpr(node->left);
-
-    u8 secondOper{nextReg};
-    compileExpr(node->right);
+    u8 firstOper{compileExpr(node->left)};
+    u8 secondOper{compileExpr(node->right)};
 
     Opcode op{};
     switch (node->oper)
@@ -1240,12 +1206,8 @@ void Compiler::_crementElement(
 )
 {
     IndexExpr* item{static_cast<IndexExpr*>(node->expr.get())};
-
-    u8 objReg{nextReg};
-    compileExpr(item->obj);
-
-    u8 indexReg{nextReg};
-    compileExpr(item->index);
+    u8 objReg{compileExpr(item->obj)};
+    u8 indexReg{compileExpr(item->index)};
 
     u8 tempReg{nextReg};
     code.addOp(OP_GET_INDEX, tempReg, objReg, indexReg);
@@ -1280,9 +1242,7 @@ DEF(UnaryExpr)
         }
     }
 
-    u8 firstOper{nextReg};
-    compileExpr(node->expr);
-
+    u8 firstOper{compileExpr(node->expr)};
     Opcode op{};
     switch (node->oper.type)
     {
@@ -1302,11 +1262,8 @@ DEF(UnaryExpr)
 
 DEF(IndexExpr)
 {
-    u64 objectReg{nextReg};
-    compileExpr(node->obj);
-
-    u64 indexReg{nextReg};
-    compileExpr(node->index);
+    u64 objectReg{compileExpr(node->obj)};
+    u64 indexReg{compileExpr(node->index)};
 
     // The object should replace the first operand (the second's
     // register is freed up).
@@ -1331,10 +1288,7 @@ DEF(CallExpr)
         reserveReg(); // Reserve a register in place of the function object.
     }
     else
-    {
-        location = nextReg;
-        compileExpr(node->callee); // Will reserve a register.
-    }
+        location = compileExpr(node->callee); // Will reserve a register.
 
     u8 argsStart{nextReg};
     for (const ExprUP& arg : node->args)
@@ -1353,13 +1307,11 @@ DEF(CallExpr)
 
 DEF(IfExpr)
 {
-    u8 reg{nextReg};
-    compileExpr(node->condition);
+    u8 reg{compileExpr(node->condition)};
     u64 falseJump{code.addJump(OP_JUMP_FALSE, reg)};
     freeReg();
 
-    u8 current{nextReg};
-    compileExpr(node->trueExpr);
+    u8 current{compileExpr(node->trueExpr)};
     u64 trueJump{code.addJump(OP_JUMP)};
     code.patchJump(falseJump);
 
@@ -1392,9 +1344,7 @@ DEF(ComprehensionExpr)
     );
     reserveReg();
 
-    u8 iterReg{nextReg};
-    compileExpr(node->iter);
-
+    u8 iterReg{compileExpr(node->iter)};
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
@@ -1404,15 +1354,13 @@ DEF(ComprehensionExpr)
     u64 whereJump{0};
     if (node->where != nullptr)
     {
-        u8 whereReg{nextReg};
-        compileExpr(node->where);
+        u8 whereReg{compileExpr(node->where)};
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
 
-    u8 result{nextReg};
-    compileExpr(node->expr);
-    code.addOp(OP_EXT_LIST, listReg, result, u8(1));
+    u8 resultReg{compileExpr(node->expr)};
+    code.addOp(OP_EXT_LIST, listReg, resultReg, u8(1));
 
     if (whereJump != 0)
         code.patchJump(whereJump);
@@ -1613,15 +1561,16 @@ DEF(LiteralExpr)
 
 /* General compilation functions. */
 
-void Compiler::compileExpr(const ExprUP& node)
+u8 Compiler::compileExpr(const ExprUP& node)
 {
-    if (node == nullptr) return;
+    if (node == nullptr) return 0; // Dummy return value.
 
     u64 lastIndex{metadata.size()};
     metadata.push_back(DebugRange{
         code.codeSize(), 0, node->sourceStart, node->sourceEnd
     });
 
+    u8 reg{nextReg};
     switch (node->type)
     {
         case E_MUT_EXPR:        COMPILE(MutExpr);           break;
@@ -1647,6 +1596,7 @@ void Compiler::compileExpr(const ExprUP& node)
     }
 
     metadata[lastIndex].byteEnd = code.codeSize();
+    return reg;
 }
 
 void Compiler::compileStmt(const StmtUP& node)
