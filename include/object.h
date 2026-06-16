@@ -346,8 +346,6 @@ struct Cell : public HeapObj
     void close();
 };
 
-struct DebugRange;
-
 struct Function : public HeapObj
 {
     const char* name{nullptr};
