@@ -357,7 +357,7 @@ struct Function : public HeapObj
     const ByteCode code{};
     const ByteCode* defaultArgs{nullptr};
     const u8 arityMin{}, arityMax{};
-    bool variadic{false};       // Non-const to allow assignment.
+    bool variadic{false}; // Non-const to allow assignment.
 
     Function(
         const ByteCode& code,
