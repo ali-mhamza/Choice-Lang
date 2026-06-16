@@ -295,7 +295,7 @@ std::string Compiler::parseStringToken(
 
     bool reportedError{false};
     ErrorPair pair{std::make_pair(static_cast<DiagCode>(0), "")};
-    auto current{it};
+    decltype(it) current{};
 
     // Keep as inequality check in case 'end' becomes before 'it'.
 	while (it < end)
