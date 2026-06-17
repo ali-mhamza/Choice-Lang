@@ -9,7 +9,6 @@ class Object;
 
 namespace Natives
 {
-    // using iter = vObj::const_iterator;
     using iter = Object*;
     using NativeFunc = void (*)(iter, u8);
 
