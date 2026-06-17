@@ -66,9 +66,9 @@ void ByteCode::setDebugData(FileID id, const DebugMetadata& metadata)
 u64 ByteCode::addJump(Opcode op, i16 reg)
 {
 	if (reg == -1)
-		addByte(static_cast<u8>(op));
+		addOp(op);
 	else
-		addBytes(static_cast<u8>(op), static_cast<u8>(reg));
+		addOp(op, static_cast<u8>(reg));
 	u64 offset{block.size()};
 	block.emplace_back();
 	block.emplace_back();
@@ -109,14 +109,14 @@ void ByteCode::addLoop(u64 start)
 
 void ByteCode::loadReg(u8 reg, u8 op)
 {
-	addBytes(static_cast<u8>(OP_LOAD_R), reg, op);
+	addOp(OP_LOAD_R, reg, op);
 }
 
 #define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
 
 void ByteCode::loadRegConst(Object& constant, u8 reg)
 {
-	addBytes(static_cast<u8>(OP_LOAD_R), reg); // Destination first.
+	addOp(OP_LOAD_R, reg); // Destination first.
 
 	if (IS_INT(constant))
 	{
