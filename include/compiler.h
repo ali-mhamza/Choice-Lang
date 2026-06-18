@@ -181,14 +181,12 @@ class Compiler
         /* Declarations. */
 
         DECL_STMT(VarDecl);
-        template<typename ParamT>
         std::pair<ByteCode*, u8> paramHelper(
             Compiler& miniCompiler,
-            const std::vector<ParamT>& params
+            const std::vector<AST::Param>& params
         );
-        template<typename ParamT>
         void funcBodyHelper(
-            const std::vector<ParamT>& params,
+            const std::vector<AST::Param>& params,
             const StmtUP& body,
             const u8 funcReg,
             const std::string& name

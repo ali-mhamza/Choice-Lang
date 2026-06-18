@@ -274,7 +274,7 @@ StmtUP Parser::declaration()
     else if (consumeToks(TOK_MAKE, TOK_FIX))
         ret = varDecl();
     else if (consumeTok(TOK_FUNC))
-        ret = funDecl();
+        ret = funcDecl();
     else
         ret = statement();
 
@@ -315,18 +315,20 @@ StmtUP Parser::varDecl()
     return std::make_unique<VarDecl>((declType == TOK_FIX), name, init);
 }
 
-StmtUP Parser::funcBodyHelper(std::vector<FuncDecl::Param>& params)
+bool Parser::parseParams(std::vector<AST::Param>& params)
 {
-    MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name");
-
     bool startedDefaultArgs{false}, variadic{false};
     if (!checkTok(TOK_RIGHT_PAREN))
     {
         do {
-            if (variadic) REPORT_SYNTAX(PARAM_AFTER_VARIADIC, previousTok);
+            if (variadic)
+            {
+                reportSyntax(PARAM_AFTER_VARIADIC, previousTok);
+                return false;
+            }
 
             bool fix{consumeTok(TOK_FIX)};
-            MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
+            if (!matchError(TOK_IDENTIFIER, "expect parameter name")) return false;
             Token param{previousTok};
 
             ExprUP defaultVal{};
@@ -338,12 +340,23 @@ StmtUP Parser::funcBodyHelper(std::vector<FuncDecl::Param>& params)
             else if (consumeTok(TOK_ELLIPSIS))
                 variadic = true;
             else if (startedDefaultArgs)
-                REPORT_SYNTAX(EXPECT_DEFAULT_PARAM, param);
+            {
+                reportSyntax(EXPECT_DEFAULT_PARAM, param);
+                return false;
+            }
 
             params.emplace_back(fix, variadic, param, defaultVal);
             CONSUME_VAR_TYPE();
         } while (consumeTok(TOK_COMMA));
     }
+
+    return true;
+}
+
+StmtUP Parser::funcBodyHelper(std::vector<AST::Param>& params)
+{
+    MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name");
+    if (!parseParams(params)) return nullptr;
 
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' to close function signature");
     CONSUME_RETURN_TYPE();
@@ -358,12 +371,12 @@ StmtUP Parser::funcBodyHelper(std::vector<FuncDecl::Param>& params)
     return body;
 }
 
-StmtUP Parser::funDecl()
+StmtUP Parser::funcDecl()
 {
     MATCH_TOK(TOK_IDENTIFIER, "expect function name");
     Token name{previousTok};
 
-    std::vector<FuncDecl::Param> params{};
+    std::vector<AST::Param> params{};
     StmtUP body{funcBodyHelper(params)};
 
     return std::make_unique<FuncDecl>(name, params, body);
@@ -1007,7 +1020,7 @@ ExprUP Parser::ifExpr()
 }
 
 StmtUP Parser::lambdaBodyHelper(
-    std::vector<LambdaExpr::Param>& params,
+    std::vector<AST::Param>& params,
     bool skipParams
 )
 {
@@ -1015,34 +1028,10 @@ StmtUP Parser::lambdaBodyHelper(
     {
         bool lambdaState{inLambdaParams};
         inLambdaParams = true;
+        bool success{parseParams(params)};
+        inLambdaParams = lambdaState; // Reset before potentially returning.
+        if (!success) return nullptr;
 
-        bool startedDefaultArgs{false}, variadic{false};
-        if (!checkTok(TOK_RIGHT_PAREN))
-        {
-            do {
-                if (variadic) REPORT_SYNTAX(PARAM_AFTER_VARIADIC, previousTok);
-
-                bool fix{consumeTok(TOK_FIX)};
-                MATCH_TOK(TOK_IDENTIFIER, "expect parameter name");
-                Token param{previousTok};
-
-                ExprUP defaultVal{};
-                if (consumeTok(TOK_EQUAL))
-                {
-                    defaultVal = expression();
-                    startedDefaultArgs = true;
-                }
-                else if (consumeTok(TOK_ELLIPSIS))
-                    variadic = true;
-                else if (startedDefaultArgs)
-                    REPORT_SYNTAX(EXPECT_DEFAULT_PARAM, param);
-
-                params.emplace_back(fix, variadic, param, defaultVal);
-                CONSUME_VAR_TYPE();
-            } while (consumeTok(TOK_COMMA));
-        }
-
-        inLambdaParams = lambdaState;
         MATCH_TOK(TOK_BAR, "expect '|' after lambda parameters");
     }
 
@@ -1073,7 +1062,7 @@ ExprUP Parser::lambda(bool skipParams)
 {
     CHECK_DEPTH(previousTok);
 
-    std::vector<LambdaExpr::Param> params{};
+    std::vector<AST::Param> params{};
     StmtUP body{lambdaBodyHelper(params, skipParams)};
     return std::make_unique<LambdaExpr>(params, body);
 }

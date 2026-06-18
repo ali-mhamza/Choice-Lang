@@ -19,6 +19,21 @@ using ExprVec   = std::vector<ExprUP>;
 
 namespace AST
 {
+    struct Param
+    {
+        const bool fix{};
+        const bool variadic{};
+        const Token param{};
+        ExprUP defaultVal{};
+
+        Param(
+            bool fix,
+            bool variadic,
+            const Token& param,
+            ExprUP& defaultVal
+        );
+    };
+
     namespace Statement
     {
         enum StmtType : u8
@@ -65,21 +80,6 @@ namespace AST
 
         struct FuncDecl : public Stmt
         {
-            struct Param
-            {
-                const bool fix{};
-                const bool variadic{};
-                const Token param{};
-                ExprUP defaultVal{};
-
-                Param(
-                    bool fix,
-                    bool variadic,
-                    const Token& param,
-                    ExprUP& defaultVal
-                );
-            };
-
             const Token name{};
             const std::vector<Param> params{};
             const StmtUP body{};
@@ -411,21 +411,6 @@ namespace AST
 
         struct LambdaExpr : public Expr
         {
-            struct Param
-            {
-                const bool fix{};
-                const bool variadic{};
-                const Token param{};
-                ExprUP defaultVal{};
-
-                Param(
-                    bool fix,
-                    bool variadic,
-                    const Token& param,
-                    ExprUP& defaultVal
-                );
-            };
-
             const std::vector<Param> params{};
             const StmtUP body{};
 

@@ -423,10 +423,9 @@ DEF(VarDecl)
     endDeclaration();
 }
 
-template<typename ParamT>
 std::pair<ByteCode*, u8> Compiler::paramHelper(
     Compiler& miniCompiler,
-    const std::vector<ParamT>& params
+    const std::vector<AST::Param>& params
 )
 {
     ByteCode* defaultArgs{new ByteCode[params.size()]};
@@ -475,9 +474,8 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
     return std::make_pair(defaultArgs, static_cast<u8>(temp - defaultArgs));
 }
 
-template<typename ParamT>
 void Compiler::funcBodyHelper(
-    const std::vector<ParamT>& params,
+    const std::vector<AST::Param>& params,
     const StmtUP& body,
     const u8 funcReg,
     const std::string& name

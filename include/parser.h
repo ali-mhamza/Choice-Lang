@@ -64,10 +64,9 @@ class Parser
 
         [[nodiscard]] StmtUP declaration();
         [[nodiscard]] StmtUP varDecl();
-        [[nodiscard]] StmtUP funcBodyHelper(
-            std::vector<AST::Statement::FuncDecl::Param>& params
-        );
-        [[nodiscard]] StmtUP funDecl();
+        [[nodiscard]] bool parseParams(std::vector<AST::Param>& params);
+        [[nodiscard]] StmtUP funcBodyHelper(std::vector<AST::Param>& params);
+        [[nodiscard]] StmtUP funcDecl();
         [[nodiscard]] StmtUP classDecl();
 
         // Statements.
@@ -105,11 +104,10 @@ class Parser
         [[nodiscard]] ExprUP exponent();
         [[nodiscard]] ExprUP reference();
         [[nodiscard]] ExprUP call(ExprUP&& expr, u64 start);
-        // All post-fix operators.
-        [[nodiscard]] ExprUP post();
+        [[nodiscard]] ExprUP post(); // All post-fix operators.
         [[nodiscard]] ExprUP ifExpr();
         [[nodiscard]] StmtUP lambdaBodyHelper(
-            std::vector<AST::Expression::LambdaExpr::Param>& params,
+            std::vector<AST::Param>& params,
             bool skipParams = false
         );
         [[nodiscard]] ExprUP lambda(bool skipParams);

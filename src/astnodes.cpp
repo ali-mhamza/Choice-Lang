@@ -7,6 +7,11 @@
 using namespace AST::Statement;
 using namespace AST::Expression;
 
+AST::Param::Param(bool fix, bool variadic, const Token& param,
+    ExprUP& defaultVal) :
+    fix{fix}, variadic{variadic}, param{param},
+    defaultVal{std::move(defaultVal)} {}
+
 // Statement constructors.
 
 Stmt::Stmt(StmtType type) :
@@ -15,11 +20,6 @@ Stmt::Stmt(StmtType type) :
 VarDecl::VarDecl(bool fix, const Token& name, ExprUP& init) :
     Stmt{S_VAR_DECL},
     fix{fix}, name{name}, init{std::move(init)} {}
-
-FuncDecl::Param::Param(bool fix, bool variadic, const Token& param,
-    ExprUP& defaultVal) :
-    fix{fix}, variadic{variadic}, param{param},
-    defaultVal{std::move(defaultVal)} {}
 
 FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     StmtUP& body) :
@@ -131,11 +131,6 @@ IfExpr::IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr) :
     Expr{E_IF_EXPR},
     condition{std::move(condition)}, trueExpr{std::move(trueExpr)},
     falseExpr{std::move(falseExpr)} {}
-
-LambdaExpr::Param::Param(bool fix, bool variadic, const Token& param,
-    ExprUP& defaultVal) :
-    fix{fix}, variadic{variadic}, param{param},
-    defaultVal{std::move(defaultVal)} {}
 
 LambdaExpr::LambdaExpr(std::vector<Param>& params, StmtUP& body) :
     Expr{E_LAMBDA_EXPR},
