@@ -291,7 +291,6 @@ StmtUP Parser::declaration()
 StmtUP Parser::varDecl()
 {
     TokenType declType{previousTok.type};
-    consumeTok(TOK_DEF); // In case it's there.
 
     MATCH_TOK(TOK_IDENTIFIER, "expect variable name");
     Token name{previousTok};

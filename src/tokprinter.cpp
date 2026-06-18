@@ -43,7 +43,7 @@ void TokenPrinter::printValue(const Token& token) const
         }
         case TOK_TRUE:      CH_PRINT("true");   break;
         case TOK_FALSE:     CH_PRINT("false");  break;
-        case TOK_NULL:      CH_PRINT("null");   break;                  
+        case TOK_NULL:      CH_PRINT("null");   break;
         default: CH_UNREACHABLE();
     }
 }
@@ -67,7 +67,7 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_MATCH", "TOK_IS", "TOK_FALL", "TOK_END",
 
     "TOK_IMMUT", "TOK_MUT", "TOK_AND", "TOK_OR", "TOK_NOT",
-    "TOK_RETURN", "TOK_NEW", "TOK_DEF", "TOK_FIELDS", "TOK_IN",
+    "TOK_RETURN", "TOK_IN",
 
     "TOK_PLUS", "TOK_MINUS", "TOK_STAR", "TOK_SLASH", "TOK_PERCENT",
     "TOK_STAR_STAR", "TOK_INCR", "TOK_DECR",

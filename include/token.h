@@ -72,9 +72,6 @@ enum TokenType : u8
 	TOK_OR,				// or
 	TOK_NOT,			// not
 	TOK_RETURN,			// return
-	TOK_NEW,			// new
-	TOK_DEF,			// def
-	TOK_FIELDS,			// fields
 	TOK_IN,				// in
 
 	/* Arithmetic operators. */

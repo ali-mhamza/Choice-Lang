@@ -49,7 +49,6 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	{"immut", TOK_IMMUT}, 	{"mut", TOK_MUT}, 	{"and", TOK_AND},
 	{"or", TOK_OR},			{"not", TOK_NOT},	{"return", TOK_RETURN},
-	{"new", TOK_NEW},		{"def", TOK_DEF},	{"fields", TOK_FIELDS},
 	{"in", TOK_IN},
 
 	// Declarations.
