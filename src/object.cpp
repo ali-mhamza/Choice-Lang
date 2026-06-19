@@ -234,20 +234,6 @@ void Object::setIndex(const Object& index, const Object& value)
     }
 }
 
-[[nodiscard]] static std::string doubleToStr(double d)
-{
-    auto output{CH_STR("{:.6f}", d)};
-
-    while (output.back() == '0')
-        output.pop_back();
-
-    // Remove the '.' if no decimals to print.
-    if (output.back() == '.')
-        output.pop_back();
-
-    return output;
-}
-
 template<typename T>
 [[nodiscard]] static Hash hashPointer(T* ptr)
 {
@@ -305,6 +291,20 @@ static std::unordered_map<const HeapObj*, u64> printedCollections{};
                 printedCollections.erase(AS_HEAP_PTR(*obj));    \
         }                                                       \
     } while (false)
+
+[[nodiscard]] static std::string doubleToStr(double d)
+{
+    auto output{CH_STR("{:.6f}", d)};
+
+    while (output.back() == '0')
+        output.pop_back();
+
+    // Remove the '.' if no decimals to print.
+    if (output.back() == '.')
+        output.pop_back();
+
+    return output;
+}
 
 // Need to support internal types in this function as well
 // since this is used for register printing in debug builds.
