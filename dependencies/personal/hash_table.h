@@ -35,14 +35,15 @@ struct Hasher
 template<typename Key, typename Value, typename EKVType>
 struct Pair
 {
-    const EKV* entry;
-    const Key* first;
+    const EKV* entry{};
+    const Key* first{};
 
     using ValueType = std::conditional_t<std::is_const_v<EKVType>,
         const Value, Value>;
 
-    ValueType* second;
+    ValueType* second{};
 
+    Pair() = default;
     Pair(EKV* entry) :
         entry(entry), first(&(entry->key)), second(&(entry->value)) {}
     Pair(const EKV* entry) :
@@ -90,7 +91,7 @@ class HashTable
 {
     private:
         HashFunc getHash;
-        // Keeping the same load factor for 
+        // Keeping the same load factor for
         // both implementations.
         static constexpr double loadFactor = 0.8;
         Array<EKV> entries;
@@ -234,7 +235,7 @@ void HashTable<Key, Value, HashFunc>::reorder()
 
 KVHTEMP
 void HashTable<Key, Value, HashFunc>::resize()
-{   
+{
     if ((entries.capacity() * loadFactor) < count + 1)
     {
         if (count == 0)
@@ -263,10 +264,10 @@ EKV& HashTable<Key, Value, HashFunc>::findSlot(const Key& key, size_t* pos)
     {
         if (pos != nullptr)
             *pos = index;
-        
+
         if (entry->key == key)
             return *entry;
-        
+
         if (entry->state == TOMBSTONE)
             tombstone = entry;
 
@@ -299,10 +300,10 @@ findSlot(const Key& key, size_t* pos) const
     {
         if (pos != nullptr)
             *pos = index;
-        
+
         if (entry->key == key)
             return *entry;
-        
+
         if (entry->state == TOMBSTONE)
             tombstone = entry;
 
@@ -324,7 +325,7 @@ EKV& HashTable<Key, Value, HashFunc>::emptyAdd(const Key& key)
     // This method is only called internally,
     // so we can skip checks for the key existing
     // while being careful to use the method properly.
-    
+
     resize(); // Grow if needed.
 
     std::uint32_t hash = getHash(key);
