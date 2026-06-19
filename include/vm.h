@@ -124,6 +124,9 @@ class VM
         void printRegister();
         #endif
 
+        // To report errors without any call-stack display.
+        // Currently only when maximum call depth is reached.
+        void reportShortError(const RuntimeError& error);
         void reportError(const RuntimeError& error);
         void reportWarning(DiagCode code, const std::string& label = "");
         void executeOp(Opcode op);

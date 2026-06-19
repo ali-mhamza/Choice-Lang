@@ -17,7 +17,7 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     FUNC_NAME_TOO_LONG, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
-    FORMAT_STR_PROBLEM, HIT_ARGS_MAX, INVALID_INCR_DECR_TARGET,
+    FORMAT_STR_PROBLEM, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
     MUT_TO_IMMUT
 };
@@ -80,6 +80,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Function has no overload for given number of arguments.",
     "Built-in (called with '!') must be called by name.",
     "Too many arguments in function call.",
+    "Reached maximum function call depth.",
 
     // Assignment errors.
 

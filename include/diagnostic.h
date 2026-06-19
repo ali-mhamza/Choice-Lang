@@ -202,6 +202,8 @@ enum DiagCode : u8
     BUILTIN_CALL_NO_NAME,
     // Too many arguments for a function call.
     HIT_ARGS_MAX,
+    // Too many call frames in call-stack.
+    HIT_CALL_DEPTH_MAX,
 
 
     /* Assignment errors. */

@@ -48,8 +48,10 @@ constexpr inline unsigned int FILENAME_LOC{0};
 
 // Number of available registers across all stack frames.
 constexpr inline unsigned int NUM_REGS{1 << 12};
-// Maximum depth of nested scopes.
-constexpr inline unsigned int MAX_SCOPE_DEPTH{CODE_MAX + 1};
+// Maximum depth level in call-stack.
+constexpr inline unsigned int MAX_CALL_DEPTH{1000};
+// Used to estimate space to reserve early for scope start markers.
+constexpr inline unsigned int SCOPE_DEPTH_DEFAULT{100};
 // Used to estimate space to reserve early in call-stack.
 constexpr inline unsigned int CALL_FRAMES_DEFAULT{10};
 

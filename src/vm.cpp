@@ -516,6 +516,20 @@ void VM::restoreData()
 
 void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 {
+    if CH_UNLIKELY(frames.size() == MAX_CALL_DEPTH)
+    {
+        reportShortError(RuntimeError{
+            HIT_CALL_DEPTH_MAX,
+            CH_STR("maximum depth is {}", MAX_CALL_DEPTH)
+        });
+
+        // Erase the function object originally loaded for the call.
+        // This prevents it from being printed as the "return value"
+        // in the REPL.
+        registers[start - 1] = Object{};
+        return;
+    }
+
     bool isClosure{IS_CLOSURE(callee)};
     Closure* closure{isClosure ? AS_CLOSURE(callee) : nullptr};
     Function* func{isClosure ? closure->function : AS_FUNC(callee)};
@@ -625,6 +639,24 @@ void VM::printRegister()
 }
 
 #endif
+
+void VM::reportShortError(const RuntimeError& error)
+{
+    diagEngine.source = ErrorSource::VM;
+
+    if (debugInfoState != DEBUG_STRIPPED)
+    {
+        const auto& range{currentCode->getErrorRange(ip)};
+        diagEngine.recordError(currentCode->getID(), error.code,
+            range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
+        diagEngine.emitReports();
+    }
+    else
+    {
+        diagEngine.recordError(currentCode->getID(), error.code, 0, 0, error.label);
+        diagEngine.emitReports();
+    }
+}
 
 void VM::reportError(const RuntimeError& error)
 {
@@ -1273,7 +1305,7 @@ void VM::execute(Function* script)
     #endif
 
     frames.reserve(CALL_FRAMES_DEFAULT);
-    scopeStarts.reserve(MAX_SCOPE_DEPTH);
+    scopeStarts.reserve(SCOPE_DEPTH_DEFAULT);
     activeCells.reserve(CODE_MAX);
 
     amendFileName();
