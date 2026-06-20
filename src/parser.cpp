@@ -464,11 +464,16 @@ StmtUP Parser::whileStmt()
         MATCH_TOK(TOK_IDENTIFIER, "expect loop label after ':'");
         label = previousTok;
     }
+
+    bool prevLoop{inLoop};
+    inLoop = true;
+
     StmtUP body{statement()};
     StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
+    inLoop = prevLoop;
     return std::make_unique<WhileStmt>(condition, label, body, elseClause);
 }
 
@@ -499,11 +504,15 @@ StmtUP Parser::forStmt()
         label = previousTok;
     }
 
+    bool prevLoop{inLoop};
+    inLoop = true;
+
     StmtUP body{statement()};
     StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
+    inLoop = prevLoop;
     return std::make_unique<ForStmt>(fix, vars, iter, where, label, body, elseClause);
 }
 
@@ -595,7 +604,11 @@ StmtUP Parser::returnStmt()
 
 StmtUP Parser::breakStmt()
 {
-    // Add error handling.
+    if (!inLoop)
+    {
+        REPORT_SEMANTIC(inComprehension ? BREAK_IN_COMPREHEN : INVALID_BREAK,
+            previousTok);
+    }
 
     Token name{};
     if (consumeTok(TOK_IDENTIFIER))
@@ -606,7 +619,11 @@ StmtUP Parser::breakStmt()
 
 StmtUP Parser::continueStmt()
 {
-    // Add error handling.
+    if (!inLoop)
+    {
+        REPORT_SEMANTIC(inComprehension ? CONT_IN_COMPREHEN : INVALID_CONTINUE,
+            previousTok);
+    }
 
     Token name{};
     if (consumeTok(TOK_IDENTIFIER))
@@ -1154,11 +1171,14 @@ ExprUP Parser::comprehension()
     if (consumeTok(TOK_WHERE))
         where = expression();
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after condition");
-
     MATCH_TOK(TOK_COLON, "expect ':' before comprehension expression");
-    ExprUP expr{expression()};
-    MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' to conclude list comprehension");
 
+    bool prevComprehension{inComprehension};
+    inComprehension = true;
+    ExprUP expr{expression()};
+
+    MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' to conclude list comprehension");
+    inComprehension = prevComprehension;
     return std::make_unique<ComprehensionExpr>(fix, var, iter, where, expr);
 }
 

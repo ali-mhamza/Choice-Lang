@@ -97,6 +97,10 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     // Control-flow errors.
 
+    "Cannot use 'break' outside a loop.",
+    "Cannot use 'continue' outside a loop.",
+    "'break' is invalid within a comprehension loop.",
+    "'continue' is invalid within a comprehension loop.",
     "Loop label is not assigned to any active loop.",
     "Cannot use 'fallthrough' outside a match-is structure.",
     "Cannot use 'end' outside a match-is structure.",

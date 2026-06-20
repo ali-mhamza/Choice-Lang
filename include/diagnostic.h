@@ -235,6 +235,14 @@ enum DiagCode : u8
 
     /* Control-flow errors. */
 
+    // Invalid use of 'break' outside a loop.
+    INVALID_BREAK,
+    // Invalid use of 'continue' outside a loop.
+    INVALID_CONTINUE,
+    // Invalid use of 'break' in a comprehension loop.
+    BREAK_IN_COMPREHEN,
+    // Invalid use of 'continue' in a comprehension loop.
+    CONT_IN_COMPREHEN,
     // Break/continue label is to assigned to any active loop.
     INVALID_LOOP_LABEL,
     // Invalid use of 'fallthrough' outside match-is structure.

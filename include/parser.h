@@ -24,7 +24,8 @@ class Parser
 
         vT::const_iterator it{};
         // For functions and control-flow.
-        bool inMatch{false}, inFunc{false}, fall{false};
+        bool inFunc{false}, inLoop{false}, inComprehension{false};
+        bool inMatch{false}, fall{false};
         // We are currently in an error state.
         bool syntaxError{false}, semanticError{false};
         // Currently parsing lambda parameter list (don't consume
