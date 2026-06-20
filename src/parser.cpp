@@ -467,13 +467,13 @@ StmtUP Parser::whileStmt()
 
     bool prevLoop{inLoop};
     inLoop = true;
-
     StmtUP body{statement()};
+    inLoop = prevLoop;
+
     StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
-    inLoop = prevLoop;
     return std::make_unique<WhileStmt>(condition, label, body, elseClause);
 }
 
@@ -506,8 +506,9 @@ StmtUP Parser::forStmt()
 
     bool prevLoop{inLoop};
     inLoop = true;
-
     StmtUP body{statement()};
+    inLoop = prevLoop;
+
     StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
@@ -579,7 +580,11 @@ StmtUP Parser::repeatStmt()
 
     MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before 'repeat' block");
 
+    bool prevLoop{inLoop};
+    inLoop = true;
     StmtUP body{blockStmt()}; // Will consume the '}'.
+    inLoop = prevLoop;
+
     MATCH_TOK(TOK_UNTIL, "expect 'until' condition after 'repeat'");
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before 'until' condition");
     ExprUP condition{expression()};
