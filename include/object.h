@@ -308,6 +308,11 @@ static inline u8 getMutFlags(const Object& obj)
 
 static inline void setMutFlags(Object& obj, u8 flags)
 {
+    // Mutable containers cannot make any immutable
+    // elements within them mutable, though the opposite
+    // is fine.
+    if (IS_IMMUT(obj)) return;
+
     // Clear flags.
     obj.type_ &= ~(INIT_FLAG | IMMUT_FLAG);
     // Set new flags.

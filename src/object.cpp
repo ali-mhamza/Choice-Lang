@@ -645,7 +645,7 @@ bool Range::contains(const i64 num) const
     return ((num - start) % step == 0);
 }
 
-i64 Range::length() const
+u64 Range::length() const
 {
     if ((step == 0) ||(step == 1)) return std::abs(stop - start) + 1;
     return std::abs((stop - start) / step) + 1;
