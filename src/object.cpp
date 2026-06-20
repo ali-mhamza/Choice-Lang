@@ -834,7 +834,7 @@ StringIter::StringIter(Object& obj) noexcept:
     obj{AS_STRING(obj)}, pos{0}, flags{getMutFlags(obj)}
 {
     #if !CH_USE_ALLOC
-        obj->refCount++;
+        this->obj->refCount++;
     #endif
 }
 
@@ -894,7 +894,7 @@ RangeIter::RangeIter(Object& obj) noexcept:
     obj{AS_RANGE(obj)}
 {
     #if !CH_USE_ALLOC
-        obj->refCount++;
+        this->obj->refCount++;
     #endif
 }
 
@@ -956,7 +956,7 @@ ListIter::ListIter(Object& obj) noexcept:
     obj{AS_LIST(obj)}, flags{getMutFlags(obj)}
 {
     #if !CH_USE_ALLOC
-        obj->refCount++;
+        this->obj->refCount++;
     #endif
 }
 
