@@ -34,6 +34,22 @@ namespace AST
         );
     };
 
+    struct LoopHeader
+    {
+        const bool fix{};
+        const vT vars{};
+        ExprUP iter{};
+        ExprUP where{};
+
+        LoopHeader() = default;
+        LoopHeader(
+            bool fix,
+            const vT& vars,
+            ExprUP& iter,
+            ExprUP& where
+        );
+    };
+
     namespace Statement
     {
         enum StmtType : u8
@@ -134,18 +150,12 @@ namespace AST
 
         struct ForStmt : public Stmt
         {
-            const bool fix{};
-            const vT vars{};
-            const ExprUP iter{}; // Must be an iterable.
-            const ExprUP where{};
+            const LoopHeader header{};
             const Token label{};
             const StmtUP body{}, elseClause{};
 
             ForStmt(
-                bool fix,
-                const vT& vars,
-                ExprUP& iter,
-                ExprUP& where,
+                LoopHeader& header,
                 const Token& label,
                 StmtUP& body,
                 StmtUP& elseClause
@@ -447,22 +457,27 @@ namespace AST
 
         struct ListCompExpr : public Expr
         {
-            const bool fix{};
-            const Token var{};
-            const ExprUP iter{}; // Must be an iterable.
-            const ExprUP where{};
+            const LoopHeader header{};
             const ExprUP expr{};
 
             ListCompExpr(
-                bool fix,
-                const Token& var,
-                ExprUP& iter,
-                ExprUP& where,
+                LoopHeader& header,
                 ExprUP& expr
             );
         };
 
-        struct TableCompExpr : public Expr {};
+        struct TableCompExpr : public Expr
+        {
+            const LoopHeader header{};
+            const ExprUP key{};
+            const ExprUP value{};
+
+            TableCompExpr(
+                LoopHeader& header,
+                ExprUP& key,
+                ExprUP& value
+            );
+        };
 
         struct ReferenceExpr : public Expr
         {

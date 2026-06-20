@@ -75,6 +75,7 @@ class Parser
         [[nodiscard]] StmtUP statement();
         [[nodiscard]] StmtUP ifStmt();
         [[nodiscard]] StmtUP whileStmt();
+        [[nodiscard]] AST::LoopHeader parseLoopHeader();
         [[nodiscard]] StmtUP forStmt();
         [[nodiscard]] StmtUP matchStmt();
         [[nodiscard]] StmtUP repeatStmt();
@@ -113,9 +114,10 @@ class Parser
             bool skipParams = false
         );
         [[nodiscard]] ExprUP lambda(bool skipParams);
-        [[nodiscard]] ExprUP comprehension();
         [[nodiscard]] ExprUP list();
         [[nodiscard]] ExprUP table();
+        [[nodiscard]] ExprUP listComprehension();
+        [[nodiscard]] ExprUP tableComprehension();
         [[nodiscard]] ExprUP formatString();
         [[nodiscard]] ExprUP primary();
 

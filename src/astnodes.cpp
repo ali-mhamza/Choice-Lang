@@ -12,6 +12,10 @@ AST::Param::Param(bool fix, bool variadic, const Token& param,
     fix{fix}, variadic{variadic}, param{param},
     defaultVal{std::move(defaultVal)} {}
 
+AST::LoopHeader::LoopHeader(bool fix, const vT& vars, ExprUP& iter,
+    ExprUP& where) :
+    fix{fix}, vars{vars}, iter{std::move(iter)}, where{std::move(where)} {}
+
 // Statement constructors.
 
 Stmt::Stmt(StmtType type) :
@@ -42,11 +46,11 @@ WhileStmt::WhileStmt(ExprUP& condition, const Token& label, StmtUP& body,
     condition{std::move(condition)}, label{label}, body{std::move(body)},
     elseClause{std::move(elseClause)} {}
 
-ForStmt::ForStmt(bool fix, const vT& vars, ExprUP& iter, ExprUP& where,
-    const Token& label, StmtUP& body, StmtUP& elseClause) :
+ForStmt::ForStmt(AST::LoopHeader& header, const Token& label, StmtUP& body,
+    StmtUP& elseClause) :
     Stmt{S_FOR_STMT},
-    fix{fix}, vars{vars}, iter{std::move(iter)}, where{std::move(where)},
-    label{label}, body{std::move(body)}, elseClause{std::move(elseClause)} {}
+    header{std::move(header)}, label{label}, body{std::move(body)},
+    elseClause{std::move(elseClause)} {}
 
 MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body, bool fall) :
     value{std::move(value)}, body{std::move(body)},
@@ -145,11 +149,14 @@ TableExpr::TableExpr(std::vector<TablePair>& pairs) :
     Expr{E_TABLE_EXPR},
     pairs{std::move(pairs)} {}
 
-ListCompExpr::ListCompExpr(bool fix, const Token& var,
-    ExprUP& iter, ExprUP& where, ExprUP& expr) :
+ListCompExpr::ListCompExpr(AST::LoopHeader& header, ExprUP& expr) :
     Expr{E_LIST_COMP_EXPR},
-    fix{fix}, var{var}, iter{std::move(iter)}, where{std::move(where)},
-    expr{std::move(expr)} {}
+    header{std::move(header)}, expr{std::move(expr)} {}
+
+TableCompExpr::TableCompExpr(AST::LoopHeader& header, ExprUP& key,
+    ExprUP& value) :
+    Expr{E_TABLE_COMP_EXPR},
+    header{std::move(header)}, key{std::move(key)}, value{std::move(value)} {}
 
 ReferenceExpr::ReferenceExpr(u64 offset, const Token& name) :
     Expr{E_REF_EXPR},

@@ -668,16 +668,16 @@ void Compiler::forLoopHelper(
     u64 loopStart{code.getLoopStart()};
 
     u64 whereJump{0};
-    if (node->where != nullptr)
+    if (node->header.where != nullptr)
     {
-        u8 whereReg{compileExpr(node->where)};
+        u8 whereReg{compileExpr(node->header.where)};
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
 
-    u8 varCount{static_cast<u8>(node->vars.size())};
+    u8 varCount{static_cast<u8>(node->header.vars.size())};
     if (varCount > 1) code.addOp(OP_UNPACK, varReg, varCount);
-    if (node->fix) code.addOp(OP_FIX, varReg, varCount);
+    if (node->header.fix) code.addOp(OP_FIX, varReg, varCount);
     compileStmt(node->body);
 
     if (whereJump != 0)
@@ -726,14 +726,14 @@ DEF(ForStmt)
     continueJumps = &continues;
 
     u8 varReg{nextReg};
-    bool fix{node->fix ? accessFix : accessVar};
-    for (const auto& var : node->vars)
+    bool fix{node->header.fix ? accessFix : accessVar};
+    for (const auto& var : node->header.vars)
     {
         defVar(std::string{var.text}, nextReg, fix);
         reserveReg();
     }
 
-    u8 iterReg{compileExpr(node->iter)};
+    u8 iterReg{compileExpr(node->header.iter)};
     forLoopHelper(node, varReg, iterReg);
 
     breakJumps = prevBreaks;
@@ -1432,37 +1432,39 @@ DEF(TableExpr)
     if (count > 0) extendTable();
 }
 
-DEF(ListCompExpr)
+template<typename NodeT, typename Lambda>
+void Compiler::comprehension(
+    const NodeT* node,
+    Lambda append
+)
 {
-    u8 listReg{nextReg};
-    code.addOp(OP_LIST, listReg);
-    reserveReg();
-
     pushScope();
     u8 varReg{nextReg};
-    defVar(
-        std::string{node->var.text}, varReg,
-        (node->fix ? accessFix : accessVar)
-    );
-    reserveReg();
+    bool fix{node->header.fix ? accessFix : accessVar};
+    for (const auto& var : node->header.vars)
+    {
+        defVar(std::string{var.text}, nextReg, fix);
+        reserveReg();
+    }
 
-    u8 iterReg{compileExpr(node->iter)};
+    u8 iterReg{compileExpr(node->header.iter)};
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
     u64 loopStart{code.getLoopStart()};
-    if (node->fix) code.addOp(OP_FIX, varReg, u8(1));
 
     u64 whereJump{0};
-    if (node->where != nullptr)
+    if (node->header.where != nullptr)
     {
-        u8 whereReg{compileExpr(node->where)};
+        u8 whereReg{compileExpr(node->header.where)};
         whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
         freeReg();
     }
 
-    u8 resultReg{compileExpr(node->expr)};
-    code.addOp(OP_EXT_LIST, listReg, resultReg, u8(1));
+    u8 varCount{static_cast<u8>(node->header.vars.size())};
+    if (varCount > 1) code.addOp(OP_UNPACK, varReg, varCount);
+    if (node->header.fix) code.addOp(OP_FIX, varReg, varCount);
+    append();
 
     if (whereJump != 0)
         code.patchJump(whereJump);
@@ -1479,9 +1481,33 @@ DEF(ListCompExpr)
     popScope();
 }
 
+DEF(ListCompExpr)
+{
+    u8 listReg{nextReg};
+    code.addOp(OP_LIST, listReg);
+    reserveReg();
+
+    auto append = [this, node, listReg] {
+        u8 resultReg{compileExpr(node->expr)};
+        code.addOp(OP_EXT_LIST, listReg, resultReg, u8(1));
+    };
+
+    comprehension(node, append);
+}
+
 DEF(TableCompExpr)
 {
-    (void) node;
+    u8 tableReg{nextReg};
+    code.addOp(OP_TABLE, tableReg);
+    reserveReg();
+
+    auto append = [this, node, tableReg] {
+        u8 keyReg{compileExpr(node->key)};
+        compileExpr(node->value);
+        code.addOp(OP_EXT_TABLE, tableReg, keyReg, u8(1));
+    };
+
+    comprehension(node, append);
 }
 
 DEF(ReferenceExpr)

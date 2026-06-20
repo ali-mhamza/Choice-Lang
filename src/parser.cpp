@@ -477,26 +477,36 @@ StmtUP Parser::whileStmt()
     return std::make_unique<WhileStmt>(condition, label, body, elseClause);
 }
 
-StmtUP Parser::forStmt()
+AST::LoopHeader Parser::parseLoopHeader()
 {
-    MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
+    if (!matchError(TOK_LEFT_PAREN, "expect '(' after 'for'"))
+        return {};
     bool fix{consumeTok(TOK_FIX)};
 
     vT vars{};
     do {
-        MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
+        if (!matchError(TOK_IDENTIFIER, "expect loop variable identifier"))
+            return {};
         vars.push_back(previousTok);
         CONSUME_VAR_TYPE();
     } while (consumeTok(TOK_COMMA));
 
-    MATCH_TOK(TOK_IN, "expect 'in' keyword after loop variable");
+    if (!matchError(TOK_IN, "expect 'in' keyword after loop variable"))
+        return {};
     ExprUP iter{expression()};
 
     ExprUP where{nullptr};
     if (consumeTok(TOK_WHERE))
         where = expression();
-    MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after condition");
+    if (!matchError(TOK_RIGHT_PAREN, "expect ')' after condition"))
+        return {};
 
+    return AST::LoopHeader{fix, vars, iter, where};
+}
+
+StmtUP Parser::forStmt()
+{
+    AST::LoopHeader header{parseLoopHeader()};
     Token label{}; // Default: TOK_EOF.
     if (consumeTok(TOK_COLON))
     {
@@ -513,8 +523,7 @@ StmtUP Parser::forStmt()
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
-    inLoop = prevLoop;
-    return std::make_unique<ForStmt>(fix, vars, iter, where, label, body, elseClause);
+    return std::make_unique<ForStmt>(header, label, body, elseClause);
 }
 
 StmtUP Parser::matchStmt()
@@ -1158,35 +1167,6 @@ ExprUP Parser::lambda(bool skipParams)
     return std::make_unique<LambdaExpr>(params, body);
 }
 
-ExprUP Parser::comprehension()
-{
-    // No depth-checking here, since list() takes care of that.
-
-    MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
-    bool fix{consumeTok(TOK_FIX)};
-    MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
-
-    Token var{previousTok};
-    CONSUME_VAR_TYPE();
-
-    MATCH_TOK(TOK_IN, "expect 'in' keyword after loop variable");
-    ExprUP iter{expression()};
-
-    ExprUP where{nullptr};
-    if (consumeTok(TOK_WHERE))
-        where = expression();
-    MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after condition");
-    MATCH_TOK(TOK_COLON, "expect ':' before comprehension expression");
-
-    bool prevComprehension{inComprehension};
-    inComprehension = true;
-    ExprUP expr{expression()};
-
-    MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' to conclude list comprehension");
-    inComprehension = prevComprehension;
-    return std::make_unique<ComprehensionExpr>(fix, var, iter, where, expr);
-}
-
 ExprUP Parser::list()
 {
     CHECK_DEPTH(previousTok);
@@ -1196,7 +1176,7 @@ ExprUP Parser::list()
     if (!checkTok(TOK_RIGHT_BRACKET))
     {
         if (consumeTok(TOK_FOR))
-            return comprehension();
+            return listComprehension();
 
         do {
             CHECK_DEPTH(currentTok);
@@ -1217,6 +1197,9 @@ ExprUP Parser::table()
 
     if (!checkTok(TOK_RIGHT_BRACE))
     {
+        if (consumeTok(TOK_FOR))
+            return tableComprehension();
+
         do {
             CHECK_DEPTH(currentTok);
 
@@ -1234,6 +1217,41 @@ ExprUP Parser::table()
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude table literal");
 
     return std::make_unique<TableExpr>(pairs);
+}
+
+ExprUP Parser::listComprehension()
+{
+    // No depth-checking here, since list() takes care of that.
+
+    AST::LoopHeader header{parseLoopHeader()};
+    MATCH_TOK(TOK_COLON, "expect ':' before comprehension expression");
+
+    bool prevComprehension{inComprehension};
+    inComprehension = true;
+    ExprUP expr{expression()};
+
+    MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' to conclude list comprehension");
+    inComprehension = prevComprehension;
+    return std::make_unique<ListCompExpr>(header, expr);
+}
+
+ExprUP Parser::tableComprehension()
+{
+    AST::LoopHeader header{parseLoopHeader()};
+    MATCH_TOK(TOK_COLON, "expect ':' before comprehension pair");
+
+    MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before key");
+    bool prevComprehension{inComprehension};
+    inComprehension = true;
+
+    ExprUP key{expression()};
+    MATCH_TOK(TOK_COMMA, "expect ',' after key");
+    ExprUP value{expression()};
+    MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after value");
+
+    MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude table comprehension");
+    inComprehension = prevComprehension;
+    return std::make_unique<TableCompExpr>(header, key, value);
 }
 
 ExprUP Parser::formatString()

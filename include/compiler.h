@@ -285,6 +285,11 @@ class Compiler
         DECL_EXPR(LambdaExpr);
         DECL_EXPR(ListExpr);
         DECL_EXPR(TableExpr);
+        template<typename NodeT, typename Lambda>
+        void comprehension(
+            const NodeT* node,
+            Lambda append
+        );
         DECL_EXPR(ListCompExpr);
         DECL_EXPR(TableCompExpr);
         DECL_EXPR(ReferenceExpr);
