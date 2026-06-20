@@ -125,6 +125,10 @@ enum DiagCode : u8
     PARAM_AFTER_VARIADIC,
     // Function name too long.
     FUNC_NAME_TOO_LONG,
+    // Too few values to unpack.
+    UNPACK_TOO_FEW,
+    // Too many values to unpack.
+    UNPACK_TOO_MANY,
 
 
     /* Variable errors. */
@@ -166,6 +170,8 @@ enum DiagCode : u8
     // Argument provided has the wrong type.
     // Primarily used in built-in functions.
     WRONG_ARG_TYPE,
+    // Attempting to unpack a non-collection object.
+    UNPACK_NON_COLLECTION,
 
 
     /* Value errors. */

@@ -180,6 +180,12 @@ class Compiler
 
         /* Declarations. */
 
+        void compileSingleVarDecl(
+            const Token& name,
+            bool fix,
+            bool init,
+            u8 valueReg
+        );
         DECL_STMT(VarDecl);
         std::pair<ByteCode*, u8> paramHelper(
             Compiler& miniCompiler,
@@ -237,20 +243,26 @@ class Compiler
         );
 
         void assignToVar(
-            const AST::Expression::AssignExpr* node
+            const AST::Expression::AssignExpr* node,
+            const ExprUP& target,
+            u8 valueReg
         );
         void compoundAssignToVar(
             const AST::Expression::AssignExpr* node,
-            const VarInfo& info
+            const VarInfo& info,
+            u8 valueReg
         );
 
         void assignToElement(
-            const AST::Expression::AssignExpr* node
+            const AST::Expression::AssignExpr* node,
+            const ExprUP& target,
+            u8 valueReg
         );
         void compoundAssignToElement(
             const AST::Expression::AssignExpr* node,
             u8 objReg,
-            u8 indexReg
+            u8 indexReg,
+            u8 valueReg
         );
 
         DECL_EXPR(MutExpr);

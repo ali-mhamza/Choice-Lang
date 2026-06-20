@@ -17,9 +17,10 @@ AST::Param::Param(bool fix, bool variadic, const Token& param,
 Stmt::Stmt(StmtType type) :
     type{type} {}
 
-VarDecl::VarDecl(bool fix, const Token& name, ExprUP& init) :
+VarDecl::VarDecl(bool fix, const vT& names, const Token& oper,
+    ExprVec& values) :
     Stmt{S_VAR_DECL},
-    fix{fix}, name{name}, init{std::move(init)} {}
+    fix{fix}, names{names}, oper{oper}, values{std::move(values)} {}
 
 FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     StmtUP& body) :
@@ -41,10 +42,10 @@ WhileStmt::WhileStmt(ExprUP& condition, const Token& label, StmtUP& body,
     condition{std::move(condition)}, label{label}, body{std::move(body)},
     elseClause{std::move(elseClause)} {}
 
-ForStmt::ForStmt(bool fix, const Token& var, ExprUP& iter, ExprUP& where,
+ForStmt::ForStmt(bool fix, const vT& vars, ExprUP& iter, ExprUP& where,
     const Token& label, StmtUP& body, StmtUP& elseClause) :
     Stmt{S_FOR_STMT},
-    fix{fix}, var{var}, iter{std::move(iter)}, where{std::move(where)},
+    fix{fix}, vars{vars}, iter{std::move(iter)}, where{std::move(where)},
     label{label}, body{std::move(body)}, elseClause{std::move(elseClause)} {}
 
 MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body, bool fall) :
@@ -91,9 +92,9 @@ MutExpr::MutExpr(bool mut, ExprUP value) :
     Expr{E_MUT_EXPR},
     mut{mut}, value{std::move(value)} {}
 
-AssignExpr::AssignExpr(ExprUP& target, const Token& oper, ExprUP value) :
+AssignExpr::AssignExpr(ExprVec& targets, const Token& oper, ExprVec& values) :
     Expr{E_ASSIGN_EXPR},
-    target{std::move(target)}, oper{oper}, value{std::move(value)} {}
+    targets{std::move(targets)}, oper{oper}, values{std::move(values)} {}
 
 LogicExpr::LogicExpr(ExprUP& left, TokenType oper, ExprUP right) :
     Expr{E_LOGIC_EXPR},

@@ -135,6 +135,10 @@ class Object
         [[nodiscard]] Object getIndex(const Object& index) const;
         void setIndex(const Object& index, const Object& value);
 
+        // Get the size of the collection object payload.
+        // Only valid to call for collections.
+        [[nodiscard]] u64 collectionSize() const;
+
         [[nodiscard]] Hash hash() const;
         [[nodiscard]] std::string printVal() const;
         [[nodiscard]] std::string_view printType() const;
@@ -251,7 +255,7 @@ TYPE_LIST
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
 
 // Object is iterable.
-#define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_LIST))
+#define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_TABLE))
 
 // Object is a collection (i.e., implements the [] operator).
 #define IS_COLLECTION(obj)  (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_TABLE))
@@ -423,7 +427,7 @@ struct Range : public HeapObj
     [[nodiscard]] bool operator==(const Range& other) const;
     [[nodiscard]] bool contains(const i64 num) const;
 
-    [[nodiscard]] i64 length() const;
+    [[nodiscard]] u64 length() const;
     [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
@@ -532,12 +536,31 @@ struct ListIter
     [[nodiscard]] bool next(Object& var);
 };
 
+struct TableIter
+{
+    Table* obj{};
+    HashTable<Object, Object, ObjectHasher>::iterator it{};
+    const u8 flags{};
+
+    TableIter() noexcept = default;
+    TableIter(Object& obj) noexcept;
+    TableIter(const TableIter&) = delete;
+    TableIter& operator=(const TableIter&) = delete;
+    TableIter(TableIter&&) noexcept;
+    TableIter& operator=(TableIter&&) noexcept;
+    ~TableIter();
+
+    [[nodiscard]] bool start(Object& var);
+    [[nodiscard]] bool next(Object& var);
+};
+
 struct ObjIter
 {
     using Iter = std::variant<
         StringIter,
         RangeIter,
-        ListIter
+        ListIter,
+        TableIter
     >;
 
     Iter iter{};

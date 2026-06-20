@@ -113,6 +113,8 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_IMMUT,			// Mark a value as being immutable.
 	OP_MUT,				// Mark a value as being mutable.
 
+	OP_UNPACK,			// Distribute a collection of values across multiple registers.
+
 	OP_BYTE_OPER,		// Operand is a single byte.
 	OP_SHORT_OPER,		// Operand is two bytes.
 	OP_LONG_OPER,		// Operand is four bytes.

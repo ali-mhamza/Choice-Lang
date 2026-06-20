@@ -120,6 +120,8 @@ class VM
         void startIter();
         void updateIter();
 
+        void unpackObject(u8 reg, u8 count);
+
         #if WATCH_REG
         void printRegister();
         #endif

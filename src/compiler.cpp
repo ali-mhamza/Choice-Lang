@@ -377,50 +377,83 @@ void Compiler::reportPartError(
 
 /* AST node compilation functions. */
 
-DEF(VarDecl)
+void Compiler::compileSingleVarDecl(
+    const Token& name,
+    bool fix,
+    bool init,
+    u8 valueReg
+)
 {
-    startDeclaration();
-    LocalInfo localInfo{getScopeLocal(node->name)};
+    LocalInfo localInfo{getScopeLocal(name)};
 
     if (localInfo.found)
     {
         if (inRepl && (depth == 0) && (scope == 0))
         {
-            (*varAccess)[localInfo.slot] = (node->fix ? accessFix : accessVar);
-            u8 reg{nextReg};
-            if (node->init != nullptr)
+            (*varAccess)[localInfo.slot] = (fix ? accessFix : accessVar);
+            if (init)
             {
-                compileExpr(node->init);
                 // Always a local variable.
-                code.addOp(OP_SET_LOCAL, localInfo.slot, reg);
+                code.addOp(OP_SET_LOCAL, localInfo.slot, valueReg);
             }
             else
                 code.loadReg(localInfo.slot, OP_NULL);
-            endDeclaration();
-            return;
         }
-
-        REPORT_ERROR(VAR_ALREADY_DEFINED, node->name);
+        else
+            reportError(VAR_ALREADY_DEFINED, name);
+        return;
     }
 
-    std::string varName{node->name.text};
-    u8 varSlot{nextReg};
+    std::string varName{name.text};
+    u8 varSlot{valueReg};
     // Define first, since initializer could be a lambda
     // that references the variable.
-    defVar(varName, varSlot, (node->fix ? accessFix : accessVar));
+    defVar(varName, varSlot, (fix ? accessFix : accessVar));
 
-    bool inError{hitError};
-    if (node->init != nullptr)
-        compileExpr(node->init);
-    else
+    if (!init) code.loadReg(varSlot, OP_NULL);
+    code.addOp((fix ? OP_FIX : OP_VAR), varSlot);
+}
+
+DEF(VarDecl)
+{
+    if (node->values.size() > 1)
     {
-        code.loadReg(varSlot, OP_NULL);
-        reserveReg();
+        if (node->names.size() > node->values.size())
+            REPORT_ERROR(UNPACK_TOO_FEW, node->oper);
+        else if (node->names.size() < node->values.size())
+            REPORT_ERROR(UNPACK_TOO_MANY, node->oper);
     }
 
-    code.addOp((node->fix ? OP_FIX : OP_VAR), varSlot);
-    if (!inError && hitError) removeVar(varName);
+    // We signal the beginning of the declaration here so that
+    // the failure of any initializer at runtime undefines all
+    // of the variables declared here.
+    startDeclaration();
+
+    u8 valueStart{nextReg};
+    if (node->values.size() != 0)
+    {
+        for (const auto& value : node->values)
+            compileExpr(value);
+        if (hitError)
+        {
+            endDeclaration(); // We don't define any variables if an error occurred.
+            return;
+        }
+    }
+
+    if ((node->names.size() > 1) && (node->values.size() == 1))
+        code.addOp(OP_UNPACK, valueStart, static_cast<u8>(node->names.size()));
+
+    for (u64 i{0}; i < node->names.size(); i++)
+    {
+        compileSingleVarDecl(node->names[i], node->fix, !node->values.empty(),
+            valueStart + i);
+    }
     endDeclaration();
+
+    // To make sure that variable registers are reserved,
+    // regardless of runtime errors.
+    nextReg = valueStart + node->names.size();
 }
 
 std::pair<ByteCode*, u8> Compiler::paramHelper(
@@ -640,6 +673,8 @@ void Compiler::forLoopHelper(
         freeReg();
     }
 
+    if (node->vars.size() > 1)
+        code.addOp(OP_UNPACK, varReg, static_cast<u8>(node->vars.size()));
     compileStmt(node->body);
 
     if (whereJump != 0)
@@ -688,11 +723,12 @@ DEF(ForStmt)
     continueJumps = &continues;
 
     u8 varReg{nextReg};
-    defVar(
-        std::string{node->var.text}, varReg,
-        (node->fix ? accessFix : accessVar)
-    );
-    reserveReg();
+    bool fix{node->fix ? accessFix : accessVar};
+    for (const auto& var : node->vars)
+    {
+        defVar(std::string{var.text}, nextReg, fix);
+        reserveReg();
+    }
 
     u8 iterReg{compileExpr(node->iter)};
     forLoopHelper(node, varReg, iterReg);
@@ -924,90 +960,81 @@ Opcode Compiler::getCompoundAssignOpcode(
 }
 
 void Compiler::assignToVar(
-    const AssignExpr* node
+    const AssignExpr* node,
+    const ExprUP& target,
+    u8 valueReg
 )
 {
-    const auto [mut, info] = checkMutability(node, node->target);
-    if (!mut)
-    {
-        // ExprStmt assumes each expression uses at least one
-        // register. Since we're aborting here, we reserve a dummy
-        // register for it to free (so we don't eat into variable
-        // registers).
-        reserveReg();
-        return;
-    }
+    const auto [mut, info] = checkMutability(node, target);
+    if (!mut) return;
 
     if (node->oper.type != TOK_EQUAL)
     {
-        compoundAssignToVar(node, info);
+        compoundAssignToVar(node, info, valueReg);
         return;
     }
 
-    u8 reg{compileExpr(node->value)};
-    emitVariableOp(setVar, info, info.slot, reg);
+    emitVariableOp(setVar, info, info.slot, valueReg);
 }
 
 void Compiler::compoundAssignToVar(
     const AssignExpr* node,
-    const VarInfo& info
+    const VarInfo& info,
+    u8 valueReg
 )
 {
     u8 varReg{nextReg};
     emitVariableOp(getVar, info, varReg, info.slot);
     reserveReg();
 
-    u8 valueReg{compileExpr(node->value)};
     Opcode op{getCompoundAssignOpcode(node)};
-
     code.addOp(op, varReg, valueReg);
     emitVariableOp(setVar, info, info.slot, varReg);
-    freeReg(); // Free the temporary register used for the RHS value.
+    // Since valueReg precedes varReg, we move the latter
+    // into the former, keeping the final value in the
+    // first-reserved register.
+    code.addOp(OP_MOVE_R, valueReg, varReg);
 }
 
 void Compiler::assignToElement(
-    const AssignExpr* node
+    const AssignExpr* node,
+    const ExprUP& target,
+    u8 valueReg
 )
 {
-    IndexExpr* item{static_cast<IndexExpr*>(node->target.get())};
+    IndexExpr* item{static_cast<IndexExpr*>(target.get())};
     u8 objReg{compileExpr(item->obj)};
     u8 indexReg{compileExpr(item->index)};
 
     if (node->oper.type != TOK_EQUAL)
     {
-        compoundAssignToElement(node, objReg, indexReg);
+        compoundAssignToElement(node, objReg, indexReg, valueReg);
         return;
     }
 
-    u8 valueReg{compileExpr(node->value)};
     code.addOp(OP_SET_INDEX, objReg, indexReg, valueReg);
-    // Final result should be in the first register reserved,
-    // i.e., object register.
-    code.addOp(OP_MOVE_R, objReg, valueReg);
-    nextReg -= 2; // Free the index and value registers.
+    nextReg -= 2; // Free the object and index registers.
 }
 
 void Compiler::compoundAssignToElement(
     const AssignExpr* node,
     u8 objReg,
-    u8 indexReg
+    u8 indexReg,
+    u8 valueReg
 )
 {
     u8 elementReg{nextReg};
     code.addOp(OP_GET_INDEX, elementReg, objReg, indexReg);
     reserveReg();
 
-    u8 valueReg{compileExpr(node->value)};
     Opcode op{getCompoundAssignOpcode(node)};
     // E.g., ADD x[0], 1
     code.addOp(op, elementReg, valueReg);
-    freeReg(); // Free the temporary value register.
-
     code.addOp(OP_SET_INDEX, objReg, indexReg, elementReg);
     // Final result should be in the first register reserved,
-    // i.e., object register.
-    code.addOp(OP_MOVE_R, objReg, elementReg);
-    nextReg -= 2; // Free the index and element registers.
+    // i.e., value register.
+    code.addOp(OP_MOVE_R, valueReg, elementReg);
+    nextReg -= 3; // Free all registers besides value register.
 }
 
 DEF(MutExpr)
@@ -1047,12 +1074,37 @@ DEF(MutExpr)
 
 DEF(AssignExpr)
 {
-    switch (node->target->type)
+    if (node->values.size() > 1)
     {
-        case E_VAR_EXPR:    assignToVar(node);      break;
-        case E_INDEX_EXPR:  assignToElement(node);  break;
-        default: CH_UNREACHABLE();
+        if (node->targets.size() > node->values.size())
+            REPORT_ERROR(UNPACK_TOO_FEW, node->oper);
+        else if (node->targets.size() < node->values.size())
+            REPORT_ERROR(UNPACK_TOO_MANY, node->oper);
     }
+
+    u8 valueStart{nextReg};
+    for (const auto& value : node->values)
+        compileExpr(value);
+    if ((node->targets.size() > 1) && (node->values.size() == 1))
+        code.addOp(OP_UNPACK, valueStart, static_cast<u8>(node->targets.size()));
+
+    for (u64 i{0}; i < node->targets.size(); i++)
+    {
+        const auto& target{node->targets[i]};
+        switch (target->type)
+        {
+            case E_VAR_EXPR:    assignToVar(node, target, valueStart + i);      break;
+            case E_INDEX_EXPR:  assignToElement(node, target, valueStart + i);  break;
+            default: CH_UNREACHABLE();
+        }
+    }
+
+    // For multiple assignment, this will ensure that nextReg
+    // is properly restored once ExprStmt calls freeReg().
+    // For regular assignment (which may be used as an expression),
+    // this places any new values right after the RHS of the assignment,
+    // maintaining regular operations.
+    nextReg = valueStart + 1;
 }
 
 DEF(LogicExpr)

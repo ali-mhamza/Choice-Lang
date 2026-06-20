@@ -617,6 +617,26 @@ void VM::updateIter()
     }
 }
 
+void VM::unpackObject(u8 reg, u8 count)
+{
+    Object& obj{registers[reg]};
+
+    if (!IS_COLLECTION(obj))
+    {
+        throw RuntimeError(UNPACK_NON_COLLECTION,
+            CH_STR("cannot unpack ({})", obj.printType()));
+    }
+    else if (obj.collectionSize() < count)
+        throw RuntimeError(UNPACK_TOO_FEW);
+    else if (obj.collectionSize() > count)
+        throw RuntimeError(UNPACK_TOO_MANY);
+
+    ObjIter* iter{obj.makeIter()}; // Guaranteed not to fail.
+    (void) iter->start(registers[reg]);
+    for (u8 i{1}; i < count; i++)
+        (void) iter->next(registers[reg + i]);
+}
+
 #if WATCH_REG
 
 void VM::printRegister()
@@ -1200,6 +1220,14 @@ void VM::executeOp(Opcode op)
             }
 
             MAKE_MUT(registers[reg]);
+            DISPATCH();
+        }
+
+        CASE(OP_UNPACK):
+        {
+            u8 reg{readByte()};
+            u8 count{readByte()};
+            unpackObject(reg, count);
             DISPATCH();
         }
 

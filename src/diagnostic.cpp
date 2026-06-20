@@ -16,7 +16,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    FUNC_NAME_TOO_LONG, PARAM_ALREADY_DEFINED, WRONG_ARG_TYPE,
+    UNPACK_TOO_MANY, PARAM_ALREADY_DEFINED, UNPACK_NON_COLLECTION,
     FORMAT_STR_PROBLEM, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
     MUT_TO_IMMUT
@@ -41,7 +41,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Single-line string cannot contain newlines.", "String not terminated.",
     "String interpolation not terminated.",
     "Interpolation nesting exceeded maximum depth.", "Unrecognized token.",
-    "Missing initializer for immutable variable.", "Unexpected token.",
+    "Missing initializer for immutable variable(s).", "Unexpected token.",
     "Invalid token in current position.",
     "Too many parameters in function/lambda declaration.",
     "Unexpected end of input.", "Octal escape value too large.",
@@ -50,7 +50,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Reached maximum nesting depth for expressions.",
     "Cannot have a regular parameter after a default parameter.",
     "Cannot have a parameter after a variadic parameter (with '...').",
-    "Function name too long.",
+    "Function name too long.", "Too few values to unpack into left-hand side.",
+    "Too many values to unpack into left-hand side.",
 
     // Variable errors.
 
@@ -66,7 +67,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Object cannot be used as an index.", "Wrong element type for collection.",
     "Object is not iterable.", "Object cannot be modified with the [] operator.",
     "Operand does not match member type of iterable object.",
-    "Wrong argument type or value.",
+    "Wrong argument type or value.", "Cannot unpack non-collection object.",
 
     // Value errors.
 

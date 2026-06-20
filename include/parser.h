@@ -85,6 +85,7 @@ class Parser
 
         // Expressions.
 
+        [[nodiscard]] ExprUP multiAssignment();
         [[nodiscard]] ExprUP returnExpr();
         [[nodiscard]] ExprUP expression();
         [[nodiscard]] ExprUP mutation();

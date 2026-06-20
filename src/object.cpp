@@ -234,6 +234,21 @@ void Object::setIndex(const Object& index, const Object& value)
     }
 }
 
+u64 Object::collectionSize() const
+{
+    CH_ASSERT(IS_COLLECTION(*this),
+        "collectionSize() called on non-collection object.");
+
+    switch (type())
+    {
+        case OBJ_STRING:    return AS_STRING(*this)->str.size();
+        case OBJ_RANGE:     return AS_RANGE(*this)->length();
+        case OBJ_LIST:      return AS_LIST(*this)->array.count();
+        case OBJ_TABLE:     return AS_TABLE(*this)->table.size();
+        default: CH_UNREACHABLE();
+    }
+}
+
 template<typename T>
 [[nodiscard]] static Hash hashPointer(T* ptr)
 {
@@ -1014,6 +1029,80 @@ bool ListIter::next(Object& var)
     return true;
 }
 
+TableIter::TableIter(Object& obj) noexcept :
+    obj{AS_TABLE(obj)}, flags{getMutFlags(obj)}
+{
+    #if !CH_USE_ALLOC
+        this->obj->refCount++;
+    #endif
+}
+
+TableIter::TableIter(TableIter&& other) noexcept :
+    obj{other.obj}, it{other.it}
+{
+    other.obj = nullptr;
+}
+
+TableIter& TableIter::operator=(TableIter&& other) noexcept
+{
+    if (this != &other)
+    {
+        this->obj = other.obj;
+        this->it = other.it;
+
+        other.obj = nullptr;
+    }
+
+    return *this;
+}
+
+TableIter::~TableIter()
+{
+    #if !CH_USE_ALLOC
+        if (obj != nullptr)
+        {
+            CH_ASSERT(obj->refCount != 0, "Zero iterable refcount.");
+            obj->refCount--;
+            if (obj->refCount == 0) delete obj;
+        }
+    #endif
+}
+
+bool TableIter::start(Object& var)
+{
+    if (obj->table.size() == 0)
+        return false;
+
+    it = obj->table.begin();
+
+    List* list{CH_ALLOC(List, 2)};
+    list->array.push(*(it->first));
+    // So users cannot modify keys directly.
+    MAKE_IMMUT(list->array[0]);
+    list->array.push(*(it->second));
+
+    var = Object{list};
+    setMutFlags(var, flags);
+
+    return true;
+}
+
+bool TableIter::next(Object& var)
+{
+    if (++it == obj->table.end())
+        return false;
+
+    List* list{CH_ALLOC(List, 2)};
+    list->array.push(*(it->first));
+    MAKE_IMMUT(list->array[0]);
+    list->array.push(*(it->second));
+
+    var = Object{list};
+    setMutFlags(var, flags);
+
+    return true;
+}
+
 ObjIter::ObjIter(Object& obj) noexcept
 {
     // Use emplace instead of assignment so we construct the
@@ -1026,6 +1115,7 @@ ObjIter::ObjIter(Object& obj) noexcept
         case OBJ_STRING:    iter.emplace<StringIter>(obj);  break;
         case OBJ_RANGE:     iter.emplace<RangeIter>(obj);   break;
         case OBJ_LIST:      iter.emplace<ListIter>(obj);    break;
+        case OBJ_TABLE:     iter.emplace<TableIter>(obj);   break;
         default: CH_UNREACHABLE();
     }
 }

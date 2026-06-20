@@ -68,13 +68,15 @@ namespace AST
         struct VarDecl : public Stmt
         {
             const bool fix{};
-            const Token name{};
-            const ExprUP init{};
+            const vT names{};
+            const Token oper{};
+            const ExprVec values{};
 
             VarDecl(
                 bool fix,
-                const Token& name,
-                ExprUP& init
+                const vT& names,
+                const Token& oper,
+                ExprVec& values
             );
         };
 
@@ -133,7 +135,7 @@ namespace AST
         struct ForStmt : public Stmt
         {
             const bool fix{};
-            const Token var{};
+            const vT vars{};
             const ExprUP iter{}; // Must be an iterable.
             const ExprUP where{};
             const Token label{};
@@ -141,7 +143,7 @@ namespace AST
 
             ForStmt(
                 bool fix,
-                const Token& var,
+                const vT& vars,
                 ExprUP& iter,
                 ExprUP& where,
                 const Token& label,
@@ -282,14 +284,14 @@ namespace AST
 
         struct AssignExpr : public Expr
         {
-            const ExprUP target{};
+            const ExprVec targets{};
             const Token oper{};
-            const ExprUP value{};
+            const ExprVec values{};
 
             AssignExpr(
-                ExprUP& target,
+                ExprVec& targets,
                 const Token& oper,
-                ExprUP value
+                ExprVec& values
             );
         };
 

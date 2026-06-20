@@ -291,14 +291,23 @@ StmtUP Parser::declaration()
 StmtUP Parser::varDecl()
 {
     TokenType declType{previousTok.type};
+    vT names{};
 
-    MATCH_TOK(TOK_IDENTIFIER, "expect variable name");
-    Token name{previousTok};
-    CONSUME_VAR_TYPE();
+    do {
+        MATCH_TOK(TOK_IDENTIFIER, "expect variable name");
+        names.push_back(previousTok);
+        CONSUME_VAR_TYPE();
+    } while (consumeTok(TOK_COMMA));
 
-    ExprUP init{nullptr};
+    Token oper{};
+    ExprVec values{};
     if (consumeTok(TOK_EQUAL))
-        init = expression();
+    {
+        oper = previousTok;
+        do {
+            values.push_back(expression());
+        } while (consumeTok(TOK_COMMA));
+    }
     else if (declType == TOK_FIX)
     {
         if (currentTok.type == TOK_SEMICOLON)
@@ -306,12 +315,12 @@ StmtUP Parser::varDecl()
         else
         {
             REPORT_SYNTAX(WRONG_TOKEN_FOUND, currentTok,
-                "expect '=' before initializer for fixed-value variable");
+                "expect '=' before initializer for fixed-value variable(s)");
         }
     }
 
-    MATCH_TOK(TOK_SEMICOLON, "expect ';' after variable declaration");
-    return std::make_unique<VarDecl>((declType == TOK_FIX), name, init);
+    MATCH_TOK(TOK_SEMICOLON, "expect ';' after variable declaration(s)");
+    return std::make_unique<VarDecl>((declType == TOK_FIX), names, oper, values);
 }
 
 bool Parser::parseParams(std::vector<AST::Param>& params)
@@ -467,10 +476,13 @@ StmtUP Parser::forStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'for'");
     bool fix{consumeTok(TOK_FIX)};
-    MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
 
-    Token var{previousTok};
-    CONSUME_VAR_TYPE();
+    vT vars{};
+    do {
+        MATCH_TOK(TOK_IDENTIFIER, "expect loop variable identifier");
+        vars.push_back(previousTok);
+        CONSUME_VAR_TYPE();
+    } while (consumeTok(TOK_COMMA));
 
     MATCH_TOK(TOK_IN, "expect 'in' keyword after loop variable");
     ExprUP iter{expression()};
@@ -492,7 +504,7 @@ StmtUP Parser::forStmt()
     if (consumeTok(TOK_ELSE))
         elseClause = statement();
 
-    return std::make_unique<ForStmt>(fix, var, iter, where, label, body, elseClause);
+    return std::make_unique<ForStmt>(fix, vars, iter, where, label, body, elseClause);
 }
 
 StmtUP Parser::matchStmt()
@@ -636,10 +648,63 @@ StmtUP Parser::blockStmt()
 StmtUP Parser::exprStmt()
 {
     u64 start{currentTok.byteOffset};
-    ExprUP expr{expression()};
+    ExprUP expr{multiAssignment()};
     setExprLocation(expr, start);
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after expression");
     return std::make_unique<ExprStmt>(expr);
+}
+
+// Multiple assignment and return expressions both live
+// "above" the expression grammar. This means that, while
+// they can contain other expressions, no other expressions
+// can contain them. Expression nesting automatically skips
+// them during parsing for this reason, going to 'expression'
+// instead.
+// This allows us to restrict the usage of the comma-separated
+// syntax that they rely on, which would otherwise interfere
+// with other syntax (e.g., function calls or lists) if allowed
+// in every expression context.
+// Multiple assignment is restricted to a statement-level construct,
+// while return expressions are restricted further to return
+// statements only.
+
+ExprUP Parser::multiAssignment()
+{
+    u64 start{currentTok.byteOffset};
+    ExprVec targets{};
+    ExprVec values{};
+
+    ExprUP target{expression()};
+    if ((target != nullptr) && CAN_ASSIGN(target) && consumeTok(TOK_COMMA))
+    {
+        targets.push_back(std::move(target));
+        do {
+            // Expressions with 'mut' or 'immut' and/or assignments
+            // can't be on the LHS, and assignments will consume the
+            // '=' that separates the LHS and RHS.
+            targets.push_back(logicOr());
+        } while (consumeTok(TOK_COMMA));
+
+        MATCH_TOK(TOK_EQUAL, "expect '=' after multiple assignment targets");
+        Token oper{previousTok};
+        for (u64 i{0}; i < targets.size(); i++)
+        {
+            if (!CAN_ASSIGN(targets[i]))
+            {
+                REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok,
+                    CH_STR("target {} does not support assignment", i + 1));
+            }
+        }
+
+        do {
+            values.push_back(expression());
+        } while (consumeTok(TOK_COMMA));
+
+        target = std::make_unique<AssignExpr>(targets, oper, values);
+    }
+
+    setExprLocation(target, start);
+    return target;
 }
 
 ExprUP Parser::returnExpr()
@@ -691,6 +756,9 @@ ExprUP Parser::mutation()
 ExprUP Parser::assignment()
 {
     u64 start{currentTok.byteOffset};
+    ExprVec targets{};
+    ExprVec values{};
+
     ExprUP target{logicOr()};
     if (IS_ASSIGN_TOK(currentTok.type))
     {
@@ -700,7 +768,9 @@ ExprUP Parser::assignment()
             REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok);
 
         CHECK_DEPTH(previousTok);
-        target = std::make_unique<AssignExpr>(target, oper, expression());
+        targets.push_back(std::move(target));
+        values.push_back(expression());
+        target = std::make_unique<AssignExpr>(targets, oper, values);
     }
 
     setExprLocation(target, start);

@@ -109,7 +109,9 @@ void Disassembler::doubleOper(u8 byte)
 	u8 first{readByte()}, second{readByte()};
 
 	Opcode op{static_cast<Opcode>(byte)};
-	if (op == OP_GET_CELL)
+	if (op == OP_UNPACK)
+        CH_PRINT("R[{}] ({})\n", first, second);
+	else if (op == OP_GET_CELL)
 		CH_PRINT("R[{}] C[{}]\n", first, second);
 	else if (op == OP_SET_CELL)
 		CH_PRINT("C[{}] R[{}]\n", first, second);
@@ -287,7 +289,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_XOR:		case OP_SHIFT_R:	case OP_SHIFT_L:	case OP_GET_GLOBAL:
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
-		case OP_IN:			case OP_MOVE_R:		case OP_RANGE:
+		case OP_IN:			case OP_MOVE_R:		case OP_RANGE:      case OP_UNPACK:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
