@@ -1376,7 +1376,7 @@ DEF(LambdaExpr)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
 
     funcBodyHelper(node->params, node->body, nextReg,
-        std::string());
+        std::string{});
     reserveReg();
 }
 
