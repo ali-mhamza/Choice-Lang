@@ -137,12 +137,6 @@ LambdaExpr::LambdaExpr(std::vector<Param>& params, StmtUP& body) :
     Expr{E_LAMBDA_EXPR},
     params{std::move(params)}, body{std::move(body)} {}
 
-ComprehensionExpr::ComprehensionExpr(bool fix, const Token& token,
-    ExprUP& iter, ExprUP& where, ExprUP& expr) :
-    Expr{E_COMPREHEN_EXPR},
-    fix{fix}, var{token}, iter{std::move(iter)}, where{std::move(where)},
-    expr{std::move(expr)} {}
-
 ListExpr::ListExpr(ExprVec& entries) :
     Expr{E_LIST_EXPR},
     entries{std::move(entries)} {}
@@ -150,6 +144,12 @@ ListExpr::ListExpr(ExprVec& entries) :
 TableExpr::TableExpr(std::vector<TablePair>& pairs) :
     Expr{E_TABLE_EXPR},
     pairs{std::move(pairs)} {}
+
+ListCompExpr::ListCompExpr(bool fix, const Token& var,
+    ExprUP& iter, ExprUP& where, ExprUP& expr) :
+    Expr{E_LIST_COMP_EXPR},
+    fix{fix}, var{var}, iter{std::move(iter)}, where{std::move(where)},
+    expr{std::move(expr)} {}
 
 ReferenceExpr::ReferenceExpr(u64 offset, const Token& name) :
     Expr{E_REF_EXPR},

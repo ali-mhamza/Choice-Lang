@@ -109,7 +109,7 @@ void Disassembler::doubleOper(u8 byte)
 	u8 first{readByte()}, second{readByte()};
 
 	Opcode op{static_cast<Opcode>(byte)};
-	if (op == OP_UNPACK)
+	if ((op == OP_VAR) || (op == OP_FIX) || (op == OP_UNPACK))
         CH_PRINT("R[{}] ({})\n", first, second);
 	else if (op == OP_GET_CELL)
 		CH_PRINT("R[{}] C[{}]\n", first, second);
@@ -289,7 +289,8 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_XOR:		case OP_SHIFT_R:	case OP_SHIFT_L:	case OP_GET_GLOBAL:
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
-		case OP_IN:			case OP_MOVE_R:		case OP_RANGE:      case OP_UNPACK:
+		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_R:
+		case OP_RANGE:      case OP_UNPACK:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
@@ -304,10 +305,10 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_GET_INDEX:	case OP_SET_INDEX:
 			indexOp(byte);
 			break;
-		case OP_CLOSURE:	case OP_NEG:		case OP_NOT:		case OP_INCR:
-		case OP_DECR:		case OP_COMP:		case OP_RETURN:		case OP_VOID:
-		case OP_VAR:        case OP_FIX:		case OP_IMMUT:		case OP_MUT:
-		case OP_ENTER_SCOPE:	case OP_VAR_ARGS:    case OP_PRINT_VALID:
+		case OP_CLOSURE:	case OP_NEG:		case OP_NOT:		    case OP_INCR:
+		case OP_DECR:		case OP_COMP:		case OP_RETURN:		    case OP_VOID:
+		case OP_IMMUT:		case OP_MUT:        case OP_ENTER_SCOPE:	case OP_VAR_ARGS:
+		case OP_PRINT_VALID:
 			singleOper(byte);
 			break;
 		case OP_LOAD_R:

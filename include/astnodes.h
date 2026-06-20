@@ -250,9 +250,10 @@ namespace AST
             E_CALL_EXPR,
             E_IF_EXPR,
             E_LAMBDA_EXPR,
-            E_COMPREHEN_EXPR,
             E_LIST_EXPR,
             E_TABLE_EXPR,
+            E_LIST_COMP_EXPR,
+            E_TABLE_COMP_EXPR,
             E_REF_EXPR,
             E_VAR_EXPR,
             E_STR_PART_EXPR,
@@ -422,23 +423,6 @@ namespace AST
             );
         };
 
-        struct ComprehensionExpr : public Expr
-        {
-            const bool fix{};
-            const Token var{};
-            const ExprUP iter{}; // Must be an iterable.
-            const ExprUP where{};
-            const ExprUP expr{};
-
-            ComprehensionExpr(
-                bool fix,
-                const Token& var,
-                ExprUP& iter,
-                ExprUP& where,
-                ExprUP& expr
-            );
-        };
-
         struct ListExpr : public Expr
         {
             const ExprVec entries{};
@@ -458,6 +442,27 @@ namespace AST
 
             TableExpr(std::vector<TablePair>& pairs);
         };
+
+        // Comp = Comprehension.
+
+        struct ListCompExpr : public Expr
+        {
+            const bool fix{};
+            const Token var{};
+            const ExprUP iter{}; // Must be an iterable.
+            const ExprUP where{};
+            const ExprUP expr{};
+
+            ListCompExpr(
+                bool fix,
+                const Token& var,
+                ExprUP& iter,
+                ExprUP& where,
+                ExprUP& expr
+            );
+        };
+
+        struct TableCompExpr : public Expr {};
 
         struct ReferenceExpr : public Expr
         {

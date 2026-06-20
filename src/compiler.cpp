@@ -1383,53 +1383,6 @@ DEF(LambdaExpr)
     reserveReg();
 }
 
-DEF(ComprehensionExpr)
-{
-    u8 listReg{nextReg};
-    code.addOp(OP_LIST, listReg);
-    reserveReg();
-
-    pushScope();
-    u8 varReg{nextReg};
-    defVar(
-        std::string{node->var.text}, varReg,
-        (node->fix ? accessFix : accessVar)
-    );
-    reserveReg();
-
-    u8 iterReg{compileExpr(node->iter)};
-    code.addOp(OP_MAKE_ITER, varReg, iterReg);
-    u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
-
-    u64 loopStart{code.getLoopStart()};
-    if (node->fix) code.addOp(OP_FIX, varReg, u8(1));
-
-    u64 whereJump{0};
-    if (node->where != nullptr)
-    {
-        u8 whereReg{compileExpr(node->where)};
-        whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
-        freeReg();
-    }
-
-    u8 resultReg{compileExpr(node->expr)};
-    code.addOp(OP_EXT_LIST, listReg, resultReg, u8(1));
-
-    if (whereJump != 0)
-        code.patchJump(whereJump);
-
-    constexpr int UPDATE_ITER_OP_SIZE{5};
-    u16 diff{static_cast<u16>(code.codeSize() - loopStart
-        + UPDATE_ITER_OP_SIZE)};
-    code.addOp(OP_UPDATE_ITER, varReg, iterReg,
-        static_cast<u8>((diff >> CHAR_BIT) & CODE_MAX),
-        static_cast<u8>(diff & CODE_MAX)
-    );
-
-    code.patchJump(failJump);
-    popScope();
-}
-
 DEF(ListExpr)
 {
     u8 listReg{nextReg};
@@ -1477,6 +1430,58 @@ DEF(TableExpr)
     }
 
     if (count > 0) extendTable();
+}
+
+DEF(ListCompExpr)
+{
+    u8 listReg{nextReg};
+    code.addOp(OP_LIST, listReg);
+    reserveReg();
+
+    pushScope();
+    u8 varReg{nextReg};
+    defVar(
+        std::string{node->var.text}, varReg,
+        (node->fix ? accessFix : accessVar)
+    );
+    reserveReg();
+
+    u8 iterReg{compileExpr(node->iter)};
+    code.addOp(OP_MAKE_ITER, varReg, iterReg);
+    u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
+
+    u64 loopStart{code.getLoopStart()};
+    if (node->fix) code.addOp(OP_FIX, varReg, u8(1));
+
+    u64 whereJump{0};
+    if (node->where != nullptr)
+    {
+        u8 whereReg{compileExpr(node->where)};
+        whereJump = code.addJump(OP_JUMP_FALSE, whereReg);
+        freeReg();
+    }
+
+    u8 resultReg{compileExpr(node->expr)};
+    code.addOp(OP_EXT_LIST, listReg, resultReg, u8(1));
+
+    if (whereJump != 0)
+        code.patchJump(whereJump);
+
+    constexpr int UPDATE_ITER_OP_SIZE{5};
+    u16 diff{static_cast<u16>(code.codeSize() - loopStart
+        + UPDATE_ITER_OP_SIZE)};
+    code.addOp(OP_UPDATE_ITER, varReg, iterReg,
+        static_cast<u8>((diff >> CHAR_BIT) & CODE_MAX),
+        static_cast<u8>(diff & CODE_MAX)
+    );
+
+    code.patchJump(failJump);
+    popScope();
+}
+
+DEF(TableCompExpr)
+{
+    (void) node;
 }
 
 DEF(ReferenceExpr)
@@ -1638,9 +1643,10 @@ u8 Compiler::compileExpr(const ExprUP& node)
         case E_CALL_EXPR:       COMPILE(CallExpr);          break;
         case E_IF_EXPR:         COMPILE(IfExpr);            break;
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
-        case E_COMPREHEN_EXPR:  COMPILE(ComprehensionExpr); break;
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
         case E_TABLE_EXPR:      COMPILE(TableExpr);         break;
+        case E_LIST_COMP_EXPR:  COMPILE(ListCompExpr);      break;
+        case E_TABLE_COMP_EXPR: COMPILE(TableCompExpr);     break;
         case E_REF_EXPR:        COMPILE(ReferenceExpr);     break;
         case E_VAR_EXPR:        COMPILE(VarExpr);           break;
         case E_STR_PART_EXPR:   COMPILE(StringPartExpr);    break;

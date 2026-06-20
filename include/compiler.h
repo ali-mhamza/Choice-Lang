@@ -283,9 +283,10 @@ class Compiler
         DECL_EXPR(CallExpr);
         DECL_EXPR(IfExpr);
         DECL_EXPR(LambdaExpr);
-        DECL_EXPR(ComprehensionExpr);
         DECL_EXPR(ListExpr);
         DECL_EXPR(TableExpr);
+        DECL_EXPR(ListCompExpr);
+        DECL_EXPR(TableCompExpr);
         DECL_EXPR(ReferenceExpr);
         DECL_EXPR(VarExpr);
         DECL_EXPR(StringPartExpr);
