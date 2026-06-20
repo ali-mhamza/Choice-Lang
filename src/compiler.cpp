@@ -411,16 +411,18 @@ void Compiler::compileSingleVarDecl(
     defVar(varName, varSlot, (fix ? accessFix : accessVar));
 
     if (!init) code.loadReg(varSlot, OP_NULL);
-    code.addOp((fix ? OP_FIX : OP_VAR), varSlot);
 }
 
 DEF(VarDecl)
 {
-    if (node->values.size() > 1)
+    u8 nameCount{static_cast<u8>(node->names.size())};
+    u8 valueCount{static_cast<u8>(node->values.size())};
+
+    if (valueCount > 1)
     {
-        if (node->names.size() > node->values.size())
+        if (nameCount > valueCount)
             REPORT_ERROR(UNPACK_TOO_FEW, node->oper);
-        else if (node->names.size() < node->values.size())
+        else if (nameCount < valueCount)
             REPORT_ERROR(UNPACK_TOO_MANY, node->oper);
     }
 
@@ -430,7 +432,7 @@ DEF(VarDecl)
     startDeclaration();
 
     u8 valueStart{nextReg};
-    if (node->values.size() != 0)
+    if (valueCount != 0)
     {
         for (const auto& value : node->values)
             compileExpr(value);
@@ -441,19 +443,21 @@ DEF(VarDecl)
         }
     }
 
-    if ((node->names.size() > 1) && (node->values.size() == 1))
-        code.addOp(OP_UNPACK, valueStart, static_cast<u8>(node->names.size()));
+    if ((nameCount > 1) && (valueCount == 1))
+        code.addOp(OP_UNPACK, valueStart, nameCount);
 
-    for (u64 i{0}; i < node->names.size(); i++)
+    for (u64 i{0}; i < nameCount; i++)
     {
-        compileSingleVarDecl(node->names[i], node->fix, !node->values.empty(),
+        compileSingleVarDecl(node->names[i], node->fix, (valueCount != 0),
             valueStart + i);
     }
+
+    code.addOp((node->fix ? OP_FIX : OP_VAR), valueStart, nameCount);
     endDeclaration();
 
     // To make sure that variable registers are reserved,
     // regardless of runtime errors.
-    nextReg = valueStart + node->names.size();
+    nextReg = valueStart + nameCount;
 }
 
 std::pair<ByteCode*, u8> Compiler::paramHelper(
@@ -497,7 +501,7 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
         bool access{accessVar};
         if (it->fix)
         {
-            store.addOp(OP_FIX, reg);
+            store.addOp(OP_FIX, reg, u8(1));
             access = accessFix;
         }
         miniCompiler.defVar(std::string{param.text}, reg, access);
@@ -661,9 +665,7 @@ void Compiler::forLoopHelper(
 {
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
-
     u64 loopStart{code.getLoopStart()};
-    if (node->fix) code.addOp(OP_FIX, varReg);
 
     u64 whereJump{0};
     if (node->where != nullptr)
@@ -673,8 +675,9 @@ void Compiler::forLoopHelper(
         freeReg();
     }
 
-    if (node->vars.size() > 1)
-        code.addOp(OP_UNPACK, varReg, static_cast<u8>(node->vars.size()));
+    u8 varCount{static_cast<u8>(node->vars.size())};
+    if (varCount > 1) code.addOp(OP_UNPACK, varReg, varCount);
+    if (node->fix) code.addOp(OP_FIX, varReg, varCount);
     compileStmt(node->body);
 
     if (whereJump != 0)
@@ -1399,7 +1402,7 @@ DEF(ComprehensionExpr)
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
 
     u64 loopStart{code.getLoopStart()};
-    if (node->fix) code.addOp(OP_FIX, varReg);
+    if (node->fix) code.addOp(OP_FIX, varReg, u8(1));
 
     u64 whereJump{0};
     if (node->where != nullptr)

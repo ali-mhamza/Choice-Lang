@@ -1178,20 +1178,28 @@ void VM::executeOp(Opcode op)
         CASE(OP_VAR):
         {
             u8 reg{readByte()};
+            u8 count{readByte()};
 
-            MAKE_VAR(registers[reg]);
-            if (!IS_IMMUT(registers[reg]))
-                MAKE_MUT(registers[reg]);
+            for (u8 i{0}; i < count; i++)
+            {
+                MAKE_VAR(registers[reg + i]);
+                if (!IS_IMMUT(registers[reg + i]))
+                    MAKE_MUT(registers[reg + i]);
+            }
 
             DISPATCH();
         }
         CASE(OP_FIX):
         {
             u8 reg{readByte()};
+            u8 count{readByte()};
 
-            MAKE_FIXED(registers[reg]);
-            if (!IS_MUT(registers[reg]))
-                MAKE_IMMUT(registers[reg]);
+            for (u8 i{0}; i < count; i++)
+            {
+                MAKE_FIXED(registers[reg + i]);
+                if (!IS_MUT(registers[reg + i]))
+                    MAKE_IMMUT(registers[reg + i]);
+            }
 
             DISPATCH();
         }
