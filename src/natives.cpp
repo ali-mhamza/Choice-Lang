@@ -40,7 +40,7 @@ const std::unordered_map<std::string_view,
     {"quit", Natives::FUNC_QUIT}
 };
 
-void Natives::print(Natives::iter it, u8 args)
+void Natives::print(iter it, u8 args)
 {
     for (u8 i{0}; i < args; i++)
     {
@@ -68,7 +68,7 @@ void Natives::print(Natives::iter it, u8 args)
     it[-1] = ret;
 }
 
-void Natives::println(Natives::iter it, u8 args)
+void Natives::println(iter it, u8 args)
 {
     print(it, args);
     if (!inRepl) CH_PRINT("\n");
@@ -77,7 +77,7 @@ void Natives::println(Natives::iter it, u8 args)
 #if !defined(CH_USE_FMT_LIB)
     // Work in progress.
     [[nodiscard]]
-    static std::string defaultFormat(Natives::iter it, u8 args)
+    static std::string defaultFormat(iter it, u8 args)
     {
         using sizeT = std::string::size_type;
         const std::string& str{AS_STRING(it[0])->str};
@@ -122,7 +122,7 @@ void Natives::println(Natives::iter it, u8 args)
     }
 #endif
 
-void Natives::format(Natives::iter it, u8 args)
+void Natives::format(iter it, u8 args)
 {
     if (args == 0)
         throw RuntimeError(WRONG_ARG_TYPE, "string argument not provided");
@@ -153,7 +153,7 @@ void Natives::format(Natives::iter it, u8 args)
     it[-1] = Object{CH_ALLOC(String, result)};
 }
 
-void Natives::type(Natives::iter it, u8 args)
+void Natives::typeof(iter it, u8 args)
 {
     if (args != 1)
     {
@@ -168,7 +168,7 @@ void Natives::type(Natives::iter it, u8 args)
         it[-1] = Object{it->type()};
 }
 
-void Natives::len(Natives::iter it, u8 args)
+void Natives::len(iter it, u8 args)
 {
     if (args != 1)
     {
@@ -208,7 +208,7 @@ void Natives::len(Natives::iter it, u8 args)
     it[-1] = Object{len};
 }
 
-void Natives::clock(Natives::iter it, u8 args)
+void Natives::clock(iter it, u8 args)
 {
     if (args != 0)
     {
@@ -227,7 +227,7 @@ void Natives::clock(Natives::iter it, u8 args)
     it[-1] = Object{i64(ret.count())};
 }
 
-void Natives::range(Natives::iter it, u8 args)
+void Natives::range(iter it, u8 args)
 {
     if ((args != 2) && (args != 3))
     {
@@ -252,7 +252,7 @@ void Natives::range(Natives::iter it, u8 args)
     it[-1] = Object{CH_ALLOC(Range, nums)};
 }
 
-void Natives::read(Natives::iter it, u8 args)
+void Natives::read(iter it, u8 args)
 {
     if (args > 1)
     {
@@ -274,7 +274,7 @@ void Natives::read(Natives::iter it, u8 args)
     it[-1] = Object{CH_ALLOC(String, input)};
 }
 
-void Natives::quit(Natives::iter it, u8 args)
+void Natives::quit(iter it, u8 args)
 {
     if (args > 1)
     {
