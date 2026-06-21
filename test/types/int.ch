@@ -1,13 +1,13 @@
 make a = 1;
 println!(a);            // Expect: 1
-println!(type!(a));     // Expect: Int
+println!(typeof!(a));   // Expect: Int
 
 make b = -1;
 println!(b);            // Expect: -1
-println!(type!(b));     // Expect: Int
+println!(typeof!(b));   // Expect: Int
 
 make c = 9223372036854775807;
 println!(c);            // Expect: 9223372036854775807
-println!(type!(c));     // Expect: Int
+println!(typeof!(c));   // Expect: Int
 // Overflow. Not properly implemented.
-println!(c + 1);        // Expect: -9223372036854775808 
+println!(c + 1);        // Expect: -9223372036854775808

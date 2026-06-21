@@ -1,15 +1,15 @@
 make x = "Hello";
 
 println!(x);                        // Expect: Hello
-println!(type!(x));                 // Expect: String
+println!(typeof!(x));               // Expect: String
 
 println!(x + ", world!");           // Expect: Hello, world!
-println!(type!(x + ", world!"));    // Expect: String
+println!(typeof!(x + ", world!"));  // Expect: String
 
 make y = ", world!";
 
 println!("Hello" + y);              // Expect: Hello, world!
-println!(type!("Hello" + y));       // Expect: String
+println!(typeof!("Hello" + y));     // Expect: String
 
 make name = "John";
 make distance = 10;

@@ -1,5 +1,5 @@
 make x = {};
-println!(type!(x));         // Expect: Table
+println!(typeof!(x));       // Expect: Table
 
 x[1] = 1;
 x[2] = 2;
