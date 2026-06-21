@@ -18,6 +18,11 @@ ByteCode::ByteCode(const vByte& block) :
 ByteCode::ByteCode(const vByte& block, const vObj& pool) :
 	block(block), pool(pool) {}
 
+void ByteCode::addOp(Opcode op)
+{
+	addByte(static_cast<u8>(op));
+}
+
 void ByteCode::addByte(u8 byte)
 {
 	block.push_back(byte);
@@ -35,11 +40,6 @@ void ByteCode::addLong(u32 bytes)
 	addByte((bytes >> 16) & 0xff);
 	addByte((bytes >> 8) & 0xff);
 	addByte(bytes & 0xff);
-}
-
-void ByteCode::addOp(Opcode op)
-{
-	addByte(static_cast<u8>(op));
 }
 
 const DebugRange& ByteCode::getErrorRange(const u8* ip) const
