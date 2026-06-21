@@ -883,7 +883,7 @@ void BinaryInspector::inspectDetailFuncName()
 	{
 		PRINT_ENTRY_RANGE();
 		if (nameLen <= maxNameDisplayLength)
-		CH_PRINT("Function name: {:<30}\n", name);
+		    CH_PRINT("Function name: {:<30}\n", "'" + name + "'");
 		else
 			CH_PRINT("Function name: '{:.25}...'  (truncated)\n", name);
 	}
