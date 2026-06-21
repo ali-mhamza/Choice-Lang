@@ -226,8 +226,7 @@ void optionInspectBytecode(FileID id, std::string_view input)
 	(void) id;
 
 	std::ifstream cacheFile{openFile(input, true)};
-	Bytes::BinaryInspector inspector{cacheFile};
-	inspector.inspect();
+	Bytes::BinaryInspector{cacheFile}.inspect();
 }
 
 void optionCheckProgram(FileID id, std::string_view input)
