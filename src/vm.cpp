@@ -64,7 +64,9 @@ void VM::defineBuiltinGlobals()
 
     for (u8 i{0}; i < Constructors::CtorType::NUM_CTORS; i++)
     {
-        *temp = Object{Constructors::types[i]};
+        // Use implicit conversion here to avoid overload
+        // with an ObjType enum argument.
+        *temp = Constructors::types[i];
         temp++;
     }
 
