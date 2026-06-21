@@ -2,10 +2,10 @@
 #include "bytecode.h"
 #include "common.h"
 #include "natives.h"
-#include <fstream>
 #include <personal/array.h>
 #include <personal/hash_table.h>
 #include <array>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
