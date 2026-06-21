@@ -363,5 +363,5 @@ func A()
     return null;
 }
 
-println!(type!(A())); // Prints: null.
+println!(type!(A())); // Prints: Null.
 ```
