@@ -132,6 +132,10 @@ enum TokenType : u8
 	TOK_DOT,			// .
 	TOK_RARROW,			// ->
 
+	/* Modules. */
+
+	TOK_SCOPE,          // ::
+
 	TOK_EOF,
 	NUM_TOK_TYPES
 };

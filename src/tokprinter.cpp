@@ -85,6 +85,8 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
 
     "TOK_CLASS", "TOK_DOT", "TOK_RARROW",
 
+    "TOK_SCOPE",
+
     "TOK_EOF"
 };
 

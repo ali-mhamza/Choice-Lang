@@ -537,7 +537,6 @@ void Lexer::singleToken()
 		case '}': 	makeToken(TOK_RIGHT_BRACE);		break;
 		case ';':	makeToken(TOK_SEMICOLON);		break;
 		case ',':	makeToken(TOK_COMMA);			break;
-		case ':':	makeToken(TOK_COLON);			break;
 		case '?':	makeToken(TOK_QMARK);			break;
 
 		case '+':
@@ -581,6 +580,7 @@ void Lexer::singleToken()
 		case '^':	conditionalToken('=', TOK_UARROW_EQ, TOK_UARROW);	break;
 		case '~':	conditionalToken('=', TOK_TILDE_EQ, TOK_TILDE);		break;
 		case '!':	conditionalToken('=', TOK_BANG_EQ, TOK_BANG);		break;
+		case ':':	conditionalToken(':', TOK_SCOPE, TOK_COLON);        break;
 		case '.':
 		{
 			if (consumeChar('.'))
