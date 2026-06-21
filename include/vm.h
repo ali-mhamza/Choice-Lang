@@ -85,7 +85,6 @@ class VM
         [[nodiscard]] u16 readShort();
         [[nodiscard]] u32 readLong();
 
-        [[nodiscard]] bool isTruthy(const Object& obj);
         [[nodiscard]] Cell* captureValue(u8 slot);
         void closeCells(Object* limit);
         #if COPY_INLINE
@@ -115,6 +114,7 @@ class VM
 
         void callFunc(const Object& callee, u8 start, u8 argCount);
         void callNative(const Object& callee, u8 start, u8 argCount);
+        void callCtor(const Object& callee, u8 start, u8 argCount);
         void callObj(const Object& callee, u8 start, u8 argCount);
 
         void startIter();

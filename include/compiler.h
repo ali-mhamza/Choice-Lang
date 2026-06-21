@@ -202,7 +202,7 @@ class Compiler
             const std::string& name
         );
         DECL_STMT(FuncDecl);
-        DECL_STMT(ClassDecl);
+        DECL_STMT(TypeDecl);
 
         /* Statements. */
 

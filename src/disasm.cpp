@@ -63,7 +63,7 @@ void Disassembler::printOperValue(const Object& oper) const
 	// We only disassemble functions when requested, and not
 	// with concurrent disassembler output during VM execution.
 	if (DIS_FUNCTION_OBJS && IS_FUNCOBJ(oper) && !inVM)
-		disFunction(AS_FUNC(oper));
+		disFunction(AS_USER_FUNC(oper));
 }
 
 u8 Disassembler::readByte()

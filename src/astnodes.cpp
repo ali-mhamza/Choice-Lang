@@ -33,9 +33,9 @@ FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     Stmt{S_FUNC_DECL},
     name{name}, params{std::move(params)}, body{std::move(body)} {}
 
-ClassDecl::ClassDecl(const Token& name, const vT& fields, StmtVec& methods) :
-    Stmt{S_CLASS_DECL},
-    name{name}, fields{fields}, methods{std::move(methods)} {}
+TypeDecl::TypeDecl(const Token& name) :
+    Stmt{S_TYPE_DECL},
+    name{name} {}
 
 IfStmt::IfStmt(ExprUP& condition, StmtUP& trueBranch, StmtUP& falseBranch) :
     Stmt{S_IF_STMT},

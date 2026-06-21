@@ -171,9 +171,14 @@ u64 ByteCode::countPool() const
 				count += 9;
 				break;
 			}
-			case OBJ_FUNC:	case OBJ_LAMBDA:
+			case OBJ_USER_TYPE:
+    		{
+    		    count += AS_USER_TYPE(obj)->byteSize();
+                break;
+    		}
+			case OBJ_USER_FUNC: case OBJ_LAMBDA:
 			{
-				count += AS_FUNC(obj)->byteSize();
+				count += AS_USER_FUNC(obj)->byteSize();
 				break;
 			}
 			case OBJ_STRING:
@@ -274,8 +279,8 @@ void ByteCode::encodeMetadata(std::ofstream& os) const
 		// reading cached bytecode data.
 		for (const Object& obj : pool)
 		{
-			if (IS_FUNC(obj))
-				AS_FUNC(obj)->code.encodeMetadata(os);
+			if (IS_USER_FUNC(obj))
+				AS_USER_FUNC(obj)->code.encodeMetadata(os);
 		}
 	}
 

@@ -2,6 +2,7 @@
 #include "../include/compiler.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
+#include "../include/constructors.h"
 #include "../include/config.h"
 #include "../include/diagnostic.h"
 #include "../include/disasm.h"
@@ -61,6 +62,12 @@ void VM::defineBuiltinGlobals()
     MAKE_IMMUT(temp[FILENAME_LOC]);
     temp++;
 
+    for (u8 i{0}; i < Constructors::CtorType::NUM_CTORS; i++)
+    {
+        *temp = Object{Constructors::types[i]};
+        temp++;
+    }
+
     for (u8 i{0}; i < Natives::FuncType::NUM_FUNCS; i++)
     {
         *temp = Object{Natives::FuncType(i)};
@@ -102,23 +109,6 @@ inline u32 VM::readLong()
     u32 b4{ip[3]};
     ip += 4;
     return static_cast<u32>((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
-}
-
-inline bool VM::isTruthy(const Object& obj)
-{
-    switch (obj.type())
-    {
-        case OBJ_INT:       return (AS_INT(obj) != 0);
-        case OBJ_DEC:       return (AS_DEC(obj) != 0.0);
-        case OBJ_BOOL:      return AS_BOOL(obj);
-        case OBJ_NULL:      return false;
-        case OBJ_STRING:    return (AS_STRING(obj)->str.size() != 0);
-        case OBJ_LIST:      return (AS_LIST(obj)->array.count() != 0);
-        case OBJ_TABLE:     return (AS_TABLE(obj)->table.size() != 0);
-        case OBJ_VOID:      return false;
-        // Rest are always truthy.
-        default:            return true;
-    }
 }
 
 inline Cell* VM::captureValue(u8 slot)
@@ -395,7 +385,7 @@ Object VM::unaryOper(Opcode op, u8 oper)
             else
                 return (AS_DEC(obj) * -1);
         }
-        case OP_NOT: return !isTruthy(obj);
+        case OP_NOT: return !obj.isTruthy();
         case OP_COMP:
         {
             if (!IS_INT(obj))
@@ -532,7 +522,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 
     bool isClosure{IS_CLOSURE(callee)};
     Closure* closure{isClosure ? AS_CLOSURE(callee) : nullptr};
-    Function* func{isClosure ? closure->function : AS_FUNC(callee)};
+    Function* func{isClosure ? closure->function : AS_USER_FUNC(callee)};
 
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
@@ -550,14 +540,28 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     #endif
 }
 
+// No need to call amendFuncName here, since users
+// cannot directly interact with the code for built-ins,
+// i.e., they cannot insert built-in constants into said code.
+
 void VM::callNative(const Object& callee, u8 start, u8 argCount)
 {
-    // No need to call amendFuncName here, since users
-    // cannot directly interact with the code for built-ins,
-    // i.e., they cannot insert built-in constants into said code.
-
-    auto* func{Natives::functions[AS_NATIVE(callee)]};
+    auto* func{Natives::functions[AS_CORE_FUNC(callee)]};
     func(&registers[start], argCount);
+}
+
+void VM::callCtor(const Object& callee, u8 start, u8 argCount)
+{
+    ObjType type{AS_CORE_TYPE(callee)};
+    auto it{Constructors::builtins.find(type)};
+    if (it == Constructors::builtins.end())
+    {
+        throw RuntimeError(NO_TYPE_CTOR,
+            CH_STR("type ({}) has no defined constructor", objTypes[type]));
+    }
+
+    auto ctor{Constructors::ctors[it->second]};
+    registers[start - 1] = ctor(&registers[start], argCount);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
@@ -567,14 +571,23 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
 
     switch (callee.type())
     {
-        case OBJ_NATIVE:
+        case OBJ_CORE_FUNC:
             callNative(callee, start, argCount);
             break;
-        case OBJ_FUNC:
+        case OBJ_USER_FUNC:
         case OBJ_CLOSURE:
         case OBJ_LAMBDA:
             callFunc(callee, start, argCount);
             break;
+        case OBJ_CORE_TYPE:
+            callCtor(callee, start, argCount);
+            break;
+        case OBJ_USER_TYPE:
+        {
+            const Type* type{AS_USER_TYPE(callee)};
+            registers[start - 1] = CH_ALLOC(Instance, type);
+            break;
+        }
         default:
             CH_UNREACHABLE();
     }
@@ -832,7 +845,7 @@ void VM::executeOp(Opcode op)
         {
             u8 check{readByte()};
             u16 jump{readShort()};
-            if (isTruthy(registers[check]))
+            if (registers[check].isTruthy())
             {
                 ip += jump;
                 #if WATCH_EXEC
@@ -845,7 +858,7 @@ void VM::executeOp(Opcode op)
         {
             u8 check{readByte()};
             u16 jump{readShort()};
-            if (!isTruthy(registers[check]))
+            if (!registers[check].isTruthy())
             {
                 ip += jump;
                 #if WATCH_EXEC
@@ -1178,7 +1191,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_CLOSURE):
         {
             u8 slot{readByte()};
-            auto* func{AS_FUNC(registers[slot])};
+            auto* func{AS_USER_FUNC(registers[slot])};
             registers[slot] = CH_ALLOC(Closure, func);
             DISPATCH();
         }

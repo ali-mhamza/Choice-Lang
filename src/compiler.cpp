@@ -1,6 +1,7 @@
 #include "../include/compiler.h"
 #include "../include/astnodes.h"
 #include "../include/common.h"
+#include "../include/constructors.h"
 #include "../include/config.h"
 #include "../include/diagnostic.h"
 #include "../include/escape_seq.h"
@@ -60,6 +61,8 @@ u8 Compiler::clearIndex{0};
 void Compiler::defineBuiltinGlobals()
 {
     defVar("_file_", nextReg++, accessFix);
+    for (const auto* func : Constructors::ctorNames)
+        defVar(func, nextReg++, accessFix); // For now.
     for (const auto* func : Natives::funcNames)
         defVar(func, nextReg++, accessVar);
 }
@@ -548,8 +551,8 @@ void Compiler::funcBodyHelper(
     else
         func = CH_ALLOC(Function, name, funcCode, arity - defaultCount, arity);
 
-    AS_FUNC(func)->defaultArgs = defaultArgs;
-    AS_FUNC(func)->variadic = variadic;
+    AS_USER_FUNC(func)->defaultArgs = defaultArgs;
+    AS_USER_FUNC(func)->variadic = variadic;
 
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
@@ -601,7 +604,14 @@ DEF(FuncDecl)
     endDeclaration();
 }
 
-DEF(ClassDecl) { (void) node; }
+DEF(TypeDecl)
+{
+    std::string name{node->name.text};
+    Object type{CH_ALLOC(Type, name)};
+    code.loadRegConst(type, nextReg);
+    defVar(name, nextReg, accessVar);
+    reserveReg();
+}
 
 DEF(IfStmt)
 {
@@ -1713,7 +1723,7 @@ void Compiler::compileStmt(const StmtUP& node)
     {
         case S_VAR_DECL:    COMPILE(VarDecl);       break;
         case S_FUNC_DECL:   COMPILE(FuncDecl);      break;
-        case S_CLASS_DECL:  COMPILE(ClassDecl);     break;
+        case S_TYPE_DECL:   COMPILE(TypeDecl);      break;
         case S_IF_STMT:     COMPILE(IfStmt);        break;
         case S_WHILE_STMT:  COMPILE(WhileStmt);     break;
         case S_FOR_STMT:    COMPILE(ForStmt);       break;

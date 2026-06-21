@@ -2,6 +2,7 @@
 #include "bytecode.h"
 #include "common.h"
 #include "natives.h"
+#include <fstream>
 #include <personal/array.h>
 #include <personal/hash_table.h>
 #include <array>
@@ -30,27 +31,28 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
 #undef NULL
 #undef AS_VOID
 
-#define TYPE_LIST           \
-    X(INT, intVal)          \
-    X(DEC, decVal)          \
-    X(BOOL, boolVal)        \
-    X(NULL, heapVal)        \
-    X(TYPE, typeVal)        \
-    X(NATIVE, nativeVal)    \
-    X(FUNC, funcVal)        \
-    X(CLOSURE, closureVal)  \
-    X(LAMBDA, funcVal)      \
-    X(BIGINT, heapVal)      \
-    X(BIGDEC, heapVal)      \
-    X(STRING, stringVal)    \
-    X(RANGE, rangeVal)      \
-    X(LIST, listVal)        \
-    X(TABLE, tableVal)      \
-    X(REF, refVal)          \
-    /* Used in function return values. */   \
-    X(VOID, voidVal)        \
-    /* Used in for-loops. */                \
-    X(ITER, iterVal)        \
+#define TYPE_LIST               \
+    X(INT, intVal)              \
+    X(DEC, decVal)              \
+    X(BOOL, boolVal)            \
+    X(NULL, heapVal)            \
+    X(CORE_TYPE, coreTypeVal)   \
+    X(CORE_FUNC, coreFuncVal)   \
+    X(USER_TYPE, userTypeVal)   \
+    X(INSTANCE, instanceVal)    \
+    X(USER_FUNC, userFuncVal)   \
+    X(CLOSURE, closureVal)      \
+    X(LAMBDA, userFuncVal)      \
+    X(BIGINT, heapVal)          \
+    X(BIGDEC, heapVal)          \
+    X(STRING, stringVal)        \
+    X(RANGE, rangeVal)          \
+    X(LIST, listVal)            \
+    X(TABLE, tableVal)          \
+    X(REF, refVal)              \
+    X(VOID, voidVal)            \
+    /* Used in for-loops. */    \
+    X(ITER, iterVal)            \
 
 /* Type enum. */
 
@@ -69,6 +71,8 @@ enum ObjType : u8
 
 /* Forward declarations. */
 
+struct Type;
+struct Instance;
 struct Function;
 struct Closure;
 struct String;
@@ -96,9 +100,11 @@ class Object
             i64             intVal;
             double          decVal;
             bool            boolVal;
-            ObjType         typeVal;
-            FuncType        nativeVal;
-            Function*       funcVal;
+            ObjType         coreTypeVal;
+            Type*           userTypeVal;
+            Instance*       instanceVal;
+            FuncType        coreFuncVal;
+            Function*       userFuncVal;
             Closure*        closureVal;
             String*         stringVal;
             Range*          rangeVal;
@@ -131,6 +137,7 @@ class Object
         [[nodiscard]] bool operator>(const Object& other) const;
         [[nodiscard]] bool operator<(const Object& other) const;
         [[nodiscard]] bool in(const Object& other) const;
+        [[nodiscard]] bool isTruthy() const;
 
         [[nodiscard]] Object getIndex(const Object& index) const;
         void setIndex(const Object& index, const Object& value);
@@ -148,23 +155,25 @@ class Object
 };
 
 template<typename T>
-ObjType getObjectType(const T val)
+ObjType getObjectType(T val)
 {
-    using U = std::remove_const_t<T>;
+    using U = std::remove_const_t<std::remove_pointer_t<T>>;
 
-    if constexpr (std::is_same_v<U, Function*>)
+    if constexpr (std::is_same_v<U, Function>)
     {
         if (val->name == nullptr) return OBJ_LAMBDA;
-        return OBJ_FUNC;
+        return OBJ_USER_FUNC;
     }
 
-    if constexpr (std::is_same_v<U, Closure*>)  return OBJ_CLOSURE;
-    if constexpr (std::is_same_v<U, String*>)   return OBJ_STRING;
-    if constexpr (std::is_same_v<U, Range*>)    return OBJ_RANGE;
-    if constexpr (std::is_same_v<U, List*>)     return OBJ_LIST;
-    if constexpr (std::is_same_v<U, Table*>)    return OBJ_TABLE;
-    if constexpr (std::is_same_v<U, Cell*>)     return OBJ_REF;
-    if constexpr (std::is_same_v<U, Void*>)     return OBJ_VOID;
+    if constexpr (std::is_same_v<U, Type>)      return OBJ_USER_TYPE;
+    if constexpr (std::is_same_v<U, Instance>)  return OBJ_INSTANCE;
+    if constexpr (std::is_same_v<U, Closure>)   return OBJ_CLOSURE;
+    if constexpr (std::is_same_v<U, String>)    return OBJ_STRING;
+    if constexpr (std::is_same_v<U, Range>)     return OBJ_RANGE;
+    if constexpr (std::is_same_v<U, List>)      return OBJ_LIST;
+    if constexpr (std::is_same_v<U, Table>)     return OBJ_TABLE;
+    if constexpr (std::is_same_v<U, Cell>)      return OBJ_REF;
+    if constexpr (std::is_same_v<U, Void>)      return OBJ_VOID;
 
     return OBJ_INVALID; // Dummy return value.
 }
@@ -194,13 +203,13 @@ Object::Object(T val) noexcept
     }
     else if constexpr (std::is_same_v<T, ObjType>)
     {
-        type_ = OBJ_TYPE;
-        as.typeVal = val;
+        type_ = OBJ_CORE_TYPE;
+        as.coreTypeVal = val;
     }
     else if constexpr (std::is_same_v<T, FuncType>)
     {
-        type_ = OBJ_NATIVE;
-        as.nativeVal = val;
+        type_ = OBJ_CORE_FUNC;
+        as.coreFuncVal = val;
     }
     else if constexpr (std::is_same_v<T, ObjIter*>)
     {
@@ -225,6 +234,18 @@ Object::Object(T val) noexcept
 }
 
 
+/* Object type names. */
+
+inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
+    "Int", "Dec", "Bool", "Null", "Builtin Type",
+    "Builtin Function", "User Type", "Type Instance",
+    "User Function", "User Function", "Lambda", "BigInt",
+    "BigDec", "String", "Range", "List", "Table",
+    "", // References take the type of the contained object.
+    "Void", "Iterable"
+};
+
+
 /* Object helper functions and macros. */
 
 #define X(TYPE, field) \
@@ -243,13 +264,14 @@ TYPE_LIST
 #undef X
 
 // Object is a function object.
-#define IS_FUNCOBJ(obj)     (IS_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj))
+#define IS_FUNCOBJ(obj)     (IS_USER_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj))
 
 // Object can be called.
-#define IS_CALLABLE(obj)    (IS_NATIVE(obj) || IS_FUNCOBJ(obj))
+#define IS_CALLABLE(obj) \
+    (IS_CORE_FUNC(obj) || IS_FUNCOBJ(obj) || IS_CORE_TYPE(obj) || IS_USER_TYPE(obj))
 
 // Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_FUNC) && ((obj).type() <= OBJ_VOID))
+#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_USER_TYPE) && ((obj).type() <= OBJ_VOID))
 
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
@@ -346,13 +368,28 @@ struct HeapObj
     #endif
 };
 
-struct Cell : public HeapObj
+struct Type : public HeapObj
 {
-    Object* location{};
-    Object obj{};
+    const char* name{};
+    HashTable<std::string, Object> methods{};
 
-    Cell(Object* location) noexcept;
-    void close();
+    Type(const std::string& name) noexcept;
+    ~Type() noexcept;
+
+    void emit(std::ofstream& os) const;
+    [[nodiscard]] u64 byteSize() const;
+};
+
+struct Instance : public HeapObj
+{
+    const Type* type{};
+    HashTable<std::string, Object> fields{};
+
+    Instance(const Type* type) noexcept;
+    bool operator==(const Instance& other) const;
+
+    [[nodiscard]] Hash hash() const;
+    [[nodiscard]] std::string printVal() const;
 };
 
 struct Function : public HeapObj
@@ -471,6 +508,15 @@ struct Table : public HeapObj
     void setIndex(const Object& key, const Object& value);
 
     [[nodiscard]] std::string printVal(bool nested) const;
+};
+
+struct Cell : public HeapObj
+{
+    Object* location{};
+    Object obj{};
+
+    Cell(Object* location) noexcept;
+    void close();
 };
 
 struct Void : public HeapObj

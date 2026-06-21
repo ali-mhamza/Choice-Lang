@@ -192,6 +192,8 @@ enum DiagCode : u8
     HIT_SHIFT_MAX,
     // General error while using the format!() built-in.
     FORMAT_STR_PROBLEM,
+    // Invalid numeric base value.
+    INVALID_NUM_BASE,
 
 
     /* Call errors. */
@@ -200,6 +202,8 @@ enum DiagCode : u8
     OBJ_NOT_CALLABLE,
     // Attempt to call a built-in function that does not exist.
     BUILTIN_NOT_FOUND,
+    // No constructor for type being called.
+    NO_TYPE_CTOR,
     // No overload for function with given arity.
     // Specifically determined at runtime (we assume a compile-time
     // arity mismatch implies the necessary overload will be defined

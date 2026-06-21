@@ -20,14 +20,6 @@
 #include <variant>
 using Natives::funcNames;
 
-constexpr std::array<std::string_view, NUM_TYPES> objTypes{
-    "Int", "Dec", "Boolean", "Null", "Type", "Builtin",
-    "Function", "Function", "Lambda", "BigInt",
-    "BigDec", "String", "Range", "List", "Table",
-    "", // References take the type of the contained object.
-    "Void", "Iterable"
-};
-
 /* Object. */
 
 Object::Object() noexcept :
@@ -131,11 +123,13 @@ bool Object::operator==(const Object& other) const
     {
         case OBJ_BOOL:      return AS_BOOL(*this) == AS_BOOL(other);
         case OBJ_NULL:      return true;
-        case OBJ_TYPE:      return AS_TYPE(*this) == AS_TYPE(other);
-        case OBJ_NATIVE:    return AS_NATIVE(*this) == AS_NATIVE(other);
-        case OBJ_FUNC:
-        case OBJ_LAMBDA:    return *(AS_FUNC(*this)) == *(AS_FUNC(other));
-        case OBJ_CLOSURE:   return *(AS_CLOSURE(*this)) == *(AS_CLOSURE(other));
+        case OBJ_CORE_TYPE: return AS_CORE_TYPE(*this) == AS_CORE_TYPE(other);
+        case OBJ_USER_TYPE: return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
+        case OBJ_INSTANCE:  return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
+        case OBJ_CORE_FUNC: return AS_CORE_FUNC(*this) == AS_CORE_FUNC(other);
+        case OBJ_USER_FUNC:
+        case OBJ_LAMBDA:    return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
+        case OBJ_CLOSURE:   return AS_CLOSURE(*this) == AS_CLOSURE(other);
         case OBJ_STRING:    return *(AS_STRING(*this)) == *(AS_STRING(other));
         case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
         case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
@@ -197,6 +191,23 @@ bool Object::in(const Object& other) const
         throw reportCollection(OBJ_NOT_ITERABLE, other);
     else
         throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
+}
+
+bool Object::isTruthy() const
+{
+    switch (type())
+    {
+        case OBJ_INT:       return (AS_INT(*this) != 0);
+        case OBJ_DEC:       return (AS_DEC(*this) != 0.0);
+        case OBJ_BOOL:      return AS_BOOL(*this);
+        case OBJ_NULL:      return false;
+        case OBJ_STRING:    return (AS_STRING(*this)->str.size() != 0);
+        case OBJ_LIST:      return (AS_LIST(*this)->array.count() != 0);
+        case OBJ_TABLE:     return (AS_TABLE(*this)->table.size() != 0);
+        case OBJ_VOID:      return false;
+        // Rest are always truthy.
+        default:            return true;
+    }
 }
 
 Object Object::getIndex(const Object& index) const
@@ -264,11 +275,13 @@ Hash Object::hash() const
         case OBJ_DEC:       return hashKey(AS_DEC(*this));
         case OBJ_BOOL:      return hashKey(AS_BOOL(*this));
         case OBJ_NULL:      return 0;
-        case OBJ_TYPE:      return hashKey(static_cast<u8>(AS_TYPE(*this)));
-        case OBJ_NATIVE:    return hashKey(static_cast<u8>(AS_NATIVE(*this)));
-        case OBJ_FUNC:      return hashPointer(AS_FUNC(*this));
+        case OBJ_CORE_TYPE: return hashKey(static_cast<u8>(AS_CORE_TYPE(*this)));
+        case OBJ_USER_TYPE: return hashPointer(AS_USER_TYPE(*this));
+        case OBJ_INSTANCE:  return AS_INSTANCE(*this)->hash();
+        case OBJ_CORE_FUNC: return hashKey(static_cast<u8>(AS_CORE_FUNC(*this)));
+        case OBJ_USER_FUNC: return hashPointer(AS_USER_FUNC(*this));
         case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
-        case OBJ_LAMBDA:    return hashPointer(AS_FUNC(*this));
+        case OBJ_LAMBDA:    return hashPointer(AS_USER_FUNC(*this));
         case OBJ_STRING:    return hashKey(AS_STRING(*this)->str);
         case OBJ_RANGE:
         {
@@ -335,9 +348,11 @@ std::string Object::printVal() const
         case OBJ_DEC:       ret = doubleToStr(AS_DEC(*this));                               break;
         case OBJ_BOOL:      ret = (AS_BOOL(*this) ? "true" : "false");                      break;
         case OBJ_NULL:      ret = "null";                                                   break;
-        case OBJ_TYPE:      ret = objTypes[AS_TYPE(*this)];                                 break;
-        case OBJ_NATIVE:    ret = CH_STR("<builtin {}>", funcNames[AS_NATIVE(*this)]);      break;
-        case OBJ_FUNC:      ret = CH_STR("<func {}>", AS_FUNC(*this)->name);                break;
+        case OBJ_CORE_TYPE: ret = objTypes[AS_CORE_TYPE(*this)];                            break;
+        case OBJ_USER_TYPE: ret = CH_STR("<type {}>", AS_USER_TYPE(*this)->name);           break;
+        case OBJ_INSTANCE:  ret = AS_INSTANCE(*this)->printVal();                           break;
+        case OBJ_CORE_FUNC: ret = CH_STR("<builtin {}>", funcNames[AS_CORE_FUNC(*this)]);   break;
+        case OBJ_USER_FUNC: ret = CH_STR("<func {}>", AS_USER_FUNC(*this)->name);           break;
         case OBJ_CLOSURE:   ret = CH_STR("<func {}>", AS_CLOSURE(*this)->function->name);   break;
         case OBJ_LAMBDA:    ret = "<lambda>";                                               break;
         // Pass nesting status to possibly nesting collection types.
@@ -365,6 +380,8 @@ std::string Object::printVal() const
 
 std::string_view Object::printType() const
 {
+    if (IS_INSTANCE(*this))
+        return AS_INSTANCE(*this)->type->name;
     return objTypes[type()];
 }
 
@@ -376,8 +393,9 @@ void Object::emit(std::ofstream& os) const
     {
         case OBJ_INT:       Bytes::encodeValue(os, AS_INT(*this));  break;
         case OBJ_DEC:       Bytes::encodeValue(os, AS_DEC(*this));  break;
-        case OBJ_FUNC:
-        case OBJ_LAMBDA:    AS_FUNC(*this)->emit(os);               break;
+        case OBJ_USER_TYPE: AS_USER_TYPE(*this)->emit(os);          break;
+        case OBJ_USER_FUNC:
+        case OBJ_LAMBDA:    AS_USER_FUNC(*this)->emit(os);          break;
         case OBJ_STRING:    AS_STRING(*this)->emit(os);             break;
         default: CH_UNREACHABLE();
     }
@@ -391,18 +409,6 @@ ObjIter* Object::makeIter()
 
 /* Object structs. */
 
-Cell::Cell(Object* location) noexcept:
-    location{location} {}
-
-void Cell::close()
-{
-    obj = *location;
-    location = &obj;
-}
-
-Function::Function(const ByteCode& code, u8 arityMin, u8 arityMax) noexcept:
-    code{code}, arityMin{arityMin}, arityMax{arityMax} {}
-
 // strdup is not a standard C++ function, but is instead from POSIX.
 [[nodiscard]] static char* choiceStrdup(const char* str)
 {
@@ -411,6 +417,57 @@ Function::Function(const ByteCode& code, u8 arityMin, u8 arityMax) noexcept:
     memcpy(ret, str, size); // Includes null byte.
     return ret;
 }
+
+Type::Type(const std::string& name) noexcept:
+    name{choiceStrdup(name.c_str())} {}
+
+Type::~Type() noexcept
+{
+    delete[] name;
+}
+
+void Type::emit(std::ofstream& os) const
+{
+    u64 len{strlen(name)};
+    os.put(static_cast<char>(len));
+    os.write(name, static_cast<std::streamsize>(len));
+}
+
+u64 Type::byteSize() const
+{
+    u64 size{strlen(name)};
+
+    // Added type byte (1) and name length byte (1).
+    size += 2 * sizeof(u8);
+
+    return size;
+}
+
+Instance::Instance(const Type* type) noexcept:
+    type{type} {}
+
+bool Instance::operator==(const Instance& other) const
+{
+    // For now.
+    return (this->type == other.type);
+}
+
+Hash Instance::hash() const
+{
+    // For now.
+    return hashPointer(type);
+}
+
+std::string Instance::printVal() const
+{
+    // Empty for now.
+    std::string ret{type->name};
+    ret += " {}";
+    return ret;
+}
+
+Function::Function(const ByteCode& code, u8 arityMin, u8 arityMax) noexcept:
+    code{code}, arityMin{arityMin}, arityMax{arityMax} {}
 
 Function::Function(
     const std::string& name,
@@ -840,6 +897,15 @@ std::string Table::printVal(bool nested) const
     }
 
     return ret;
+}
+
+Cell::Cell(Object* location) noexcept:
+    location{location} {}
+
+void Cell::close()
+{
+    obj = *location;
+    location = &obj;
 }
 
 

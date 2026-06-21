@@ -31,22 +31,6 @@ enum TokenType : u8
 
 	/* Keywords. */
 
-	// Types.
-
-	TOK_INT_T,        	// Int
-	TOK_DEC_T,          // Dec
-	TOK_BOOL_T,         // Boolean
-	TOK_NULL_T,			// Null
-	TOK_TYPE_T,			// Type
-	TOK_FUNC_T,			// Func
-	TOK_STR_T,         	// String
-	TOK_RANGE_T,		// Range
-	TOK_LIST_T,			// List
-	TOK_TABLE_T,		// Table
-	TOK_VOID_T,			// Void
-	TOK_ANY_T,			// Any
-	TOK_CLASS_T,		// Class
-
 	// Control flow.
 
 	TOK_IF,				// if
@@ -142,9 +126,9 @@ enum TokenType : u8
 	TOK_THICK_ARROW,	// =>
 	TOK_ELLIPSIS,		// ...
 
-	/* Classes. */
+	/* Types. */
 
-	TOK_CLASS,			// class
+	TOK_TYPE,			// type
 	TOK_DOT,			// .
 	TOK_UNDER_UNDER,	// __
 	TOK_RARROW,			// ->

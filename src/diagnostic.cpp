@@ -17,7 +17,7 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     UNPACK_TOO_MANY, PARAM_ALREADY_DEFINED, UNPACK_TABLE,
-    FORMAT_STR_PROBLEM, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
+    INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
     MUT_TO_IMMUT
 };
@@ -75,10 +75,12 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Division by zero.", "Index out of bounds.", "Table key not found.",
     "Invalid step value for range object.", "Modulus with base zero.",
     "Shift value too large.", "Invalid format argument.",
+    "Invalid value for numeric base.",
 
     // Call errors.
 
     "Object is not callable.", "No built-in found with given name.",
+    "Type being called has no available constructor.",
     "Function has no overload for given number of arguments.",
     "Built-in (called with '!') must be called by name.",
     "Too many arguments in function call.",
@@ -606,7 +608,7 @@ std::string DiagnosticEngine::printStackEntry(
     // register window, except script-level code (which has no
     // function object).
     const Function* func{
-        (index == 0) ? nullptr : AS_FUNC(frames[index].regStart[-1])
+        (index == 0) ? nullptr : AS_USER_FUNC(frames[index].regStart[-1])
     };
 
     std::string output{};

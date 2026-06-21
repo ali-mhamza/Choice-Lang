@@ -74,7 +74,7 @@ class Parser
         [[nodiscard]] bool parseParams(std::vector<AST::Param>& params);
         [[nodiscard]] StmtUP funcBodyHelper(std::vector<AST::Param>& params);
         [[nodiscard]] StmtUP funcDecl();
-        [[nodiscard]] StmtUP classDecl();
+        [[nodiscard]] StmtUP typeDecl();
 
         // Statements.
 

@@ -17,7 +17,7 @@ namespace Natives
         FUNC_PRINT,
         FUNC_PRINTLN,
         FUNC_FORMAT,
-        FUNC_TYPE,
+        FUNC_TYPEOF,
         FUNC_LEN,
         FUNC_CLOCK,
         FUNC_RANGE,
@@ -29,7 +29,7 @@ namespace Natives
     void print(iter it, u8 args);
     void println(iter it, u8 args);
     void format(iter it, u8 args);
-    void type(iter it, u8 args);
+    void typeof(iter it, u8 args);
     void len(iter it, u8 args);
     void clock(iter it, u8 args);
     void range(iter it, u8 args);

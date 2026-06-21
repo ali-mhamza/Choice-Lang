@@ -17,13 +17,13 @@
 const std::array<Natives::NativeFunc,
 Natives::FuncType::NUM_FUNCS> Natives::functions{
     Natives::print, Natives::println, Natives::format,
-    Natives::type, Natives::len, Natives::clock,
+    Natives::typeof, Natives::len, Natives::clock,
     Natives::range, Natives::read, Natives::quit
 };
 
 const std::array<const char*,
 Natives::FuncType::NUM_FUNCS> Natives::funcNames{
-    "print", "println", "format", "type", "len",
+    "print", "println", "format", "typeof", "len",
     "clock", "range", "read", "quit"
 };
 
@@ -32,7 +32,7 @@ const std::unordered_map<std::string_view,
     {"print", Natives::FUNC_PRINT},
     {"println", Natives::FUNC_PRINTLN},
     {"format", Natives::FUNC_FORMAT},
-    {"type", Natives::FUNC_TYPE},
+    {"typeof", Natives::FUNC_TYPEOF},
     {"len", Natives::FUNC_LEN},
     {"clock", Natives::FUNC_CLOCK},
     {"range", Natives::FUNC_RANGE},
@@ -162,7 +162,10 @@ void Natives::type(Natives::iter it, u8 args)
         );
     }
 
-    it[-1] = Object{it->type()};
+    if (IS_INSTANCE(*it))
+        it[-1] = Object{AS_INSTANCE(*it)->type};
+    else
+        it[-1] = Object{it->type()};
 }
 
 void Natives::len(Natives::iter it, u8 args)

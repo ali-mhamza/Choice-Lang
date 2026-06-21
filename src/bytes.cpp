@@ -112,7 +112,16 @@ ByteCode CodeReader::reconstructByteCode()
 	return code;
 }
 
-[[nodiscard]]
+Object CodeReader::reconstructType()
+{
+   	u8 nameLen{readValue<u8>()};
+	std::string name{};
+   	name.resize(nameLen);
+    readBytes(name.data(), nameLen);
+
+    return Object{CH_ALLOC(Type, name)};
+}
+
 Object CodeReader::reconstructFunc()
 {
 	u8 nameLen{readValue<u8>()};
@@ -141,8 +150,8 @@ Object CodeReader::reconstructFunc()
 	for (u8 i{0}; i < defaultCount; i++)
 	    defaultArgs[i] = reconstructByteCode();
 
-	AS_FUNC(func)->variadic = variadic;
-	AS_FUNC(func)->defaultArgs = defaultArgs;
+	AS_USER_FUNC(func)->variadic = variadic;
+	AS_USER_FUNC(func)->defaultArgs = defaultArgs;
 
 	return func;
 }
@@ -173,7 +182,8 @@ vObj CodeReader::reconstructPool(u64 poolByteSize)
 		{
 			case OBJ_INT:       pool.emplace_back(readValue<i64>());            break;
 			case OBJ_DEC:       pool.emplace_back(readValue<double>());         break;
-			case OBJ_FUNC:
+			case OBJ_USER_TYPE: pool.emplace_back(reconstructType());           break;
+			case OBJ_USER_FUNC:
 			case OBJ_LAMBDA:    pool.emplace_back(reconstructFunc());           break;
 			case OBJ_STRING:    pool.emplace_back(reconstructString());         break;
 			default:
@@ -624,7 +634,8 @@ void BinaryInspector::inspectBriefObject(u64& position)
 		case OBJ_INT:		inspectBriefInt(start);		break;
 		case OBJ_DEC:		inspectBriefDec(start);		break;
 		case OBJ_STRING:	inspectBriefString(start);	break;
-		case OBJ_FUNC:
+		case OBJ_USER_TYPE: inspectBriefType(start);    break;
+		case OBJ_USER_FUNC:
 		case OBJ_LAMBDA:	inspectBriefFunc(start);	break;
 		default: ;
 	}
@@ -670,6 +681,28 @@ void BinaryInspector::inspectBriefString(u64 start)
 	str = formatMultiLineString(str);
 	printStringWithTruncation(str, str.size(),
 		CH_STR("truncated; length={}", nameLen));
+}
+
+void BinaryInspector::inspectBriefType(u64 start)
+{
+    constexpr u64 maxNameDisplayLength{30 - sizeof("name=''") + 1};
+	CH_PRINT(" ");
+	u8 nameLen{readValue<u8>()};
+	std::string name{};
+	name.resize(nameLen);
+	readBytes(name.data(), nameLen);
+
+	printStartEnd(start, getCurrentPosition(), false);
+	CH_PRINT(" {:^10}", "Type");
+	CH_PRINT(" {:^7}", getCurrentPosition() - start);
+
+	if (nameLen <= maxNameDisplayLength)
+		CH_PRINT(" {:^30}\n", "name='" + name + "'");
+	else
+	{
+		CH_PRINT(" name='{:.20}...'  ", name);
+		CH_PRINT("(truncated; length={})\n", nameLen);
+	}
 }
 
 void BinaryInspector::skipFuncData()
@@ -744,7 +777,8 @@ void BinaryInspector::inspectDetailObject(u64& position)
 		case OBJ_INT:		inspectDetailInt(start);	break;
 		case OBJ_DEC:		inspectDetailDec(start);	break;
 		case OBJ_STRING:	inspectDetailString(start);	break;
-		case OBJ_FUNC:
+		case OBJ_USER_TYPE: inspectDetailType(start);   break;
+		case OBJ_USER_FUNC:
 		case OBJ_LAMBDA:	inspectDetailFunc(start);	break;
 		default: ;
 	}
@@ -799,6 +833,32 @@ void BinaryInspector::inspectDetailString(u64 start)
 	PRINT_ENTRY_RANGE();
 	CH_PRINT("String value:");
 	printStringWithTruncation(str, str.size(), "truncated");
+}
+
+void BinaryInspector::inspectDetailType(u64 start)
+{
+   	PRINT_ENTRY_RANGE();
+	CH_PRINT("Type: Compound Type\n");
+
+	constexpr u64 maxNameDisplayLength{30 - sizeof('\'') * 2};
+	start = getCurrentPosition();
+	u8 nameLen{readValue<u8>()};
+	PRINT_ENTRY_RANGE();
+	CH_PRINT("Name length: {}\n", nameLen);
+
+	start = getCurrentPosition();
+	std::string name{};
+	name.resize(nameLen);
+	readBytes(name.data(), nameLen);
+
+	if (nameLen != 0)
+	{
+		PRINT_ENTRY_RANGE();
+		if (nameLen <= maxNameDisplayLength)
+		    CH_PRINT("Type name: {:<30}\n", "'" + name + "'");
+		else
+			CH_PRINT("Type name: '{:.25}...'  (truncated)\n", name);
+	}
 }
 
 void BinaryInspector::inspectDetailFuncName()

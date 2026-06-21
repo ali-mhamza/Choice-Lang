@@ -72,7 +72,7 @@ namespace AST
         {
             S_VAR_DECL,
             S_FUNC_DECL,
-            S_CLASS_DECL,
+            S_TYPE_DECL,
             S_IF_STMT,
             S_WHILE_STMT,
             S_FOR_STMT,
@@ -127,16 +127,12 @@ namespace AST
             );
         };
 
-        struct ClassDecl : public Stmt
+        struct TypeDecl : public Stmt
         {
             const Token name{};
-            const vT fields{};
-            const StmtVec methods{};
 
-            ClassDecl(
-                const Token& name,
-                const vT& fields,
-                StmtVec& methods
+            TypeDecl(
+                const Token& name
             );
         };
 

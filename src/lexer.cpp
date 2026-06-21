@@ -29,14 +29,6 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	{"true", TOK_TRUE}, {"false", TOK_FALSE}, {"null", TOK_NULL},
 
-	// Types.
-
-	{"Int", TOK_INT_T},		{"Dec", TOK_DEC_T},		{"Boolean", TOK_BOOL_T},
-	{"Null", TOK_NULL_T},	{"Type", TOK_NULL_T},	{"Func", TOK_FUNC_T},
-	{"String", TOK_STR_T},	{"Range", TOK_RANGE_T},	{"List", TOK_LIST_T},
-	{"Table", TOK_TABLE_T},	{"Void", TOK_VOID_T},	{"Any", TOK_ANY_T},
-	{"Class", TOK_CLASS_T},
-
 	// Control-flow.
 
 	{"if", TOK_IF},				{"elif", TOK_ELIF},		{"else", TOK_ELSE},
@@ -53,7 +45,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	// Declarations.
 
-	{"make", TOK_MAKE}, {"fix", TOK_FIX}, {"func", TOK_FUNC}, {"class", TOK_CLASS}
+	{"make", TOK_MAKE}, {"fix", TOK_FIX}, {"func", TOK_FUNC}, {"type", TOK_TYPE}
 };
 
 void Lexer::setUp(FileID id, const std::string_view& code)

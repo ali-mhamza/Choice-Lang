@@ -3,6 +3,7 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/token.h"
+#include <iterator>
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -119,12 +120,7 @@ bool Parser::matchError(TokenType type, std::string_view message)
 
 bool Parser::consumeTypename()
 {
-    for (u8 type{TOK_INT_T}; type <= TOK_CLASS_T; type++)
-    {
-        if (consumeTok(static_cast<TokenType>(type)))
-            return true;
-    }
-
+    if (consumeTok(TOK_IDENTIFIER)) return true;
     reportSyntax(WRONG_TOKEN_FOUND, currentTok, "expect variable type");
     return false;
 }
@@ -303,6 +299,8 @@ StmtUP Parser::declaration()
         ret = varDecl();
     else if (consumeTok(TOK_FUNC))
         ret = funcDecl();
+    else if (consumeTok(TOK_TYPE))
+        ret = typeDecl();
     else
         ret = statement();
 
@@ -413,6 +411,14 @@ StmtUP Parser::funcDecl()
     StmtUP body{funcBodyHelper(params)};
 
     return std::make_unique<FuncDecl>(name, params, body);
+}
+
+StmtUP Parser::typeDecl()
+{
+    MATCH_TOK(TOK_IDENTIFIER, "expect type name");
+    Token name{previousTok};
+    MATCH_TOK(TOK_SEMICOLON, "expect ';' after type declaration");
+    return std::make_unique<TypeDecl>(name);
 }
 
 StmtUP Parser::statement()
