@@ -22,12 +22,6 @@ using Natives::funcNames;
 
 /* Object. */
 
-Object::Object() noexcept :
-    type_{OBJ_INVALID}
-{
-    AS_INT(*this) = 0;
-}
-
 #if !CH_USE_ALLOC
 
 void Object::clean()

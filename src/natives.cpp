@@ -63,9 +63,7 @@ void Natives::print(iter it, u8 args)
     else
         fflush(stdout);
 
-    // To avoid reallocating the return value each time.
-    static auto ret{Object{CH_ALLOC(Void)}};
-    it[-1] = ret;
+    it[-1] = Object{OBJ_VOID};
 }
 
 void Natives::println(iter it, u8 args)
@@ -162,10 +160,13 @@ void Natives::typeof(iter it, u8 args)
         );
     }
 
+    // Use implicit conversion here to avoid the overload
+    // which takes an ObjType enum argument.
+
     if (IS_INSTANCE(*it))
-        it[-1] = Object{AS_INSTANCE(*it)->type};
+        it[-1] = AS_INSTANCE(*it)->type;
     else
-        it[-1] = Object{it->type()};
+        it[-1] = it->type();
 }
 
 void Natives::len(iter it, u8 args)

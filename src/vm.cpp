@@ -235,10 +235,10 @@ inline Object VM::loadOper()
     {
         case OP_NEG_TWO:    case OP_NEG_ONE:    case OP_ZERO:
         case OP_ONE:        case OP_TWO:
-            return i64(oper) - 2;
-        case OP_TRUE:       return true;
-        case OP_FALSE:      return false;
-        case OP_NULL:       return nullptr;
+            return Object{i64(oper - 2)};
+        case OP_TRUE:       return Object{true};
+        case OP_FALSE:      return Object{false};
+        case OP_NULL:       return Object{OBJ_NULL};
         case OP_BYTE_OPER:  return pool[readByte()];
         case OP_SHORT_OPER: return pool[readShort()];
         case OP_LONG_OPER:  return pool[readLong()];
@@ -1165,9 +1165,7 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_VOID):
         {
-            // To avoid reallocating the return value each time.
-            static Object ret{CH_ALLOC(Void)};
-            registers[readByte()] = ret;
+            registers[readByte()] = Object{OBJ_VOID};
             DISPATCH();
         }
 

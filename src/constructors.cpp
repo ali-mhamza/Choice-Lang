@@ -50,8 +50,7 @@ Object Constructors::Obj(iter it, u8 args)
         );
     }
 
-    static Object obj{CH_ALLOC(Void)};
-    return obj;
+    return Object{OBJ_VOID};
 }
 
 Object Constructors::Int(iter it, u8 args)

@@ -117,7 +117,8 @@ class Object
             const HeapObj*  dummyVal;
         } as;
 
-        Object() noexcept;
+        Object() noexcept : type_{OBJ_INVALID}, as{0} {}
+        explicit Object(ObjType type) : type_{type}, as{0} {};
         template<typename T>
         Object(T val) noexcept;
 
