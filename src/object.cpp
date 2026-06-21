@@ -484,11 +484,6 @@ Function::~Function() noexcept
     delete[] defaultArgs;
 }
 
-bool Function::operator==(const Function& other) const
-{
-    return (this == &other);
-}
-
 void Function::emit(std::ofstream& os) const
 {
     if (name != nullptr)
@@ -572,11 +567,6 @@ Closure::~Closure() noexcept
         if (function->refCount == 0)
             delete function;
     #endif
-}
-
-bool Closure::operator==(const Closure& other) const
-{
-    return (this == &other);
 }
 
 void Closure::addCell(Cell* cell)

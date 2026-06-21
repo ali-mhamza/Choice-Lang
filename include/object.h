@@ -413,7 +413,6 @@ struct Function : public HeapObj
     ) noexcept;
     ~Function() noexcept;
 
-    [[nodiscard]] bool operator==(const Function& other) const;
     void emit(std::ofstream& os) const;
     u64 byteSize() const;
 };
@@ -425,8 +424,6 @@ struct Closure : public HeapObj
 
     Closure(Function* function) noexcept;
     ~Closure() noexcept;
-
-    [[nodiscard]] bool operator==(const Closure& other) const;
 
     void addCell(Cell* cell);
 };
