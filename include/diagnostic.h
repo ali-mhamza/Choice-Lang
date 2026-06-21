@@ -172,6 +172,8 @@ enum DiagCode : u8
     WRONG_ARG_TYPE,
     // Attempting to unpack a non-collection object.
     UNPACK_NON_COLLECTION,
+    // Attempting to unpack a Table object in order.
+    UNPACK_TABLE,
 
 
     /* Value errors. */

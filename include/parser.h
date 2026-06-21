@@ -63,6 +63,12 @@ class Parser
 
         // Declarations.
 
+        void parseVariableList(
+            vT& vars,
+            AST::UnpackState& unpack,
+            std::string_view errorMsg
+        );
+
         [[nodiscard]] StmtUP declaration();
         [[nodiscard]] StmtUP varDecl();
         [[nodiscard]] bool parseParams(std::vector<AST::Param>& params);

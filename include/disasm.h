@@ -40,6 +40,8 @@ class Disassembler
         void collectionOp(u8 byte);
         // For closure captures.
         void captureOp(u8 byte);
+        // For OP_UNPACK(_ORD).
+        void unpackOp(u8 byte);
         // For OP_MAKE_REF.
         void referenceOp();
         // For OP_FORMAT_STR.

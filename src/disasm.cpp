@@ -109,7 +109,7 @@ void Disassembler::doubleOper(u8 byte)
 	u8 first{readByte()}, second{readByte()};
 
 	Opcode op{static_cast<Opcode>(byte)};
-	if ((op == OP_VAR) || (op == OP_FIX) || (op == OP_UNPACK))
+	if ((op == OP_VAR) || (op == OP_FIX))
         CH_PRINT("R[{}] ({})\n", first, second);
 	else if (op == OP_GET_CELL)
 		CH_PRINT("R[{}] C[{}]\n", first, second);
@@ -242,6 +242,16 @@ void Disassembler::captureOp(u8 byte)
 		CH_PRINT("F[{}] C[{}]\n", funcReg, readByte());
 }
 
+void Disassembler::unpackOp(u8 byte)
+{
+    printOpcode(opNames[byte]);
+    u8 reg{readByte()}, count{readByte()};
+    bool first{static_cast<bool>(readByte())};
+    bool second{static_cast<bool>(readByte())};
+
+    CH_PRINT("R[{}] ({}) ({}) ({})\n", reg, count, first, second);
+}
+
 void Disassembler::referenceOp()
 {
     // Mimicking the compiler.
@@ -290,7 +300,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
 		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_R:
-		case OP_RANGE:      case OP_UNPACK:
+		case OP_RANGE:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
@@ -319,6 +329,9 @@ void Disassembler::disassembleOp(u8 byte)
 			break;
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
 			captureOp(byte);
+			break;
+		case OP_UNPACK:
+		    unpackOp(byte);
 			break;
 		case OP_MAKE_REF:	referenceOp();	break;
 		case OP_FORMAT_STR:	formatOp();		break;

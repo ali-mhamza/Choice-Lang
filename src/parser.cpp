@@ -264,6 +264,34 @@ void Parser::setExprLocation(ExprUP& expr, u64 start)
     }
 }
 
+void Parser::parseVariableList(
+    vT& vars,
+    AST::UnpackState& unpack,
+    std::string_view errorMsg
+)
+{
+    bool done{false};
+
+    do {
+        if (consumeTok(TOK_ELLIPSIS))
+        {
+            unpack.unpackIgnore = true;
+            break;
+        }
+
+        if (!matchError(TOK_IDENTIFIER, errorMsg)) return;
+        vars.push_back(previousTok);
+
+        if (consumeTok(TOK_ELLIPSIS))
+        {
+            unpack.unpackLastVar = true;
+            done = true;
+        }
+
+        CONSUME_VAR_TYPE();
+    } while (!done && consumeTok(TOK_COMMA));
+}
+
 StmtUP Parser::declaration()
 {
     StmtUP ret{nullptr};
@@ -292,12 +320,8 @@ StmtUP Parser::varDecl()
 {
     TokenType declType{previousTok.type};
     vT names{};
-
-    do {
-        MATCH_TOK(TOK_IDENTIFIER, "expect variable name");
-        names.push_back(previousTok);
-        CONSUME_VAR_TYPE();
-    } while (consumeTok(TOK_COMMA));
+    AST::UnpackState unpack{};
+    parseVariableList(names, unpack, "expect variable name");
 
     Token oper{};
     ExprVec values{};
@@ -320,7 +344,8 @@ StmtUP Parser::varDecl()
     }
 
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after variable declaration(s)");
-    return std::make_unique<VarDecl>((declType == TOK_FIX), names, oper, values);
+    return std::make_unique<VarDecl>((declType == TOK_FIX), names, unpack,
+        oper, values);
 }
 
 bool Parser::parseParams(std::vector<AST::Param>& params)
@@ -484,12 +509,8 @@ AST::LoopHeader Parser::parseLoopHeader()
     bool fix{consumeTok(TOK_FIX)};
 
     vT vars{};
-    do {
-        if (!matchError(TOK_IDENTIFIER, "expect loop variable identifier"))
-            return {};
-        vars.push_back(previousTok);
-        CONSUME_VAR_TYPE();
-    } while (consumeTok(TOK_COMMA));
+    AST::UnpackState unpack{};
+    parseVariableList(vars, unpack, "expect loop variable identifier");
 
     if (!matchError(TOK_IN, "expect 'in' keyword after loop variable"))
         return {};
@@ -501,7 +522,7 @@ AST::LoopHeader Parser::parseLoopHeader()
     if (!matchError(TOK_RIGHT_PAREN, "expect ')' after condition"))
         return {};
 
-    return AST::LoopHeader{fix, vars, iter, where};
+    return AST::LoopHeader{fix, vars, unpack, iter, where};
 }
 
 StmtUP Parser::forStmt()
@@ -703,6 +724,7 @@ ExprUP Parser::multiAssignment()
 {
     u64 start{currentTok.byteOffset};
     ExprVec targets{};
+    AST::UnpackState unpack{};
     ExprVec values{};
 
     ExprUP target{expression()};
@@ -710,10 +732,22 @@ ExprUP Parser::multiAssignment()
     {
         targets.push_back(std::move(target));
         do {
+            if (consumeTok(TOK_ELLIPSIS))
+            {
+                unpack.unpackIgnore = true;
+                break;
+            }
+
             // Expressions with 'mut' or 'immut' and/or assignments
             // can't be on the LHS, and assignments will consume the
             // '=' that separates the LHS and RHS.
             targets.push_back(logicOr());
+
+            if (consumeTok(TOK_ELLIPSIS))
+            {
+                unpack.unpackLastVar = true;
+                break;
+            }
         } while (consumeTok(TOK_COMMA));
 
         MATCH_TOK(TOK_EQUAL, "expect '=' after multiple assignment targets");
@@ -731,7 +765,7 @@ ExprUP Parser::multiAssignment()
             values.push_back(expression());
         } while (consumeTok(TOK_COMMA));
 
-        target = std::make_unique<AssignExpr>(targets, oper, values);
+        target = std::make_unique<AssignExpr>(targets, unpack, oper, values);
     }
 
     setExprLocation(target, start);
@@ -788,6 +822,7 @@ ExprUP Parser::assignment()
 {
     u64 start{currentTok.byteOffset};
     ExprVec targets{};
+    AST::UnpackState unpack{};
     ExprVec values{};
 
     ExprUP target{logicOr()};
@@ -801,7 +836,7 @@ ExprUP Parser::assignment()
         CHECK_DEPTH(previousTok);
         targets.push_back(std::move(target));
         values.push_back(expression());
-        target = std::make_unique<AssignExpr>(targets, oper, values);
+        target = std::make_unique<AssignExpr>(targets, unpack, oper, values);
     }
 
     setExprLocation(target, start);

@@ -12,19 +12,21 @@ AST::Param::Param(bool fix, bool variadic, const Token& param,
     fix{fix}, variadic{variadic}, param{param},
     defaultVal{std::move(defaultVal)} {}
 
-AST::LoopHeader::LoopHeader(bool fix, const vT& vars, ExprUP& iter,
-    ExprUP& where) :
-    fix{fix}, vars{vars}, iter{std::move(iter)}, where{std::move(where)} {}
+AST::LoopHeader::LoopHeader(bool fix, const vT& vars, UnpackState unpack,
+    ExprUP& iter, ExprUP& where) :
+    fix{fix}, vars{vars}, unpack{unpack}, iter{std::move(iter)},
+    where{std::move(where)} {}
 
 // Statement constructors.
 
 Stmt::Stmt(StmtType type) :
     type{type} {}
 
-VarDecl::VarDecl(bool fix, const vT& names, const Token& oper,
-    ExprVec& values) :
+VarDecl::VarDecl(bool fix, const vT& names, UnpackState unpack,
+    const Token& oper, ExprVec& values) :
     Stmt{S_VAR_DECL},
-    fix{fix}, names{names}, oper{oper}, values{std::move(values)} {}
+    fix{fix}, names{names}, unpack{unpack}, oper{oper},
+    values{std::move(values)} {}
 
 FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     StmtUP& body) :
@@ -96,9 +98,10 @@ MutExpr::MutExpr(bool mut, ExprUP value) :
     Expr{E_MUT_EXPR},
     mut{mut}, value{std::move(value)} {}
 
-AssignExpr::AssignExpr(ExprVec& targets, const Token& oper, ExprVec& values) :
+AssignExpr::AssignExpr(ExprVec& targets, UnpackState unpack,
+    const Token& oper, ExprVec& values) :
     Expr{E_ASSIGN_EXPR},
-    targets{std::move(targets)}, oper{oper}, values{std::move(values)} {}
+    targets{std::move(targets)}, unpack{unpack}, oper{oper}, values{std::move(values)} {}
 
 LogicExpr::LogicExpr(ExprUP& left, TokenType oper, ExprUP right) :
     Expr{E_LOGIC_EXPR},

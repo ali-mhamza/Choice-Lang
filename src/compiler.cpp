@@ -99,6 +99,12 @@ void Compiler::emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
     }
 }
 
+void Compiler::emitUnpackState(const AST::UnpackState& unpack)
+{
+    code.addByte(static_cast<u8>(unpack.unpackLastVar));
+    code.addByte(static_cast<u8>(unpack.unpackIgnore));
+}
+
 // We pass an std::string instead of std::string_view
 // since the line containing the variable's text will
 // likely be destroyed soon after (if using the REPL),
@@ -422,7 +428,7 @@ DEF(VarDecl)
     {
         if (nameCount > valueCount)
             REPORT_ERROR(UNPACK_TOO_FEW, node->oper);
-        else if (nameCount < valueCount)
+        else if (!node->unpack && (nameCount < valueCount))
             REPORT_ERROR(UNPACK_TOO_MANY, node->oper);
     }
 
@@ -444,7 +450,10 @@ DEF(VarDecl)
     }
 
     if ((nameCount > 1) && (valueCount == 1))
+    {
         code.addOp(OP_UNPACK, valueStart, nameCount);
+        emitUnpackState(node->unpack);
+    }
 
     for (u64 i{0}; i < nameCount; i++)
     {
@@ -676,7 +685,11 @@ void Compiler::forLoopHelper(
     }
 
     u8 varCount{static_cast<u8>(node->header.vars.size())};
-    if (varCount > 1) code.addOp(OP_UNPACK, varReg, varCount);
+    if (varCount > 1)
+    {
+        code.addOp(OP_UNPACK, varReg, varCount);
+        emitUnpackState(node->header.unpack);
+    }
     if (node->header.fix) code.addOp(OP_FIX, varReg, varCount);
     compileStmt(node->body);
 
@@ -1081,7 +1094,7 @@ DEF(AssignExpr)
     {
         if (node->targets.size() > node->values.size())
             REPORT_ERROR(UNPACK_TOO_FEW, node->oper);
-        else if (node->targets.size() < node->values.size())
+        else if (!node->unpack && (node->targets.size() < node->values.size()))
             REPORT_ERROR(UNPACK_TOO_MANY, node->oper);
     }
 
@@ -1089,7 +1102,10 @@ DEF(AssignExpr)
     for (const auto& value : node->values)
         compileExpr(value);
     if ((node->targets.size() > 1) && (node->values.size() == 1))
+    {
         code.addOp(OP_UNPACK, valueStart, static_cast<u8>(node->targets.size()));
+        emitUnpackState(node->unpack);
+    }
 
     for (u64 i{0}; i < node->targets.size(); i++)
     {

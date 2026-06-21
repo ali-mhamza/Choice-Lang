@@ -89,6 +89,10 @@ class Compiler
         // Emit an appropriate get or set instruction.
         void emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src);
 
+        // Emit the unpacking flags for a multi-variable declaration
+        // or assignment.
+        void emitUnpackState(const AST::UnpackState& unpack);
+
         // Define a variable with a register location and mutability
         // state.
         void defVar(const std::string& name, u8 reg, bool access);

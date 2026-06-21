@@ -34,10 +34,25 @@ namespace AST
         );
     };
 
+    struct UnpackState
+    {
+        // Only one can be true.
+
+        // Whether or not to unpack extra values into
+        // the last variable.
+        bool unpackLastVar{};
+        // Whether or not to ignore any remaining
+        // values that were not unpacked.
+        bool unpackIgnore{};
+
+        operator bool() const { return unpackLastVar || unpackIgnore; }
+    };
+
     struct LoopHeader
     {
         const bool fix{};
         const vT vars{};
+        const UnpackState unpack{};
         ExprUP iter{};
         ExprUP where{};
 
@@ -45,6 +60,7 @@ namespace AST
         LoopHeader(
             bool fix,
             const vT& vars,
+            UnpackState unpack,
             ExprUP& iter,
             ExprUP& where
         );
@@ -85,12 +101,14 @@ namespace AST
         {
             const bool fix{};
             const vT names{};
+            UnpackState unpack{};
             const Token oper{};
             const ExprVec values{};
 
             VarDecl(
                 bool fix,
                 const vT& names,
+                UnpackState unpack,
                 const Token& oper,
                 ExprVec& values
             );
@@ -296,11 +314,13 @@ namespace AST
         struct AssignExpr : public Expr
         {
             const ExprVec targets{};
+            UnpackState unpack{};
             const Token oper{};
             const ExprVec values{};
 
             AssignExpr(
                 ExprVec& targets,
+                UnpackState unpack,
                 const Token& oper,
                 ExprVec& values
             );

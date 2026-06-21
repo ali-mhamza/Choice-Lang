@@ -626,15 +626,39 @@ void VM::unpackObject(u8 reg, u8 count)
         throw RuntimeError(UNPACK_NON_COLLECTION,
             CH_STR("cannot unpack ({})", obj.printType()));
     }
-    else if (obj.collectionSize() < count)
+    if (IS_TABLE(obj)) throw RuntimeError(UNPACK_TABLE);
+
+    u64 collectionSize{obj.collectionSize()};
+    bool unpackLastVar{static_cast<bool>(readByte())};
+    bool unpackIgnore{static_cast<bool>(readByte())};
+
+    // Count here includes the possible "catch-all" variable
+    // at the end.
+    // This is to ensure that it receives at least one value
+    // from the RHS.
+    if (collectionSize < count)
         throw RuntimeError(UNPACK_TOO_FEW);
-    else if (obj.collectionSize() > count)
+    else if (!unpackLastVar && !unpackIgnore && (collectionSize > count))
         throw RuntimeError(UNPACK_TOO_MANY);
 
     ObjIter* iter{obj.makeIter()}; // Guaranteed not to fail.
+    if (unpackLastVar) count--; // So we don't unpack any values into it.
+
     (void) iter->start(registers[reg]);
     for (u8 i{1}; i < count; i++)
         (void) iter->next(registers[reg + i]);
+
+    if (unpackLastVar) // We do nothing if unpackIgnore == true.
+    {
+        List* list{CH_ALLOC(List, collectionSize - count)};
+        Object temp{};
+        for (u64 i{0}; i < collectionSize - count; i++)
+        {
+            (void) iter->next(temp);
+            list->array.push(temp);
+        }
+        registers[reg + count] = list;
+    }
 }
 
 #if WATCH_REG

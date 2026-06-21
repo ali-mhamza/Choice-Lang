@@ -18,13 +18,6 @@ class ByteCode
         FileID id{};
         DebugMetadata metadata{};
 
-        void addByte(u8 byte);
-        template<typename... Bytes>
-        void addBytes(Bytes... bytes);
-        // Using big endian.
-        void addShort(u16 bytes);
-        void addLong(u32 bytes);
-
         // Return the size of the constant pool once serialized.
         [[nodiscard]] u64 countPool() const;
         void sortMetadata();
@@ -37,6 +30,13 @@ class ByteCode
         void addOp(Opcode op);
         template<typename... Bytes>
         void addOp(Opcode op, Bytes... opers);
+
+        void addByte(u8 byte);
+        template<typename... Bytes>
+        void addBytes(Bytes... bytes);
+        // Using big endian.
+        void addShort(u16 bytes);
+        void addLong(u32 bytes);
 
         FileID getID() const { return id; }
         const DebugRange& getErrorRange(const u8* ip) const;
