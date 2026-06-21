@@ -62,6 +62,8 @@ Object Constructors::Int(iter it, u8 args)
     {
         if (IS_INT(*it))
             return Object{AS_INT(*it)};
+        else if (IS_DEC(*it))
+            return Object{static_cast<i64>(AS_DEC(*it))};
         else if (IS_STRING(*it))
         {
             const std::string& str{AS_STRING(*it)->str};
@@ -73,6 +75,8 @@ Object Constructors::Int(iter it, u8 args)
                 throw RuntimeError(NUMERIC_LIT_PARSE_FAIL);
             return Object{value};
         }
+        else
+            throw RuntimeError(WRONG_ARG_TYPE, "argument must be a number or a string");
     }
 
     if (args == 2)
@@ -110,6 +114,8 @@ Object Constructors::Dec(iter it, u8 args)
     {
         if (IS_DEC(*it))
             return Object{AS_DEC(*it)};
+        else if (IS_INT(*it))
+            return Object{static_cast<double>(AS_INT(*it))};
         else if (IS_STRING(*it))
         {
             const std::string& str{AS_STRING(*it)->str};
@@ -121,6 +127,8 @@ Object Constructors::Dec(iter it, u8 args)
                 throw RuntimeError(NUMERIC_LIT_PARSE_FAIL);
             return Object{value};
         }
+        else
+            throw RuntimeError(WRONG_ARG_TYPE, "argument must be a number or a string");
     }
 
     throw RuntimeError(ARITY_MISMATCH,
