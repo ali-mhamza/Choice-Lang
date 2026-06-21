@@ -130,7 +130,6 @@ enum TokenType : u8
 
 	TOK_TYPE,			// type
 	TOK_DOT,			// .
-	TOK_UNDER_UNDER,	// __
 	TOK_RARROW,			// ->
 
 	TOK_EOF,
