@@ -21,12 +21,12 @@
 template<typename Key>
 struct Hasher
 {
-    Hash operator()(const Key& key)
+    Hash operator()(const Key& key) const
     {
         return hashKey(key);
     }
 
-    Hash operator()(const Key& key, size_t size)
+    Hash operator()(const Key& key, size_t size) const
     {
         return hashKey(key, size);
     }
