@@ -1091,11 +1091,11 @@ void VM::executeOp(Opcode op)
             // Name must be a string (emitted that way by the compiler).
 
             u8 instanceReg{readByte()};
-            u8 nameReg{readByte()};
+            u8 fieldReg{readByte()};
             u8 valueReg{readByte()};
 
             Instance* obj{AS_INSTANCE(registers[instanceReg])};
-            const std::string& name{AS_STRING(registers[nameReg])->str};
+            const std::string& name{AS_STRING(registers[fieldReg])->str};
             obj->initField(name, registers[valueReg]);
             DISPATCH();
         }
