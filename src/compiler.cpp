@@ -1470,7 +1470,7 @@ DEF(InstanceExpr)
 
     for (const auto& field : node->fields)
     {
-        Object name{CH_ALLOC(String, std::string{field.name.text})};
+        Object name{CH_ALLOC(String, field.name.text)};
         u8 nameReg{nextReg};
         code.loadRegConst(name, nameReg);
         reserveReg();
