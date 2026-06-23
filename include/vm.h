@@ -122,6 +122,11 @@ class VM
         void startIter();
         void updateIter();
 
+        // Initializes any remaining uninitialized fields in an instance
+        // object.
+        // `start`: First available register after instance object.
+        void finishFields(Instance& instance, u8 start);
+
         void unpackObject(u8 reg, u8 count);
 
         #if WATCH_REG

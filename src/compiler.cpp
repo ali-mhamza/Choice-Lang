@@ -607,12 +607,28 @@ DEF(FuncDecl)
 DEF(TypeDecl)
 {
     std::string name{node->name.text};
-    vT fields{};
+    std::vector<Type::FieldPair> fields{};
+    ByteCode* fieldInits{new ByteCode[node->fields.size()]};
+    ByteCode* temp{fieldInits};
 
     for (const auto& field : node->fields)
-        fields.push_back(field.name);
+    {
+        fields.emplace_back(std::string{field.name.text}, field.fix);
+        if (field.init != nullptr)
+        {
+            Compiler initCompiler{this};
+            initCompiler.compileExpr(field.init);
+            *temp = initCompiler.getCode();
+            initCompiler.code.clear();
+        }
+        else
+            temp->loadReg(0, OP_NULL);
 
-    Object type{CH_ALLOC(Type, name, fields)};
+        temp->addOp(OP_HALT);
+        temp++;
+    }
+
+    Object type{CH_ALLOC(Type, name, fields, fieldInits)};
     code.loadRegConst(type, nextReg);
     defVar(name, nextReg, accessVar);
     reserveReg();
@@ -1554,8 +1570,8 @@ DEF(TableExpr)
 
 DEF(InstanceExpr)
 {
-    u8 typeReg{compileExpr(node->typeName)};
-    code.addOp(OP_INSTANCE, typeReg);
+    u8 objReg{compileExpr(node->typeName)};
+    code.addOp(OP_INSTANCE, objReg);
 
     for (const auto& field : node->fields)
     {
@@ -1565,10 +1581,11 @@ DEF(InstanceExpr)
         reserveReg();
 
         u8 initReg{compileExpr(field.init)};
-        code.addOp(OP_INIT_FIELD, typeReg, nameReg, initReg);
+        code.addOp(OP_INIT_FIELD, objReg, nameReg, initReg);
     }
 
-    nextReg = typeReg + 1; // Reserve a register for the instance object.
+    code.addOp(OP_FINISH_FIELDS, objReg);
+    nextReg = objReg + 1; // Reserve a register for the instance object.
 }
 
 template<typename NodeT, typename Lambda>

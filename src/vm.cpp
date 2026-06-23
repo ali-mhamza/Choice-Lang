@@ -570,8 +570,12 @@ void VM::callClass(const Object& callee, u8 start, u8 argCount)
     Instance* instance{CH_ALLOC(Instance, type)};
     // Does nothing if argCount == 0.
     for (u8 i{0}; i < argCount; i++)
-        instance->fields[type->fields[i]] = registers[start + i];
+    {
+        const std::string& field{type->fields[i].first};
+        instance->initField(field, registers[start + i]);
+    }
 
+    finishFields(*instance, start);
     registers[start - 1] = instance;
 }
 
@@ -635,6 +639,41 @@ void VM::updateIter()
         #if WATCH_EXEC
             this->dis->ip -= jump;
         #endif
+    }
+}
+
+void VM::finishFields(Instance& instance, u8 start)
+{
+    const ByteCode* code{this->currentCode};
+    const u8* ip{this->ip};
+    Object* const registers{this->registers};
+    const Object* pool{this->pool};
+    #if WATCH_EXEC
+        Disassembler* const dis{this->dis};
+    #endif
+
+    auto reset = [=] {
+        this->currentCode = code;
+        this->ip = ip;
+        this->registers = registers;
+        this->pool = pool;
+        #if WATCH_EXEC
+            this->dis = dis;
+        #endif
+    };
+
+    const Type* type{instance.type};
+    for (auto& [field, value] : instance.fields)
+    {
+        if (value.type() == OBJ_INVALID)
+        {
+            u8 codePos{*(type->fieldTable.get(field))};
+            const ByteCode& chunk{type->fieldCode[codePos]};
+            this->registers += start;
+            executeChunk(chunk);
+            instance.initField(field, this->registers[0]);
+            reset();
+        }
     }
 }
 
@@ -1082,6 +1121,13 @@ void VM::executeOp(Opcode op)
             Type* type{AS_USER_TYPE(registers[typeReg])};
             // Replace the class.
             registers[typeReg] = CH_ALLOC(Instance, type);
+            DISPATCH();
+        }
+        CASE(OP_FINISH_FIELDS):
+        {
+            u8 instanceReg{readByte()};
+            Instance* instance{AS_INSTANCE(registers[instanceReg])};
+            finishFields(*instance, instanceReg + 1);
             DISPATCH();
         }
         CASE(OP_INIT_FIELD):

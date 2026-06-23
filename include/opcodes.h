@@ -99,6 +99,7 @@ enum Opcode : u8 // Each opcode is a single byte.
 	/* User Types. */
 
 	OP_INSTANCE,        // Create a new instance of a given type.
+	OP_FINISH_FIELDS,   // Finish initializing all fields for an instance.
 	OP_INIT_FIELD,      // Initialize a field with a value. Does not check for mutability.
 	OP_GET_FIELD,       // Retrieve an instance field.
 	OP_SET_FIELD,       // Assign to an instance field.

@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <variant>
 
 using Natives::FuncType;
@@ -371,11 +372,22 @@ struct HeapObj
 
 struct Type : public HeapObj
 {
+    using FieldPair = std::pair<std::string, bool>;
+
     const char* name{};
-    std::vector<std::string> fields{};
+    std::vector<FieldPair> fields{};
+    // Field default initializers. Each field has one.
+    const ByteCode* fieldCode{nullptr};
+    // Field-position table.
+    // Position in 'fields' and 'fieldCode' arrays.
+    HashTable<std::string, u8> fieldTable{};
     HashTable<std::string, Object> methods{};
 
-    Type(const std::string& name, vT& fields) noexcept;
+    Type(
+        const std::string& name,
+        std::vector<FieldPair>& fields,
+        const ByteCode* inits
+    ) noexcept;
     Type(const std::string& name, std::vector<std::string>& fields) noexcept;
     ~Type() noexcept;
 
@@ -391,9 +403,10 @@ struct Instance : public HeapObj
     Instance(const Type* type) noexcept;
     bool operator==(const Instance& other) const;
 
-    // For internal use.
+    // For internal use only.
     [[nodiscard]] Object* findField(const std::string& name);
     [[nodiscard]] const Object* findField(const std::string& name) const;
+
     [[nodiscard]] Object getField(const std::string& name) const;
     void setField(const std::string& name, const Object& value);
     // Will not perform immutability checks on the field.

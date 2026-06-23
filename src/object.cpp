@@ -412,22 +412,34 @@ ObjIter* Object::makeIter()
     return ret;
 }
 
-Type::Type(const std::string& name, vT& fields) noexcept:
-    name{choiceStrdup(name.c_str())}
+Type::Type(
+    const std::string& name,
+    std::vector<FieldPair>& fields,
+    const ByteCode* inits
+) noexcept:
+    name{choiceStrdup(name.c_str())}, fieldCode{inits}
 {
+    u8 count{0};
     for (const auto& field : fields)
-        this->fields.emplace_back(field.text);
+    {
+        this->fields.emplace_back(field.first, field.second);
+        this->fieldTable.add(field.first, count++);
+    }
 }
 
 Type::Type(
     const std::string& name,
     std::vector<std::string>& fields
 ) noexcept:
-    name{choiceStrdup(name.c_str())}, fields{std::move(fields)} {}
+    name{choiceStrdup(name.c_str())}
+{
+    (void) fields; // For now.
+}
 
 Type::~Type() noexcept
 {
     delete[] name;
+    delete[] fieldCode;
 }
 
 void Type::emit(std::ofstream& os) const
@@ -441,7 +453,7 @@ void Type::emit(std::ofstream& os) const
     emitName(name);
     os.put(static_cast<char>(fields.size()));
     for (const auto& field : fields)
-        emitName(field);
+        emitName(field.first);
 }
 
 u64 Type::byteSize() const
@@ -455,7 +467,7 @@ u64 Type::byteSize() const
 
     countName(name);
     for (const auto& field : fields)
-        countName(field);
+        countName(field.first);
     return size;
 }
 
@@ -463,7 +475,7 @@ Instance::Instance(const Type* type) noexcept:
     type{type}
 {
     for (const auto& field : type->fields)
-        this->fields.add(field, Object{OBJ_NULL});
+        this->fields.add(field.first, Object{OBJ_INVALID});
 }
 
 bool Instance::operator==(const Instance& other) const
@@ -505,7 +517,12 @@ Object Instance::getField(const std::string& name) const
 void Instance::setField(const std::string& name, const Object& value)
 {
     Object* location{findField(name)};
-    // Check mutability here.
+    if (IS_FIXED(*location))
+    {
+        // Field is fixed, but the flag is placed on the value
+        // itself.
+        throw RuntimeError(MOD_FIXED_VARIABLE);
+    }
     *location = value;
 }
 
@@ -513,6 +530,17 @@ void Instance::initField(const std::string& name, const Object& value)
 {
     Object* location{findField(name)};
     *location = value;
+
+    // Field must exist if we have reached this point.
+    u8 position{*(type->fieldTable.get(name))};
+    bool fix{type->fields[position].second};
+
+    if (fix)
+    {
+        MAKE_FIXED(*location);
+        if (!IS_MUT(*location))
+            MAKE_IMMUT(*location);
+    }
 }
 
 Hash Instance::hash() const
@@ -530,8 +558,8 @@ std::string Instance::printVal() const
     ret += " {\n";
     for (const auto& field : type->fields)
     {
-        const Object& value{*(fields.get(field))};
-        ret += "  " + field + ": " + value.printVal() + ",\n";
+        const Object& value{*(fields.get(field.first))};
+        ret += "  " + field.first + ": " + value.printVal() + ",\n";
     }
 
     ret.pop_back(); ret.pop_back();
