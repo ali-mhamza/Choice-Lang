@@ -930,8 +930,7 @@ void BinaryInspector::inspectDetailFuncComponents(u8& arityMin, u8& arityMax)
 	arityMax = readValue<u8>();
 	bool variadic{readValue<bool>()};
 	PRINT_ENTRY_RANGE();
-	if (variadic) arityMax = CODE_MAX;
-	CH_PRINT("Arity: min={}, max={}\n", arityMin, arityMax);
+	CH_PRINT("Arity: min={}, max={}\n", arityMin, (variadic ? CODE_MAX : arityMax));
 
 	start = getCurrentPosition();
 	u64 codeSize{readValue<u64>()};
