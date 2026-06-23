@@ -395,6 +395,17 @@ void Object::emit(std::ofstream& os) const
     }
 }
 
+void Object::emitMetadata(std::ofstream& os) const
+{
+    switch (type())
+    {
+        case OBJ_USER_TYPE: AS_USER_TYPE(*this)->emitMetadata(os);  break;
+        case OBJ_USER_FUNC:
+        case OBJ_LAMBDA:    AS_USER_FUNC(*this)->emitMetadata(os);  break;
+        default: break;
+    }
+}
+
 ObjIter* Object::makeIter()
 {
     if (!IS_ITERABLE(*this)) return nullptr;
@@ -454,6 +465,11 @@ void Type::emit(std::ofstream& os) const
     os.put(static_cast<char>(fields.size()));
     for (const auto& field : fields)
         emitName(field.first);
+}
+
+void Type::emitMetadata(std::ofstream& os) const
+{
+    (void) os; // For now.
 }
 
 u64 Type::byteSize() const
@@ -612,6 +628,14 @@ void Function::emit(std::ofstream& os) const
         if (debugInfoState == DEBUG_COMBINED)
             defaultArgs[i].encodeMetadata(os);
     }
+}
+
+void Function::emitMetadata(std::ofstream& os) const
+{
+    code.encodeMetadata(os);
+    u8 defaultCount{static_cast<u8>(arityMax - arityMin)};
+    for (u8 i{0}; i < defaultCount; i++)
+        defaultArgs[i].encodeMetadata(os);
 }
 
 u64 Function::byteSize() const

@@ -151,7 +151,10 @@ class Object
         [[nodiscard]] Hash hash() const;
         [[nodiscard]] std::string printVal() const;
         [[nodiscard]] std::string_view printType() const;
+
         void emit(std::ofstream& os) const;
+        // For objects with bytecode components.
+        void emitMetadata(std::ofstream& os) const;
 
         [[nodiscard]] ObjIter* makeIter();
 };
@@ -392,6 +395,8 @@ struct Type : public HeapObj
     ~Type() noexcept;
 
     void emit(std::ofstream& os) const;
+    // Emits only metadata components.
+    void emitMetadata(std::ofstream& os) const;
     [[nodiscard]] u64 byteSize() const;
 };
 
@@ -438,6 +443,8 @@ struct Function : public HeapObj
     ~Function() noexcept;
 
     void emit(std::ofstream& os) const;
+    // Emits only metadata components.
+    void emitMetadata(std::ofstream& os) const;
     u64 byteSize() const;
 };
 

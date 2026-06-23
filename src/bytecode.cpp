@@ -269,19 +269,12 @@ void ByteCode::encodeData(std::ofstream& os) const
 
 void ByteCode::encodeMetadata(std::ofstream& os) const
 {
-	// When debug metadata is combined with the bytecode,
-	// each function's metadata directly follows its bytecode
-	// data, so they aren't composed like this.
+    // Debug metadata is all stored together, back-to-back,
+    // and matched up later when the bytecode is recomposed.
 	if (debugInfoState == DEBUG_SEPARATE)
 	{
-		// Function objects have their metadata encoded first
-		// since their disassembling is completed first when
-		// reading cached bytecode data.
 		for (const Object& obj : pool)
-		{
-			if (IS_USER_FUNC(obj))
-				AS_USER_FUNC(obj)->code.encodeMetadata(os);
-		}
+		    obj.emitMetadata(os);
 	}
 
 	u64 size{metadata.size()};
