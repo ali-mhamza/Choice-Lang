@@ -465,23 +465,7 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
     u8 withDefault{static_cast<u8>(argCount - func->arityMin)};
 
     while (withDefault < funcDefaultArgs)
-    {
-        const ByteCode& chunk{func->defaultArgs[withDefault++]};
-        this->currentCode = &chunk;
-        this->ip = chunk.block.data();
-        this->pool = chunk.pool.data();
-
-        #if WATCH_EXEC
-            const Function* temp{CH_ALLOC(Function, chunk)};
-            this->dis = new Disassembler{temp};
-        #endif
-
-        executeCode();
-
-        #if WATCH_EXEC
-            CH_DEALLOC(temp);
-        #endif
-    }
+        executeChunk(func->defaultArgs[withDefault++]);
 
     this->currentCode = code;
     this->ip = ip;
@@ -1318,6 +1302,24 @@ void VM::executeOp(Opcode op)
     #undef DISPATCH_OP
     #undef DEBUG_OP
     #undef PRINT_REGS
+}
+
+void VM::executeChunk(const ByteCode& chunk)
+{
+    this->currentCode = &chunk;
+    this->ip = chunk.block.data();
+    this->pool = chunk.pool.data();
+
+    #if WATCH_EXEC
+        const Function* temp{CH_ALLOC(Function, chunk)};
+        this->dis = new Disassembler{temp};
+    #endif
+
+    executeCode();
+
+    #if WATCH_EXEC
+        CH_DEALLOC(temp);
+    #endif
 }
 
 void VM::executeCode()

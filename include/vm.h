@@ -1,4 +1,5 @@
 #pragma once
+#include "bytecode.h"
 #include "common.h"
 #include "config.h"
 #include "object.h"
@@ -131,7 +132,9 @@ class VM
         void reportShortError(const RuntimeError& error);
         void reportError(const RuntimeError& error);
         void reportWarning(DiagCode code, const std::string& label = "");
+
         void executeOp(Opcode op);
+        void executeChunk(const ByteCode& chunk);
         void executeCode();
 
     public:
