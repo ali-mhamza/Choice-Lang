@@ -3,7 +3,6 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/token.h"
-#include <iterator>
 #include <memory>
 #include <string_view>
 #include <utility>
