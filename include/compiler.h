@@ -269,6 +269,18 @@ class Compiler
             u8 valueReg
         );
 
+        void assignToField(
+            const AST::Expression::AssignExpr* node,
+            const ExprUP& target,
+            u8 valueReg
+        );
+        void compoundAssignToField(
+            const AST::Expression::AssignExpr* node,
+            u8 objReg,
+            u8 fieldReg,
+            u8 valueReg
+        );
+
         DECL_EXPR(MutExpr);
         DECL_EXPR(AssignExpr);
         DECL_EXPR(LogicExpr);
@@ -282,9 +294,13 @@ class Compiler
         void _crementElement(
             const AST::Expression::UnaryExpr* node
         );
+        void _crementField(
+            const AST::Expression::UnaryExpr* node
+        );
         DECL_EXPR(UnaryExpr);
         DECL_EXPR(IndexExpr);
         DECL_EXPR(CallExpr);
+        DECL_EXPR(FieldExpr);
         DECL_EXPR(IfExpr);
         DECL_EXPR(LambdaExpr);
         DECL_EXPR(ListExpr);

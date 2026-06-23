@@ -32,8 +32,11 @@ using namespace AST::Expression;
 #define CONSUME_RETURN_TYPE()                   \
     if (consumeTok(TOK_RARROW)) consumeType();
 
-#define CAN_ASSIGN(node) \
-    (((node)->type == E_VAR_EXPR) || ((node)->type == E_INDEX_EXPR))
+#define CAN_ASSIGN(node)                                            \
+    (((node)->type == E_VAR_EXPR) || ((node)->type == E_INDEX_EXPR) \
+        || ((node)->type == E_FIELD_EXPR))
+
+#define FIELD_OPER_TOK TOK_DOT
 
 #define CHECK_DEPTH(tok)            \
     DepthCounter counter_{id, tok}; \
@@ -1144,6 +1147,12 @@ ExprUP Parser::post()
             Token oper{previousTok};
             expr = std::make_unique<UnaryExpr>(oper, std::move(expr), true);
         }
+        else if (consumeTok(FIELD_OPER_TOK))
+        {
+            CHECK_DEPTH(previousTok);
+            MATCH_TOK(TOK_IDENTIFIER, "expect field name");
+            expr = std::make_unique<FieldExpr>(expr, previousTok);
+        }
         else
             return expr;
 
@@ -1449,4 +1458,5 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
 #undef CONSUME_VAR_TYPE
 #undef CONSUME_RETURN_TYPE
 #undef CAN_ASSIGN
+#undef FIELD_OPER_TOK
 #undef CHECK_DEPTH

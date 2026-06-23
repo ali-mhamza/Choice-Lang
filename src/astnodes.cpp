@@ -138,6 +138,10 @@ CallExpr::CallExpr(ExprUP& callee, ExprVec& args, bool builtin) :
     Expr{E_CALL_EXPR},
     callee{std::move(callee)}, args{std::move(args)}, builtin{builtin} {}
 
+FieldExpr::FieldExpr(ExprUP& obj, const Token& field) :
+    Expr{E_FIELD_EXPR},
+    obj{std::move(obj)}, field{field} {}
+
 IfExpr::IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr) :
     Expr{E_IF_EXPR},
     condition{std::move(condition)}, trueExpr{std::move(trueExpr)},

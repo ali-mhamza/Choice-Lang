@@ -1099,6 +1099,37 @@ void VM::executeOp(Opcode op)
             obj->initField(name, registers[valueReg]);
             DISPATCH();
         }
+        CASE(OP_GET_FIELD):
+        {
+            u8 destReg{readByte()};
+            u8 instanceReg{readByte()};
+            u8 fieldReg{readByte()};
+
+            // For now; built-in types may also have fields/methods later.
+            if (!IS_INSTANCE(registers[instanceReg]))
+                throw RuntimeError(FIELD_NO_INSTANCE);
+
+            Instance* obj{AS_INSTANCE(registers[instanceReg])};
+            const std::string& field{AS_STRING(registers[fieldReg])->str};
+            // Replace the instance.
+            registers[destReg] = obj->getField(field);
+            DISPATCH();
+        }
+        CASE(OP_SET_FIELD):
+        {
+            u8 instanceReg{readByte()};
+            u8 fieldReg{readByte()};
+            u8 valueReg{readByte()};
+
+            // For now; built-in types may also have fields/methods later.
+            if (!IS_INSTANCE(registers[instanceReg]))
+                throw RuntimeError(FIELD_NO_INSTANCE);
+
+            Instance* obj{AS_INSTANCE(registers[instanceReg])};
+            const std::string& field{AS_STRING(registers[fieldReg])->str};
+            obj->setField(field, registers[valueReg]);
+            DISPATCH();
+        }
 
         // For-loops.
 

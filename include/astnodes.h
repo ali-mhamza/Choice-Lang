@@ -287,6 +287,7 @@ namespace AST
             E_UNARY_EXPR,
             E_INDEX_EXPR,
             E_CALL_EXPR,
+            E_FIELD_EXPR,
             E_IF_EXPR,
             E_LAMBDA_EXPR,
             E_LIST_EXPR,
@@ -440,6 +441,17 @@ namespace AST
                 ExprUP& callee,
                 ExprVec& args,
                 bool builtin
+            );
+        };
+
+        struct FieldExpr : public Expr
+        {
+            const ExprUP obj{};
+            const Token field{};
+
+            FieldExpr(
+                ExprUP& obj,
+                const Token& field
             );
         };
 

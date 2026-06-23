@@ -178,6 +178,9 @@ enum DiagCode : u8
     UNPACK_TABLE,
     // Attempting to create an instance for a non-type object.
     INSTANCE_NOT_TYPE,
+    // Attempting to retrieve a field on an object that isn't
+    // an instance.
+    FIELD_NO_INSTANCE,
 
 
     /* Value errors. */

@@ -16,7 +16,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    UNPACK_TOO_MANY, FIELD_NOT_DEFINED, INSTANCE_NOT_TYPE,
+    UNPACK_TOO_MANY, FIELD_NOT_DEFINED, FIELD_NO_INSTANCE,
     INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
     MUT_TO_IMMUT
@@ -70,6 +70,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Operand does not match member type of iterable object.",
     "Wrong argument type or value.", "Cannot unpack non-collection object.",
     "Cannot unpack a table.", "Object is not an instantiable type.",
+    "Only type instances have fields.",
 
     // Value errors.
 

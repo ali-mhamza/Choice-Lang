@@ -472,7 +472,7 @@ bool Instance::operator==(const Instance& other) const
     return (this->type == other.type);
 }
 
-void Instance::initField(const std::string& name, const Object& value)
+Object* Instance::findField(const std::string& name)
 {
     Object* location{fields.get(name)};
     if (location == nullptr)
@@ -481,6 +481,37 @@ void Instance::initField(const std::string& name, const Object& value)
             CH_STR("type '{}' has no field '{}'", type->name, name));
     }
 
+   return location;
+}
+
+const Object* Instance::findField(const std::string& name) const
+{
+    const Object* location{fields.get(name)};
+    if (location == nullptr)
+    {
+        throw RuntimeError(FIELD_NOT_DEFINED,
+            CH_STR("type '{}' has no field '{}'", type->name, name));
+    }
+
+   return location;
+}
+
+Object Instance::getField(const std::string& name) const
+{
+    const Object* location{findField(name)};
+    return *location;
+}
+
+void Instance::setField(const std::string& name, const Object& value)
+{
+    Object* location{findField(name)};
+    // Check mutability here.
+    *location = value;
+}
+
+void Instance::initField(const std::string& name, const Object& value)
+{
+    Object* location{findField(name)};
     *location = value;
 }
 

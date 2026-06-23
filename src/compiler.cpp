@@ -1068,6 +1068,52 @@ void Compiler::compoundAssignToElement(
     nextReg -= 3; // Free all registers besides value register.
 }
 
+void Compiler::assignToField(
+    const AssignExpr* node,
+    const ExprUP& target,
+    u8 valueReg
+)
+{
+    FieldExpr* expr{static_cast<FieldExpr*>(target.get())};
+    u8 objReg{compileExpr(expr->obj)};
+
+    Object field{CH_ALLOC(String, expr->field.text)};
+    u8 fieldReg{nextReg};
+    code.loadRegConst(field, fieldReg);
+    reserveReg();
+
+    if (node->oper.type != TOK_EQUAL)
+    {
+        compoundAssignToField(node, objReg, fieldReg, valueReg);
+        return;
+    }
+
+    code.addOp(OP_SET_FIELD, objReg, fieldReg, valueReg);
+    nextReg -= 2; // Free the instance and field registers.
+}
+
+void Compiler::compoundAssignToField(
+    const AssignExpr* node,
+    u8 objReg,
+    u8 fieldReg,
+    u8 valueReg
+)
+{
+    // We use a temporary register to not replace the instance
+    // object in objReg.
+    u8 tempReg{nextReg};
+    code.addOp(OP_GET_FIELD, tempReg, objReg, fieldReg);
+    reserveReg();
+
+    Opcode op{getCompoundAssignOpcode(node)};
+    code.addOp(op, tempReg, valueReg);
+    code.addOp(OP_SET_INDEX, objReg, fieldReg, tempReg);
+    // Final result should be in the first register reserved,
+    // i.e., value register.
+    code.addOp(OP_MOVE_R, valueReg, tempReg);
+    nextReg -= 3; // Free all registers besides value register.
+}
+
 DEF(MutExpr)
 {
     if (node->value->type == E_MUT_EXPR)
@@ -1129,6 +1175,7 @@ DEF(AssignExpr)
         {
             case E_VAR_EXPR:    assignToVar(node, target, valueStart + i);      break;
             case E_INDEX_EXPR:  assignToElement(node, target, valueStart + i);  break;
+            case E_FIELD_EXPR:  assignToField(node, target, valueStart + i);    break;
             default: CH_UNREACHABLE();
         }
     }
@@ -1311,6 +1358,36 @@ void Compiler::_crementElement(
     nextReg -= 2;
 }
 
+void Compiler::_crementField(
+    const UnaryExpr* node
+)
+{
+    FieldExpr* expr{static_cast<FieldExpr*>(node->expr.get())};
+    u8 objReg{compileExpr(expr->obj)};
+
+    Object field{CH_ALLOC(String, expr->field.text)};
+    u8 fieldReg{nextReg};
+    code.loadRegConst(field, fieldReg);
+    reserveReg();
+
+    u8 tempReg{nextReg};
+    code.addOp(OP_GET_FIELD, tempReg, objReg, fieldReg);
+    reserveReg();
+
+    code.addOp(OP_GET_FIELD, nextReg, objReg, fieldReg);
+    code.addOp((node->oper.type == TOK_INCR ?
+        OP_INCR : OP_DECR), nextReg);
+    code.addOp(OP_SET_FIELD, objReg, fieldReg, nextReg);
+
+    if (!node->prev)
+        code.addOp(OP_MOVE_R, tempReg, nextReg);
+
+    // Final result should be in the first register reserved,
+    // i.e., instance register.
+    code.addOp(OP_MOVE_R, objReg, tempReg);
+    nextReg -= 2;
+}
+
 DEF(UnaryExpr)
 {
     if ((node->oper.type == TOK_INCR) || (node->oper.type == TOK_DECR))
@@ -1321,6 +1398,7 @@ DEF(UnaryExpr)
             {
                 case E_VAR_EXPR:    _crementVar(node);      return;
                 case E_INDEX_EXPR:  _crementElement(node);  return;
+                case E_FIELD_EXPR:  _crementField(node);    return;
                 default: CH_UNREACHABLE();
             }
         }
@@ -1387,6 +1465,17 @@ DEF(CallExpr)
     // For built-ins, we place the return value in the empty register
     // reserved above.
     nextReg = argsStart;
+}
+
+DEF(FieldExpr)
+{
+    u8 objReg{compileExpr(node->obj)};
+
+    Object field{CH_ALLOC(String, node->field.text)};
+    u8 fieldReg{nextReg};
+    code.loadRegConst(field, fieldReg);
+
+    code.addOp(OP_GET_FIELD, objReg, objReg, fieldReg);
 }
 
 DEF(IfExpr)
@@ -1717,6 +1806,7 @@ u8 Compiler::compileExpr(const ExprUP& node)
         case E_UNARY_EXPR:      COMPILE(UnaryExpr);         break;
         case E_INDEX_EXPR:      COMPILE(IndexExpr);         break;
         case E_CALL_EXPR:       COMPILE(CallExpr);          break;
+        case E_FIELD_EXPR:      COMPILE(FieldExpr);         break;
         case E_IF_EXPR:         COMPILE(IfExpr);            break;
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
