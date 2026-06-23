@@ -550,6 +550,31 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
     registers[start - 1] = ctor(&registers[start], argCount);
 }
 
+void VM::callClass(const Object& callee, u8 start, u8 argCount)
+{
+    const Type* type{AS_USER_TYPE(callee)};
+    if ((argCount != 0) && (argCount != type->fields.size()))
+    {
+        std::string errorMsg{};
+        auto size{type->fields.size()};
+        if (size == 0)
+            errorMsg = "constructor takes no arguments";
+        else
+        {
+            errorMsg = CH_STR("constructor takes {} argument{}, not {}", size,
+                (size == 1 ? "" : "s"), argCount);
+        }
+        throw RuntimeError(ARITY_MISMATCH, errorMsg);
+    }
+
+    Instance* instance{CH_ALLOC(Instance, type)};
+    // Does nothing if argCount == 0.
+    for (u8 i{0}; i < argCount; i++)
+        instance->fields[type->fields[i]] = registers[start + i];
+
+    registers[start - 1] = instance;
+}
+
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
 {
     if (!IS_CALLABLE(callee))
@@ -569,11 +594,8 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
             callCtor(callee, start, argCount);
             break;
         case OBJ_USER_TYPE:
-        {
-            const Type* type{AS_USER_TYPE(callee)};
-            registers[start - 1] = CH_ALLOC(Instance, type);
+            callClass(callee, start, argCount);
             break;
-        }
         default:
             CH_UNREACHABLE();
     }
@@ -980,6 +1002,8 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        // Types.
+
         CASE(OP_LIST):
         {
             registers[readByte()] = CH_ALLOC(List, DEFAULT_LIST_SIZE);
@@ -1046,6 +1070,37 @@ void VM::executeOp(Opcode op)
             }
             DISPATCH();
         }
+
+        // User types.
+
+        CASE(OP_INSTANCE):
+        {
+            u8 typeReg{readByte()};
+            if (!IS_USER_TYPE(registers[typeReg]))
+                throw RuntimeError(INSTANCE_NOT_TYPE);
+
+            Type* type{AS_USER_TYPE(registers[typeReg])};
+            // Replace the class.
+            registers[typeReg] = CH_ALLOC(Instance, type);
+            DISPATCH();
+        }
+        CASE(OP_INIT_FIELD):
+        {
+            // Do not need to perform type-checking.
+            // If we get to this point, we've built a valid type instance.
+            // Name must be a string (emitted that way by the compiler).
+
+            u8 instanceReg{readByte()};
+            u8 nameReg{readByte()};
+            u8 valueReg{readByte()};
+
+            Instance* obj{AS_INSTANCE(registers[instanceReg])};
+            const std::string& name{AS_STRING(registers[nameReg])->str};
+            obj->initField(name, registers[valueReg]);
+            DISPATCH();
+        }
+
+        // For-loops.
 
         CASE(OP_MAKE_ITER):
         {

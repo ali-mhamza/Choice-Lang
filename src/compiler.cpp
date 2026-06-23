@@ -607,7 +607,12 @@ DEF(FuncDecl)
 DEF(TypeDecl)
 {
     std::string name{node->name.text};
-    Object type{CH_ALLOC(Type, name)};
+    vT fields{};
+
+    for (const auto& field : node->fields)
+        fields.push_back(field.name);
+
+    Object type{CH_ALLOC(Type, name, fields)};
     code.loadRegConst(type, nextReg);
     defVar(name, nextReg, accessVar);
     reserveReg();
@@ -1458,6 +1463,25 @@ DEF(TableExpr)
     if (count > 0) extendTable();
 }
 
+DEF(InstanceExpr)
+{
+    u8 typeReg{compileExpr(node->typeName)};
+    code.addOp(OP_INSTANCE, typeReg);
+
+    for (const auto& field : node->fields)
+    {
+        Object name{CH_ALLOC(String, std::string{field.name.text})};
+        u8 nameReg{nextReg};
+        code.loadRegConst(name, nameReg);
+        reserveReg();
+
+        u8 initReg{compileExpr(field.init)};
+        code.addOp(OP_INIT_FIELD, typeReg, nameReg, initReg);
+    }
+
+    nextReg = typeReg + 1; // Reserve a register for the instance object.
+}
+
 template<typename NodeT, typename Lambda>
 void Compiler::comprehension(
     const NodeT* node,
@@ -1697,6 +1721,7 @@ u8 Compiler::compileExpr(const ExprUP& node)
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
         case E_TABLE_EXPR:      COMPILE(TableExpr);         break;
+        case E_INSTANCE_EXPR:   COMPILE(InstanceExpr);      break;
         case E_LIST_COMP_EXPR:  COMPILE(ListCompExpr);      break;
         case E_TABLE_COMP_EXPR: COMPILE(TableCompExpr);     break;
         case E_REF_EXPR:        COMPILE(ReferenceExpr);     break;

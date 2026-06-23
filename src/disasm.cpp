@@ -231,6 +231,18 @@ void Disassembler::collectionOp(u8 byte)
 		CH_PRINT("R[{}]\n", reg);
 }
 
+void Disassembler::typeOp(u8 byte)
+{
+    printOpcode(opNames[byte]);
+    u8 first{readByte()}, second{readByte()};
+
+    if (static_cast<Opcode>(byte) == OP_INIT_FIELD)
+    {
+        u8 third{readByte()};
+        CH_PRINT("R[{}] R[{}] R[{}]\n", first, second, third);
+    }
+}
+
 void Disassembler::captureOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
@@ -317,8 +329,8 @@ void Disassembler::disassembleOp(u8 byte)
 			break;
 		case OP_CLOSURE:	case OP_NEG:		case OP_NOT:		    case OP_INCR:
 		case OP_DECR:		case OP_COMP:		case OP_RETURN:		    case OP_VOID:
-		case OP_IMMUT:		case OP_MUT:        case OP_ENTER_SCOPE:	case OP_VAR_ARGS:
-		case OP_PRINT_VALID:
+		case OP_IMMUT:		case OP_MUT:        case OP_INSTANCE:       case OP_ENTER_SCOPE:
+		case OP_VAR_ARGS:   case OP_PRINT_VALID:
 			singleOper(byte);
 			break;
 		case OP_LOAD_R:
@@ -327,6 +339,9 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_LIST:		case OP_EXT_LIST:	case OP_TABLE:		case OP_EXT_TABLE:
 			collectionOp(byte);
 			break;
+		case OP_INIT_FIELD:     case OP_GET_FIELD:  case OP_SET_FIELD:
+            typeOp(byte);
+            break;
 		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
 			captureOp(byte);
 			break;

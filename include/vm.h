@@ -116,6 +116,7 @@ class VM
         void callFunc(const Object& callee, u8 start, u8 argCount);
         void callNative(const Object& callee, u8 start, u8 argCount);
         void callCtor(const Object& callee, u8 start, u8 argCount);
+        void callClass(const Object& callee, u8 start, u8 argCount);
         void callObj(const Object& callee, u8 start, u8 argCount);
 
         void startIter();

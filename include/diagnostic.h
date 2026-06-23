@@ -144,6 +144,8 @@ enum DiagCode : u8
     FUNC_ALREADY_DEFINED,
     // Function/lambda parameter name is already in-use.
     PARAM_ALREADY_DEFINED,
+    // No such field for instance type.
+    FIELD_NOT_DEFINED,
 
 
     /* Type errors. */
@@ -174,6 +176,8 @@ enum DiagCode : u8
     UNPACK_NON_COLLECTION,
     // Attempting to unpack a Table object in order.
     UNPACK_TABLE,
+    // Attempting to create an instance for a non-type object.
+    INSTANCE_NOT_TYPE,
 
 
     /* Value errors. */

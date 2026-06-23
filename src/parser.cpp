@@ -417,8 +417,28 @@ StmtUP Parser::typeDecl()
 {
     MATCH_TOK(TOK_IDENTIFIER, "expect type name");
     Token name{previousTok};
-    MATCH_TOK(TOK_SEMICOLON, "expect ';' after type declaration");
-    return std::make_unique<TypeDecl>(name);
+
+    std::vector<TypeDecl::Field> fields{};
+    if (!consumeTok(TOK_SEMICOLON))
+    {
+        MATCH_TOK(TOK_LEFT_BRACE, "expect '{' or ';' after type name");
+        do {
+            bool fix{consumeTok(TOK_FIX)};
+            MATCH_TOK(TOK_IDENTIFIER, "expect field name");
+            Token name{previousTok};
+            CONSUME_VAR_TYPE();
+
+            ExprUP init{nullptr};
+            if (consumeTok(TOK_EQUAL))
+                init = expression();
+            else if (fix)
+                REPORT_SEMANTIC(MISSING_INITIALIZER, currentTok);
+            fields.emplace_back(fix, name, init);
+        } while (consumeTok(TOK_COMMA));
+        MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude type declaration");
+    }
+
+    return std::make_unique<TypeDecl>(name, fields);
 }
 
 StmtUP Parser::statement()
@@ -1260,6 +1280,26 @@ ExprUP Parser::table()
     return std::make_unique<TableExpr>(pairs);
 }
 
+ExprUP Parser::instance()
+{
+    ExprUP typeName{std::make_unique<VarExpr>(previousTok)};
+    nextTok(); // Skip the checked open brace '{'.
+
+    std::vector<InstanceExpr::Field> fields{};
+    if (!checkTok(TOK_RIGHT_BRACE))
+    {
+        do {
+            MATCH_TOK(TOK_IDENTIFIER, "expect field name");
+            Token name{previousTok};
+            MATCH_TOK(TOK_COLON, "expect field initializer");
+            fields.emplace_back(name, expression());
+        } while (consumeTok(TOK_COMMA));
+    }
+
+    MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude instance");
+    return std::make_unique<InstanceExpr>(typeName, fields);
+}
+
 ExprUP Parser::listComprehension()
 {
     // No depth-checking here, since list() takes care of that.
@@ -1336,7 +1376,12 @@ ExprUP Parser::primary()
         expr = std::make_unique<LiteralExpr>(previousTok);
 
     else if (type == TOK_IDENTIFIER)
-        expr = std::make_unique<VarExpr>(previousTok);
+    {
+        if (checkTok(TOK_LEFT_BRACE))
+            expr = instance();
+        else
+            expr = std::make_unique<VarExpr>(previousTok);
+    }
 
     else if (IS_INTER_TOK(type))
         expr = formatString();

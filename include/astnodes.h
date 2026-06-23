@@ -129,10 +129,25 @@ namespace AST
 
         struct TypeDecl : public Stmt
         {
+            struct Field
+            {
+                const bool fix{};
+                const Token name{};
+                ExprUP init{};
+
+                Field(
+                    bool fix,
+                    const Token& name,
+                    ExprUP& init
+                );
+            };
+
             const Token name{};
+            const std::vector<Field> fields{};
 
             TypeDecl(
-                const Token& name
+                const Token& name,
+                std::vector<Field>& fields
             );
         };
 
@@ -276,6 +291,7 @@ namespace AST
             E_LAMBDA_EXPR,
             E_LIST_EXPR,
             E_TABLE_EXPR,
+            E_INSTANCE_EXPR,
             E_LIST_COMP_EXPR,
             E_TABLE_COMP_EXPR,
             E_REF_EXPR,
@@ -467,6 +483,30 @@ namespace AST
             const std::vector<TablePair> pairs{};
 
             TableExpr(std::vector<TablePair>& pairs);
+        };
+
+        struct InstanceExpr : public Expr
+        {
+            struct Field
+            {
+                const Token name{};
+                ExprUP init{};
+
+                Field(
+                    const Token& name,
+                    ExprUP init
+                );
+            };
+
+            // Expression so we can evaluate it easily.
+            // Must still be a variable.
+            const ExprUP typeName{};
+            const std::vector<Field> fields{};
+
+            InstanceExpr(
+                ExprUP& typeName,
+                std::vector<Field>& fields
+            );
         };
 
         // Comp = Comprehension.

@@ -412,8 +412,18 @@ ObjIter* Object::makeIter()
     return ret;
 }
 
-Type::Type(const std::string& name) noexcept:
-    name{choiceStrdup(name.c_str())} {}
+Type::Type(const std::string& name, vT& fields) noexcept:
+    name{choiceStrdup(name.c_str())}
+{
+    for (const auto& field : fields)
+        this->fields.emplace_back(field.text);
+}
+
+Type::Type(
+    const std::string& name,
+    std::vector<std::string>& fields
+) noexcept:
+    name{choiceStrdup(name.c_str())}, fields{std::move(fields)} {}
 
 Type::~Type() noexcept
 {
@@ -422,28 +432,56 @@ Type::~Type() noexcept
 
 void Type::emit(std::ofstream& os) const
 {
-    u64 len{strlen(name)};
-    os.put(static_cast<char>(len));
-    os.write(name, static_cast<std::streamsize>(len));
+    auto emitName = [&os](const std::string& name) {
+        u64 len{name.size()};
+        os.put(static_cast<char>(len));
+        os.write(name.data(), static_cast<std::streamsize>(len));
+    };
+
+    emitName(name);
+    os.put(static_cast<char>(fields.size()));
+    for (const auto& field : fields)
+        emitName(field);
 }
 
 u64 Type::byteSize() const
 {
-    u64 size{strlen(name)};
+    // Added type byte (1) and field count byte (1).
+    u64 size{2 * sizeof(u8)};
+    auto countName = [&size](const std::string& name) {
+        // Added name length byte (1).
+        size += sizeof(u8) + name.size();
+    };
 
-    // Added type byte (1) and name length byte (1).
-    size += 2 * sizeof(u8);
-
+    countName(name);
+    for (const auto& field : fields)
+        countName(field);
     return size;
 }
 
 Instance::Instance(const Type* type) noexcept:
-    type{type} {}
+    type{type}
+{
+    for (const auto& field : type->fields)
+        this->fields.add(field, Object{OBJ_NULL});
+}
 
 bool Instance::operator==(const Instance& other) const
 {
     // For now.
     return (this->type == other.type);
+}
+
+void Instance::initField(const std::string& name, const Object& value)
+{
+    Object* location{fields.get(name)};
+    if (location == nullptr)
+    {
+        throw RuntimeError(FIELD_NOT_DEFINED,
+            CH_STR("type '{}' has no field '{}'", type->name, name));
+    }
+
+    *location = value;
 }
 
 Hash Instance::hash() const
@@ -454,9 +492,19 @@ Hash Instance::hash() const
 
 std::string Instance::printVal() const
 {
-    // Empty for now.
+    if (fields.empty())
+        return std::string{type->name} + "{}";
+
     std::string ret{type->name};
-    ret += " {}";
+    ret += " {\n";
+    for (const auto& field : type->fields)
+    {
+        const Object& value{*(fields.get(field))};
+        ret += "  " + field + ": " + value.printVal() + ",\n";
+    }
+
+    ret.pop_back(); ret.pop_back();
+    ret += "\n}";
     return ret;
 }
 

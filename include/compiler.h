@@ -289,6 +289,7 @@ class Compiler
         DECL_EXPR(LambdaExpr);
         DECL_EXPR(ListExpr);
         DECL_EXPR(TableExpr);
+        DECL_EXPR(InstanceExpr);
         template<typename NodeT, typename Lambda>
         void comprehension(
             const NodeT* node,

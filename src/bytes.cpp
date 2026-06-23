@@ -119,7 +119,17 @@ Object CodeReader::reconstructType()
    	name.resize(nameLen);
     readBytes(name.data(), nameLen);
 
-    return Object{CH_ALLOC(Type, name)};
+    u8 fieldCount{readValue<u8>()};
+    std::vector<std::string> fields(fieldCount);
+
+    for (u8 i{0}; i < fieldCount; i++)
+    {
+        nameLen = readValue<u8>();
+        fields[i].resize(nameLen);
+        readBytes(fields[i].data(), nameLen);
+    }
+
+    return Object{CH_ALLOC(Type, name, fields)};
 }
 
 Object CodeReader::reconstructFunc()
@@ -683,14 +693,25 @@ void BinaryInspector::inspectBriefString(u64 start)
 		CH_STR("truncated; length={}", nameLen));
 }
 
+void BinaryInspector::skipTypeFields(u8 fieldCount)
+{
+    for (u8 i{0}; i < fieldCount; i++)
+        it += readValue<u8>();
+}
+
 void BinaryInspector::inspectBriefType(u64 start)
 {
     constexpr u64 maxNameDisplayLength{30 - sizeof("name=''") + 1};
 	CH_PRINT(" ");
+
 	u8 nameLen{readValue<u8>()};
 	std::string name{};
 	name.resize(nameLen);
 	readBytes(name.data(), nameLen);
+
+	u8 fieldCount{readValue<u8>()};
+	for (u8 i{0}; i < fieldCount; i++)
+        it += readValue<u8>();
 
 	printStartEnd(start, getCurrentPosition(), false);
 	CH_PRINT(" {:^10}", "Type");
@@ -859,6 +880,17 @@ void BinaryInspector::inspectDetailType(u64 start)
 		else
 			CH_PRINT("Type name: '{:.25}...'  (truncated)\n", name);
 	}
+
+	start = getCurrentPosition();
+	u8 fieldCount{readValue<u8>()};
+	PRINT_ENTRY_RANGE();
+	CH_PRINT("Field count: {}\n", fieldCount);
+
+	start = getCurrentPosition();
+	for (u8 i{0}; i < fieldCount; i++)
+        it += readValue<u8>();
+	PRINT_ENTRY_RANGE();
+	CH_PRINT("Field names: [...]\n");
 }
 
 void BinaryInspector::inspectDetailFuncName()

@@ -33,9 +33,12 @@ FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     Stmt{S_FUNC_DECL},
     name{name}, params{std::move(params)}, body{std::move(body)} {}
 
-TypeDecl::TypeDecl(const Token& name) :
+TypeDecl::Field::Field(bool fix, const Token& name, ExprUP& init) :
+    fix{fix}, name{name}, init{std::move(init)} {}
+
+TypeDecl::TypeDecl(const Token& name, std::vector<Field>& fields) :
     Stmt{S_TYPE_DECL},
-    name{name} {}
+    name{name}, fields{std::move(fields)} {}
 
 IfStmt::IfStmt(ExprUP& condition, StmtUP& trueBranch, StmtUP& falseBranch) :
     Stmt{S_IF_STMT},
@@ -151,6 +154,13 @@ ListExpr::ListExpr(ExprVec& entries) :
 TableExpr::TableExpr(std::vector<TablePair>& pairs) :
     Expr{E_TABLE_EXPR},
     pairs{std::move(pairs)} {}
+
+InstanceExpr::Field::Field(const Token& name, ExprUP init) :
+    name{name}, init{std::move(init)} {}
+
+InstanceExpr::InstanceExpr(ExprUP& typeName, std::vector<Field>& fields) :
+    Expr{E_INSTANCE_EXPR},
+    typeName{std::move(typeName)}, fields{std::move(fields)} {}
 
 ListCompExpr::ListCompExpr(AST::LoopHeader& header, ExprUP& expr) :
     Expr{E_LIST_COMP_EXPR},

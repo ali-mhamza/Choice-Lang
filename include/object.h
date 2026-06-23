@@ -372,9 +372,11 @@ struct HeapObj
 struct Type : public HeapObj
 {
     const char* name{};
+    std::vector<std::string> fields{};
     HashTable<std::string, Object> methods{};
 
-    Type(const std::string& name) noexcept;
+    Type(const std::string& name, vT& fields) noexcept;
+    Type(const std::string& name, std::vector<std::string>& fields) noexcept;
     ~Type() noexcept;
 
     void emit(std::ofstream& os) const;
@@ -388,6 +390,11 @@ struct Instance : public HeapObj
 
     Instance(const Type* type) noexcept;
     bool operator==(const Instance& other) const;
+
+    [[nodiscard]] Object getField(const std::string& name) const;
+    void setField(const std::string& name, const Object& value);
+    // Will not perform immutability checks on the field.
+    void initField(const std::string& name, const Object& value);
 
     [[nodiscard]] Hash hash() const;
     [[nodiscard]] std::string printVal() const;
