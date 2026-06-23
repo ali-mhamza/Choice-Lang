@@ -416,7 +416,7 @@ void BinaryInspector::printStringWithTruncation(
 	constexpr u64 maxDisplayLen{30 - sizeof('\'') * 2};
 
 	if (displayLen <= maxDisplayLen)
-		CH_PRINT(" {:^30}\n", CH_QUOTED(str));
+		CH_PRINT(" {:<30}\n", CH_QUOTED(str));
 	else
 	{
 		constexpr u64 newlineSize{CH_NEWLINE_REPLACEMENT.size()};
@@ -429,7 +429,7 @@ void BinaryInspector::printStringWithTruncation(
 		if ((pos != str.npos) && (pos >= newlineStart) && (pos <= newlineEnd))
 		{
 			str = str.substr(0, pos);
-			CH_PRINT(" {:^30}  ({})\n", "'" + str + "...'", truncMsg);
+			CH_PRINT(" {:<30}  ({})\n", "'" + str + "...'", truncMsg);
 		}
 		else
 		{
