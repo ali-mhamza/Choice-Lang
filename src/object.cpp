@@ -347,8 +347,16 @@ std::string Object::printVal() const
         case OBJ_INSTANCE:  ret = AS_INSTANCE(*this)->printVal();                           break;
         case OBJ_CORE_FUNC: ret = CH_STR("<builtin {}>", funcNames[AS_CORE_FUNC(*this)]);   break;
         case OBJ_USER_FUNC: ret = CH_STR("<func {}>", AS_USER_FUNC(*this)->name);           break;
-        case OBJ_CLOSURE:   ret = CH_STR("<func {}>", AS_CLOSURE(*this)->function->name);   break;
         case OBJ_LAMBDA:    ret = "<lambda>";                                               break;
+        case OBJ_CLOSURE:
+        {
+            Closure* closure{AS_CLOSURE(*this)};
+            if (closure->function->name == nullptr)
+                ret = "lambda";
+            else
+                ret = CH_STR("<func {}>", closure->function->name);
+            break;
+        }
         // Pass nesting status to possibly nesting collection types.
         // Only lists and tables actually need this.
         case OBJ_STRING:    ret = AS_STRING(*this)->printVal(nested);                       break;
