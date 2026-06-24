@@ -1514,8 +1514,7 @@ DEF(LambdaExpr)
     if (node->params.size() > PARAMETER_MAX)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
 
-    funcBodyHelper(node->params, node->body, nextReg,
-        std::string{});
+    funcBodyHelper(node->params, node->body, nextReg, std::string{});
     reserveReg();
 }
 
