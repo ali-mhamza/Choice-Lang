@@ -136,7 +136,8 @@ namespace Bytes
             static void printStringWithTruncation(
                 std::string& str,
                 u64 displayLen,
-                sv truncMsg
+                sv truncMsg,
+                bool center
             );
 
             void inspectHeaders();

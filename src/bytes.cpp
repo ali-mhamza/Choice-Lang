@@ -410,13 +410,19 @@ void BinaryInspector::printEntryTitle(sv title, u64 titleLength)
 void BinaryInspector::printStringWithTruncation(
 	std::string& str,
 	u64 displayLen,
-	sv truncMsg
+	sv truncMsg,
+	bool center
 )
 {
 	constexpr u64 maxDisplayLen{30 - sizeof('\'') * 2};
 
 	if (displayLen <= maxDisplayLen)
-		CH_PRINT(" {:<30}\n", CH_QUOTED(str));
+	{
+	    if (center)
+			CH_PRINT(" {:^30}\n", CH_QUOTED(str));
+	    else
+	        CH_PRINT(" {:<30}\n", CH_QUOTED(str));
+	}
 	else
 	{
 		constexpr u64 newlineSize{CH_NEWLINE_REPLACEMENT.size()};
@@ -429,7 +435,10 @@ void BinaryInspector::printStringWithTruncation(
 		if ((pos != str.npos) && (pos >= newlineStart) && (pos <= newlineEnd))
 		{
 			str = str.substr(0, pos);
-			CH_PRINT(" {:<30}  ({})\n", "'" + str + "...'", truncMsg);
+			if (center)
+			    CH_PRINT(" {:^30}  ({})\n", "'" + str + "...'", truncMsg);
+			else
+			    CH_PRINT(" {:<30}  ({})\n", "'" + str + "...'", truncMsg);;
 		}
 		else
 		{
@@ -690,7 +699,7 @@ void BinaryInspector::inspectBriefString(u64 start)
 	CH_PRINT(" {:^7}", getCurrentPosition() - start);
 	str = formatMultiLineString(str);
 	printStringWithTruncation(str, str.size(),
-		CH_STR("truncated; length={}", nameLen));
+		CH_STR("truncated; length={}", nameLen), true);
 }
 
 void BinaryInspector::skipTypeFields(u8 fieldCount)
@@ -853,7 +862,7 @@ void BinaryInspector::inspectDetailString(u64 start)
 	str = formatMultiLineString(str);
 	PRINT_ENTRY_RANGE();
 	CH_PRINT("String value:");
-	printStringWithTruncation(str, str.size(), "truncated");
+	printStringWithTruncation(str, str.size(), "truncated", false);
 }
 
 void BinaryInspector::inspectDetailType(u64 start)
