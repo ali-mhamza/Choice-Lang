@@ -423,6 +423,19 @@ ObjIter* Object::makeIter()
     return ret;
 }
 
+[[nodiscard]] static u64 chunkDataSize(const ByteCode& chunk)
+{
+    // Code size and pool size values, as well as the
+    // actual sizes of the code and pool.
+    return (2 * sizeof(u64) + chunk.codeSize() + chunk.countPool());
+}
+
+[[nodiscard]] static u64 chunkMetadataSize(const ByteCode& chunk)
+{
+    // Metadata + metadata size value (8 bytes).
+    return (chunk.metadataSize() * sizeof(DebugRange) + sizeof(u64));
+}
+
 Type::Type(
     const std::string& name,
     std::vector<FieldPair>& fields,
@@ -436,15 +449,6 @@ Type::Type(
         this->fields.emplace_back(field.first, field.second);
         this->fieldTable.add(field.first, count++);
     }
-}
-
-Type::Type(
-    const std::string& name,
-    std::vector<std::string>& fields
-) noexcept:
-    name{choiceStrdup(name.c_str())}
-{
-    (void) fields; // For now.
 }
 
 Type::~Type() noexcept
@@ -462,28 +466,56 @@ void Type::emit(std::ofstream& os) const
     };
 
     emitName(name);
-    os.put(static_cast<char>(fields.size()));
+    u8 fieldCount{static_cast<u8>(fields.size())};
+    os.put(static_cast<char>(fieldCount));
     for (const auto& field : fields)
+    {
         emitName(field.first);
+        os.put(static_cast<char>(field.second));
+    }
+
+    for (u8 i{0}; i < fieldCount; i++)
+    {
+        fieldCode[i].encodeData(os);
+        if (debugInfoState == DEBUG_COMBINED)
+            fieldCode[i].encodeMetadata(os);
+    }
 }
 
 void Type::emitMetadata(std::ofstream& os) const
 {
-    (void) os; // For now.
+    u8 fieldCount{static_cast<u8>(fields.size())};
+    for (u8 i{0}; i < fieldCount; i++)
+        fieldCode[i].encodeMetadata(os);
 }
 
 u64 Type::byteSize() const
 {
-    // Added type byte (1) and field count byte (1).
-    u64 size{2 * sizeof(u8)};
+    // Added type byte (1).
+    u64 size{sizeof(u8)};
     auto countName = [&size](const std::string& name) {
         // Added name length byte (1).
         size += sizeof(u8) + name.size();
     };
 
     countName(name);
+    u8 fieldCount{static_cast<u8>(fields.size())};
+    // Added field count byte (1).
+    size += sizeof(fieldCount);
     for (const auto& field : fields)
+    {
         countName(field.first);
+        // Added Boolean mutability byte (1).
+        size += sizeof(field.second);
+    }
+
+    for (u8 i{0}; i < fieldCount; i++)
+    {
+        size += chunkDataSize(fieldCode[i]);
+        if (debugInfoState == DEBUG_COMBINED)
+            size += chunkMetadataSize(fieldCode[i]);
+    }
+
     return size;
 }
 
@@ -644,27 +676,21 @@ u64 Function::byteSize() const
     if (name != nullptr) size += strlen(name);
 
     // Added type byte (1) and name length byte (1)
-    // and arity bytes (2).
-    size += 4 * sizeof(u8);
-    // Added code size and pool size values,
-    // as well as the actual sizes of the code and pool.
-    size += 2 * sizeof(u64) + code.codeSize() + code.countPool();
+    // and arity bytes (3).
+    size += 5 * sizeof(u8);
+
+    size += chunkDataSize(code);
     // Same as above for default arguments.
     u8 defaultCount{static_cast<u8>(arityMax - arityMin)};
     for (u8 i{0}; i < defaultCount; i++)
-    {
-        size += 2 * sizeof(u64);
-        size += defaultArgs[i].codeSize() + defaultArgs[i].countPool();
-    }
+        size += chunkDataSize(defaultArgs[i]);
 
     if (debugInfoState == DEBUG_COMBINED)
     {
-        // Added metadata + metadata size value (8 bytes).
-        size += code.metadata.size() * sizeof(DebugRange) + sizeof(u64);
-
+        size += chunkMetadataSize(code);
         // Same as above for default arguments.
         for (u8 i{0}; i < defaultCount; i++)
-            size += defaultArgs[i].metadata.size() * sizeof(DebugRange) + sizeof(u64);
+            size += chunkMetadataSize(defaultArgs[i]);
     }
 
     return size;

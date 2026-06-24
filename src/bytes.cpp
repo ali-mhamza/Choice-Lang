@@ -120,16 +120,22 @@ Object CodeReader::reconstructType()
     readBytes(name.data(), nameLen);
 
     u8 fieldCount{readValue<u8>()};
-    std::vector<std::string> fields(fieldCount);
+    std::vector<Type::FieldPair> fields(fieldCount);
 
     for (u8 i{0}; i < fieldCount; i++)
     {
         nameLen = readValue<u8>();
-        fields[i].resize(nameLen);
-        readBytes(fields[i].data(), nameLen);
+        fields[i].first.resize(nameLen);
+        readBytes(fields[i].first.data(), nameLen);
+
+        fields[i].second = readValue<bool>();
     }
 
-    return Object{CH_ALLOC(Type, name, fields)};
+    ByteCode* fieldInits{new ByteCode[fieldCount]};
+    for (u8 i{0}; i < fieldCount; i++)
+        fieldInits[i] = reconstructByteCode();
+
+    return Object{CH_ALLOC(Type, name, fields, fieldInits)};
 }
 
 Object CodeReader::reconstructFunc()
@@ -702,10 +708,21 @@ void BinaryInspector::inspectBriefString(u64 start)
 		CH_STR("truncated; length={}", nameLen), true);
 }
 
-void BinaryInspector::skipTypeFields(u8 fieldCount)
+void BinaryInspector::skipByteCode()
 {
-    for (u8 i{0}; i < fieldCount; i++)
-        it += readValue<u8>();
+    // Skip code and constant pool.
+	u64 codeSize{readValue<u64>()};
+	u64 poolSize{readValue<u64>()};
+	it += codeSize + poolSize;
+	if (it > end) eofError();
+
+	// Skip metadata.
+	if (state == DEBUG_COMBINED)
+	{
+		u64 metadataBlockCount{readValue<u64>()};
+		it += metadataBlockCount * sizeof(DebugRange);
+		if (it > end) eofError();
+	}
 }
 
 void BinaryInspector::inspectBriefType(u64 start)
@@ -720,7 +737,10 @@ void BinaryInspector::inspectBriefType(u64 start)
 
 	u8 fieldCount{readValue<u8>()};
 	for (u8 i{0}; i < fieldCount; i++)
-        it += readValue<u8>();
+        it += readValue<u8>() + sizeof(bool);
+
+	for (u8 i{0}; i < fieldCount; i++)
+        skipByteCode();
 
 	printStartEnd(start, getCurrentPosition(), false);
 	CH_PRINT(" {:^10}", "Type");
@@ -744,26 +764,10 @@ void BinaryInspector::skipFuncData()
 	// Skip variadic flag.
 	it++;
 
-	auto skipCode = [this] {
-		// Skip code and constant pool.
-		u64 codeSize{readValue<u64>()};
-		u64 poolSize{readValue<u64>()};
-		it += codeSize + poolSize;
-		if (it > end) eofError();
-
-		// Skip metadata.
-		if (state == DEBUG_COMBINED)
-		{
-			u64 metadataBlockCount{readValue<u64>()};
-			it += metadataBlockCount * sizeof(DebugRange);
-			if (it > end) eofError();
-		}
-	};
-
-	skipCode();
+	skipByteCode();
 	u8 defaultArgs{static_cast<u8>(arityMax - arityMin)};
 	for (u8 i{0}; i < defaultArgs; i++)
-		skipCode();
+		skipByteCode();
 }
 
 void BinaryInspector::inspectBriefFunc(u64 start)
@@ -865,6 +869,31 @@ void BinaryInspector::inspectDetailString(u64 start)
 	printStringWithTruncation(str, str.size(), "truncated", false);
 }
 
+void BinaryInspector::inspectDetailTypeFields()
+{
+    u64 start{};
+
+   	start = getCurrentPosition();
+	u8 fieldCount{readValue<u8>()};
+	PRINT_ENTRY_RANGE();
+	CH_PRINT("Field count: {}\n", fieldCount);
+
+	if (fieldCount != 0)
+	{
+       	start = getCurrentPosition();
+       	for (u8 i{0}; i < fieldCount; i++)
+            it += readValue<u8>() + sizeof(bool);
+       	PRINT_ENTRY_RANGE();
+       	CH_PRINT("Field names: [...]\n");
+
+           start = getCurrentPosition();
+           for (u8 i{0}; i < fieldCount; i++)
+               skipByteCode();
+           PRINT_ENTRY_RANGE();
+           CH_PRINT("Field default initializer(s): [...]\n");
+	}
+}
+
 void BinaryInspector::inspectDetailType(u64 start)
 {
    	PRINT_ENTRY_RANGE();
@@ -890,16 +919,7 @@ void BinaryInspector::inspectDetailType(u64 start)
 			CH_PRINT("Type name: '{:.25}...'  (truncated)\n", name);
 	}
 
-	start = getCurrentPosition();
-	u8 fieldCount{readValue<u8>()};
-	PRINT_ENTRY_RANGE();
-	CH_PRINT("Field count: {}\n", fieldCount);
-
-	start = getCurrentPosition();
-	for (u8 i{0}; i < fieldCount; i++)
-        it += readValue<u8>();
-	PRINT_ENTRY_RANGE();
-	CH_PRINT("Field names: [...]\n");
+	inspectDetailTypeFields();
 }
 
 void BinaryInspector::inspectDetailFuncName()

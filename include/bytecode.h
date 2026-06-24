@@ -18,8 +18,6 @@ class ByteCode
         FileID id{};
         DebugMetadata metadata{};
 
-        // Return the size of the constant pool once serialized.
-        [[nodiscard]] u64 countPool() const;
         void sortMetadata();
 
     public:
@@ -60,6 +58,12 @@ class ByteCode
 
         [[nodiscard]]
         u64 codeSize() const { return static_cast<u64>(block.size()); }
+        [[nodiscard]]
+        u64 metadataSize() const { return static_cast<u64>(metadata.size()); }
+
+        // Return the size of the constant pool once serialized.
+        [[nodiscard]] u64 countPool() const;
+
         void clearCode();
         void clearPool();
         // Clear code and constant pool.

@@ -155,7 +155,7 @@ namespace Bytes
             void inspectBriefDec(u64 start);
             void inspectBriefString(u64 start);
 
-            void skipTypeFields(u8 fieldCount);
+            void skipByteCode();
             void inspectBriefType(u64 start);
 
             void skipFuncData();
@@ -168,6 +168,8 @@ namespace Bytes
             void inspectDetailInt(u64 start);
             void inspectDetailDec(u64 start);
             void inspectDetailString(u64 start);
+
+            void inspectDetailTypeFields();
             void inspectDetailType(u64 start);
 
             // Function name.

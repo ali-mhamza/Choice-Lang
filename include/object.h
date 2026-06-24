@@ -391,7 +391,6 @@ struct Type : public HeapObj
         std::vector<FieldPair>& fields,
         const ByteCode* inits
     ) noexcept;
-    Type(const std::string& name, std::vector<std::string>& fields) noexcept;
     ~Type() noexcept;
 
     void emit(std::ofstream& os) const;
