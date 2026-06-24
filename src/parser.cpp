@@ -1299,7 +1299,7 @@ ExprUP Parser::instance()
         do {
             MATCH_TOK(TOK_IDENTIFIER, "expect field name");
             Token name{previousTok};
-            MATCH_TOK(TOK_COLON, "expect field initializer");
+            MATCH_TOK(TOK_EQUAL, "expect field initializer");
             fields.emplace_back(name, expression());
         } while (consumeTok(TOK_COMMA));
     }
