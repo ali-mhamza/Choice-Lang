@@ -98,6 +98,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     "Cannot assign new value to an immutable variable.",
     "Cannot modify the value of an immutable variable.",
+    "Cannot modify the value of an immutable field.",
     "Cannot modify an immutable value.",
     "Attempt to make immutable value mutable.",
 

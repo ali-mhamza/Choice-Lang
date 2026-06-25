@@ -598,12 +598,10 @@ Object Instance::getField(const std::string& name) const
 void Instance::setField(const std::string& name, const Object& value)
 {
     Object* location{findField(name)};
+    // Field is fixed, but the flag is placed on the value
+    // itself.
     if (IS_FIXED(*location))
-    {
-        // Field is fixed, but the flag is placed on the value
-        // itself.
-        throw RuntimeError(MOD_FIXED_VARIABLE);
-    }
+        throw RuntimeError(MOD_FIXED_FIELD);
     *location = value;
 }
 

@@ -242,6 +242,8 @@ enum DiagCode : u8
     ASSIGN_FIXED_VARIABLE,
     // Variable is immutable (cannot be modified).
     MOD_FIXED_VARIABLE,
+    // Field is immutable (cannot be modified or assigned to).
+    MOD_FIXED_FIELD,
     // Value is immutable (cannot be modified).
     MOD_IMMUT_VALUE,
     // Attempt to make immutable value mutable.
