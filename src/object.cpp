@@ -548,7 +548,7 @@ Instance::Instance(const Type* type) noexcept:
     type{type}
 {
     for (const auto& field : type->fields)
-        this->fields.add(field.first, Object{OBJ_INVALID});
+        this->fields.add(field.first, Object{});
 }
 
 bool Instance::operator==(const Instance& other) const
