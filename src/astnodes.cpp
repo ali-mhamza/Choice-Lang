@@ -36,9 +36,13 @@ FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
 TypeDecl::Field::Field(bool fix, const Token& name, ExprUP& init) :
     fix{fix}, name{name}, init{std::move(init)} {}
 
-TypeDecl::TypeDecl(const Token& name, std::vector<Field>& fields) :
+TypeDecl::TypeDecl(
+    const Token& name,
+    std::vector<Field>& fields,
+    StmtVec& methods
+) :
     Stmt{S_TYPE_DECL},
-    name{name}, fields{std::move(fields)} {}
+    name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}
 
 IfStmt::IfStmt(ExprUP& condition, StmtUP& trueBranch, StmtUP& falseBranch) :
     Stmt{S_IF_STMT},

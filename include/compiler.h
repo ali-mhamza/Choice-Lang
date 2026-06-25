@@ -195,6 +195,12 @@ class Compiler
             Compiler& miniCompiler,
             const std::vector<AST::Param>& params
         );
+        Object makeFuncObj(
+            Compiler& miniCompiler,
+            const std::vector<AST::Param>& params,
+            const StmtUP& body,
+            const std::string& name
+        );
         void funcBodyHelper(
             const std::vector<AST::Param>& params,
             const StmtUP& body,

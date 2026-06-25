@@ -579,6 +579,16 @@ void VM::callClass(const Object& callee, u8 start, u8 argCount)
     registers[start - 1] = instance;
 }
 
+void VM::callMethod(const Object& callee, u8 start, u8 argCount)
+{
+    // Shift all arguments forward by one to clear a slot
+    // for the instance object.
+    std::move_backward(&registers[start], &registers[start + argCount],
+        &registers[start + argCount + 1]);
+    registers[start] = AS_USER_FUNC(callee)->boundInstance;
+    callFunc(callee, start, argCount);
+}
+
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
 {
     if (!IS_CALLABLE(callee))
@@ -599,6 +609,9 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
             break;
         case OBJ_USER_TYPE:
             callClass(callee, start, argCount);
+            break;
+        case OBJ_METHOD:
+            callMethod(callee, start, argCount);
             break;
         default:
             CH_UNREACHABLE();

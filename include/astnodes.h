@@ -144,10 +144,12 @@ namespace AST
 
             const Token name{};
             const std::vector<Field> fields{};
+            const StmtVec methods{}; // Only contains function declarations.
 
             TypeDecl(
                 const Token& name,
-                std::vector<Field>& fields
+                std::vector<Field>& fields,
+                StmtVec& methods
             );
         };
 

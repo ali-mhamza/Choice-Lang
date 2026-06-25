@@ -42,6 +42,7 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(USER_TYPE, userTypeVal)   \
     X(INSTANCE, instanceVal)    \
     X(USER_FUNC, userFuncVal)   \
+    X(METHOD, userFuncVal)      \
     X(CLOSURE, closureVal)      \
     X(LAMBDA, userFuncVal)      \
     X(BIGINT, heapVal)          \
@@ -244,7 +245,7 @@ Object::Object(T val) noexcept
 inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Bool", "Null", "Builtin Type",
     "Builtin Function", "User Type", "Type Instance",
-    "User Function", "User Function", "Lambda", "BigInt",
+    "User Function", "Type Method", "User Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table",
     "", // References take the type of the contained object.
     "Void", "Iterable"
@@ -269,7 +270,8 @@ TYPE_LIST
 #undef X
 
 // Object is a function object.
-#define IS_FUNCOBJ(obj)     (IS_USER_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj))
+#define IS_FUNCOBJ(obj) \
+    (IS_USER_FUNC(obj) || IS_METHOD(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj))
 
 // Object can be called.
 #define IS_CALLABLE(obj) \
@@ -389,6 +391,12 @@ struct Type : public HeapObj
     Type(
         const std::string& name,
         std::vector<FieldPair>& fields,
+        const ByteCode* inits,
+        HashTable<std::string, Object>& methods
+    ) noexcept;
+    Type(
+        const std::string& name,
+        std::vector<FieldPair>& fields,
         const ByteCode* inits
     ) noexcept;
     ~Type() noexcept;
@@ -422,6 +430,7 @@ struct Instance : public HeapObj
 
 struct Function : public HeapObj
 {
+    const Instance* boundInstance{nullptr};
     const char* name{nullptr};
     const ByteCode code{};
     const ByteCode* defaultArgs{nullptr};

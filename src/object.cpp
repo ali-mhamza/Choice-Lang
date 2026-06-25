@@ -447,6 +447,23 @@ ObjIter* Object::makeIter()
 Type::Type(
     const std::string& name,
     std::vector<FieldPair>& fields,
+    const ByteCode* inits,
+    HashTable<std::string, Object>& methods
+) noexcept:
+    name{choiceStrdup(name.c_str())}, fieldCode{inits},
+    methods{std::move(methods)}
+{
+    u8 count{0};
+    for (const auto& field : fields)
+    {
+        this->fields.emplace_back(field.first, field.second);
+        this->fieldTable.add(field.first, count++);
+    }
+}
+
+Type::Type(
+    const std::string& name,
+    std::vector<FieldPair>& fields,
     const ByteCode* inits
 ) noexcept:
     name{choiceStrdup(name.c_str())}, fieldCode{inits}
@@ -543,6 +560,8 @@ bool Instance::operator==(const Instance& other) const
 Object* Instance::findField(const std::string& name)
 {
     Object* location{fields.get(name)};
+    // Since this function is only used for field writes,
+    // we don't search methods.
     if (location == nullptr)
     {
         throw RuntimeError(FIELD_NOT_DEFINED,
@@ -557,8 +576,14 @@ const Object* Instance::findField(const std::string& name) const
     const Object* location{fields.get(name)};
     if (location == nullptr)
     {
-        throw RuntimeError(FIELD_NOT_DEFINED,
-            CH_STR("type '{}' has no field '{}'", type->name, name));
+        location = type->methods.get(name);
+        if (location != nullptr)
+            AS_USER_FUNC(*location)->boundInstance = this;
+        else
+        {
+            throw RuntimeError(FIELD_NOT_DEFINED,
+                CH_STR("type '{}' has no field or method '{}'", type->name, name));
+        }
     }
 
    return location;

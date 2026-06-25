@@ -421,26 +421,33 @@ StmtUP Parser::typeDecl()
     Token name{previousTok};
 
     std::vector<TypeDecl::Field> fields{};
+    StmtVec methods{};
     if (!consumeTok(TOK_SEMICOLON))
     {
         MATCH_TOK(TOK_LEFT_BRACE, "expect '{' or ';' after type name");
-        do {
-            bool fix{consumeTok(TOK_FIX)};
-            MATCH_TOK(TOK_IDENTIFIER, "expect field name");
-            Token name{previousTok};
-            CONSUME_VAR_TYPE();
+        if (!checkTok(TOK_FUNC) && !checkTok(TOK_RIGHT_BRACE))
+        {
+            do {
+                bool fix{consumeTok(TOK_FIX)};
+                MATCH_TOK(TOK_IDENTIFIER, "expect field name");
+                Token name{previousTok};
+                CONSUME_VAR_TYPE();
 
-            ExprUP init{nullptr};
-            if (consumeTok(TOK_EQUAL))
-                init = expression();
-            else if (fix)
-                REPORT_SEMANTIC(MISSING_INITIALIZER, currentTok);
-            fields.emplace_back(fix, name, init);
-        } while (consumeTok(TOK_COMMA));
+                ExprUP init{nullptr};
+                if (consumeTok(TOK_EQUAL))
+                    init = expression();
+                else if (fix)
+                    REPORT_SEMANTIC(MISSING_INITIALIZER, currentTok);
+                fields.emplace_back(fix, name, init);
+            } while (consumeTok(TOK_COMMA));
+        }
+
+        while (consumeTok(TOK_FUNC))
+            methods.push_back(funcDecl());
         MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude type declaration");
     }
 
-    return std::make_unique<TypeDecl>(name, fields);
+    return std::make_unique<TypeDecl>(name, fields, methods);
 }
 
 StmtUP Parser::statement()

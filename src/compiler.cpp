@@ -11,6 +11,7 @@
 #include "../include/opcodes.h"
 #include "../include/token.h"
 #include "../include/utils.h"
+#include <personal/hash_table.h>
 #include <climits>
 #include <string_view>
 #include <utility>
@@ -523,14 +524,13 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
     return std::make_pair(defaultArgs, static_cast<u8>(temp - defaultArgs));
 }
 
-void Compiler::funcBodyHelper(
+Object Compiler::makeFuncObj(
+    Compiler& miniCompiler,
     const std::vector<AST::Param>& params,
     const StmtUP& body,
-    const u8 funcReg,
     const std::string& name
 )
 {
-    Compiler miniCompiler{this};
     auto [defaultArgs, defaultCount] = paramHelper(miniCompiler, params);
     miniCompiler.defineBuiltinLocals(name);
 
@@ -553,6 +553,19 @@ void Compiler::funcBodyHelper(
 
     AS_USER_FUNC(func)->defaultArgs = defaultArgs;
     AS_USER_FUNC(func)->variadic = variadic;
+
+    return func;
+}
+
+void Compiler::funcBodyHelper(
+    const std::vector<AST::Param>& params,
+    const StmtUP& body,
+    const u8 funcReg,
+    const std::string& name
+)
+{
+    Compiler miniCompiler{this};
+    Object func{makeFuncObj(miniCompiler, params, body, name)};
 
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
@@ -628,8 +641,29 @@ DEF(TypeDecl)
         temp++;
     }
 
-    Object type{CH_ALLOC(Type, name, fields, fieldInits)};
-    code.loadRegConst(type, nextReg);
+    HashTable<std::string, Object> methods{};
+    for (const auto& method : node->methods)
+    {
+        FuncDecl* decl{static_cast<FuncDecl*>(method.get())};
+        std::string name{decl->name.text};
+
+        Compiler miniCompiler{this};
+        miniCompiler.defVar("self", 0, accessFix);
+        miniCompiler.reserveReg();
+        Object func{makeFuncObj(miniCompiler, decl->params, decl->body, name)};
+
+        if (methods.contains(name))
+            reportError(METHOD_ALREADY_DEFINED, decl->name);
+        func.type_ = OBJ_METHOD;
+        methods.add(name, func);
+    }
+
+    Type* type{CH_ALLOC(Type, name, fields, fieldInits, methods)};
+    // TODO: check if any fields collide among themselves,
+    // or if any methods and fields collide.
+
+    Object typeObj{type};
+    code.loadRegConst(typeObj, nextReg);
     defVar(name, nextReg, accessVar);
     reserveReg();
 }
