@@ -601,8 +601,10 @@ void Instance::initField(const std::string& name, const Object& value)
 
 Hash Instance::hash() const
 {
-    // For now.
-    return hashPointer(type);
+    Hash hash{hashPointer(type)};
+    for (const auto& [_, val] : fields)
+        hash += val.hash();
+    return hash;
 }
 
 std::string Instance::printVal() const
