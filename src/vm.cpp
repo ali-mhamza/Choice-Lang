@@ -611,8 +611,8 @@ void VM::startIter()
     Object& var{registers[readByte()]};
     Object& iterable{registers[readByte()]};
 
-    ObjIter* iter{};
-    if ((iter = iterable.makeIter()) == nullptr)
+    ObjIter* iter{iterable.makeIter()};
+    if (iter == nullptr)
         throw reportCollection(OBJ_NOT_ITERABLE, iterable);
 
     if (iter->start(var))
