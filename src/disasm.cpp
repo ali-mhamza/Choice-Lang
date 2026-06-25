@@ -234,16 +234,8 @@ void Disassembler::collectionOp(u8 byte)
 void Disassembler::typeOp(u8 byte)
 {
     printOpcode(opNames[byte]);
-    u8 first{readByte()}, second{readByte()};
-
-    if ((static_cast<Opcode>(byte) == OP_INIT_FIELD)
-        || (static_cast<Opcode>(byte) == OP_SET_FIELD))
-    {
-        u8 third{readByte()};
-        CH_PRINT("R[{}] R[{}] R[{}]\n", first, second, third);
-    }
-    else if (static_cast<Opcode>(byte) == OP_GET_FIELD)
-        CH_PRINT("R[{}] R[{}]\n", first, second);
+    u8 first{readByte()}, second{readByte()}, third{readByte()};
+    CH_PRINT("R[{}] R[{}] R[{}]\n", first, second, third);
 }
 
 void Disassembler::captureOp(u8 byte)
