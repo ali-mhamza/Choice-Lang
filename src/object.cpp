@@ -273,9 +273,9 @@ Hash Object::hash() const
         case OBJ_USER_TYPE: return hashPointer(AS_USER_TYPE(*this));
         case OBJ_INSTANCE:  return AS_INSTANCE(*this)->hash();
         case OBJ_CORE_FUNC: return hashKey(static_cast<u8>(AS_CORE_FUNC(*this)));
-        case OBJ_USER_FUNC: return hashPointer(AS_USER_FUNC(*this));
-        case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
+        case OBJ_USER_FUNC:
         case OBJ_LAMBDA:    return hashPointer(AS_USER_FUNC(*this));
+        case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
         case OBJ_STRING:    return hashKey(AS_STRING(*this)->str);
         case OBJ_RANGE:
         {
