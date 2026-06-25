@@ -37,6 +37,7 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(DEC, decVal)              \
     X(BOOL, boolVal)            \
     X(NULL, heapVal)            \
+    X(VOID, heapVal)            \
     X(CORE_TYPE, coreTypeVal)   \
     X(CORE_FUNC, coreFuncVal)   \
     X(USER_TYPE, userTypeVal)   \
@@ -52,7 +53,6 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(LIST, listVal)            \
     X(TABLE, tableVal)          \
     X(REF, refVal)              \
-    X(VOID, voidVal)            \
     /* Used in for-loops. */    \
     X(ITER, iterVal)            \
 
@@ -82,7 +82,6 @@ struct Range;
 struct List;
 struct Table;
 struct Cell;
-struct Void;
 struct HeapObj;
 struct ObjIter;
 
@@ -113,7 +112,6 @@ class Object
             List*           listVal;
             Table*          tableVal;
             Cell*           refVal;
-            Void*           voidVal;
             HeapObj*        heapVal;
             ObjIter*        iterVal;
             const HeapObj*  dummyVal;
@@ -179,7 +177,6 @@ ObjType getObjectType(T val)
     if constexpr (std::is_same_v<U, List>)      return OBJ_LIST;
     if constexpr (std::is_same_v<U, Table>)     return OBJ_TABLE;
     if constexpr (std::is_same_v<U, Cell>)      return OBJ_REF;
-    if constexpr (std::is_same_v<U, Void>)      return OBJ_VOID;
 
     return OBJ_INVALID; // Dummy return value.
 }
@@ -278,7 +275,7 @@ TYPE_LIST
     (IS_CORE_FUNC(obj) || IS_FUNCOBJ(obj) || IS_CORE_TYPE(obj) || IS_USER_TYPE(obj))
 
 // Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_USER_TYPE) && ((obj).type() <= OBJ_VOID))
+#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_USER_TYPE) && ((obj).type() <= OBJ_REF))
 
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
@@ -553,11 +550,6 @@ struct Cell : public HeapObj
 
     Cell(Object* location) noexcept;
     void close();
-};
-
-struct Void : public HeapObj
-{
-    Void() noexcept = default;
 };
 
 
