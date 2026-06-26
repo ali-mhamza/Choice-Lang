@@ -43,9 +43,9 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(USER_TYPE, userTypeVal)   \
     X(INSTANCE, instanceVal)    \
     X(USER_FUNC, userFuncVal)   \
-    X(METHOD, methodVal)        \
-    X(CLOSURE, closureVal)      \
     X(LAMBDA, userFuncVal)      \
+    X(CLOSURE, closureVal)      \
+    X(METHOD, methodVal)        \
     X(BIGINT, heapVal)          \
     X(BIGDEC, heapVal)          \
     X(STRING, stringVal)        \
@@ -76,8 +76,8 @@ enum ObjType : u8
 struct Type;
 struct Instance;
 struct Function;
-struct Method;
 struct Closure;
+struct Method;
 struct String;
 struct Range;
 struct List;
@@ -107,8 +107,8 @@ class Object
             Instance*       instanceVal;
             FuncType        coreFuncVal;
             Function*       userFuncVal;
-            Method*         methodVal;
             Closure*        closureVal;
+            Method*         methodVal;
             String*         stringVal;
             Range*          rangeVal;
             List*           listVal;
@@ -173,8 +173,8 @@ ObjType getObjectType(T val)
 
     if constexpr (std::is_same_v<U, Type>)      return OBJ_USER_TYPE;
     if constexpr (std::is_same_v<U, Instance>)  return OBJ_INSTANCE;
-    if constexpr (std::is_same_v<U, Method>)    return OBJ_METHOD;
     if constexpr (std::is_same_v<U, Closure>)   return OBJ_CLOSURE;
+    if constexpr (std::is_same_v<U, Method>)    return OBJ_METHOD;
     if constexpr (std::is_same_v<U, String>)    return OBJ_STRING;
     if constexpr (std::is_same_v<U, Range>)     return OBJ_RANGE;
     if constexpr (std::is_same_v<U, List>)      return OBJ_LIST;
@@ -245,7 +245,7 @@ Object::Object(T val) noexcept
 inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Bool", "Null", "Void", "Builtin Type",
     "Builtin Function", "User Type", "Type Instance",
-    "User Function", "Type Method", "User Function", "Lambda",
+    "User Function", "Lambda", "User Function", "Type Method",
     "BigInt", "BigDec", "String", "Range", "List", "Table",
     "", // References take the type of the contained object.
     "Iterable"
@@ -271,7 +271,7 @@ TYPE_LIST
 
 // Object is a function object.
 #define IS_FUNCOBJ(obj) \
-    (IS_USER_FUNC(obj) || IS_METHOD(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj))
+    (IS_USER_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj) || IS_METHOD(obj))
 
 // Object can be called.
 #define IS_CALLABLE(obj) \
@@ -451,14 +451,6 @@ struct Function : public HeapObj
     u64 byteSize() const;
 };
 
-struct Method : public HeapObj
-{
-    const Object funcObj{}; // Function or closure.
-    const Instance* boundInstance{};
-
-    Method(const Object& funcObj) noexcept;
-};
-
 struct Closure : public HeapObj
 {
     Function* function{};
@@ -468,6 +460,14 @@ struct Closure : public HeapObj
     ~Closure() noexcept;
 
     void addCell(Cell* cell);
+};
+
+struct Method : public HeapObj
+{
+    const Object funcObj{}; // Function or closure.
+    const Instance* boundInstance{};
+
+    Method(const Object& funcObj) noexcept;
 };
 
 struct String : public HeapObj
