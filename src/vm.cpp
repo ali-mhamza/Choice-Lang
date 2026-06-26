@@ -506,9 +506,16 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
         return;
     }
 
-    bool isClosure{IS_CLOSURE(callee)};
+    bool isMethod{IS_METHOD(callee)}, isClosure{IS_CLOSURE(callee)};
     Closure* closure{isClosure ? AS_CLOSURE(callee) : nullptr};
-    Function* func{isClosure ? closure->function : AS_USER_FUNC(callee)};
+    const Function* func{};
+
+    if (isMethod)
+        func = AS_METHOD(callee)->function;
+    else if (isClosure)
+        func = closure->function;
+    else
+        func = AS_USER_FUNC(callee);
 
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
@@ -585,7 +592,7 @@ void VM::callMethod(const Object& callee, u8 start, u8 argCount)
     // for the instance object.
     std::move_backward(&registers[start], &registers[start + argCount],
         &registers[start + argCount + 1]);
-    registers[start] = AS_USER_FUNC(callee)->boundInstance;
+    registers[start] = AS_METHOD(callee)->boundInstance;
     callFunc(callee, start, argCount);
 }
 

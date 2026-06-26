@@ -571,14 +571,17 @@ Object* Instance::findField(const std::string& name)
    return location;
 }
 
-const Object* Instance::findField(const std::string& name) const
+std::pair<const Object*, Object>
+Instance::findField(const std::string& name) const
 {
     const Object* location{fields.get(name)};
+    Object method{};
+
     if (location == nullptr)
     {
         location = type->methods.get(name);
         if (location != nullptr)
-            AS_USER_FUNC(*location)->boundInstance = this;
+            method = CH_ALLOC(Method, AS_USER_FUNC(*location), this);
         else
         {
             throw RuntimeError(FIELD_NOT_DEFINED,
@@ -586,12 +589,14 @@ const Object* Instance::findField(const std::string& name) const
         }
     }
 
-   return location;
+   return std::make_pair(location, method);
 }
 
 Object Instance::getField(const std::string& name) const
 {
-    const Object* location{findField(name)};
+    const auto [location, method] = findField(name);
+    if (IS_VALID(method))
+        return method;
     return *location;
 }
 
@@ -728,6 +733,9 @@ u64 Function::byteSize() const
 
     return size;
 }
+
+Method::Method(const Function* function, const Instance* instance) noexcept:
+    function{function}, boundInstance{instance} {}
 
 Closure::Closure(Function* function) noexcept:
     function{function}

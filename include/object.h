@@ -43,7 +43,7 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(USER_TYPE, userTypeVal)   \
     X(INSTANCE, instanceVal)    \
     X(USER_FUNC, userFuncVal)   \
-    X(METHOD, userFuncVal)      \
+    X(METHOD, methodVal)        \
     X(CLOSURE, closureVal)      \
     X(LAMBDA, userFuncVal)      \
     X(BIGINT, heapVal)          \
@@ -76,6 +76,7 @@ enum ObjType : u8
 struct Type;
 struct Instance;
 struct Function;
+struct Method;
 struct Closure;
 struct String;
 struct Range;
@@ -106,6 +107,7 @@ class Object
             Instance*       instanceVal;
             FuncType        coreFuncVal;
             Function*       userFuncVal;
+            Method*         methodVal;
             Closure*        closureVal;
             String*         stringVal;
             Range*          rangeVal;
@@ -171,6 +173,7 @@ ObjType getObjectType(T val)
 
     if constexpr (std::is_same_v<U, Type>)      return OBJ_USER_TYPE;
     if constexpr (std::is_same_v<U, Instance>)  return OBJ_INSTANCE;
+    if constexpr (std::is_same_v<U, Method>)    return OBJ_METHOD;
     if constexpr (std::is_same_v<U, Closure>)   return OBJ_CLOSURE;
     if constexpr (std::is_same_v<U, String>)    return OBJ_STRING;
     if constexpr (std::is_same_v<U, Range>)     return OBJ_RANGE;
@@ -414,7 +417,8 @@ struct Instance : public HeapObj
 
     // For internal use only.
     [[nodiscard]] Object* findField(const std::string& name);
-    [[nodiscard]] const Object* findField(const std::string& name) const;
+    [[nodiscard]]
+    std::pair<const Object*, Object> findField(const std::string& name) const;
 
     [[nodiscard]] Object getField(const std::string& name) const;
     void setField(const std::string& name, const Object& value);
@@ -427,7 +431,6 @@ struct Instance : public HeapObj
 
 struct Function : public HeapObj
 {
-    const Instance* boundInstance{nullptr};
     const char* name{nullptr};
     const ByteCode code{};
     const ByteCode* defaultArgs{nullptr};
@@ -451,6 +454,14 @@ struct Function : public HeapObj
     // Emits only metadata components.
     void emitMetadata(std::ofstream& os) const;
     u64 byteSize() const;
+};
+
+struct Method : public HeapObj
+{
+    const Function* function{};
+    const Instance* boundInstance{};
+
+    Method(const Function* function, const Instance* instance) noexcept;
 };
 
 struct Closure : public HeapObj

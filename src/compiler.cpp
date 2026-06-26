@@ -654,7 +654,6 @@ DEF(TypeDecl)
 
         if (methods.contains(name))
             reportError(METHOD_ALREADY_DEFINED, decl->name);
-        func.type_ = OBJ_METHOD;
         methods.add(name, func);
     }
 
