@@ -243,12 +243,12 @@ Object::Object(T val) noexcept
 /* Object type names. */
 
 inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
-    "Int", "Dec", "Bool", "Null", "Builtin Type",
+    "Int", "Dec", "Bool", "Null", "Void", "Builtin Type",
     "Builtin Function", "User Type", "Type Instance",
     "User Function", "Type Method", "User Function", "Lambda", "BigInt",
     "BigDec", "String", "Range", "List", "Table",
     "", // References take the type of the contained object.
-    "Void", "Iterable"
+    "Iterable"
 };
 
 
