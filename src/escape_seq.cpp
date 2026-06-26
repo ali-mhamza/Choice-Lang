@@ -29,10 +29,13 @@ constexpr u8 remainingBits{0xff};
 
 struct NumParseRules
 {
+    using CheckFn = bool (*)(char);
+    using ConvertFn = u8 (*)(char);
+
     char escape{};
     int maxDigits{}, shift{};
-    bool (*check)(char);
-    u8 (*convert)(char);
+    CheckFn check{};
+    ConvertFn convert{};
 };
 
 [[nodiscard]]
