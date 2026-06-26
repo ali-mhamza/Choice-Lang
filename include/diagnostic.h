@@ -341,6 +341,10 @@ struct Diagnostic
         sv text,
         u64 maxLineNo = 0
     ) const;
+    void trimDiagnosticWhiteSpace(
+        sv& text,
+        u64& col
+    ) const;
     void displayErrorLine(
         u64 line,
         u64 col,

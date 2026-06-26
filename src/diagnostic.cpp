@@ -411,6 +411,20 @@ void Diagnostic::displayTruncatedLine(
         CH_PRINT(stderr, "{}|\n", gap);
 }
 
+void Diagnostic::trimDiagnosticWhiteSpace(
+    sv& text,
+    u64& col
+) const
+{
+    const auto firstCharPos{text.find_first_not_of(" \t")};
+    if ((firstCharPos != text.npos) && (firstCharPos > (2 * TAB_SIZE)))
+    {
+        const auto newLength{text.size() - (firstCharPos - 2 * TAB_SIZE)};
+        col -= (text.size() - newLength);
+        text = text.substr(firstCharPos - 2 * TAB_SIZE, newLength);
+    }
+}
+
 void Diagnostic::displayErrorLine(
     u64 line,
     u64 col,
@@ -429,6 +443,7 @@ void Diagnostic::displayErrorLine(
     if (byteOffset != text.size())
         caretLength = std::min(length, text.size() - byteOffset);
 
+    trimDiagnosticWhiteSpace(text, col);
     std::string space(col - 1, ' ');
     std::string highlight(caretLength, '^');
     auto size{std::to_string(maxLineNo).size()};
