@@ -307,7 +307,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
 		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_R:
-		case OP_RANGE:
+		case OP_RANGE:      case OP_METHOD:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:

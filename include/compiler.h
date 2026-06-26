@@ -203,6 +203,7 @@ class Compiler
             const std::string& name
         );
         void funcBodyHelper(
+            Compiler& miniCompiler,
             const std::vector<AST::Param>& params,
             const StmtUP& body,
             const u8 funcReg,
@@ -213,13 +214,19 @@ class Compiler
         // Checking for name collisions in type declarations.
 
         // Checking collisions among fields.
-        [[nodiscard]] std::pair<bool, Token> checkFieldCollisions(
+        [[nodiscard]] bool checkFieldCollisions(
             const AST::Statement::TypeDecl* node
-        ) const;
+        );
+        [[nodiscard]] bool checkMethodCollisions(
+            const AST::Statement::TypeDecl* node
+        );
         // Checking collisions between fields and methods.
-        [[nodiscard]] std::pair<bool, Token> checkMixedCollisions(
+        [[nodiscard]] bool checkMixedCollisions(
             const AST::Statement::TypeDecl* node
-        ) const;
+        );
+        [[nodiscard]] bool checkTypeNameCollisions(
+            const AST::Statement::TypeDecl* node
+        );
         DECL_STMT(TypeDecl);
 
         /* Statements. */

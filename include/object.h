@@ -391,15 +391,11 @@ struct Type : public HeapObj
     Type(
         const std::string& name,
         std::vector<FieldPair>& fields,
-        const ByteCode* inits,
-        HashTable<std::string, Object>& methods
-    ) noexcept;
-    Type(
-        const std::string& name,
-        std::vector<FieldPair>& fields,
         const ByteCode* inits
     ) noexcept;
     ~Type() noexcept;
+
+    void addMethod(const Object& method);
 
     void emit(std::ofstream& os) const;
     // Emits only metadata components.
@@ -417,8 +413,7 @@ struct Instance : public HeapObj
 
     // For internal use only.
     [[nodiscard]] Object* findField(const std::string& name);
-    [[nodiscard]]
-    std::pair<const Object*, Object> findField(const std::string& name) const;
+    [[nodiscard]] const Object* findField(const std::string& name) const;
 
     [[nodiscard]] Object getField(const std::string& name) const;
     void setField(const std::string& name, const Object& value);
@@ -458,10 +453,10 @@ struct Function : public HeapObj
 
 struct Method : public HeapObj
 {
-    const Function* function{};
+    const Object funcObj{}; // Function or closure.
     const Instance* boundInstance{};
 
-    Method(const Function* function, const Instance* instance) noexcept;
+    Method(const Object& funcObj) noexcept;
 };
 
 struct Closure : public HeapObj

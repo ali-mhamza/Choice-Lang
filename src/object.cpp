@@ -447,23 +447,6 @@ ObjIter* Object::makeIter()
 Type::Type(
     const std::string& name,
     std::vector<FieldPair>& fields,
-    const ByteCode* inits,
-    HashTable<std::string, Object>& methods
-) noexcept:
-    name{choiceStrdup(name.c_str())}, fieldCode{inits},
-    methods{std::move(methods)}
-{
-    u8 count{0};
-    for (const auto& field : fields)
-    {
-        this->fields.emplace_back(field.first, field.second);
-        this->fieldTable.add(field.first, count++);
-    }
-}
-
-Type::Type(
-    const std::string& name,
-    std::vector<FieldPair>& fields,
     const ByteCode* inits
 ) noexcept:
     name{choiceStrdup(name.c_str())}, fieldCode{inits}
@@ -480,6 +463,16 @@ Type::~Type() noexcept
 {
     delete[] name;
     delete[] fieldCode;
+}
+
+void Type::addMethod(const Object& method)
+{
+    const char* name{};
+    if (IS_USER_FUNC(method))
+        name = AS_USER_FUNC(method)->name;
+    else if (IS_CLOSURE(method))
+        name = AS_CLOSURE(method)->function->name;
+    methods.add(name, Object{CH_ALLOC(Method, method)});
 }
 
 void Type::emit(std::ofstream& os) const
@@ -571,17 +564,14 @@ Object* Instance::findField(const std::string& name)
    return location;
 }
 
-std::pair<const Object*, Object>
-Instance::findField(const std::string& name) const
+const Object* Instance::findField(const std::string& name) const
 {
     const Object* location{fields.get(name)};
-    Object method{};
-
     if (location == nullptr)
     {
         location = type->methods.get(name);
         if (location != nullptr)
-            method = CH_ALLOC(Method, AS_USER_FUNC(*location), this);
+            AS_METHOD(*location)->boundInstance = this;
         else
         {
             throw RuntimeError(FIELD_NOT_DEFINED,
@@ -589,22 +579,19 @@ Instance::findField(const std::string& name) const
         }
     }
 
-   return std::make_pair(location, method);
+   return location;
 }
 
 Object Instance::getField(const std::string& name) const
 {
-    const auto [location, method] = findField(name);
-    if (IS_VALID(method))
-        return method;
+    const Object* location{findField(name)};
     return *location;
 }
 
 void Instance::setField(const std::string& name, const Object& value)
 {
     Object* location{findField(name)};
-    // Field is fixed, but the flag is placed on the value
-    // itself.
+    // Field is fixed, but the flag is placed on the value itself.
     if (IS_FIXED(*location))
         throw RuntimeError(MOD_FIXED_FIELD);
     *location = value;
@@ -622,8 +609,7 @@ void Instance::initField(const std::string& name, const Object& value)
     if (fix)
     {
         MAKE_FIXED(*location);
-        if (!IS_MUT(*location))
-            MAKE_IMMUT(*location);
+        if (!IS_MUT(*location)) MAKE_IMMUT(*location);
     }
 }
 
@@ -734,8 +720,8 @@ u64 Function::byteSize() const
     return size;
 }
 
-Method::Method(const Function* function, const Instance* instance) noexcept:
-    function{function}, boundInstance{instance} {}
+Method::Method(const Object& funcObj) noexcept:
+    funcObj{funcObj} {}
 
 Closure::Closure(Function* function) noexcept:
     function{function}

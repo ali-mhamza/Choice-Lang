@@ -506,16 +506,9 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
         return;
     }
 
-    bool isMethod{IS_METHOD(callee)}, isClosure{IS_CLOSURE(callee)};
+    bool isClosure{IS_CLOSURE(callee)};
     Closure* closure{isClosure ? AS_CLOSURE(callee) : nullptr};
-    const Function* func{};
-
-    if (isMethod)
-        func = AS_METHOD(callee)->function;
-    else if (isClosure)
-        func = closure->function;
-    else
-        func = AS_USER_FUNC(callee);
+    Function* func{isClosure ? closure->function : AS_USER_FUNC(callee)};
 
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
@@ -592,8 +585,10 @@ void VM::callMethod(const Object& callee, u8 start, u8 argCount)
     // for the instance object.
     std::move_backward(&registers[start], &registers[start + argCount],
         &registers[start + argCount + 1]);
-    registers[start] = AS_METHOD(callee)->boundInstance;
-    callFunc(callee, start, argCount);
+    const Method* method{AS_METHOD(callee)};
+    registers[start - 1] = method->funcObj;
+    registers[start] = method->boundInstance;
+    callFunc(method->funcObj, start, argCount);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
@@ -1321,6 +1316,15 @@ void VM::executeOp(Opcode op)
             }
 
             registers[reg] = list;
+            DISPATCH();
+        }
+
+        CASE(OP_METHOD):
+        {
+            u8 typeReg{readByte()};
+            u8 funcReg{readByte()};
+
+            AS_USER_TYPE(registers[typeReg])->addMethod(registers[funcReg]);
             DISPATCH();
         }
 

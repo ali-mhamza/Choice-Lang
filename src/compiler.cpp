@@ -559,13 +559,13 @@ Object Compiler::makeFuncObj(
 }
 
 void Compiler::funcBodyHelper(
+    Compiler& miniCompiler,
     const std::vector<AST::Param>& params,
     const StmtUP& body,
     const u8 funcReg,
     const std::string& name
 )
 {
-    Compiler miniCompiler{this};
     Object func{makeFuncObj(miniCompiler, params, body, name)};
 
     // We only declare in the current function scope.
@@ -613,16 +613,17 @@ DEF(FuncDecl)
     }
 
     bool inError{hitError};
-    funcBodyHelper(node->params, node->body, varSlot, name);
+    Compiler miniCompiler{this};
+    funcBodyHelper(miniCompiler, node->params, node->body, varSlot, name);
     if (!inError && hitError) removeVar(name);
     endDeclaration();
 }
 
 // Using basic loops for the time being (assuming small types).
 
-std::pair<bool, Token> Compiler::checkFieldCollisions(
+bool Compiler::checkFieldCollisions(
     const TypeDecl* node
-) const
+)
 {
     const auto& fields{node->fields};
     const u64 fieldCount{fields.size()};
@@ -631,17 +632,47 @@ std::pair<bool, Token> Compiler::checkFieldCollisions(
         for (u64 j{0}; j < fieldCount; j++)
         {
             if (i == j) continue;
+
             if (fields[i].name.text == fields[j].name.text)
-                return std::make_pair(false, fields[std::max(i, j)].name);
+            {
+                reportError(FIELD_ALREADY_DEFINED, fields[std::max(i, j)].name);
+                return false;
+            }
         }
     }
 
-    return std::make_pair(true, Token{});
+    return true;
 }
 
-std::pair<bool, Token> Compiler::checkMixedCollisions(
+bool Compiler::checkMethodCollisions(
     const TypeDecl* node
-) const
+)
+{
+    const auto& methods{node->methods};
+    const u64 methodCount{methods.size()};
+
+    for (u64 i{0}; i < methodCount; i++)
+    {
+        const FuncDecl* firstDecl{static_cast<FuncDecl*>(methods[i].get())};
+        for (u64 j{0}; j < methodCount; j++)
+        {
+            if (i == j) continue;
+
+            const FuncDecl* secondDecl{static_cast<FuncDecl*>(methods[j].get())};
+            if (firstDecl->name.text == secondDecl->name.text)
+            {
+                reportError(METHOD_ALREADY_DEFINED, secondDecl->name);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool Compiler::checkMixedCollisions(
+    const TypeDecl* node
+)
 {
     const auto& fields{node->fields};
     const u64 fieldCount{fields.size()};
@@ -655,25 +686,33 @@ std::pair<bool, Token> Compiler::checkMixedCollisions(
         {
             const FuncDecl* decl{static_cast<FuncDecl*>(methods[j].get())};
             if (fields[i].name.text == decl->name.text)
-                return std::make_pair(false, decl->name);
+            {
+                reportError(METHOD_FIELD_COLLIDE, decl->name);
+                return false;
+            }
         }
     }
 
-    return std::make_pair(true, Token{});
+    return true;
+}
+
+bool Compiler::checkTypeNameCollisions(
+    const TypeDecl* node
+)
+{
+    return checkFieldCollisions(node) && checkMethodCollisions(node)
+        && checkMixedCollisions(node);
 }
 
 DEF(TypeDecl)
 {
-    {
-        const auto& [collisionFree, errorTok] = checkFieldCollisions(node);
-        if (!collisionFree) REPORT_ERROR(FIELD_ALREADY_DEFINED, errorTok);
-    }
-    {
-        const auto& [collisionFree, errorTok] = checkMixedCollisions(node);
-        if (!collisionFree) REPORT_ERROR(METHOD_FIELD_COLLIDE, errorTok);
-    }
+    if (!checkTypeNameCollisions(node)) return;
 
+    u8 typeReg{nextReg};
     std::string name{node->name.text};
+    defVar(name, typeReg, accessVar);
+    reserveReg();
+
     std::vector<Type::FieldPair> fields{};
     ByteCode* fieldInits{new ByteCode[node->fields.size()]};
     ByteCode* temp{fieldInits};
@@ -686,7 +725,6 @@ DEF(TypeDecl)
             Compiler initCompiler{this};
             initCompiler.compileExpr(field.init);
             *temp = initCompiler.getCode();
-            initCompiler.code.clear();
         }
         else
             temp->loadReg(0, OP_NULL);
@@ -695,30 +733,26 @@ DEF(TypeDecl)
         temp++;
     }
 
-    HashTable<std::string, Object> methods{};
+    u8 methodStart{nextReg};
     for (const auto& method : node->methods)
     {
         FuncDecl* decl{static_cast<FuncDecl*>(method.get())};
         std::string name{decl->name.text};
 
         Compiler miniCompiler{this};
+        u8 funcReg{nextReg};
+
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
-        Object func{makeFuncObj(miniCompiler, decl->params, decl->body, name)};
-
-        if (methods.contains(name))
-            reportError(METHOD_ALREADY_DEFINED, decl->name);
-        methods.add(name, func);
+        funcBodyHelper(miniCompiler, decl->params, decl->body, funcReg, name);
     }
 
-    Type* type{CH_ALLOC(Type, name, fields, fieldInits, methods)};
-    // TODO: check if any fields collide among themselves,
-    // or if any methods and fields collide.
+    Object typeObj{CH_ALLOC(Type, name, fields, fieldInits)};
+    code.loadRegConst(typeObj, typeReg);
 
-    Object typeObj{type};
-    code.loadRegConst(typeObj, nextReg);
-    defVar(name, nextReg, accessVar);
-    reserveReg();
+    for (u64 i{0}; i < node->methods.size(); i++)
+        code.addOp(OP_METHOD, typeReg, static_cast<u8>(methodStart + i));
+    nextReg = typeReg + 1; // Methods shouldn't continue to live in registers.
 }
 
 DEF(IfStmt)
@@ -1601,7 +1635,9 @@ DEF(LambdaExpr)
     if (node->params.size() > PARAMETER_MAX)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
 
-    funcBodyHelper(node->params, node->body, nextReg, std::string{});
+    Compiler miniCompiler{this};
+    funcBodyHelper(miniCompiler, node->params, node->body, nextReg,
+        std::string{});
     reserveReg();
 }
 

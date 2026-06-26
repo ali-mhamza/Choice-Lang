@@ -610,19 +610,14 @@ std::string DiagnosticEngine::printStackEntry(
     u64 index
 )
 {
-    // The function/method/closure object is always just before
-    // its respective register window, except script-level code
+    // The function/closure object is always just before its
+    // respective register window, except script-level code
     // (which has no such object).
     const Function* func{nullptr};
     if (index != 0)
     {
         const Object& obj{frames[index].regStart[-1]};
-        if (IS_METHOD(obj))
-            func = AS_METHOD(obj)->function;
-        else if (IS_CLOSURE(obj))
-            func = AS_CLOSURE(obj)->function;
-        else
-            func = AS_USER_FUNC(obj);
+        func = (IS_CLOSURE(obj) ? AS_CLOSURE(obj)->function : AS_USER_FUNC(obj));
     }
 
     std::string output{};
