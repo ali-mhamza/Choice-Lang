@@ -191,6 +191,7 @@ class Compiler
             u8 valueReg
         );
         DECL_STMT(VarDecl);
+
         std::pair<ByteCode*, u8> paramHelper(
             Compiler& miniCompiler,
             const std::vector<AST::Param>& params
@@ -208,6 +209,17 @@ class Compiler
             const std::string& name
         );
         DECL_STMT(FuncDecl);
+
+        // Checking for name collisions in type declarations.
+
+        // Checking collisions among fields.
+        [[nodiscard]] std::pair<bool, Token> checkFieldCollisions(
+            const AST::Statement::TypeDecl* node
+        ) const;
+        // Checking collisions between fields and methods.
+        [[nodiscard]] std::pair<bool, Token> checkMixedCollisions(
+            const AST::Statement::TypeDecl* node
+        ) const;
         DECL_STMT(TypeDecl);
 
         /* Statements. */

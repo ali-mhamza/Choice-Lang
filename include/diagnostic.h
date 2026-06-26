@@ -146,8 +146,12 @@ enum DiagCode : u8
     PARAM_ALREADY_DEFINED,
     // No such field for instance type.
     FIELD_NOT_DEFINED,
+    // Field already defined in type.
+    FIELD_ALREADY_DEFINED,
     // Method already defined in type.
     METHOD_ALREADY_DEFINED,
+    // Method name collides with preceding field name.
+    METHOD_FIELD_COLLIDE,
 
 
     /* Type errors. */

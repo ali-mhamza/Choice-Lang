@@ -12,6 +12,7 @@
 #include "../include/token.h"
 #include "../include/utils.h"
 #include <personal/hash_table.h>
+#include <algorithm>
 #include <climits>
 #include <string_view>
 #include <utility>
@@ -617,8 +618,61 @@ DEF(FuncDecl)
     endDeclaration();
 }
 
+// Using basic loops for the time being (assuming small types).
+
+std::pair<bool, Token> Compiler::checkFieldCollisions(
+    const TypeDecl* node
+) const
+{
+    const auto& fields{node->fields};
+    const u64 fieldCount{fields.size()};
+    for (u64 i{0}; i < fieldCount; i++)
+    {
+        for (u64 j{0}; j < fieldCount; j++)
+        {
+            if (i == j) continue;
+            if (fields[i].name.text == fields[j].name.text)
+                return std::make_pair(false, fields[std::max(i, j)].name);
+        }
+    }
+
+    return std::make_pair(true, Token{});
+}
+
+std::pair<bool, Token> Compiler::checkMixedCollisions(
+    const TypeDecl* node
+) const
+{
+    const auto& fields{node->fields};
+    const u64 fieldCount{fields.size()};
+
+    const auto& methods{node->methods};
+    const u64 methodCount{methods.size()};
+
+    for (u64 i{0}; i < fieldCount; i++)
+    {
+        for (u64 j{0}; j < methodCount; j++)
+        {
+            const FuncDecl* decl{static_cast<FuncDecl*>(methods[j].get())};
+            if (fields[i].name.text == decl->name.text)
+                return std::make_pair(false, decl->name);
+        }
+    }
+
+    return std::make_pair(true, Token{});
+}
+
 DEF(TypeDecl)
 {
+    {
+        const auto& [collisionFree, errorTok] = checkFieldCollisions(node);
+        if (!collisionFree) REPORT_ERROR(FIELD_ALREADY_DEFINED, errorTok);
+    }
+    {
+        const auto& [collisionFree, errorTok] = checkMixedCollisions(node);
+        if (!collisionFree) REPORT_ERROR(METHOD_FIELD_COLLIDE, errorTok);
+    }
+
     std::string name{node->name.text};
     std::vector<Type::FieldPair> fields{};
     ByteCode* fieldInits{new ByteCode[node->fields.size()]};
