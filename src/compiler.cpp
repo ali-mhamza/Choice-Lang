@@ -417,8 +417,6 @@ void Compiler::compileSingleVarDecl(
 
     std::string varName{name.text};
     u8 varSlot{valueReg};
-    // Define first, since initializer could be a lambda
-    // that references the variable.
     defVar(varName, varSlot, (fix ? accessFix : accessVar));
 
     if (!init) code.loadReg(varSlot, OP_NULL);
