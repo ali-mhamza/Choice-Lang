@@ -124,6 +124,7 @@ bool Object::operator==(const Object& other) const
         case OBJ_USER_FUNC:
         case OBJ_LAMBDA:    return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
         case OBJ_CLOSURE:   return AS_CLOSURE(*this) == AS_CLOSURE(other);
+        case OBJ_METHOD:    return *(AS_METHOD(*this)) == *(AS_METHOD(*this));
         case OBJ_STRING:    return *(AS_STRING(*this)) == *(AS_STRING(other));
         case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
         case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
@@ -276,6 +277,7 @@ Hash Object::hash() const
         case OBJ_USER_FUNC:
         case OBJ_LAMBDA:    return hashPointer(AS_USER_FUNC(*this));
         case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
+        case OBJ_METHOD:    return AS_METHOD(*this)->hash();
         case OBJ_STRING:    return hashKey(AS_STRING(*this)->str);
         case OBJ_RANGE:
         {
@@ -355,6 +357,17 @@ std::string Object::printVal() const
                 ret = "lambda";
             else
                 ret = CH_STR("<func {}>", closure->function->name);
+            break;
+        }
+        case OBJ_METHOD:
+        {
+            Method* method{AS_METHOD(*this)};
+            Function* func{};
+            if (IS_USER_FUNC(method->funcObj))
+                func = AS_USER_FUNC(method->funcObj);
+            else if (IS_CLOSURE(method->funcObj))
+                func = AS_CLOSURE(method->funcObj)->function;
+            ret = CH_STR("<method {}>", func->name);
             break;
         }
         // Pass nesting status to possibly nesting collection types.
@@ -720,9 +733,6 @@ u64 Function::byteSize() const
     return size;
 }
 
-Method::Method(const Object& funcObj) noexcept:
-    funcObj{funcObj} {}
-
 Closure::Closure(Function* function) noexcept:
     function{function}
 {
@@ -753,6 +763,22 @@ void Closure::addCell(Cell* cell)
         cell->refCount++;
     #endif
     cells.push(cell);
+}
+
+Method::Method(const Object& funcObj) noexcept:
+    funcObj{funcObj} {}
+
+bool Method::operator==(const Method& other) const
+{
+    // Should be the same method and bound to the same
+    // instance.
+    return ((this->funcObj == other.funcObj)
+            && (this->boundInstance == other.boundInstance));
+}
+
+Hash Method::hash() const
+{
+    return funcObj.hash() + boundInstance->hash();
 }
 
 String::String(const std::string& str) noexcept:

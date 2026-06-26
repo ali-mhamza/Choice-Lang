@@ -468,6 +468,9 @@ struct Method : public HeapObj
     const Instance* boundInstance{};
 
     Method(const Object& funcObj) noexcept;
+    bool operator==(const Method& other) const;
+
+    [[nodiscard]] Hash hash() const;
 };
 
 struct String : public HeapObj
