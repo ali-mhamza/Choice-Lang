@@ -959,7 +959,7 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
-            bool fixed(IS_FIXED(globalRegisters[dest]));
+            bool fixed{IS_FIXED(globalRegisters[dest])};
 
             if CH_UNLIKELY(IS_REF(registers[src]))
                 COPY(globalRegisters[dest], deref(registers[src]));
