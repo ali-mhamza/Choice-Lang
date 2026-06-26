@@ -191,11 +191,8 @@ void Natives::len(iter it, u8 args)
             len = AS_STRING(obj)->str.size();
             break;
         case OBJ_RANGE:
-        {
-            auto* range{AS_RANGE(obj)};
-            len = range->length();
+            len = AS_RANGE(obj)->length();
             break;
-        }
         case OBJ_LIST:
             len = AS_LIST(obj)->array.count();
             break;
