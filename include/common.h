@@ -79,6 +79,11 @@
 	>;
 #endif
 
+// Opcode appearance.
+
+// Strip the "OP_" prefix when printing opcodes.
+#define OPCODE_STRIP_PREFIX 1
+
 // Inserting quote-marks.
 
 #define CH_QUOTE_MARK "'"

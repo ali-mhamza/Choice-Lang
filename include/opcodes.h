@@ -144,7 +144,13 @@ enum Opcode : u8 // Each opcode is a single byte.
 #define IS_VALID_OP(op)	(((op) >= OP_NEG_TWO) && ((op) < TOTAL_OPS))
 
 constexpr std::array<std::string_view, TOTAL_OPS> opNames{
-	#define LABEL(name, ...) #name,
+    #if OPCODE_STRIP_PREFIX
+        #define LABEL(name, ...) std::string_view{#name}.substr(3),
+	#else
+	    #define LABEL(name) #name
+	#endif
+
 	#include "opcode_list.inc"
+
 	#undef LABEL
 };
