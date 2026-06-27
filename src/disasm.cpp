@@ -8,6 +8,12 @@
 #include "../include/opcodes.h"
 #include <string_view>
 
+#if OPCODE_STRIP_PREFIX
+    #define OP_STRING "{:<12} "
+#else
+    #define OP_STRING "{:<15} "
+#endif
+
 #define PRINT_FULL_OFFSET 1
 
 Disassembler::Disassembler(const Function* function) :
@@ -17,10 +23,10 @@ Disassembler::Disassembler(const Function* function) :
 void Disassembler::printOpcode(std::string_view opName)
 {
 	#if PRINT_FULL_OFFSET
-		CH_PRINT("{:0>4} {:<15} ", ip - start, opName);
+		CH_PRINT("{:0>4} " OP_STRING, ip - start, opName);
 	#else
 		// Prints leading spaces, not zeros.
-		CH_PRINT("{:>4} {:<15} ", ip - start, opName);
+		CH_PRINT("{:>4} " OP_STRING, ip - start, opName);
 	#endif
 
 	ip++;
@@ -121,7 +127,7 @@ void Disassembler::doubleOper(u8 byte)
 
 void Disassembler::loadOp()
 {
-	printOpcode("OP_LOAD_R");
+	printOpcode(opNames[OP_LOAD_R]);
 	CH_PRINT("R[{}] ", readByte());
 
 	switch (readByte())
@@ -384,3 +390,6 @@ void Disassembler::disassembleCode()
 	while (ip < end)
 		disassembleOp(*ip);
 }
+
+#undef PRINT_FULL_OFFSET
+#undef OP_STRING
