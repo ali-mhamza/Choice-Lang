@@ -41,7 +41,7 @@ class Disassembler
         void typeOp(u8 byte);
         // For closure captures.
         void captureOp(u8 byte);
-        // For OP_UNPACK(_ORD).
+        // For OP_UNPACK.
         void unpackOp(u8 byte);
         // For OP_MAKE_REF.
         void referenceOp();
