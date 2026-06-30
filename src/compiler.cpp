@@ -1738,7 +1738,11 @@ void Compiler::comprehension(
     }
 
     u8 varCount{static_cast<u8>(node->header.vars.size())};
-    if (varCount > 1) code.addOp(OP_UNPACK, varReg, varCount);
+    if (varCount > 1)
+    {
+        code.addOp(OP_UNPACK, varReg, varCount);
+        emitUnpackState(node->header.unpack);
+    }
     if (node->header.fix) code.addOp(OP_FIX, varReg, varCount);
     append();
 
