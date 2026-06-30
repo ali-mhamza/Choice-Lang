@@ -7,6 +7,7 @@
 #include "../include/object.h"
 #include "../include/utils.h"
 #include <fmt/base.h>
+#include <algorithm>
 #include <array>
 #include <climits>
 #include <cstdio>
@@ -529,6 +530,7 @@ void BinaryInspector::inspectFileName()
 
 void BinaryInspector::inspectLineMarkers()
 {
+    constexpr u64 maxLineMarkersDisplayed{5};
 	constexpr u64 titleLength{sizeof("Number of line markers")};
 	u64 start{}, end{};
 
@@ -548,34 +550,26 @@ void BinaryInspector::inspectLineMarkers()
 	printStartEnd(start, end, true);
 	printEntryTitle("Line markers:", titleLength);
 
-	if (numMarkers == 0)
-		CH_PRINT("[]\n");
-	else
-	{
-		CH_PRINT("[");
+	CH_PRINT("[");
+	u64 maxMarkers{std::min(numMarkers, maxLineMarkersDisplayed)};
+    for (u64 i{0}; i < maxMarkers; i++)
+    {
+        CH_PRINT("{}", lineMarkers[i]);
+        if (i != maxMarkers - 1)
+       	CH_PRINT(", ");
+    }
 
-		if (numMarkers <= 5)
-		{
-			for (u64 i{0}; i < numMarkers; i++)
-			{
-				CH_PRINT("{}", lineMarkers[i]);
-				if (i != numMarkers - 1)
-					CH_PRINT(", ");
-			}
-		}
-		else
-		{
-			for (u64 i{0}; i < 5; i++)
-			{
-				CH_PRINT("{}", lineMarkers[i]);
-				CH_PRINT(", ");
-			}
-			CH_PRINT("..., ");
-			CH_PRINT("{}, {}", lineMarkers[numMarkers - 2], lineMarkers[numMarkers - 1]);
-		}
+    if (numMarkers > maxLineMarkersDisplayed)
+    {
+        CH_PRINT(", ...");
+        if (numMarkers > maxLineMarkersDisplayed + 2)
+        {
+            CH_PRINT(", {}, {}", lineMarkers[numMarkers - 2],
+                lineMarkers[numMarkers - 1]);
+        }
+    }
 
-		CH_PRINT("]\n");
-	}
+	CH_PRINT("]\n");
 }
 
 void BinaryInspector::inspectByteCode()
