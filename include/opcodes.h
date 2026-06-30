@@ -1,3 +1,8 @@
+/*
+ * Enum and string names for opcodes used in bytecode
+ * chunks.
+ */
+
 #pragma once
 #include "common.h"
 #include <array>

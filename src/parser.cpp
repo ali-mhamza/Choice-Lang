@@ -1,3 +1,10 @@
+/*
+ * All code for the parser in the interpreter pipeline.
+ * The parser takes an array of tokens from the lexer and
+ * returns an AST to be compiled, while performing necessary
+ * error-reporting.
+ */
+
 #include "../include/parser.h"
 #include "../include/astnodes.h"
 #include "../include/common.h"

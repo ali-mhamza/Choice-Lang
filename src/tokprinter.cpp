@@ -1,3 +1,8 @@
+/*
+ * Code for the TokenPrinter class to display a series of
+ * tokens constructed by the lexer from a source code string.
+ */
+
 #include "../include/tokprinter.h"
 #include "../include/common.h"
 #include "../include/diagnostic.h"

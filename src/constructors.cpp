@@ -1,3 +1,9 @@
+/*
+ * Native definitions for built-in object constructors,
+ * as well as other necessary data to print them out
+ * or resolve them.
+ */
+
 #include "../include/constructors.h"
 #include "../include/common.h"
 #include "../include/config.h"

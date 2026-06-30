@@ -1,3 +1,9 @@
+/*
+ * Methods on ByteCode objects.
+ * Covers instructions, encoding and decoding data, as well
+ * as error reporting helpers.
+ */
+
 #include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"

@@ -1,3 +1,7 @@
+/*
+ * Constructors, deconstructors and helpers for linear allocator.
+ */
+
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 
 #include "../include/linear_alloc.h"

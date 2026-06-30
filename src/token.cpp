@@ -1,3 +1,7 @@
+/*
+ * Constructors and operators for the Token struct type.
+ */
+
 #include "../include/token.h"
 #include "../include/common.h"
 #include <string_view>

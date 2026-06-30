@@ -1,3 +1,8 @@
+/*
+ * Common macros, type aliases, and global variables used
+ * throughout the interpreter.
+ */
+
 #pragma once
 #include <cstdint>
 #include <string>

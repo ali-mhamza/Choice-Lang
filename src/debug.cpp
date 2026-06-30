@@ -1,3 +1,8 @@
+/*
+ * Helper methods and overloaded operators for identifying
+ * compatible debug ranges during error reporting.
+ */
+
 #include "../include/debug.h"
 
 bool DebugRange::operator==(const DebugRange& other) const

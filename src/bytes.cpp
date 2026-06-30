@@ -1,3 +1,9 @@
+/*
+ * Classes to reconstruct encoded ByteCode objects from
+ * bytecode cache files, as well as to display labeled sections
+ * within cache files for inspection.
+ */
+
 #include "../include/bytes.h"
 #include "../include/astnodes.h"
 #include "../include/bytecode.h"

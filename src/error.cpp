@@ -1,3 +1,8 @@
+/*
+ * Error reporting constructors and helpers for common runtime
+ * errors.
+ */
+
 #include "../include/error.h"
 #include "../include/common.h"
 #include <string>

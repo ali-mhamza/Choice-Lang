@@ -1,3 +1,9 @@
+/*
+ * Helpers and functions to handle various escape sequences
+ * and unicode characters, including error handling where
+ * necessary.
+ */
+
 #include "../include/escape_seq.h"
 #include "../include/common.h"
 #include "../include/utils.h"

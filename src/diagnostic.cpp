@@ -1,3 +1,8 @@
+/*
+ * Methods to format, display, and explain diagnostic errors,
+ * possibly with accompanying error displays, stack traces, etc.
+ */
+
 #include "../include/diagnostic.h"
 #include "../include/common.h"
 #include "../include/config.h"

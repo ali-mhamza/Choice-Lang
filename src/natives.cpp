@@ -1,3 +1,8 @@
+/*
+ * Implementations of built-in, native functions, as well
+ * as necessary data to print them out or resolve them.
+ */
+
 #include "../include/natives.h"
 #include "../include/common.h"
 #include "../include/error.h"

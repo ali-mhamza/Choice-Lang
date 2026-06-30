@@ -1,3 +1,8 @@
+/*
+ * All constructors, methods, operators, etc. for the generic Object
+ * class, as well as all child object types (including iterators).
+ */
+
 #include "../include/object.h"
 #include "../include/bytecode.h"
 #include "../include/bytes.h"

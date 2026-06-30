@@ -1,3 +1,10 @@
+/*
+ * General helpers for different allocators.
+ * Provides memory alignment functions, types for proper
+ * destructor logic, and macros for easier handling of memory
+ * blocks.
+ */
+
 #if CH_USE_ALLOC
 
 #pragma once

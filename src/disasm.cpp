@@ -1,3 +1,8 @@
+/*
+ * All code for the disassembler to display a ByteCode chunk/script
+ * in an intelligible manner for inspection, debugging, etc.
+ */
+
 #include "../include/disasm.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"

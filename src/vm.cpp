@@ -1,3 +1,10 @@
+/*
+ * All code for the VM in the interpreter pipeline.
+ * The VM takes a script from the compiler or reconstructed bytecode
+ * chunk and executes it.
+ * Code includes the main VM dispatch loop, helpers, and error-handling.
+ */
+
 #include "../include/vm.h"
 #include "../include/compiler.h"
 #include "../include/bytecode.h"

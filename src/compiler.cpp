@@ -1,3 +1,9 @@
+/*
+ * All code for the compiler in the interpreter pipeline.
+ * At global scope, the compiler takes an AST and returns
+ * a ByteCode object (with associated metadata).
+ */
+
 #include "../include/compiler.h"
 #include "../include/astnodes.h"
 #include "../include/common.h"

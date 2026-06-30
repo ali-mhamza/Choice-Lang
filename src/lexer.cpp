@@ -1,3 +1,9 @@
+/*
+ * All code for the lexer in the interpreter pipeline.
+ * The lexer takes a string input representing user code and
+ * returns an array of processed tokens.
+ */
+
 #include "../include/lexer.h"
 #include "../include/common.h"
 #include "../include/config.h"

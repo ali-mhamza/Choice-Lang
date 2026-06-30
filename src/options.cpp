@@ -1,3 +1,8 @@
+/*
+ * All option handlers for interpreter options, with additional
+ * helpers for common functionalities.
+ */
+
 #include "../include/options.h"
 #include "../include/compiler.h"
 #include "../include/bytes.h"

@@ -1,3 +1,8 @@
+/*
+ * Necessary constructors, operators and functions for the
+ * VarEntry type used in the compiler symbol table.
+ */
+
 #include "../include/vartable.h"
 #include "../include/common.h"
 #include <personal/hash_functions.h>

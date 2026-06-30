@@ -1,3 +1,8 @@
+/*
+ * Execution starting point for REPL, file execution, as well
+ * as other options.
+ */
+
 #include "../include/args.h"
 #include "../include/common.h"
 #include "../include/debug.h"

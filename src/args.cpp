@@ -1,3 +1,7 @@
+/*
+ * Main argument parsing, validation, and pipeline driver.
+ */
+
 #include "../include/args.h"
 #include "../include/diagnostic.h"
 #include "../include/options.h"

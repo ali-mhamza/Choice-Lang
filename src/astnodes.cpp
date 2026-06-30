@@ -1,3 +1,7 @@
+/*
+ * Constructors for AST nodes and components.
+ */
+
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/token.h"

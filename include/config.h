@@ -1,3 +1,8 @@
+/*
+ * Configuration constants to adjust certain behavior
+ * in the interpreter (and avoid magic numbers).
+ */
+
 #pragma once
 
 /* General */
