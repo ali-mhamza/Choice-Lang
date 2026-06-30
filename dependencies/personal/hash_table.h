@@ -112,9 +112,11 @@ class HashTable
 
     public:
         HashTable();
-        HashTable(const HashTable& other);
+        HashTable(const HashTable& other) = default;
+        HashTable& operator=(const HashTable& other) = default;
+        HashTable(HashTable&& other) = default;
+        HashTable& operator=(HashTable&& other) = default;
         ~HashTable() = default;
-        HashTable& operator=(const HashTable& other);
         Value& operator[](const Key& key);
 
         void add(const Key& key, const Value& value);
@@ -191,21 +193,8 @@ HashTable<Key, Value, HashFunc>::HashTable() :
     getHash(HashFunc()), entries(2), count(0), maxIndex(SIZE_MAX) {}
 
 KVHTEMP
-HashTable<Key, Value, HashFunc>::HashTable(const HashTable<Key, Value, HashFunc>& other) :
-    entries(other.entries), count(other.count),
-    maxIndex(other.maxIndex) {}
-
-KVHTEMP
 HashTable<Key, Value, HashFunc>::HashTable(size_t size) :
     getHash(HashFunc()), entries(size), count(0), maxIndex(SIZE_MAX) {}
-
-KVHTEMP
-HashTable<Key, Value, HashFunc>& HashTable<Key, Value, HashFunc>::
-operator=(const HashTable<Key, Value, HashFunc>& other)
-{
-    this->entries = other.entries;
-    return *this;
-}
 
 KVHTEMP
 Value& HashTable<Key, Value, HashFunc>::operator[](const Key& key)
