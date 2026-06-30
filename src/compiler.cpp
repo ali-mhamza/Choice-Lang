@@ -128,7 +128,7 @@ void Compiler::defVar(const std::string& name, u8 reg, bool access)
 
 void Compiler::removeVar(const std::string& name)
 {
-    VarEntry entry(name, scope);
+    VarEntry entry{name, scope};
     u8 reg{(*varLocations)[entry]};
     varLocations->remove(entry);
     varAccess->remove(reg);
