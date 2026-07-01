@@ -462,7 +462,9 @@ StmtUP Parser::statement()
     StmtUP stmt{nullptr};
     u64 start{currentTok.byteOffset};
 
-    if (consumeTok(TOK_IF))
+    if (consumeTok(TOK_USE))
+        stmt = useStmt();
+    else if (consumeTok(TOK_IF))
         stmt = ifStmt();
     else if (consumeTok(TOK_WHILE))
         stmt = whileStmt();
@@ -503,6 +505,21 @@ StmtUP Parser::statement()
 
     setStmtLocation(stmt, start);
     return stmt;
+}
+
+StmtUP Parser::useStmt()
+{
+    MATCH_TOK(TOK_IDENTIFIER, "expect module name");
+    Token module{previousTok};
+    Token directory{};
+    if (consumeTok(TOK_FROM))
+    {
+        MATCH_TOK(TOK_STR_LIT, "expect module directory path");
+        directory = previousTok;
+    }
+
+    MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'use' statement");
+    return std::make_unique<UseStmt>(module, directory);
 }
 
 StmtUP Parser::ifStmt()
@@ -1166,6 +1183,12 @@ ExprUP Parser::post()
             CHECK_DEPTH(previousTok);
             MATCH_TOK(TOK_IDENTIFIER, "expect field name");
             expr = std::make_unique<FieldExpr>(expr, previousTok);
+        }
+        else if (consumeTok(TOK_SCOPE))
+        {
+            CHECK_DEPTH(previousTok);
+            MATCH_TOK(TOK_IDENTIFIER, "expect name of module entry");
+            expr = std::make_unique<ScopeExpr>(expr, previousTok);
         }
         else
             return expr;

@@ -63,6 +63,7 @@ enum DiagFamily : u8
     VALUE_ERROR,        // Valus is not permissible in context (e.g., division by zero).
     CALL_ERROR,         // General issue with function call (arity, callee type, etc.).
     ASSIGN_ERROR,       // Invalid assignment target.
+    MODULE_ERROR,       // Module/module entry does not exist, cannot be imported, etc.
     MUTATION_ERROR,     // Mutation of an immutable variable or value.
     CONTROL_FLOW_ERROR, // Invalid use of control-flow keyword or structure.
 
@@ -238,6 +239,19 @@ enum DiagCode : u8
     INVALID_ASSIGN_TARGET,
     // LHS is not a variable or valid increment/decrement target.
     INVALID_INCR_DECR_TARGET,
+
+    /* Module errors. */
+
+    // Imported module file does not exist.
+    MODULE_FILE_MISSING,
+    // Module cannot be imported while its import is
+    // in progress (circular import).
+    MODULE_IMPORT_PENDING,
+    // Attempt to access a module entry on a non-module
+    // object.
+    ENTRY_NO_MODULE,
+    // Module does not contain the entry being retrieved.
+    ENTRY_NOT_DEFINED,
 
 
     /* Mutation errors. */

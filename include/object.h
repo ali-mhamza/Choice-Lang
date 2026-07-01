@@ -1,6 +1,7 @@
 #pragma once
 #include "bytecode.h"
 #include "common.h"
+#include "modules.h"
 #include "natives.h"
 #include <personal/array.h>
 #include <personal/hash_table.h>
@@ -40,6 +41,7 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(VOID, heapVal)            \
     X(CORE_TYPE, coreTypeVal)   \
     X(CORE_FUNC, coreFuncVal)   \
+    X(MODULE, moduleVal)        \
     X(USER_TYPE, userTypeVal)   \
     X(INSTANCE, instanceVal)    \
     X(USER_FUNC, userFuncVal)   \
@@ -73,6 +75,7 @@ enum ObjType : u8
 
 /* Forward declarations. */
 
+struct Module;
 struct Type;
 struct Instance;
 struct Function;
@@ -103,9 +106,10 @@ class Object
             double          decVal;
             bool            boolVal;
             ObjType         coreTypeVal;
+            FuncType        coreFuncVal;
+            Module*         moduleVal;
             Type*           userTypeVal;
             Instance*       instanceVal;
-            FuncType        coreFuncVal;
             Function*       userFuncVal;
             Closure*        closureVal;
             Method*         methodVal;
@@ -171,6 +175,7 @@ ObjType getObjectType(T val)
         return OBJ_USER_FUNC;
     }
 
+    if constexpr (std::is_same_v<U, Module>)    return OBJ_MODULE;
     if constexpr (std::is_same_v<U, Type>)      return OBJ_USER_TYPE;
     if constexpr (std::is_same_v<U, Instance>)  return OBJ_INSTANCE;
     if constexpr (std::is_same_v<U, Closure>)   return OBJ_CLOSURE;
@@ -244,7 +249,7 @@ Object::Object(T val) noexcept
 
 inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Bool", "Null", "Void", "Builtin Type",
-    "Builtin Function", "User Type", "Type Instance",
+    "Builtin Function", "Module", "User Type", "Type Instance",
     "User Function", "Lambda", "User Function", "Type Method",
     "BigInt", "BigDec", "String", "Range", "List", "Table",
     "", // References take the type of the contained object.
@@ -278,7 +283,7 @@ TYPE_LIST
     (IS_CORE_FUNC(obj) || IS_FUNCOBJ(obj) || IS_CORE_TYPE(obj) || IS_USER_TYPE(obj))
 
 // Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_USER_TYPE) && ((obj).type() <= OBJ_REF))
+#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_MODULE) && ((obj).type() <= OBJ_REF))
 
 // Object is a numeric object (int or dec/float).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
@@ -373,6 +378,19 @@ struct HeapObj
     #if !CH_USE_ALLOC
         virtual ~HeapObj() = default;
     #endif
+};
+
+struct Module : public HeapObj
+{
+    const char* name{};
+    ModuleTable entries{};
+
+    Module(const std::string& name) noexcept;
+    ~Module() noexcept;
+    bool operator==(const Module& other);
+
+    [[nodiscard]] Object getEntry(const std::string& name) const;
+    void setEntry(const std::string& name, const Object& value);
 };
 
 struct Type : public HeapObj

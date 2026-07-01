@@ -79,6 +79,7 @@ class Parser
         // Statements.
 
         [[nodiscard]] StmtUP statement();
+        [[nodiscard]] StmtUP useStmt();
         [[nodiscard]] StmtUP ifStmt();
         [[nodiscard]] StmtUP whileStmt();
         [[nodiscard]] AST::LoopHeader parseLoopHeader();

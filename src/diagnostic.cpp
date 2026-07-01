@@ -23,15 +23,15 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     UNPACK_TOO_MANY, METHOD_FIELD_COLLIDE, FIELD_NO_INSTANCE,
     INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
-    IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE, UNREACHABLE_CODE,
-    MUT_TO_IMMUT
+    ENTRY_NOT_DEFINED, IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE,
+    UNREACHABLE_CODE, MUT_TO_IMMUT
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Type Error",
     "Value Error", "Function-Call Error", "Assignment Error",
-    "Mutation Error", "Control-Flow Error", "Unused Warning",
-    "Mutability Warning"
+    "Module Error", "Mutation Error", "Control-Flow Error",
+    "Unused Warning", "Mutability Warning"
 };
 
 // Temporarily.
@@ -100,6 +100,13 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     "Invalid assignment target.",
     "Invalid increment/decrement target.",
+
+    // Module errors.
+
+    "Corresponding file for module does not exist.",
+    "Module used in circular import.",
+    "Cannot access module entries on non-module objects.",
+    "Entry not found in module.",
 
     // Mutation errors.
 

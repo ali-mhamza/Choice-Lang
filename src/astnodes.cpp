@@ -48,6 +48,10 @@ TypeDecl::TypeDecl(
     Stmt{S_TYPE_DECL},
     name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}
 
+UseStmt::UseStmt(const Token& module, const Token& directory) :
+    Stmt{S_USE_STMT},
+    module{module}, directory{directory} {}
+
 IfStmt::IfStmt(ExprUP& condition, StmtUP& trueBranch, StmtUP& falseBranch) :
     Stmt{S_IF_STMT},
     condition{std::move(condition)}, trueBranch{std::move(trueBranch)},
@@ -149,6 +153,10 @@ CallExpr::CallExpr(ExprUP& callee, ExprVec& args, bool builtin) :
 FieldExpr::FieldExpr(ExprUP& obj, const Token& field) :
     Expr{E_FIELD_EXPR},
     obj{std::move(obj)}, field{field} {}
+
+ScopeExpr::ScopeExpr(ExprUP& module, const Token& entry) :
+    Expr{E_SCOPE_EXPR},
+    module{std::move(module)}, entry{entry} {}
 
 IfExpr::IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr) :
     Expr{E_IF_EXPR},

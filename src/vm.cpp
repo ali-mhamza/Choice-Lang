@@ -15,6 +15,7 @@
 #include "../include/disasm.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
+#include "../include/modules.h"
 #include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
@@ -24,6 +25,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 #if COPY_INLINE
@@ -59,6 +61,8 @@ VM::~VM()
 {
     delete[] globalRegisters;
 }
+
+std::unordered_set<std::string> VM::imports{};
 
 void VM::defineBuiltinGlobals()
 {
@@ -627,6 +631,25 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
     }
 }
 
+void VM::getModule(Object& module, const Object& dir)
+{
+    Module* module_{AS_MODULE(module)};
+    const std::string name{module_->name};
+
+    // Currently being imported (cut off recursive import).
+    if (imports.find(name) != imports.end())
+        throw RuntimeError(MODULE_IMPORT_PENDING);
+
+    imports.insert(name);
+    // 'dir' object is guaranteed to be a string.
+    auto [success, table] = getModuleTable(name, AS_STRING(dir)->str);
+    if (!success) // Some issue occurred with the module.
+        errorReset();
+    else
+        module_->entries = std::move(table);
+    imports.extract(name);
+}
+
 // Handle regSlot.
 void VM::startIter()
 {
@@ -821,6 +844,17 @@ void VM::reportWarning(DiagCode code, const std::string& label)
     {
         diagEngine.recordWarning(currentCode->getID(), code, 0, 0, label);
         diagEngine.emitReports();
+    }
+}
+
+void VM::errorReset()
+{
+    if (inDeclaration)
+    {
+        Compiler::clearDeclaredVars = true;
+        Compiler::clearIndex = this->clearIndex;
+        inDeclaration = false;
+        this->clearIndex = 0;
     }
 }
 
@@ -1199,6 +1233,33 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        // Modules.
+
+        CASE(OP_MODULE):
+        {
+            u8 moduleReg{readByte()};
+            u8 directoryReg{readByte()};
+
+            getModule(registers[moduleReg], registers[directoryReg]);
+            DISPATCH();
+        }
+        CASE(OP_GET_ENTRY):
+        {
+            u8 destReg{readByte()};
+            u8 moduleReg{readByte()};
+            u8 entryReg{readByte()};
+
+            if (!IS_MODULE(registers[moduleReg]))
+                throw RuntimeError(ENTRY_NO_MODULE);
+
+            Module* module{AS_MODULE(registers[moduleReg])};
+            const std::string& entry{AS_STRING(registers[entryReg])->str};
+            // Replace the module.
+            registers[destReg] = module->getEntry(entry);
+            DISPATCH();
+
+        }
+
         // For-loops.
 
         CASE(OP_MAKE_ITER):
@@ -1509,14 +1570,7 @@ void VM::executeCode()
     catch (RuntimeError& error)
     {
         reportError(error);
-
-        if (inDeclaration)
-        {
-            Compiler::clearDeclaredVars = true;
-            Compiler::clearIndex = this->clearIndex;
-            inDeclaration = false;
-            this->clearIndex = 0;
-        }
+        errorReset();
     }
 }
 

@@ -111,6 +111,11 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_GET_FIELD,       // Retrieve an instance field.
 	OP_SET_FIELD,       // Assign to an instance field.
 
+	/* Modules. */
+
+	OP_MODULE,          // Construct a module object at runtime.
+	OP_GET_ENTRY,       // Retrieve a module entry.
+
 	/* Loop specifics. */
 
 	OP_MAKE_ITER,		// Generate an iterator over an object.

@@ -231,6 +231,7 @@ class Compiler
 
         /* Statements. */
 
+        DECL_STMT(UseStmt);
         DECL_STMT(IfStmt);
         DECL_STMT(WhileStmt);
         void forLoopHelper(
@@ -326,6 +327,7 @@ class Compiler
         DECL_EXPR(IndexExpr);
         DECL_EXPR(CallExpr);
         DECL_EXPR(FieldExpr);
+        DECL_EXPR(ScopeExpr);
         DECL_EXPR(IfExpr);
         DECL_EXPR(LambdaExpr);
         DECL_EXPR(ListExpr);
@@ -364,4 +366,6 @@ class Compiler
         ~Compiler();
 
         [[nodiscard]] Function* compile(FileID id, const StmtVec& program);
+        // Only to be used for modules.
+        [[nodiscard]] const VarTable& getSymbolTable() const;
 };

@@ -759,6 +759,37 @@ DEF(TypeDecl)
     nextReg = typeReg + 1; // Methods shouldn't continue to live in registers.
 }
 
+DEF(UseStmt)
+{
+    LocalInfo localInfo{getScopeLocal(node->module)};
+    // At least for now: if the module was already imported
+    // in this scope, don't import it again.
+    if (localInfo.found) return;
+
+    std::string name{node->module.text};
+    std::string dir{""};
+    if (node->directory.type != TOK_EOF)
+    {
+        // Trim quote-marks around the path string as well.
+        dir = std::string{node->directory.text.substr(1)};
+        dir.pop_back();
+    }
+
+    startDeclaration();
+    Object module{CH_ALLOC(Module, name)};
+    Object directory{CH_ALLOC(String, dir)};
+
+    u8 moduleReg{nextReg};
+    code.loadRegConst(module, moduleReg);
+    defVar(name, nextReg, accessVar);
+    reserveReg();
+
+    u8 directoryReg{nextReg};
+    code.loadRegConst(directory, directoryReg);
+    code.addOp(OP_MODULE, moduleReg, directoryReg);
+    endDeclaration();
+}
+
 DEF(IfStmt)
 {
     u8 reg{compileExpr(node->condition)};
@@ -1619,6 +1650,17 @@ DEF(FieldExpr)
     code.addOp(OP_GET_FIELD, objReg, objReg, fieldReg);
 }
 
+DEF(ScopeExpr)
+{
+    u8 moduleReg{compileExpr(node->module)};
+
+    Object entry{CH_ALLOC(String, node->entry.text)};
+    u8 entryReg{nextReg};
+    code.loadRegConst(entry, entryReg);
+
+    code.addOp(OP_GET_ENTRY, moduleReg, moduleReg, entryReg);
+}
+
 DEF(IfExpr)
 {
     u8 reg{compileExpr(node->condition)};
@@ -1954,6 +1996,7 @@ u8 Compiler::compileExpr(const ExprUP& node)
         case E_INDEX_EXPR:      COMPILE(IndexExpr);         break;
         case E_CALL_EXPR:       COMPILE(CallExpr);          break;
         case E_FIELD_EXPR:      COMPILE(FieldExpr);         break;
+        case E_SCOPE_EXPR:      COMPILE(ScopeExpr);         break;
         case E_IF_EXPR:         COMPILE(IfExpr);            break;
         case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
         case E_LIST_EXPR:       COMPILE(ListExpr);          break;
@@ -1986,6 +2029,7 @@ void Compiler::compileStmt(const StmtUP& node)
         case S_VAR_DECL:    COMPILE(VarDecl);       break;
         case S_FUNC_DECL:   COMPILE(FuncDecl);      break;
         case S_TYPE_DECL:   COMPILE(TypeDecl);      break;
+        case S_USE_STMT:    COMPILE(UseStmt);       break;
         case S_IF_STMT:     COMPILE(IfStmt);        break;
         case S_WHILE_STMT:  COMPILE(WhileStmt);     break;
         case S_FOR_STMT:    COMPILE(ForStmt);       break;
@@ -2029,6 +2073,11 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
         code.addOp(OP_HALT);
 
     return CH_ALLOC(Function, getCode());
+}
+
+const Compiler::VarTable& Compiler::getSymbolTable() const
+{
+    return *(varLocations.get());
 }
 
 #undef DEF

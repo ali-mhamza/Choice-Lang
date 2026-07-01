@@ -134,6 +134,8 @@ enum TokenType : u8
 
 	/* Modules. */
 
+	TOK_USE,            // use
+	TOK_FROM,           // from
 	TOK_SCOPE,          // ::
 
 	TOK_EOF,

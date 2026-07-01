@@ -4,6 +4,8 @@
 #include "config.h"
 #include "object.h"
 #include "opcodes.h"
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 #if defined(DEBUG)
@@ -54,6 +56,7 @@ class VM
         Object* globalRegisters{new Object[NUM_REGS]};
         Object* registers{globalRegisters};
         const Object* pool{};
+        static std::unordered_set<std::string> imports;
 
         std::vector<Object*> scopeStarts{};
         std::vector<CallFrame> frames{};
@@ -120,6 +123,8 @@ class VM
         void callMethod(const Object& callee, u8 start, u8 argCount);
         void callObj(const Object& callee, u8 start, u8 argCount);
 
+        void getModule(Object& module, const Object& dir);
+
         void startIter();
         void updateIter();
 
@@ -139,6 +144,8 @@ class VM
         void reportShortError(const RuntimeError& error);
         void reportError(const RuntimeError& error);
         void reportWarning(DiagCode code, const std::string& label = "");
+        // Reset variable state upon error.
+        void errorReset();
 
         void executeOp(Opcode op);
         void executeChunk(const ByteCode& chunk);
@@ -149,4 +156,7 @@ class VM
         ~VM();
 
         void execute(Function* script);
+        // Only to be used for modules.
+        [[nodiscard]]
+        const Object* getRegisters() const { return globalRegisters; }
 };

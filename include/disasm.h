@@ -39,6 +39,7 @@ class Disassembler
         // Currently: lists and tables.
         void collectionOp(u8 byte);
         void typeOp(u8 byte);
+        void moduleOp(u8 byte);
         // For closure captures.
         void captureOp(u8 byte);
         // For OP_UNPACK.

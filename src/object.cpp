@@ -122,6 +122,7 @@ bool Object::operator==(const Object& other) const
     {
         case OBJ_BOOL:      return AS_BOOL(*this) == AS_BOOL(other);
         case OBJ_NULL:      return true;
+        case OBJ_MODULE:    return *(AS_MODULE(*this)) == *(AS_MODULE(other));
         case OBJ_CORE_TYPE: return AS_CORE_TYPE(*this) == AS_CORE_TYPE(other);
         case OBJ_USER_TYPE: return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
         case OBJ_INSTANCE:  return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
@@ -275,6 +276,7 @@ Hash Object::hash() const
         case OBJ_DEC:       return hashKey(AS_DEC(*this));
         case OBJ_BOOL:      return hashKey(AS_BOOL(*this));
         case OBJ_NULL:      return 0;
+        case OBJ_MODULE:    return hashKey(AS_MODULE(*this)->name);
         case OBJ_CORE_TYPE: return hashKey(static_cast<u8>(AS_CORE_TYPE(*this)));
         case OBJ_USER_TYPE: return hashPointer(AS_USER_TYPE(*this));
         case OBJ_INSTANCE:  return AS_INSTANCE(*this)->hash();
@@ -349,6 +351,7 @@ std::string Object::printVal() const
         case OBJ_DEC:       ret = doubleToStr(AS_DEC(*this));                               break;
         case OBJ_BOOL:      ret = (AS_BOOL(*this) ? "true" : "false");                      break;
         case OBJ_NULL:      ret = "null";                                                   break;
+        case OBJ_MODULE:    ret = CH_STR("<module {}>", AS_MODULE(*this)->name);            break;
         case OBJ_CORE_TYPE: ret = objTypes[AS_CORE_TYPE(*this)];                            break;
         case OBJ_USER_TYPE: ret = CH_STR("<type {}>", AS_USER_TYPE(*this)->name);           break;
         case OBJ_INSTANCE:  ret = AS_INSTANCE(*this)->printVal();                           break;
@@ -460,6 +463,27 @@ ObjIter* Object::makeIter()
 {
     // Metadata + metadata size value (8 bytes).
     return (chunk.metadataSize() * sizeof(DebugRange) + sizeof(u64));
+}
+
+Module::Module(const std::string& name) noexcept:
+    name{choiceStrdup(name.c_str())} {}
+
+Module::~Module() noexcept
+{
+    delete[] name;
+}
+
+bool Module::operator==(const Module& other)
+{
+    return (strcmp(this->name, other.name) == 0);
+}
+
+Object Module::getEntry(const std::string& name) const
+{
+    const Object* obj{entries.get(name)};
+    if (obj == nullptr)
+        throw RuntimeError(ENTRY_NOT_DEFINED);
+    return *obj;
 }
 
 Type::Type(

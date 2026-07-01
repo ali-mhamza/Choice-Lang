@@ -73,6 +73,7 @@ namespace AST
             S_VAR_DECL,
             S_FUNC_DECL,
             S_TYPE_DECL,
+            S_USE_STMT,
             S_IF_STMT,
             S_WHILE_STMT,
             S_FOR_STMT,
@@ -150,6 +151,17 @@ namespace AST
                 const Token& name,
                 std::vector<Field>& fields,
                 StmtVec& methods
+            );
+        };
+
+        struct UseStmt : public Stmt
+        {
+            const Token module{};
+            const Token directory{};
+
+            UseStmt(
+                const Token& module,
+                const Token& directory
             );
         };
 
@@ -290,6 +302,7 @@ namespace AST
             E_INDEX_EXPR,
             E_CALL_EXPR,
             E_FIELD_EXPR,
+            E_SCOPE_EXPR,
             E_IF_EXPR,
             E_LAMBDA_EXPR,
             E_LIST_EXPR,
@@ -454,6 +467,19 @@ namespace AST
             FieldExpr(
                 ExprUP& obj,
                 const Token& field
+            );
+        };
+
+        // Scoped access from within a module.
+        // E.g., module::variable.
+        struct ScopeExpr : public Expr
+        {
+            const ExprUP module{};
+            const Token entry{};
+
+            ScopeExpr(
+                ExprUP& module,
+                const Token& entry
             );
         };
 
