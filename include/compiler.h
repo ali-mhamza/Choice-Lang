@@ -232,6 +232,12 @@ class Compiler
 
         /* Statements. */
 
+        void compileUseModule(
+            const AST::Statement::UseStmt* node
+        );
+        void compileUseModuleEntries(
+            const AST::Statement::UseStmt* node
+        );
         DECL_STMT(UseStmt);
         DECL_STMT(IfStmt);
         DECL_STMT(WhileStmt);

@@ -483,7 +483,11 @@ Object Module::getEntry(const std::string& name) const
 {
     const Object* obj{entries.get(name)};
     if (obj == nullptr)
-        throw RuntimeError(ENTRY_NOT_DEFINED);
+    {
+        throw RuntimeError(ENTRY_NOT_DEFINED,
+            CH_STR("module '{}' has no entry '{}'", this->name, name)
+        );
+    }
     return *obj;
 }
 

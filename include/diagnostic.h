@@ -252,6 +252,9 @@ enum DiagCode : u8
     ENTRY_NO_MODULE,
     // Module does not contain the entry being retrieved.
     ENTRY_NOT_DEFINED,
+    // Alias is given for module when module entries are
+    // specified.
+    ALIAS_SPEC_MODULE,
 
 
     /* Mutation errors. */

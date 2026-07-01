@@ -79,6 +79,7 @@ class Parser
         // Statements.
 
         [[nodiscard]] StmtUP statement();
+        [[nodiscard]] AST::Statement::UseStmt::Entry parseModuleEntry();
         [[nodiscard]] StmtUP useStmt();
         [[nodiscard]] StmtUP ifStmt();
         [[nodiscard]] StmtUP whileStmt();

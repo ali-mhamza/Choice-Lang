@@ -156,14 +156,22 @@ namespace AST
 
         struct UseStmt : public Stmt
         {
+            struct Entry
+            {
+                const Token name{};
+                const Token alias{};
+            };
+
             const Token module{};
             const Token directory{};
             const Token alias{};
+            const std::vector<Entry> entries{};
 
             UseStmt(
                 const Token& module,
                 const Token& directory,
-                const Token& alias
+                const Token& alias,
+                const std::vector<Entry>& entries
             );
         };
 

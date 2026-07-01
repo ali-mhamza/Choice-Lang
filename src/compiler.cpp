@@ -761,7 +761,9 @@ DEF(TypeDecl)
     nextReg = typeReg + 1; // Methods shouldn't continue to live in registers.
 }
 
-DEF(UseStmt)
+void Compiler::compileUseModule(
+    const UseStmt* node
+)
 {
     VarInfo info{resolveVariable(node->module)};
     if (info.found)
@@ -800,6 +802,55 @@ DEF(UseStmt)
     code.loadRegConst(directory, directoryReg);
     code.addOp(OP_MODULE, moduleReg, directoryReg);
     endDeclaration();
+}
+
+void Compiler::compileUseModuleEntries(
+    const UseStmt* node
+)
+{
+    std::string name{node->module.text};
+    std::string dir{};
+    if (node->directory.type != TOK_EOF)
+    {
+        // Trim quote-marks around the path string as well.
+        dir = std::string{node->directory.text.substr(1)};
+        dir.pop_back();
+    }
+
+    startDeclaration();
+    Object module{CH_ALLOC(Module, name)};
+    Object directory{CH_ALLOC(String, dir)};
+
+    u8 moduleReg{nextReg};
+    code.loadRegConst(module, moduleReg);
+    reserveReg();
+
+    u8 directoryReg{nextReg};
+    code.loadRegConst(directory, directoryReg);
+    code.addOp(OP_MODULE, moduleReg, directoryReg);
+
+    for (const auto& entry : node->entries)
+    {
+        Object origName{CH_ALLOC(String, entry.name.text)};
+        u8 entryReg{nextReg};
+        code.loadRegConst(origName, entryReg);
+
+        code.addOp(OP_GET_ENTRY, entryReg, moduleReg, entryReg);
+        std::string entryName{(entry.alias.type == TOK_EOF) ?
+            entry.name.text : entry.alias.text};
+        defVar(entryName, entryReg, accessVar);
+        reserveReg();
+    }
+
+    endDeclaration();
+}
+
+DEF(UseStmt)
+{
+    if (node->entries.empty())
+        compileUseModule(node);
+    else
+        compileUseModuleEntries(node);
 }
 
 DEF(IfStmt)

@@ -507,11 +507,43 @@ StmtUP Parser::statement()
     return stmt;
 }
 
+UseStmt::Entry Parser::parseModuleEntry()
+{
+    if (!matchError(TOK_IDENTIFIER, "expect module entry name"))
+        return {};
+
+    Token name{previousTok};
+    Token alias{};
+    if (consumeTok(TOK_AS))
+    {
+        if (!matchError(TOK_IDENTIFIER, "expect alias for module entry"))
+            return {};
+        alias = previousTok;
+    }
+
+    return { name, alias };
+}
+
 StmtUP Parser::useStmt()
 {
     MATCH_TOK(TOK_IDENTIFIER, "expect module name");
     Token module{previousTok};
     Token directory{}, alias{};
+    std::vector<UseStmt::Entry> entries{};
+
+    if (consumeTok(TOK_SCOPE))
+    {
+        MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before module entry list");
+        do {
+            auto entry{parseModuleEntry()};
+            // Error occurred.
+            if (entry.name.type == TOK_EOF) return nullptr;
+
+            entries.push_back(entry);
+        } while (consumeTok(TOK_COMMA));
+        MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after module entry list");
+    }
+
     if (consumeTok(TOK_FROM))
     {
         MATCH_TOK(TOK_STR_LIT, "expect module directory path");
@@ -519,12 +551,14 @@ StmtUP Parser::useStmt()
     }
     if (consumeTok(TOK_AS))
     {
+        if (!entries.empty())
+            REPORT_SYNTAX(ALIAS_SPEC_MODULE, previousTok);
         MATCH_TOK(TOK_IDENTIFIER, "expect module alias");
         alias = previousTok;
     }
 
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'use' statement");
-    return std::make_unique<UseStmt>(module, directory, alias);
+    return std::make_unique<UseStmt>(module, directory, alias, entries);
 }
 
 StmtUP Parser::ifStmt()
