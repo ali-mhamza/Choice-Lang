@@ -62,7 +62,7 @@ VM::~VM()
     delete[] globalRegisters;
 }
 
-std::unordered_set<std::string> VM::imports{};
+std::unordered_set<std::string> VM::pendingImports{};
 
 void VM::defineBuiltinGlobals()
 {
@@ -637,17 +637,17 @@ void VM::getModule(Object& module, const Object& dir)
     const std::string name{module_->name};
 
     // Currently being imported (cut off recursive import).
-    if (imports.find(name) != imports.end())
+    if (pendingImports.find(name) != pendingImports.end())
         throw RuntimeError(MODULE_IMPORT_PENDING);
 
-    imports.insert(name);
+    pendingImports.insert(name);
     // 'dir' object is guaranteed to be a string.
     auto [success, table] = getModuleTable(name, AS_STRING(dir)->str);
     if (!success) // Some issue occurred with the module.
         errorReset();
     else
         module_->entries = std::move(table);
-    imports.extract(name);
+    pendingImports.extract(name);
 }
 
 // Handle regSlot.

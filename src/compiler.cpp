@@ -763,6 +763,18 @@ DEF(TypeDecl)
 
 DEF(UseStmt)
 {
+    VarInfo info{resolveVariable(node->module)};
+    if (info.found)
+    {
+        if (node->alias.type != TOK_EOF)
+        {
+            emitVariableOp(getVar, info, nextReg, info.slot);
+            defVar(std::string{node->alias.text}, nextReg, accessVar);
+            reserveReg();
+        }
+        return;
+    }
+
     std::string name{node->module.text};
     std::string dir{};
     std::string alias{};

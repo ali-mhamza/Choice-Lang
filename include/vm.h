@@ -56,7 +56,8 @@ class VM
         Object* globalRegisters{new Object[NUM_REGS]};
         Object* registers{globalRegisters};
         const Object* pool{};
-        static std::unordered_set<std::string> imports;
+
+        static std::unordered_set<std::string> pendingImports;
 
         std::vector<Object*> scopeStarts{};
         std::vector<CallFrame> frames{};
