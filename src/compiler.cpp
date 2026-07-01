@@ -763,19 +763,17 @@ DEF(TypeDecl)
 
 DEF(UseStmt)
 {
-    LocalInfo localInfo{getScopeLocal(node->module)};
-    // At least for now: if the module was already imported
-    // in this scope, don't import it again.
-    if (localInfo.found) return;
-
     std::string name{node->module.text};
-    std::string dir{""};
+    std::string dir{};
+    std::string alias{};
     if (node->directory.type != TOK_EOF)
     {
         // Trim quote-marks around the path string as well.
         dir = std::string{node->directory.text.substr(1)};
         dir.pop_back();
     }
+    if (node->alias.type != TOK_EOF)
+        alias = std::string{node->alias.text};
 
     startDeclaration();
     Object module{CH_ALLOC(Module, name)};
@@ -783,7 +781,7 @@ DEF(UseStmt)
 
     u8 moduleReg{nextReg};
     code.loadRegConst(module, moduleReg);
-    defVar(name, nextReg, accessVar);
+    defVar(alias.empty() ? name : alias, nextReg, accessVar);
     reserveReg();
 
     u8 directoryReg{nextReg};

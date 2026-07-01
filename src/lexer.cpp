@@ -55,7 +55,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	// Modules.
 
-	{"use", TOK_USE}, {"from", TOK_FROM}
+	{"use", TOK_USE}, {"from", TOK_FROM}, {"as", TOK_AS}
 };
 
 void Lexer::setUp(FileID id, const std::string_view& code)

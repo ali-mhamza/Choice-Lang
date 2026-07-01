@@ -136,6 +136,7 @@ enum TokenType : u8
 
 	TOK_USE,            // use
 	TOK_FROM,           // from
+	TOK_AS,             // as
 	TOK_SCOPE,          // ::
 
 	TOK_EOF,

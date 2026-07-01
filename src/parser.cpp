@@ -511,15 +511,20 @@ StmtUP Parser::useStmt()
 {
     MATCH_TOK(TOK_IDENTIFIER, "expect module name");
     Token module{previousTok};
-    Token directory{};
+    Token directory{}, alias{};
     if (consumeTok(TOK_FROM))
     {
         MATCH_TOK(TOK_STR_LIT, "expect module directory path");
         directory = previousTok;
     }
+    if (consumeTok(TOK_AS))
+    {
+        MATCH_TOK(TOK_IDENTIFIER, "expect module alias");
+        alias = previousTok;
+    }
 
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'use' statement");
-    return std::make_unique<UseStmt>(module, directory);
+    return std::make_unique<UseStmt>(module, directory, alias);
 }
 
 StmtUP Parser::ifStmt()

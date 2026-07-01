@@ -158,10 +158,12 @@ namespace AST
         {
             const Token module{};
             const Token directory{};
+            const Token alias{};
 
             UseStmt(
                 const Token& module,
-                const Token& directory
+                const Token& directory,
+                const Token& alias
             );
         };
 

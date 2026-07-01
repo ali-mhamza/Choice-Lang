@@ -48,9 +48,10 @@ TypeDecl::TypeDecl(
     Stmt{S_TYPE_DECL},
     name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}
 
-UseStmt::UseStmt(const Token& module, const Token& directory) :
+UseStmt::UseStmt(const Token& module, const Token& directory,
+    const Token& alias) :
     Stmt{S_USE_STMT},
-    module{module}, directory{directory} {}
+    module{module}, directory{directory}, alias{alias} {}
 
 IfStmt::IfStmt(ExprUP& condition, StmtUP& trueBranch, StmtUP& falseBranch) :
     Stmt{S_IF_STMT},
