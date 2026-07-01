@@ -1164,7 +1164,11 @@ DEF(ExprStmt)
     u8 reg{compileExpr(node->expr)};
     if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
         code.addOp(OP_PRINT_VALID, reg);
-    freeReg();
+
+    // Expressions have multiple failure points, so we
+    // don't assume that compilation succeeded and reserved
+    // a register (i.e., we cannot safely call freeReg here).
+    nextReg = reg;
 }
 
 DEF(BlockStmt)
@@ -1416,7 +1420,7 @@ DEF(AssignExpr)
     }
 
     // For multiple assignment, this will ensure that nextReg
-    // is properly restored once ExprStmt calls freeReg().
+    // is properly restored once ExprStmt resets nextReg.
     // For regular assignment (which may be used as an expression),
     // this places any new values right after the RHS of the assignment,
     // maintaining regular operations.
