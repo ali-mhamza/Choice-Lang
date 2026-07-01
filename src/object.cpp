@@ -614,7 +614,8 @@ Object* Instance::findField(const std::string& name)
     if (location == nullptr)
     {
         throw RuntimeError(FIELD_NOT_DEFINED,
-            CH_STR("type '{}' has no field '{}'", type->name, name));
+            CH_STR("type '{}' has no field '{}'", type->name, name)
+        );
     }
 
    return location;
@@ -631,7 +632,8 @@ const Object* Instance::findField(const std::string& name) const
         else
         {
             throw RuntimeError(FIELD_NOT_DEFINED,
-                CH_STR("type '{}' has no field or method '{}'", type->name, name));
+                CH_STR("type '{}' has no field or method '{}'", type->name, name)
+            );
         }
     }
 
