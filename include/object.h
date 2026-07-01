@@ -390,7 +390,9 @@ struct Module : public HeapObj
     bool operator==(const Module& other);
 
     [[nodiscard]] Object getEntry(const std::string& name) const;
-    void setEntry(const std::string& name, const Object& value);
+
+    void emit(std::ofstream& os) const;
+    [[nodiscard]] u64 byteSize() const;
 };
 
 struct Type : public HeapObj

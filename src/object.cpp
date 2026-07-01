@@ -416,6 +416,7 @@ void Object::emit(std::ofstream& os) const
     {
         case OBJ_INT:       Bytes::encodeValue(os, AS_INT(*this));  break;
         case OBJ_DEC:       Bytes::encodeValue(os, AS_DEC(*this));  break;
+        case OBJ_MODULE:    AS_MODULE(*this)->emit(os);             break;
         case OBJ_USER_TYPE: AS_USER_TYPE(*this)->emit(os);          break;
         case OBJ_USER_FUNC:
         case OBJ_LAMBDA:    AS_USER_FUNC(*this)->emit(os);          break;
@@ -484,6 +485,19 @@ Object Module::getEntry(const std::string& name) const
     if (obj == nullptr)
         throw RuntimeError(ENTRY_NOT_DEFINED);
     return *obj;
+}
+
+void Module::emit(std::ofstream& os) const
+{
+    u64 len{strlen(name)};
+    os.put(static_cast<char>(len));
+    os.write(name, static_cast<std::streamsize>(len));
+}
+
+u64 Module::byteSize() const
+{
+    // Added type byte (1) and name length byte (1).
+    return sizeof(u8) * 2 + strlen(name);
 }
 
 Type::Type(

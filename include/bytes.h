@@ -68,6 +68,7 @@ namespace Bytes
             /* Object reconstructors. */
 
             [[nodiscard]] ByteCode reconstructByteCode();
+            [[nodiscard]] Object reconstructModule();
             [[nodiscard]] Object reconstructType();
             [[nodiscard]] Object reconstructFunc();
             [[nodiscard]] Object reconstructString();
@@ -154,6 +155,7 @@ namespace Bytes
             void inspectBriefInt(u64 start);
             void inspectBriefDec(u64 start);
             void inspectBriefString(u64 start);
+            void inspectBriefModule(u64 start);
 
             void skipByteCode();
             void inspectBriefType(u64 start);
@@ -168,6 +170,7 @@ namespace Bytes
             void inspectDetailInt(u64 start);
             void inspectDetailDec(u64 start);
             void inspectDetailString(u64 start);
+            void inspectDetailModule(u64 start);
 
             void inspectDetailTypeFields();
             void inspectDetailType(u64 start);

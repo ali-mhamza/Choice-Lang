@@ -177,6 +177,11 @@ u64 ByteCode::countPool() const
 				count += 9;
 				break;
 			}
+			case OBJ_MODULE:
+		    {
+				count += AS_MODULE(obj)->byteSize();
+				break;
+			}
 			case OBJ_USER_TYPE:
     		{
     		    count += AS_USER_TYPE(obj)->byteSize();
