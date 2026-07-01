@@ -79,6 +79,7 @@ class Compiler
 
         std::vector<CellInfo> captures{};
         HashTable<std::string, u8> captureNames{};
+        std::vector<DeclarationPair> declaredVars{};
 
         std::vector<u64>* endJumps{};
         std::vector<u64>* breakJumps{};
@@ -358,7 +359,6 @@ class Compiler
         // So it can be modified directly.
         bool hitError{false};
 
-        static std::vector<DeclarationPair> declaredVars;
         static bool clearDeclaredVars;
         static u8 clearIndex;
 

@@ -62,7 +62,6 @@ Compiler::Compiler(Compiler* comp) :
 
 Compiler::~Compiler() = default;
 
-std::vector<Compiler::DeclarationPair> Compiler::declaredVars{};
 bool Compiler::clearDeclaredVars{false};
 u8 Compiler::clearIndex{0};
 
@@ -149,6 +148,9 @@ void Compiler::clearDeclarations()
 {
     if (clearDeclaredVars)
     {
+        CH_ASSERT(clearIndex < declaredVars.size(),
+            "Incorrect value for clearIndex field.");
+        nextReg = declaredVars[clearIndex].reg;
         while (clearIndex < declaredVars.size())
         {
             const auto& pair{declaredVars[clearIndex++]};
@@ -2067,7 +2069,9 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     if (hitError)
     {
         code.clear();
-        clearDeclaredVars = true; // Will clear on the next run.
+        // Only clear variables if any were declared.
+        // Will clear on the next run.
+        if (declaredVars.size() != 0) clearDeclaredVars = true;
     }
     else
         code.addOp(OP_HALT);
