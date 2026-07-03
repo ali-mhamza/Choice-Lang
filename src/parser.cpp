@@ -561,7 +561,7 @@ StmtUP Parser::useStmt()
         do {
             auto entry{parseModuleEntry()};
             // Error occurred.
-            if (entry.name.type == TOK_EOF) return nullptr;
+            if (!entry.name) return nullptr;
 
             entries.push_back(entry);
         } while (consumeTok(TOK_COMMA));
@@ -605,7 +605,7 @@ StmtUP Parser::whileStmt()
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after 'while'");
     ExprUP condition{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after condition");
-    Token label{}; // Default: TOK_EOF.
+    Token label{};
     if (consumeTok(TOK_COLON))
     {
         MATCH_TOK(TOK_IDENTIFIER, "expect loop label after ':'");
@@ -650,7 +650,7 @@ AST::LoopHeader Parser::parseLoopHeader()
 StmtUP Parser::forStmt()
 {
     AST::LoopHeader header{parseLoopHeader()};
-    Token label{}; // Default: TOK_EOF.
+    Token label{};
     if (consumeTok(TOK_COLON))
     {
         MATCH_TOK(TOK_IDENTIFIER, "expect loop label after ':'");

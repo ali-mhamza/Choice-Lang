@@ -174,6 +174,8 @@ struct Token
 	Token& operator=(const Token& other) noexcept;
 	Token(Token&& other) noexcept;
 	Token& operator=(Token&& other) noexcept;
+
+	operator bool() const { return type != TOK_EOF; }
 };
 
 #define IS_LITERAL_TOK(type)	((TOK_NUM <= (type)) && ((type) <= TOK_NULL))

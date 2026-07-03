@@ -265,7 +265,7 @@ void Compiler::endDeclaration()
 
 void Compiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 {
-    if (label.type == TOK_EOF) return;
+    if (!label) return;
 
     if (patchBreaks)
     {
@@ -768,7 +768,7 @@ void Compiler::compileUseModule(
     VarInfo info{resolveVariable(node->module)};
     if (info.found)
     {
-        if (node->alias.type != TOK_EOF)
+        if (node->alias)
         {
             emitVariableOp(getVar, info, nextReg, info.slot);
             defVar(std::string{node->alias.text}, nextReg, accessVar);
@@ -780,13 +780,13 @@ void Compiler::compileUseModule(
     std::string name{node->module.text};
     std::string dir{};
     std::string alias{};
-    if (node->directory.type != TOK_EOF)
+    if (node->directory)
     {
         // Trim quote-marks around the path string as well.
         dir = std::string{node->directory.text.substr(1)};
         dir.pop_back();
     }
-    if (node->alias.type != TOK_EOF)
+    if (node->alias)
         alias = std::string{node->alias.text};
 
     startDeclaration();
@@ -810,7 +810,7 @@ void Compiler::compileUseModuleEntries(
 {
     std::string name{node->module.text};
     std::string dir{};
-    if (node->directory.type != TOK_EOF)
+    if (node->directory)
     {
         // Trim quote-marks around the path string as well.
         dir = std::string{node->directory.text.substr(1)};
@@ -836,8 +836,7 @@ void Compiler::compileUseModuleEntries(
         code.loadRegConst(origName, entryReg);
 
         code.addOp(OP_GET_ENTRY, entryReg, moduleReg, entryReg);
-        std::string entryName{(entry.alias.type == TOK_EOF) ?
-            entry.name.text : entry.alias.text};
+        std::string entryName{!entry.alias ? entry.name.text : entry.alias.text};
         defVar(entryName, entryReg, accessVar);
         reserveReg();
     }
@@ -875,7 +874,7 @@ DEF(WhileStmt)
 {
     u8 reg{nextReg};
     u64 loopStart{code.getLoopStart()};
-    if (node->label.type != TOK_EOF)
+    if (node->label)
     {
         breakLabels->add(node->label.text, {});
         continueLabels->add(node->label.text, {});
@@ -974,7 +973,7 @@ void Compiler::forLoopHelper(
 DEF(ForStmt)
 {
     pushScope();
-    if (node->label.type != TOK_EOF)
+    if (node->label)
     {
         breakLabels->add(node->label.text, {});
         continueLabels->add(node->label.text, {});
@@ -1070,7 +1069,7 @@ DEF(MatchStmt)
 
 DEF(RepeatStmt)
 {
-    if (node->label.type != TOK_EOF)
+    if (node->label)
     {
         breakLabels->add(node->label.text, {});
         continueLabels->add(node->label.text, {});
@@ -1125,7 +1124,7 @@ DEF(ReturnStmt)
 
 DEF(BreakStmt)
 {
-    if (node->label.type == TOK_EOF)
+    if (!node->label)
         this->breakJumps->push_back(code.addJump(OP_JUMP));
     else
     {
@@ -1139,7 +1138,7 @@ DEF(BreakStmt)
 
 DEF(ContinueStmt)
 {
-    if (node->label.type == TOK_EOF)
+    if (!node->label)
         this->continueJumps->push_back(code.addJump(OP_JUMP));
     else
     {
