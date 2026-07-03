@@ -63,6 +63,7 @@ class Parser
 
         // Declarations.
 
+        void consumeAttribute();
         void parseVariableList(
             vT& vars,
             AST::UnpackState& unpack,

@@ -66,6 +66,7 @@ enum DiagFamily : u8
     MODULE_ERROR,       // Module/module entry does not exist, cannot be imported, etc.
     MUTATION_ERROR,     // Mutation of an immutable variable or value.
     CONTROL_FLOW_ERROR, // Invalid use of control-flow keyword or structure.
+    ATTRIBUTE_ERROR,    // Invalid use of compiler attributes.
 
     // Warnings.
 
@@ -297,6 +298,11 @@ enum DiagCode : u8
     INVALID_RETURN,
     // If-expression missing a false-case expression.
     IF_EXPR_MISSING_FALSE,
+
+    /* Attribute errors. */
+
+    // Invalid attribute title.
+    INVALID_ATTR,
 
 
     /* Unused variable/object warnings. */

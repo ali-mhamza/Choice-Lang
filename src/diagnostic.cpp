@@ -24,14 +24,14 @@ static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     UNPACK_TOO_MANY, METHOD_FIELD_COLLIDE, FIELD_NO_INSTANCE,
     INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     ALIAS_SPEC_MODULE, IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE,
-    UNREACHABLE_CODE, MUT_TO_IMMUT
+    INVALID_ATTR, UNREACHABLE_CODE, MUT_TO_IMMUT
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Type Error",
     "Value Error", "Function-Call Error", "Assignment Error",
     "Module Error", "Mutation Error", "Control-Flow Error",
-    "Unused Warning", "Mutability Warning"
+    "Attribute Error", "Unused Warning", "Mutability Warning"
 };
 
 // Temporarily.
@@ -131,6 +131,10 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Case found after default case in match-is structure.",
     "Cannot use 'return' outside of a function/lambda.",
     "A conditional expression must have a false-case branch.",
+
+    // Attribute errors.
+
+    "Invalid compiler attribute.",
 
     // Unused warnings.
 

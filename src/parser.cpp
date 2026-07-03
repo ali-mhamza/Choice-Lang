@@ -269,6 +269,28 @@ void Parser::setExprLocation(ExprUP& expr, u64 start)
     }
 }
 
+void Parser::consumeAttribute()
+{
+    if (consumeTok(TOK_AT))
+    {
+        if (!matchError(TOK_LEFT_PAREN, "expect '(' before attribute title"))
+            return;
+
+        nextTok();
+        switch (previousTok.type)
+        {
+            case TOK_PRIVATE:
+                break;
+            default:
+                reportSemantic(INVALID_ATTR, previousTok);
+                break;
+        }
+
+        if (!matchError(TOK_RIGHT_PAREN, "expect ')' after attribute"))
+            return;
+    }
+}
+
 void Parser::parseVariableList(
     vT& vars,
     AST::UnpackState& unpack,
@@ -299,6 +321,8 @@ void Parser::parseVariableList(
 
 StmtUP Parser::declaration()
 {
+    consumeAttribute();
+
     StmtUP ret{nullptr};
     u64 start{currentTok.byteOffset};
 

@@ -92,6 +92,8 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
 
     "TOK_USE", "TOK_FROM", "TOK_AS", "TOK_SCOPE",
 
+    "TOK_AT", "TOK_PRIVATE",
+
     "TOK_EOF"
 };
 

@@ -55,7 +55,11 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	// Modules.
 
-	{"use", TOK_USE}, {"from", TOK_FROM}, {"as", TOK_AS}
+	{"use", TOK_USE}, {"from", TOK_FROM}, {"as", TOK_AS},
+
+	// Attributes.
+
+	{"private", TOK_PRIVATE}
 };
 
 void Lexer::setUp(FileID id, const std::string_view& code)
@@ -548,6 +552,7 @@ void Lexer::singleToken()
 		case ';':	makeToken(TOK_SEMICOLON);		break;
 		case ',':	makeToken(TOK_COMMA);			break;
 		case '?':	makeToken(TOK_QMARK);			break;
+		case '@':   makeToken(TOK_AT);              break;
 
 		case '+':
 		{

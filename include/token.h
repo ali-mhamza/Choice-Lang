@@ -139,6 +139,11 @@ enum TokenType : u8
 	TOK_AS,             // as
 	TOK_SCOPE,          // ::
 
+	/* Attributes. */
+
+	TOK_AT,             // @
+	TOK_PRIVATE,        // private
+
 	TOK_EOF,
 	NUM_TOK_TYPES
 };
