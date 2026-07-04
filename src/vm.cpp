@@ -547,9 +547,11 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     #endif
 }
 
-// No need to call amendFuncName here, since users
-// cannot directly interact with the code for built-ins,
-// i.e., they cannot insert built-in constants into said code.
+        #if WATCH_EXEC
+            this->dis = new Disassembler{func};
+        #endif
+    }
+}
 
 void VM::callNative(const Object& callee, u8 start, u8 argCount)
 {
