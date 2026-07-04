@@ -444,12 +444,22 @@ void VM::pushCurrentStackFrame()
 
 void VM::checkFuncArgs(const Function* func, u8 argCount)
 {
+    if (!func->variadic && (func->arityMin == func->arityMax)
+        && (argCount != func->arityMin))
+    {
+        throw RuntimeError(
+            ARITY_MISMATCH,
+            CH_STR("expected {} argument{} but found {}",
+                func->arityMin, (func->arityMin == 1 ? "" : "s"), argCount)
+        );
+    }
+
     if (argCount < func->arityMin)
     {
         throw RuntimeError(
             ARITY_MISMATCH,
             CH_STR("expected at least {} argument{} but found {}",
-            func->arityMin, (func->arityMin == 1 ? "" : "s"), argCount)
+                func->arityMin, (func->arityMin == 1 ? "" : "s"), argCount)
         );
     }
 
@@ -458,7 +468,7 @@ void VM::checkFuncArgs(const Function* func, u8 argCount)
         throw RuntimeError(
             ARITY_MISMATCH,
             CH_STR("expected at most {} argument{} but found {}",
-            func->arityMax, (func->arityMax == 1 ? "" : "s"), argCount)
+                func->arityMax, (func->arityMax == 1 ? "" : "s"), argCount)
         );
     }
 }

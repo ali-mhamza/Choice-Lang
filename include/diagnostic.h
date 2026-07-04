@@ -299,6 +299,7 @@ enum DiagCode : u8
     // If-expression missing a false-case expression.
     IF_EXPR_MISSING_FALSE,
 
+
     /* Attribute errors. */
 
     // Invalid attribute title.
