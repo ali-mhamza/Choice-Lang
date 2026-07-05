@@ -157,6 +157,8 @@ def run_error_script(lines: list[str]) -> int:
     )
 
     error_lines = proc.stderr.splitlines()
+    # for line in error_lines:
+    #     print(line.encode("utf-8").decode("unicode_escape"))
     errors = len(error_lines)
     for error in error_lines:
         if "E00" not in error:
