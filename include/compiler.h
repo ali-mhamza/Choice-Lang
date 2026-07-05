@@ -31,12 +31,8 @@ class Compiler
 
             // Variable location type.
             VarType type{};
-
             // Whether or not variable is mutable.
             bool access{false};
-            // Whether or not variable is contained in a cell in the enclosing function.
-            // False by default for non-captured (global/local) variables.
-            bool inCell{false};
         };
 
         struct LocalInfo
@@ -48,7 +44,7 @@ class Compiler
         struct CellInfo
         {
             u8 slot{};
-            bool inCell{};
+            VarType type{};
         };
 
         struct DeclarationPair
@@ -364,6 +360,9 @@ class Compiler
     public:
         // So it can be modified directly.
         bool hitError{false};
+        // Whether or not we are compiling a module (globals are also
+        // captured in closures within modules).
+        bool inModule{false};
 
         static bool clearDeclaredVars;
         static u8 clearIndex;

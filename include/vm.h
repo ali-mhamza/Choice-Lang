@@ -99,7 +99,7 @@ class VM
         [[nodiscard]] u16 readShort();
         [[nodiscard]] u32 readLong();
 
-        [[nodiscard]] Cell* captureValue(u8 slot);
+        [[nodiscard]] Cell* captureValue(u8 slot, bool local);
         void closeCells(Object* limit);
         #if COPY_INLINE
             void copyObject(Object& dest, const Object& src);

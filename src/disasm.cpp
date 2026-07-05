@@ -14,9 +14,9 @@
 #include <string_view>
 
 #if OPCODE_STRIP_PREFIX
-    #define OP_STRING "{:<12} "
-#else
     #define OP_STRING "{:<15} "
+#else
+    #define OP_STRING "{:<18} "
 #endif
 
 #define PRINT_FULL_OFFSET 1
@@ -264,8 +264,11 @@ void Disassembler::captureOp(u8 byte)
 	printOpcode(opNames[byte]);
 	u8 funcReg{readByte()};
 
-	if (static_cast<Opcode>(byte) == OP_CAPTURE_VAL)
-		CH_PRINT("F[{}] R[{}]\n", funcReg, readByte());
+	if ((static_cast<Opcode>(byte) == OP_CAPTURE_GLOBAL)
+	    || (static_cast<Opcode>(byte) == OP_CAPTURE_LOCAL))
+	{
+	    CH_PRINT("F[{}] R[{}]\n", funcReg, readByte());
+	}
 	else
 		CH_PRINT("F[{}] C[{}]\n", funcReg, readByte());
 }
@@ -362,7 +365,7 @@ void Disassembler::disassembleOp(u8 byte)
         case OP_GET_ENTRY:
             moduleOp(byte);
             break;
-		case OP_CAPTURE_VAL:	case OP_CAPTURE_CELL:
+		case OP_CAPTURE_GLOBAL:     case OP_CAPTURE_LOCAL:      case OP_CAPTURE_CELL:
 			captureOp(byte);
 			break;
 		case OP_UNPACK:

@@ -52,7 +52,8 @@ constexpr bool setVar{false};
 
 Compiler::Compiler(Compiler* comp) :
     scopeCompiler{comp},
-    depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)}
+    depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)},
+    inModule{(comp == nullptr) ? false : comp->inModule}
 {
     if (depth == 0) // Global scope compiler.
         defineBuiltinGlobals();
@@ -205,11 +206,11 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
         VarInfo info{scopeCompiler->resolveVariable(token)};
         if (info.found)
         {
-            info.inCell = (info.type == CELL);
             info.slot = captureVariable(token, info);
             // Local variables in enclosing scopes become cells in
             // the current scope.
-            if (info.type == LOCAL) info.type = CELL;
+            // Likewise with globals in modules.
+            if (inModule || (info.type == LOCAL)) info.type = CELL;
             return info;
         }
     }
@@ -219,7 +220,7 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
 
 u8 Compiler::captureVariable(const Token& token, const VarInfo& info)
 {
-    if (info.type == GLOBAL)
+    if (!inModule && (info.type == GLOBAL))
         return info.slot;
 
     std::string name{token.text};
@@ -229,7 +230,7 @@ u8 Compiler::captureVariable(const Token& token, const VarInfo& info)
 
     u8 cellIndex{static_cast<u8>(captures.size())};
     captureNames[name] = cellIndex;
-    captures.push_back({ info.slot, info.inCell });
+    captures.push_back({ info.slot, info.type });
     return cellIndex;
 }
 
@@ -583,8 +584,13 @@ void Compiler::funcBodyHelper(
     {
         // Capture object in register [slot] from enclosing scope,
         // or reuse the cell at index [slot] from enclosing scope.
-        code.addOp((info.inCell ? OP_CAPTURE_CELL : OP_CAPTURE_VAL),
-            funcReg, info.slot);
+        switch (info.type)
+        {
+            case GLOBAL:    code.addOp(OP_CAPTURE_GLOBAL);  break;
+            case LOCAL:     code.addOp(OP_CAPTURE_LOCAL);   break;
+            case CELL:      code.addOp(OP_CAPTURE_CELL);    break;
+        }
+        code.addBytes(funcReg, info.slot);
     }
 }
 
@@ -2126,8 +2132,10 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     clearDeclarations();
     // Inherit hitError from parser.
 
+    code.addOp(OP_ENTER_SCOPE, scopeStart);
     for (const StmtUP& node : program)
         compileStmt(node);
+    code.addOp(OP_EXIT_SCOPE);
 
     // Bytecode chunk is only empty upon error.
     if (hitError)

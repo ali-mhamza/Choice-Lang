@@ -31,12 +31,20 @@ getModuleTable(std::string_view file, std::string_view dir)
     Lexer lexer{};
     Parser parser{};
     Compiler compiler{};
+    compiler.inModule = true;
     VM vm{};
+
+    bool repl{inRepl};
+    // To disable any REPL-specific behavior in the interpreter,
+    // even if we are importing inside the REPL.
+    inRepl = false;
 
     const auto& tokens{lexer.tokenize(id, content)};
     const auto& program{parser.parseToAST(id, tokens)};
     Function* script{compiler.compile(id, program)};
     vm.execute(script);
+
+    inRepl = repl;
 
     ModuleTable table{};
     if (diagEngine.hasReports())

@@ -124,10 +124,9 @@ inline u32 VM::readLong()
     return static_cast<u32>((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
 }
 
-inline Cell* VM::captureValue(u8 slot)
+inline Cell* VM::captureValue(u8 slot, bool local)
 {
-    // We always capture from the current scope.
-    Object* addr{registers + slot};
+    Object* addr{local ? (registers + slot) : (globalRegisters + slot)};
     for (auto it{activeCells.rbegin()}; it != activeCells.rend(); it++)
     {
         Cell* cell{*it};
@@ -1432,12 +1431,13 @@ void VM::executeOp(Opcode op)
             registers[slot] = CH_ALLOC(Closure, func);
             DISPATCH();
         }
-        CASE(OP_CAPTURE_VAL):
+        CASE(OP_CAPTURE_GLOBAL):
+        CASE(OP_CAPTURE_LOCAL):
         {
             auto* closure{AS_CLOSURE(registers[readByte()])};
             u8 slot{readByte()};
 
-            closure->addCell(captureValue(slot));
+            closure->addCell(captureValue(slot, op == OP_CAPTURE_LOCAL));
             DISPATCH();
         }
         CASE(OP_CAPTURE_CELL):
