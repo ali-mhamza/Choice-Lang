@@ -1566,30 +1566,22 @@ void VM::executeChunk(const ByteCode& chunk, Function* func)
 
 void VM::executeCode()
 {
-    try
-    {
-        #if !CH_COMPUTED_GOTO
-            while (static_cast<Opcode>(*ip) != OP_HALT)
-            {
-                #if WATCH_EXEC
-                    this->dis->disassembleOp(*ip);
-                #endif
+    #if !CH_COMPUTED_GOTO
+        while (static_cast<Opcode>(*ip) != OP_HALT)
+        {
+            #if WATCH_EXEC
+                this->dis->disassembleOp(*ip);
+            #endif
 
-                executeOp(static_cast<Opcode>(readByte()));
+            executeOp(static_cast<Opcode>(readByte()));
 
-                #if WATCH_REG
-                    printRegister();
-                #endif
-            }
-        #else
-            executeOp(static_cast<Opcode>(0));
-        #endif
-    }
-    catch (RuntimeError& error)
-    {
-        reportError(error);
-        errorReset();
-    }
+            #if WATCH_REG
+                printRegister();
+            #endif
+        }
+    #else
+        executeOp(static_cast<Opcode>(0));
+    #endif
 }
 
 void VM::execute(Function* script)
@@ -1618,8 +1610,15 @@ void VM::execute(Function* script)
     scopeStarts.reserve(SCOPE_DEPTH_DEFAULT);
     activeCells.reserve(CODE_MAX);
 
-    amendFileName();
-    executeCode();
+    try
+    {
+        amendFileName();
+        executeCode();
+    }
+    catch (RuntimeError& error) {
+        reportError(error);
+        errorReset();
+    }
 
     #if WATCH_EXEC
         this->dis = nullptr;
