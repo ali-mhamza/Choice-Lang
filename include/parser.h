@@ -9,12 +9,17 @@ class Parser
     private:
         struct DepthCounter
         {
-            static u64 depthCount;
+            static u64 exprDepthCount;
+            static u64 blockDepthCount;
             bool hitError{false};
-            bool incremented{false};
+            bool incrementedExpr{false}, incrementedBlock{false};
 
             DepthCounter(FileID id, const Token& token);
             ~DepthCounter();
+
+            void checkExprDepth(FileID id, const Token& token);
+            void checkBlockDepth(FileID id, const Token& token);
+            static void reset();
         };
 
         StmtVec program{};

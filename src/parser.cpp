@@ -45,6 +45,8 @@ using namespace AST::Expression;
 
 #define FIELD_OPER_TOK TOK_DOT
 
+/* DepthCounter type. */
+
 #define CHECK_DEPTH(tok)            \
     DepthCounter counter_{id, tok}; \
     if (counter_.hitError) {        \
@@ -53,28 +55,66 @@ using namespace AST::Expression;
         return nullptr;             \
     }
 
-u64 Parser::DepthCounter::depthCount{0};
+u64 Parser::DepthCounter::exprDepthCount{0};
+u64 Parser::DepthCounter::blockDepthCount{0};
 
 Parser::DepthCounter::DepthCounter(FileID id, const Token& token)
 {
-    if (depthCount > MAX_EXPR_NEST_DEPTH)
-        hitError = true;
+    if (token.type == TOK_LEFT_BRACE) // Checking a block.
+        checkBlockDepth(id, token);
+    else
+        checkExprDepth(id, token);
+}
 
-    else if (++depthCount > MAX_EXPR_NEST_DEPTH)
+Parser::DepthCounter::~DepthCounter()
+{
+    if (incrementedExpr) exprDepthCount--;
+    if (incrementedBlock) blockDepthCount--;
+}
+
+void Parser::DepthCounter::checkExprDepth(FileID id, const Token& token)
+{
+    if (exprDepthCount > MAX_EXPR_NEST_DEPTH)
+        hitError = true;
+    else if (++exprDepthCount > MAX_EXPR_NEST_DEPTH)
     {
         diagEngine.source = ErrorSource::PARSER;
         hitError = true;
 
         diagEngine.recordError(id, HIT_EXPR_NESTING_MAX,
-            token, CH_STR("maximum depth is {}", MAX_EXPR_NEST_DEPTH));
-        incremented = false;
+            token, CH_STR("maximum depth is {}", MAX_EXPR_NEST_DEPTH)
+        );
+        incrementedExpr = false;
     }
+    else
+        incrementedExpr = true;
 }
 
-Parser::DepthCounter::~DepthCounter()
+void Parser::DepthCounter::checkBlockDepth(FileID id, const Token& token)
 {
-    if (incremented) depthCount--;
+    if (blockDepthCount > MAX_EXPR_NEST_DEPTH)
+        hitError = true;
+    else if (++blockDepthCount > MAX_EXPR_NEST_DEPTH)
+    {
+        diagEngine.source = ErrorSource::PARSER;
+        hitError = true;
+
+        diagEngine.recordError(id, HIT_BLOCK_NESTING_MAX,
+            token, CH_STR("maximum depth is {}", MAX_BLOCK_SCOPE_DEPTH)
+        );
+        incrementedBlock = false;
+    }
+    else
+        incrementedBlock = true;
 }
+
+void Parser::DepthCounter::reset()
+{
+    exprDepthCount = 0;
+    blockDepthCount = 0;
+}
+
+/* Parsing helpers. */
 
 void Parser::nextTok()
 {
@@ -338,6 +378,8 @@ void Parser::parseVariableList(
         CONSUME_VAR_TYPE();
     } while (!done && consumeTok(TOK_COMMA));
 }
+
+/* Main parsing functions. */
 
 StmtUP Parser::declaration()
 {
@@ -812,15 +854,7 @@ StmtUP Parser::continueStmt()
 
 StmtUP Parser::blockStmt()
 {
-    static u64 nestingDepth{0};
-
-    if (nestingDepth > MAX_BLOCK_SCOPE_DEPTH) return nullptr;
-    if (++nestingDepth > MAX_BLOCK_SCOPE_DEPTH)
-    {
-        REPORT_SEMANTIC(HIT_BLOCK_NESTING_MAX, previousTok,
-            CH_STR("maximum depth is {}", MAX_BLOCK_SCOPE_DEPTH)
-        );
-    }
+    CHECK_DEPTH(previousTok);
 
     u64 start{previousTok.byteOffset}; // The left '{'.
     StmtVec block{};
@@ -833,7 +867,6 @@ StmtUP Parser::blockStmt()
     StmtUP blockStmt{std::make_unique<BlockStmt>(block)};
     setStmtLocation(blockStmt, start);
 
-    nestingDepth--;
     return blockStmt;
 }
 
@@ -1564,7 +1597,7 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
 
     while (!checkTok(TOK_EOF))
     {
-        DepthCounter::depthCount = 0; // Reset depth.
+        DepthCounter::reset();
         program.push_back(declaration());
     }
 
