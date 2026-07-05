@@ -575,8 +575,6 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
 
 void VM::callClass(const Object& callee, u8 start, u8 argCount)
 {
-    #define CH_CONSTRUCTOR "Self"
-
     const Type* type{AS_USER_TYPE(callee)};
     bool hasCtor{type->methods.contains(CH_CONSTRUCTOR)};
 

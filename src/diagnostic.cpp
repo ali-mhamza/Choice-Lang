@@ -23,7 +23,7 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     UNPACK_TOO_MANY, FIELD_UNINIT_READ, FIELD_NO_INSTANCE,
     INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
-    ALIAS_SPEC_MODULE, IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE,
+    ALIAS_SPEC_MODULE, IMMUT_TO_MUT, RETURN_IN_CTOR,
     INVALID_ATTR, UNREACHABLE_CODE, MUT_TO_IMMUT
 };
 
@@ -132,6 +132,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Case found after default case in match-is structure.",
     "Cannot use 'return' outside of a function/lambda.",
     "A conditional expression must have a false-case branch.",
+    "Cannot return within a constructor.",
 
     // Attribute errors.
 

@@ -84,6 +84,10 @@
 	>;
 #endif
 
+// Constructor name.
+
+#define CH_CONSTRUCTOR "Self"
+
 // Opcode appearance.
 
 // Strip the "OP_" prefix when printing opcodes.

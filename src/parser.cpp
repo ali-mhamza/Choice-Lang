@@ -474,7 +474,13 @@ StmtUP Parser::typeDecl()
         }
 
         while (consumeTok(TOK_FUNC))
+        {
+            bool constructor{inConstructor};
+            if (currentTok.text == CH_CONSTRUCTOR)
+                inConstructor = true;
             methods.push_back(funcDecl());
+            inConstructor = constructor;
+        }
         MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude type declaration");
     }
 
@@ -750,6 +756,8 @@ StmtUP Parser::returnStmt()
 {
     if (!inFunc)
         REPORT_SEMANTIC(INVALID_RETURN, previousTok);
+    else if (inConstructor)
+        REPORT_SEMANTIC(RETURN_IN_CTOR, previousTok);
 
     Token keyword{previousTok};
     ExprUP expr{nullptr};

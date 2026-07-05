@@ -300,6 +300,8 @@ enum DiagCode : u8
     INVALID_RETURN,
     // If-expression missing a false-case expression.
     IF_EXPR_MISSING_FALSE,
+    // Attempt to return within a constructor.
+    RETURN_IN_CTOR,
 
 
     /* Attribute errors. */
