@@ -63,10 +63,19 @@ class VM
         std::vector<CallFrame> frames{};
         std::vector<Cell*> activeCells{};
 
-        u8 args{}; // Argument count for most recent call.
+        // Set to 'true' if each function call in 'callFunc'
+        // should run until termination.
+        // If set to 'false', 'callFunc' initializes function object's
+        // chunk and exits immediately.
+        bool encapsulateCall{false};
 
+        // Argument count for most recent call.
+        u8 args{};
+
+        // To communicate with compiler on variables to "undeclare"
+        // upon initializer error.
         bool inDeclaration{false};
-        u8 clearIndex{}; // To communicate with compiler.
+        u8 clearIndex{};
 
         #if WATCH_REG
         u8 regSlot{};
@@ -149,7 +158,7 @@ class VM
         void errorReset();
 
         void executeOp(Opcode op);
-        void executeChunk(const ByteCode& chunk);
+        void executeChunk(const ByteCode& chunk, Function* func = nullptr);
         void executeCode();
 
     public:

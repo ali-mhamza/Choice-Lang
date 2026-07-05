@@ -535,18 +535,17 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
 
-    currentCode = &(func->code);
     currentClosure = closure;
     registers += start;
-    ip = currentCode->block.data();
-    pool = currentCode->pool.data();
-
     prepFuncArgs(func, argCount);
 
-    #if WATCH_EXEC
-        this->dis = new Disassembler(func);
-    #endif
-}
+    if (encapsulateCall)
+        executeChunk(func->code, func);
+    else
+    {
+        currentCode = &(func->code);
+        ip = currentCode->block.data();
+        pool = currentCode->pool.data();
 
         #if WATCH_EXEC
             this->dis = new Disassembler{func};
@@ -1375,6 +1374,8 @@ void VM::executeOp(Opcode op)
             // Correct regSlot after return.
             restoreData();
             closeCells(registers);
+            if (encapsulateCall) return;
+
             DISPATCH();
         }
         CASE(OP_VOID):
@@ -1541,21 +1542,25 @@ void VM::executeOp(Opcode op)
     #undef PRINT_REGS
 }
 
-void VM::executeChunk(const ByteCode& chunk)
+void VM::executeChunk(const ByteCode& chunk, Function* func)
 {
+    (void) func; // In case it isn't used below.
+
     this->currentCode = &chunk;
     this->ip = chunk.block.data();
     this->pool = chunk.pool.data();
 
     #if WATCH_EXEC
-        const Function* temp{CH_ALLOC(Function, chunk)};
+        Function* temp{func};
+        if (func == nullptr) temp = CH_ALLOC(Function, chunk);
         this->dis = new Disassembler{temp};
     #endif
 
     executeCode();
 
     #if WATCH_EXEC
-        CH_DEALLOC(temp);
+        // Braces in case CH_DEALLOC is #defined to nothing.
+        if (func == nullptr) { CH_DEALLOC(temp); }
     #endif
 }
 
