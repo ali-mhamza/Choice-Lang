@@ -751,6 +751,7 @@ DEF(TypeDecl)
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
         funcBodyHelper(miniCompiler, decl->params, decl->body, funcReg, name);
+        reserveReg();
     }
 
     Object typeObj{CH_ALLOC(Type, name, fields, fieldInits)};
