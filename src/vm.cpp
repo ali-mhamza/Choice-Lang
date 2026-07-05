@@ -499,6 +499,7 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
 void VM::restoreData()
 {
     CallFrame& frame{frames.back()};
+    currentClosure = frame.closure;
     currentCode = frame.code;
     registers = frame.regStart;
     ip = frame.ip;
