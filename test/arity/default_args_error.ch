@@ -6,4 +6,4 @@ func f(a = fake)    \
 func f(a = 1, b)        \
 {                       \
     println!(a + b);    \
-} // Error (4)
+} // Error (3)

@@ -180,6 +180,25 @@ void Parser::consumeType()
     consumeTok(TOK_QMARK);
 }
 
+void Parser::skipOrphanedConditionalBranch()
+{
+    bool syntax{syntaxError}, semantic{semanticError};
+    // To silence any errors in the blocks.
+    syntaxError = semanticError = true;
+    if (previousTok.type == TOK_ELIF)
+    {
+        consumeTok(TOK_LEFT_PAREN);
+        (void) expression();
+        consumeTok(TOK_RIGHT_PAREN);
+    }
+
+    consumeTok(TOK_LEFT_BRACE);
+    (void) statement();
+
+    syntaxError = syntax;
+    semanticError = semantic;
+}
+
 void Parser::reset()
 {
     nextTok();
@@ -531,6 +550,12 @@ StmtUP Parser::statement()
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'end'");
         stmt = std::make_unique<EndStmt>();
     }
+    else if (consumeToks(TOK_ELIF, TOK_ELSE)) // Special error case.
+    {
+        reportSyntax(INVALID_TOKEN, previousTok, "unexpected conditional branch");
+        skipOrphanedConditionalBranch();
+        return nullptr;
+    }
     else
         stmt = exprStmt();
 
@@ -802,10 +827,7 @@ StmtUP Parser::blockStmt()
     block.reserve(10);
 
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
-    {
-        if (hitError) return nullptr;
         block.push_back(declaration());
-    }
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after block");
 
     StmtUP blockStmt{std::make_unique<BlockStmt>(block)};

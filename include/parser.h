@@ -43,6 +43,8 @@ class Parser
         [[nodiscard]] bool matchError(TokenType type, std::string_view message);
         bool consumeTypename();
         void consumeType();
+        // To skip erroneous 'elif' or 'else' blocks.
+        void skipOrphanedConditionalBranch();
 
         // Bring the compiler back to a proper state.
         void reset();
