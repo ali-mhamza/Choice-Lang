@@ -118,15 +118,15 @@ void ByteCode::loadReg(u8 reg, u8 op)
 	addOp(OP_LOAD_R, reg, op);
 }
 
-#define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
-
 void ByteCode::loadRegConst(Object& constant, u8 reg)
 {
+    #define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
+
 	addOp(OP_LOAD_R, reg); // Destination first.
 
 	if (IS_INT(constant))
 	{
-		if (IS_SMALL(constant.as.intVal))
+		if (IS_SMALL(AS_INT(constant)))
 		{
 			addByte(static_cast<u8>(constant.as.intVal + 2));
 			return;
@@ -134,8 +134,8 @@ void ByteCode::loadRegConst(Object& constant, u8 reg)
 	}
 	else if (IS_DEC(constant))
 	{
-		if (IS_SMALL(constant.as.decVal)
-			&& (fmod(constant.as.decVal, 1.0) == 0.0))
+		if (IS_SMALL(AS_DEC(constant))
+			&& (fmod(AS_DEC(constant), 1.0) == 0.0))
 		{
 			addByte(static_cast<u8>(constant.as.decVal + 2));
 			return;
@@ -160,9 +160,9 @@ void ByteCode::loadRegConst(Object& constant, u8 reg)
 		addByte(OP_LONG_OPER);
 		addLong(static_cast<u32>(size - 1));
 	}
-}
 
-#undef IS_SMALL
+	#undef IS_SMALL
+}
 
 u64 ByteCode::countPool() const
 {
@@ -248,7 +248,7 @@ void ByteCode::encodeHeaders(std::ofstream& os) const
 
 	os.put(static_cast<char>(debugInfoState));
 
-	std::string fileName{sourceManager.getFile(id)};
+	const std::string& fileName{sourceManager.getFile(id)};
 	os.put(static_cast<char>(fileName.size())); // File name length.
 	os.write(fileName.data(), static_cast<std::streamsize>(fileName.size()));
 }
