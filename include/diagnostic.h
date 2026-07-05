@@ -154,6 +154,8 @@ enum DiagCode : u8
     METHOD_ALREADY_DEFINED,
     // Method name collides with preceding field name.
     METHOD_FIELD_COLLIDE,
+    // Field being read has not been initialized.
+    FIELD_UNINIT_READ,
 
 
     /* Type errors. */

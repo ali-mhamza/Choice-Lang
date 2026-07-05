@@ -647,6 +647,8 @@ const Object* Instance::findField(const std::string& name) const
 Object Instance::getField(const std::string& name) const
 {
     const Object* location{findField(name)};
+    if (!IS_VALID(*location))
+        throw RuntimeError(FIELD_UNINIT_READ);
     return *location;
 }
 

@@ -21,7 +21,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    UNPACK_TOO_MANY, METHOD_FIELD_COLLIDE, FIELD_NO_INSTANCE,
+    UNPACK_TOO_MANY, FIELD_UNINIT_READ, FIELD_NO_INSTANCE,
     INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     ALIAS_SPEC_MODULE, IMMUT_TO_MUT, IF_EXPR_MISSING_FALSE,
     INVALID_ATTR, UNREACHABLE_CODE, MUT_TO_IMMUT
@@ -68,6 +68,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Field with the same name already defined.",
     "Method with the same name already defined.",
     "Method name collides with a field declared before it.",
+    "Cannot get the value of a field before it has been initialized.",
 
     // Type errors.
 

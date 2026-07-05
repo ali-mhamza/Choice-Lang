@@ -575,8 +575,12 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
 
 void VM::callClass(const Object& callee, u8 start, u8 argCount)
 {
+    #define CH_CONSTRUCTOR "Self"
+
     const Type* type{AS_USER_TYPE(callee)};
-    if ((argCount != 0) && (argCount != type->fields.size()))
+    bool hasCtor{type->methods.contains(CH_CONSTRUCTOR)};
+
+    if (!hasCtor && (argCount != 0) && (argCount != type->fields.size()))
     {
         std::string errorMsg{};
         auto size{type->fields.size()};
@@ -591,15 +595,28 @@ void VM::callClass(const Object& callee, u8 start, u8 argCount)
     }
 
     Instance* instance{CH_ALLOC(Instance, type)};
-    // Does nothing if argCount == 0.
-    for (u8 i{0}; i < argCount; i++)
+    if (hasCtor)
     {
-        const std::string& field{type->fields[i].first};
-        instance->initField(field, registers[start + i]);
+        Object ctor{instance->getField(CH_CONSTRUCTOR)};
+        bool encapsulate{encapsulateCall};
+        encapsulateCall = true;
+        callMethod(ctor, start, argCount);
+        encapsulateCall = encapsulate;
+    }
+    else
+    {
+        // Does nothing if argCount == 0.
+        for (u8 i{0}; i < argCount; i++)
+        {
+            const std::string& field{type->fields[i].first};
+            instance->initField(field, registers[start + i]);
+        }
     }
 
     finishFields(*instance, start);
     registers[start - 1] = instance;
+
+    #undef CH_CONSTRUCTOR
 }
 
 void VM::callMethod(const Object& callee, u8 start, u8 argCount)
