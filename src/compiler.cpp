@@ -1931,8 +1931,7 @@ DEF(VarExpr)
 
 DEF(StringPartExpr)
 {
-    size_t start{};
-    size_t offset{};
+    size_t start{}, offset{};
 
     switch (node->part.type)
     {
