@@ -36,7 +36,7 @@ class ByteCode
         void addShort(u16 bytes);
         void addLong(u32 bytes);
 
-        FileID getID() const { return id; }
+        [[nodiscard]] FileID getID() const { return id; }
         const DebugRange& getErrorRange(const u8* ip) const;
         void setDebugData(FileID id, const DebugMetadata& metadata);
 
