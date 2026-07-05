@@ -198,7 +198,8 @@ void Parser::reset()
             case TOK_UNTIL:     case TOK_BREAK:     case TOK_CONT:
             case TOK_MATCH:     case TOK_IS:        case TOK_FALL:
             case TOK_END:       case TOK_MAKE:      case TOK_FIX:
-            case TOK_FUNC:      case TOK_RETURN:
+            case TOK_FUNC:      case TOK_TYPE:      case TOK_USE:
+            case TOK_RETURN:    case TOK_AT:
             case TOK_IDENTIFIER:
             case TOK_LEFT_BRACE:
                 return;
