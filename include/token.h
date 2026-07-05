@@ -181,6 +181,5 @@ struct Token
 #define IS_LITERAL_TOK(type)	((TOK_NUM <= (type)) && ((type) <= TOK_NULL))
 // Token used in string interpolation.
 #define IS_INTER_TOK(type)		((TOK_INTER_START <= (type)) && ((type) <= TOK_INTER_END))
-#define IS_ASSIGN_TOK(type)										\
-	(((type) == TOK_EQUAL)										\
-	|| (((type) >= TOK_PLUS_EQ) && ((type) <= TOK_RSHIFT_EQ)))
+#define IS_ASSIGN_TOK(type) \
+	(((type) == TOK_EQUAL) || (((type) >= TOK_PLUS_EQ) && ((type) <= TOK_RSHIFT_EQ)))
