@@ -428,10 +428,10 @@ StmtUP Parser::funcBodyHelper(std::vector<AST::Param>& params)
 
     MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before function body");
 
-    bool prevInFunc{inFunc};
+    bool func{inFunc};
     inFunc = true;
     StmtUP body{blockStmt()};
-    inFunc = prevInFunc;
+    inFunc = func;
 
     return body;
 }
@@ -521,7 +521,7 @@ StmtUP Parser::statement()
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'fallthrough'");
         if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
             REPORT_SEMANTIC(STMT_AFTER_FALLTHROUGH, currentTok);
-        fall = true;
+        fallthrough = true;
         return nullptr;
     }
     else if (consumeTok(TOK_END))
@@ -619,10 +619,10 @@ StmtUP Parser::whileStmt()
         label = previousTok;
     }
 
-    bool prevLoop{inLoop};
+    bool loop{inLoop};
     inLoop = true;
     StmtUP body{statement()};
-    inLoop = prevLoop;
+    inLoop = loop;
 
     StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
@@ -664,10 +664,10 @@ StmtUP Parser::forStmt()
         label = previousTok;
     }
 
-    bool prevLoop{inLoop};
+    bool loop{inLoop};
     inLoop = true;
     StmtUP body{statement()};
-    inLoop = prevLoop;
+    inLoop = loop;
 
     StmtUP elseClause{nullptr};
     if (consumeTok(TOK_ELSE))
@@ -679,56 +679,43 @@ StmtUP Parser::forStmt()
 StmtUP Parser::matchStmt()
 {
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before match value");
-    ExprUP match{expression()};
+    ExprUP matchValue{expression()};
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after match value");
     MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before match cases");
 
     std::vector<MatchStmt::MatchCase> cases{};
     cases.reserve(MATCH_CASES_MAX);
 
-    bool prevInMatch{inMatch};
-    inMatch = true;
+    bool match{inMatch};
     while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
     {
-        if (static_cast<int>(cases.size()) == MATCH_CASES_MAX)
+        if (cases.size() == MATCH_CASES_MAX)
             REPORT_SEMANTIC(HIT_MATCH_CASE_MAX, currentTok);
 
         MATCH_TOK(TOK_IS, "expect 'is' before case value");
-        ExprUP value{};
-        bool defaultCase{false};
-
-        if (consumeTok(TOK_QMARK))
-        {
-            value = nullptr;
-            defaultCase = true;
-        }
-        else
-        {
-            Token errorToken{currentTok};
-            value = expression();
-        }
+        bool defaultCase{consumeTok(TOK_QMARK)};
+        ExprUP caseValue{defaultCase ? nullptr : expression()};
 
         MATCH_TOK(TOK_COLON, "expect ':' before case body");
-        StmtUP body{};
-        if (checkTok(TOK_IS) || checkTok(TOK_RIGHT_BRACE))
-            body = nullptr;
-        else
-            body = statement();
+        StmtUP caseBody{nullptr};
+        if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
+        {
+            inMatch = true; // Before any potential 'fallthrough' or 'end' statements.
+            caseBody = statement();
+            inMatch = match;
+        }
 
         if (defaultCase && consumeTok(TOK_IS))
             REPORT_SEMANTIC(CASE_AFTER_DEFAULT, previousTok);
 
-        // 'fall' updated in statement().
-        cases.emplace_back(value, body, fall);
-        fall = false; // Reset.
-        if (defaultCase)
-            break;
+        // 'fallthrough' updated in statement().
+        cases.emplace_back(caseValue, caseBody, fallthrough);
+        fallthrough = false; // Reset.
+        if (defaultCase) break;
     }
 
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after match-is structure");
-
-    inMatch = prevInMatch;
-    return std::make_unique<MatchStmt>(match, cases);
+    return std::make_unique<MatchStmt>(matchValue, cases);
 }
 
 StmtUP Parser::repeatStmt()
@@ -739,10 +726,10 @@ StmtUP Parser::repeatStmt()
 
     MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before 'repeat' block");
 
-    bool prevLoop{inLoop};
+    bool loop{inLoop};
     inLoop = true;
     StmtUP body{blockStmt()}; // Will consume the '}'.
-    inLoop = prevLoop;
+    inLoop = loop;
 
     MATCH_TOK(TOK_UNTIL, "expect 'until' condition after 'repeat'");
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before 'until' condition");
@@ -1327,10 +1314,10 @@ StmtUP Parser::lambdaBodyHelper(
         CONSUME_RETURN_TYPE();
         MATCH_TOK(TOK_LEFT_BRACE, "expect '{' before lambda body");
 
-        bool prevInFunc{inFunc};
+        bool func{inFunc};
         inFunc = true;
         body = blockStmt();
-        inFunc = prevInFunc;
+        inFunc = func;
     }
 
     return body;
@@ -1425,12 +1412,12 @@ ExprUP Parser::listComprehension()
     AST::LoopHeader header{parseLoopHeader()};
     MATCH_TOK(TOK_COLON, "expect ':' before comprehension expression");
 
-    bool prevComprehension{inComprehension};
+    bool comprehension{inComprehension};
     inComprehension = true;
     ExprUP expr{expression()};
+    inComprehension = comprehension;
 
     MATCH_TOK(TOK_RIGHT_BRACKET, "expect ']' to conclude list comprehension");
-    inComprehension = prevComprehension;
     return std::make_unique<ListCompExpr>(header, expr);
 }
 
@@ -1440,16 +1427,19 @@ ExprUP Parser::tableComprehension()
     MATCH_TOK(TOK_COLON, "expect ':' before comprehension pair");
 
     MATCH_TOK(TOK_LEFT_PAREN, "expect '(' before key");
-    bool prevComprehension{inComprehension};
-    inComprehension = true;
+    bool comprehension{inComprehension};
 
+    inComprehension = true;
     ExprUP key{expression()};
+    inComprehension = comprehension;
     MATCH_TOK(TOK_COMMA, "expect ',' after key");
+
+    inComprehension = true;
     ExprUP value{expression()};
+    inComprehension = comprehension;
     MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after value");
 
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude table comprehension");
-    inComprehension = prevComprehension;
     return std::make_unique<TableCompExpr>(header, key, value);
 }
 

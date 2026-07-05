@@ -26,7 +26,7 @@ class Parser
         // For functions and control-flow.
         bool inFunc{false}, inConstructor{false};
         bool inLoop{false}, inComprehension{false};
-        bool inMatch{false}, fall{false};
+        bool inMatch{false}, fallthrough{false};
         // We are currently in an error state.
         bool syntaxError{false}, semanticError{false};
         // Currently parsing lambda parameter list (don't consume
