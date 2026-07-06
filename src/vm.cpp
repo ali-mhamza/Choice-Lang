@@ -6,11 +6,11 @@
  */
 
 #include "../include/vm.h"
-#include "../include/compiler.h"
 #include "../include/bytecode.h"
 #include "../include/common.h"
-#include "../include/constructors.h"
+#include "../include/compiler.h"
 #include "../include/config.h"
+#include "../include/constructors.h"
 #include "../include/diagnostic.h"
 #include "../include/disasm.h"
 #include "../include/error.h"
@@ -19,12 +19,15 @@
 #include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
+#include "../include/utils.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -62,7 +65,33 @@ VM::~VM()
     delete[] globalRegisters;
 }
 
-std::unordered_set<std::string> VM::pendingImports{};
+// To give all of them internal linkage.
+namespace
+{
+    struct FileCompare
+    {
+        bool operator()(
+            const std::filesystem::path& p1,
+            const std::filesystem::path& p2
+        ) const
+        {
+            return std::filesystem::equivalent(p1, p2);
+        }
+    };
+
+    std::unordered_set<
+        std::filesystem::path,
+        std::hash<std::filesystem::path>,
+        FileCompare
+    > pendingImports{};
+
+    std::unordered_map<
+        std::filesystem::path,
+        Object,
+        std::hash<std::filesystem::path>,
+        FileCompare
+    > cachedImports{};
+}
 
 void VM::defineBuiltinGlobals()
 {
@@ -657,23 +686,47 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
     }
 }
 
-void VM::getModule(Object& module, const Object& dir)
+[[nodiscard]]
+static std::filesystem::path getModulePath(
+    Object& module,
+    const Object& dir
+)
 {
     Module* module_{AS_MODULE(module)};
-    const std::string name{module_->name};
+    const std::string file{module_->name};
+    const std::string dirString{AS_STRING(dir)->str};
 
+    std::filesystem::path scriptPath{dirString};
+    scriptPath.append(file);
+    scriptPath.concat(CH_FILE_EXT);
+
+    return scriptPath;
+}
+
+void VM::getModule(Object& module, const Object& dir)
+{
+    const auto path{getModulePath(module, dir)};
     // Currently being imported (cut off recursive import).
-    if (pendingImports.find(name) != pendingImports.end())
+    if (pendingImports.find(path) != pendingImports.end())
         throw RuntimeError(MODULE_IMPORT_PENDING);
 
-    pendingImports.insert(name);
+    auto checkCache{cachedImports.find(path)};
+    if (checkCache != cachedImports.end())
+    {
+        module = checkCache->second;
+        return;
+    }
+
+    pendingImports.insert(path);
     // 'dir' object is guaranteed to be a string.
-    auto [success, table] = getModuleTable(name, AS_STRING(dir)->str);
+    auto [success, table] = getModuleTable(path);
     if (!success) // Some issue occurred with the module.
         errorReset();
     else
-        module_->entries = std::move(table);
-    pendingImports.extract(name);
+        AS_MODULE(module)->entries = std::move(table);
+
+    pendingImports.extract(path);
+    cachedImports[path] = module;
 }
 
 // Handle regSlot.

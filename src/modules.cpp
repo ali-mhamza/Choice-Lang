@@ -11,22 +11,17 @@
 #include "../include/vm.h"
 #include <filesystem>
 #include <string>
-#include <string_view>
 #include <utility>
 
 std::pair<bool, ModuleTable>
-getModuleTable(std::string_view file, std::string_view dir)
+getModuleTable(const std::filesystem::path& path)
 {
-    std::filesystem::path scriptPath{dir};
-    scriptPath.append(file);
-    scriptPath.concat(CH_FILE_EXT);
-
-    if (!std::filesystem::exists(scriptPath))
+    if (!std::filesystem::exists(path))
         throw RuntimeError(MODULE_FILE_MISSING);
 
-    std::string content{readFile(scriptPath)};
+    std::string content{readFile(path)};
     normalizeInput(content);
-    FileID id{sourceManager.addFile(scriptPath.string(), content)};
+    FileID id{sourceManager.addFile(path.string(), content)};
 
     Lexer lexer{};
     Parser parser{};

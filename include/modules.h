@@ -1,9 +1,11 @@
 #pragma once
 #include <personal/hash_table.h>
-#include <string_view>
+#include <filesystem>
+#include <string>
 #include <utility>
 
 class Object;
 using ModuleTable = HashTable<std::string, Object>;
+
 [[nodiscard]] std::pair<bool, ModuleTable>
-getModuleTable(std::string_view file, std::string_view dir);
+getModuleTable(const std::filesystem::path& path);

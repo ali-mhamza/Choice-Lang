@@ -57,8 +57,6 @@ class VM
         Object* registers{globalRegisters};
         const Object* pool{};
 
-        static std::unordered_set<std::string> pendingImports;
-
         std::vector<Object*> scopeStarts{};
         std::vector<CallFrame> frames{};
         std::vector<Cell*> activeCells{};
