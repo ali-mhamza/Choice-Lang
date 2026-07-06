@@ -6,6 +6,7 @@ Choice has (6) primary control-flow structures that can be used:
 - `while` loops.
 - `for` loops.
 - List comprehensions.
+- Table comprehensions.
 - `repeat-until` loops.
 - `match-is` structures.
 
@@ -157,6 +158,15 @@ Similar to `for` loops, list comprehensions can also have `where` conditional cl
 make list = [for (i in 1..10 where i % 2 == 0): i]; // list = [1, 3, 5, 7, 9]
 ```
 
+#### Table comprehensions
+
+Table comprehensions function identically to list comprehensions, with the obvious difference that they form tables, rather than lists.\
+The only other differences is that the comprehension must be within braces, rather than brackets, and that the entry on the right-hand side of the loop header must be a parentheses-enclosed pair of expressions, similar to how table literals are constructed.\
+Below is an example of this:
+```
+make table = {for (i in 1..3): (i, i**2)}; // table = {(1, 1), (2, 4), (3, 9)}
+```
+
 <hr>
 
 #### `repeat-until` loops
@@ -218,7 +228,7 @@ Currently, `match-is` structures are really syntactic sugar for multiple structu
 
 ## More on loops, `break` and `continue`
 
-Borrowing from C-like languages, `break` and `continue` statements can be used to exit a loop or skip to the following iteration of a loop, respectively.\
+Borrowing from C-like languages, `break` and `continue` statements can be used to exit a loop or skip to the following iteration of a loop, respectively (with the exception of loops within list or table comprehensions).\
 However, similar to Rust and Java, loops also accept labels which can be specified by a `break` or `continue` statement to exit an outer loop or skip to the following iteration of an outer loop.
 
 ```
