@@ -48,7 +48,6 @@ and, as, break, continue, elif, else, end, fallthrough,
 false, fix, for, from, func, if, immut, in, is, make,
 match, mut, not, null, or, private, repeat, return, true,
 type, until, use, where, while
-
 ```
 
 There are also pre-defined constants and identifiers. While they can still be used as identifiers for declarations, this should strictly be avoided, since they represent important data provided to the user as part of the VM runtime.\
