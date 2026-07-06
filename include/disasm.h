@@ -44,8 +44,8 @@ class Disassembler
         void captureOp(u8 byte);
         // For OP_UNPACK.
         void unpackOp(u8 byte);
-        // For OP_MAKE_REF.
-        void referenceOp();
+        // For reference-creating instructions.
+        void referenceOp(u8 byte);
         // For OP_FORMAT_STR.
         void formatOp();
         // For OP_DEF_START.

@@ -21,7 +21,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    UNPACK_TOO_MANY, FIELD_UNINIT_READ, FIELD_NO_INSTANCE,
+    REF_NOT_ASSIGN, FIELD_UNINIT_READ, FIELD_NO_INSTANCE,
     INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX, INVALID_INCR_DECR_TARGET,
     ALIAS_SPEC_MODULE, IMMUT_TO_MUT, RETURN_IN_CTOR,
     INVALID_ATTR, UNREACHABLE_CODE, MUT_TO_IMMUT
@@ -57,6 +57,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Cannot have a parameter after a variadic parameter (with '...').",
     "Function name too long.", "Too few values to unpack into left-hand side.",
     "Too many values to unpack into left-hand side.",
+    "Value being referenced is not assignable.",
 
     // Variable errors.
 

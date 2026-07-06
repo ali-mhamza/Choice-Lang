@@ -1217,18 +1217,18 @@ ExprUP Parser::exponent()
 
 ExprUP Parser::reference()
 {
-    u64 offset{previousTok.byteOffset};
-    MATCH_TOK(TOK_IDENTIFIER, "expect reference name");
+    const Token oper{previousTok};
+    CHECK_DEPTH(previousTok);
+    ExprUP expr{expression()};
 
-    ExprUP expr{std::make_unique<ReferenceExpr>(offset, previousTok)};
-
-    if (!checkTok(TOK_COMMA) && !checkTok(TOK_RIGHT_PAREN))
+    if ((expr == nullptr) ||
+        ((expr->type != E_VAR_EXPR) && (expr->type != E_FIELD_EXPR)))
     {
-        REPORT_SYNTAX(WRONG_TOKEN_FOUND, currentTok,
-            "expect ',' after function argument");
+        REPORT_SYNTAX(REF_NOT_ASSIGN, oper);
     }
 
-    setExprLocation(expr, offset);
+    expr = std::make_unique<ReferenceExpr>(expr);
+    setExprLocation(expr, oper.byteOffset);
     return expr;
 }
 

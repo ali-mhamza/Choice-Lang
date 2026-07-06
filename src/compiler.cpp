@@ -1911,18 +1911,43 @@ DEF(TableCompExpr)
     comprehension(node, append);
 }
 
-DEF(ReferenceExpr)
+void Compiler::varReference(
+    const ReferenceExpr* node
+)
 {
-    VarInfo info{resolveVariable(node->name)};
+    const VarExpr* expr{static_cast<const VarExpr*>(node->obj.get())};
+    VarInfo info{resolveVariable(expr->name)};
     if (!info.found)
     {
-        REPORT_ERROR(VAR_NOT_DEFINED, node->name,
+        REPORT_ERROR(VAR_NOT_DEFINED, expr->name,
             "cannot construct reference to undefined variable");
     }
 
-    code.addOp(OP_MAKE_REF, nextReg, static_cast<u8>(info.type),
+    code.addOp(OP_VAR_REF, nextReg, static_cast<u8>(info.type),
         info.slot);
     reserveReg();
+}
+
+void Compiler::fieldReference(
+    const ReferenceExpr* node
+)
+{
+    const FieldExpr* field{static_cast<const FieldExpr*>(node->obj.get())};
+    u8 objReg{compileExpr(field->obj)};
+    Object fieldName{CH_ALLOC(String, field->field.text)};
+    code.loadRegConst(fieldName, nextReg);
+
+    code.addOp(OP_FIELD_REF, objReg, nextReg);
+}
+
+DEF(ReferenceExpr)
+{
+    switch (node->obj->type)
+    {
+        case E_VAR_EXPR:    varReference(node);     break;
+        case E_FIELD_EXPR:  fieldReference(node);   break;
+        default: CH_UNREACHABLE();
+    }
 }
 
 DEF(VarExpr)

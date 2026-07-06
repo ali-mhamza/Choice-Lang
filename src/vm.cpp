@@ -1566,10 +1566,25 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
-        CASE(OP_MAKE_REF):
+        CASE(OP_VAR_REF):
         {
             u8 slot{readByte()};
             registers[slot] = makeReference();
+            DISPATCH();
+        }
+        CASE(OP_FIELD_REF):
+        {
+            u8 instanceReg{readByte()};
+            u8 fieldReg{readByte()};
+
+            // For now; built-in types may also have fields/methods later.
+            if (!IS_INSTANCE(registers[instanceReg]))
+                throw RuntimeError(FIELD_NO_INSTANCE);
+
+            Instance* obj{AS_INSTANCE(registers[instanceReg])};
+            const std::string& field{AS_STRING(registers[fieldReg])->str};
+
+            registers[instanceReg] = CH_ALLOC(Cell, obj->findField(field));
             DISPATCH();
         }
 

@@ -131,6 +131,8 @@ enum DiagCode : u8
     UNPACK_TOO_FEW,
     // Too many values to unpack.
     UNPACK_TOO_MANY,
+    // Value being referenced is not assignable.
+    REF_NOT_ASSIGN,
 
 
     /* Variable errors. */

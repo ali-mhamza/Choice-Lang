@@ -283,27 +283,34 @@ void Disassembler::unpackOp(u8 byte)
     CH_PRINT("R[{}] ({}) ({}) ({})\n", reg, count, first, second);
 }
 
-void Disassembler::referenceOp()
+void Disassembler::referenceOp(u8 byte)
 {
     // Mimicking the compiler.
     enum VarType : u8 { GLOBAL, CELL, LOCAL };
 
-	printOpcode(opNames[OP_MAKE_REF]);
-
+	printOpcode(opNames[byte]);
 	u8 reg{readByte()};
-	VarType type{static_cast<VarType>(readByte())};
-	u8 target{readByte()};
-
 	CH_PRINT("R[{}] ", reg);
 
-	switch (type)
+	if (static_cast<Opcode>(byte) == OP_VAR_REF)
 	{
-		case GLOBAL:	CH_PRINT("GLOBAL ");	break;
-		case CELL:		CH_PRINT("CELL ");		break;
-		case LOCAL:		CH_PRINT("LOCAL ");		break;
-	}
+    	VarType type{static_cast<VarType>(readByte())};
+    	u8 target{readByte()};
 
-	CH_PRINT("R[{}]\n", target);
+    	switch (type)
+    	{
+    		case GLOBAL:	CH_PRINT("GLOBAL ");	break;
+    		case CELL:		CH_PRINT("CELL ");		break;
+    		case LOCAL:		CH_PRINT("LOCAL ");		break;
+    	}
+
+    	CH_PRINT("R[{}]\n", target);
+	}
+	else if (static_cast<Opcode>(byte) == OP_FIELD_REF)
+	{
+	    u8 field{readByte()};
+		CH_PRINT("R[{}]\n", field);
+	}
 }
 
 void Disassembler::formatOp()
@@ -371,7 +378,9 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_UNPACK:
 		    unpackOp(byte);
 			break;
-		case OP_MAKE_REF:	referenceOp();	break;
+		case OP_VAR_REF:    case OP_FIELD_REF:
+		    referenceOp(byte);
+			break;
 		case OP_FORMAT_STR:	formatOp();		break;
 		case OP_DEF_START:	declOp();		break;
 		case OP_EXIT_SCOPE:		case OP_DEF_END:	case OP_HALT:

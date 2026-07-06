@@ -343,6 +343,12 @@ class Compiler
         );
         DECL_EXPR(ListCompExpr);
         DECL_EXPR(TableCompExpr);
+        void varReference(
+            const AST::Expression::ReferenceExpr* node
+        );
+        void fieldReference(
+            const AST::Expression::ReferenceExpr* node
+        );
         DECL_EXPR(ReferenceExpr);
         DECL_EXPR(VarExpr);
         DECL_EXPR(StringPartExpr);

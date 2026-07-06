@@ -431,7 +431,6 @@ struct Instance : public HeapObj
     Instance(const Type* type) noexcept;
     bool operator==(const Instance& other) const;
 
-    // For internal use only.
     [[nodiscard]] Object* findField(const std::string& name);
     [[nodiscard]] const Object* findField(const std::string& name) const;
 

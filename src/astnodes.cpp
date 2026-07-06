@@ -192,9 +192,9 @@ TableCompExpr::TableCompExpr(AST::LoopHeader& header, ExprUP& key,
     Expr{E_TABLE_COMP_EXPR},
     header{std::move(header)}, key{std::move(key)}, value{std::move(value)} {}
 
-ReferenceExpr::ReferenceExpr(u64 offset, const Token& name) :
+ReferenceExpr::ReferenceExpr(ExprUP& obj) :
     Expr{E_REF_EXPR},
-    operOffset{offset}, name(name) {}
+    obj{std::move(obj)} {}
 
 VarExpr::VarExpr(const Token& name) :
     Expr{E_VAR_EXPR},
