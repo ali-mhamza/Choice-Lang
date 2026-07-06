@@ -56,7 +56,7 @@ Unlike their statement counterparts, these expression must end with an `else` cl
 
 ```
 make x = 1;
-make y = if (x == 1) { 1 } elif (x == 2) { 2 } elif (x == 3) { 3 } else { nil };
+make y = if (x == 1) { 1 } elif (x == 2) { 2 } elif (x == 3) { 3 } else { null };
 ```
 
 This is primarily an improvement on Python's "ternary" operator by reorganizing the conditions and expressions.
