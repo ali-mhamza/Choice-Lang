@@ -92,6 +92,18 @@ This option will load the cached bytecode from the given ".chbc" file, reconstru
 
 <hr>
 
+### Inspect Bytecode
+- Flags: `-i`, `-inspect`
+- Applies to:
+  1. REPL - No
+  2. Source files - No
+  3. Bytecode files - Yes
+
+This option displays the sections and data stored within a bytecode cache file. It functions similarly to the `readelf` utility on Unix-like systems, displaying various parts and offsets within cache files.\
+While it isn't particularly useful for most users, it can be insightful for those wishing to dive deeper into the internals of the language.
+
+<hr>
+
 ### Explain Error
 - Flags: `-e`, `-explain`
 - Applies to:
