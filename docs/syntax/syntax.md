@@ -44,13 +44,11 @@ Below are all the reserved words within Choice:
 ```
 // Keywords.
 
-and, break, class, continue, def, elif, else, end, func, for,
-fallthrough, fix, false, if, is, immut, in, match, make, mut,
-null, not, or, repeat, true, until, while, where
+and, as, break, continue, elif, else, end, fallthrough,
+false, fix, for, from, func, if, immut, in, is, make,
+match, mut, not, null, or, private, repeat, return, true,
+type, until, use, where, while
 
-// Built-in types.
-
-Int, Dec, Boolean, Null, Type, Func, String, Range, List, Table, Void, Any, Class
 ```
 
 There are also pre-defined constants and identifiers. While they can still be used as identifiers for declarations, this should strictly be avoided, since they represent important data provided to the user as part of the VM runtime.\
@@ -59,6 +57,7 @@ Below are the constants currently defined:
 _file_  // At global (file or REPL) scope.
 _func_  // At function scope.
 ```
+This applies as well to any built-in functions (e.g., println, read) and types (e.g., Int, Bool).
 
 ## Identifiers
 
