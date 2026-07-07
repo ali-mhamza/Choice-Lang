@@ -275,6 +275,22 @@ inline Object VM::loadOper()
     }
 }
 
+// Credit for ipow: jdh8.
+// Source: https://stackoverflow.com/questions/1505675/.
+static i64 ipow(i64 base, i64 exp)
+{
+    i64 res{1};
+    while (exp != 0)
+    {
+        if (exp & 1)
+            res *= base;
+        exp >>= 1;
+        base *= base;
+    }
+
+    return res;
+}
+
 Object VM::arithOper(Opcode op, u8 firstOper)
 {
     const Object& a{registers[firstOper]};
@@ -299,7 +315,7 @@ Object VM::arithOper(Opcode op, u8 firstOper)
                 if (bVal == 0) throw RuntimeError(MODULUS_WITH_ZERO);
                 return aVal % bVal;
             }
-            case OP_POWER:  return static_cast<i64>(pow(aVal, bVal));
+            case OP_POWER:  return ipow(aVal, bVal);
             default: CH_UNREACHABLE();
         }
     }
