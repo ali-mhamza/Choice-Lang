@@ -273,7 +273,7 @@ inline Object VM::loadOper()
 
 // Credit for ipow: jdh8.
 // Source: https://stackoverflow.com/questions/1505675/.
-static i64 ipow(i64 base, i64 exp)
+[[nodiscard]] static inline i64 ipow(i64 base, i64 exp)
 {
     i64 res{1};
     while (exp != 0)
