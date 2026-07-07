@@ -1221,11 +1221,8 @@ ExprUP Parser::reference()
     CHECK_DEPTH(previousTok);
     ExprUP expr{expression()};
 
-    if ((expr == nullptr) ||
-        ((expr->type != E_VAR_EXPR) && (expr->type != E_FIELD_EXPR)))
-    {
+    if ((expr == nullptr) || !CAN_ASSIGN(expr))
         REPORT_SYNTAX(REF_NOT_ASSIGN, oper);
-    }
 
     expr = std::make_unique<ReferenceExpr>(expr);
     setExprLocation(expr, oper.byteOffset);

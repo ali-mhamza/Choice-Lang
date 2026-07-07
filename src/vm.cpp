@@ -252,24 +252,6 @@ Object VM::makeReference()
     return CH_ALLOC(Cell, addr);
 }
 
-Object& VM::deref(Object& ref, bool willAssign)
-{
-    Cell* cell{AS_REF(ref)};
-    Object& obj{*(cell->location)};
-
-    if (IS_FIXED(obj) && willAssign)
-    {
-        throw RuntimeError(MOD_FIXED_VARIABLE,
-            CH_STR(
-                "immutable ({}) being implicitly modified "
-                "through a reference here", obj.printType()
-            )
-        );
-    }
-
-    return obj;
-}
-
 inline Object VM::loadOper()
 {
     switch (u8 oper = readByte())
@@ -1082,7 +1064,7 @@ void VM::executeOp(Opcode op)
             bool fixed{IS_FIXED(globalRegisters[dest])};
 
             if CH_UNLIKELY(IS_REF(registers[src]))
-                COPY(globalRegisters[dest], deref(registers[src]));
+                COPY(globalRegisters[dest], registers[src].deref());
             else
                 COPY(globalRegisters[dest], registers[src]);
 
@@ -1100,7 +1082,7 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             Object* obj{currentClosure->cells[src]->location};
 
-            if CH_UNLIKELY(IS_REF(*obj)) obj = &deref(*obj);
+            if CH_UNLIKELY(IS_REF(*obj)) obj = &(obj->deref());
 
             COPY(registers[dest], *obj);
             SET_REGSLOT(dest);
@@ -1112,10 +1094,14 @@ void VM::executeOp(Opcode op)
             u8 src{readByte()};
             Object* obj{currentClosure->cells[dest]->location};
 
-            if CH_UNLIKELY(IS_REF(*obj)) obj = &deref(*obj, true);
-
             bool fixed{IS_FIXED(*obj)};
-            COPY(*obj, registers[src]);
+            if CH_UNLIKELY(IS_REF(*obj))
+            {
+                fixed = IS_FIXED(obj->deref());
+                AS_REF(*obj)->assign(registers[src]);
+            }
+            else
+                COPY(*obj, registers[src]);
 
             if (fixed && !IS_MUT(*obj))
                 MAKE_IMMUT(*obj);
@@ -1132,13 +1118,17 @@ void VM::executeOp(Opcode op)
             Object* destObj{&registers[dest]};
             Object* srcObj{&registers[src]};
 
-            if CH_UNLIKELY(IS_REF(*destObj))
-                destObj = &deref(*destObj, true);
-            if CH_UNLIKELY(IS_REF(*srcObj))
-                srcObj = &deref(*srcObj);
-
             bool fixed{IS_FIXED(*destObj)};
-            COPY(*destObj, *srcObj);
+            if CH_UNLIKELY(IS_REF(*srcObj))
+                srcObj = &(srcObj->deref());
+
+            if CH_UNLIKELY(IS_REF(*destObj))
+            {
+                fixed = IS_FIXED(destObj->deref());
+                AS_REF(*destObj)->assign(*srcObj);
+            }
+            else
+                COPY(*destObj, *srcObj);
 
             if (fixed && !IS_MUT(*destObj))
                 MAKE_IMMUT(*destObj);
@@ -1570,6 +1560,14 @@ void VM::executeOp(Opcode op)
         {
             u8 slot{readByte()};
             registers[slot] = makeReference();
+            DISPATCH();
+        }
+        CASE(OP_INDEX_REF):
+        {
+            u8 objReg{readByte()};
+            u8 indexReg{readByte()};
+
+            registers[objReg] = registers[objReg].indexRef(registers[indexReg]);
             DISPATCH();
         }
         CASE(OP_FIELD_REF):

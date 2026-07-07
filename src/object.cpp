@@ -246,6 +246,39 @@ void Object::setIndex(const Object& index, const Object& value)
     }
 }
 
+Cell* Object::indexRef(const Object& index)
+{
+    CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index reference.");
+
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, *this, index);
+
+    // For now.
+    if (AS_INT(index) < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+
+    u64 size{collectionSize()};
+    if (AS_INT(index) >= static_cast<i64>(size))
+    {
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+            CH_STR(
+                "index is {}, while referenced value has size {}", AS_INT(index), size
+            )
+        );
+    }
+
+    Cell* cell{CH_ALLOC(Cell, this, index)};
+    // Since we replace it immediately in the VM.
+    cell->close();
+    return cell;
+}
+
+Object& Object::deref()
+{
+    CH_ASSERT(IS_REF(*this), "deref() called on non-reference object.");
+    return *(AS_REF(*this)->location);
+}
+
 u64 Object::collectionSize() const
 {
     CH_ASSERT(IS_COLLECTION(*this),
@@ -1147,10 +1180,37 @@ std::string Table::printVal(bool nested) const
 Cell::Cell(Object* location) noexcept:
     location{location} {}
 
+Cell::Cell(Object* obj, const Object& index) noexcept:
+    isElement{true}, location{obj}
+{
+    CH_ASSERT(IS_INT(index), "Non-integer object used as index.");
+    this->index = AS_INT(index);
+}
+
 void Cell::close()
 {
     obj = *location;
     location = &obj;
+}
+
+void Cell::assign(const Object& value)
+{
+    if (isElement)
+        obj.setIndex(Object{index}, value);
+    else
+    {
+        if (IS_FIXED(obj))
+        {
+            throw RuntimeError(MOD_FIXED_VARIABLE,
+                CH_STR(
+                    "immutable ({}) being implicitly modified "
+                    "through a reference here", obj.printType()
+                )
+            );
+        }
+
+        obj = value;
+    }
 }
 
 

@@ -106,9 +106,6 @@ class VM
         [[nodiscard]] Object concatStrings(const Object& str1, const Object& str2);
         [[nodiscard]] Object makeRange(const Object& start, const Object& stop);
         [[nodiscard]] Object makeReference();
-        // `willAssign`: True if the returned object will be the
-        // target of an assignment (necessitating a mutability check).
-        [[nodiscard]] Object& deref(Object& ref, bool willAssign = false);
 
         [[nodiscard]] Object loadOper();
         [[nodiscard]] Object arithOper(Opcode op, u8 firstOper);

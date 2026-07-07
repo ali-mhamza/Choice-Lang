@@ -292,7 +292,13 @@ void Disassembler::referenceOp(u8 byte)
 	u8 reg{readByte()};
 	CH_PRINT("R[{}] ", reg);
 
-	if (static_cast<Opcode>(byte) == OP_VAR_REF)
+	if ((static_cast<Opcode>(byte) == OP_INDEX_REF)
+	    || (static_cast<Opcode>(byte) == OP_FIELD_REF))
+	{
+	    u8 field{readByte()};
+		CH_PRINT("R[{}]\n", field);
+	}
+	else if (static_cast<Opcode>(byte) == OP_VAR_REF)
 	{
     	VarType type{static_cast<VarType>(readByte())};
     	u8 target{readByte()};
@@ -305,11 +311,6 @@ void Disassembler::referenceOp(u8 byte)
     	}
 
     	CH_PRINT("R[{}]\n", target);
-	}
-	else if (static_cast<Opcode>(byte) == OP_FIELD_REF)
-	{
-	    u8 field{readByte()};
-		CH_PRINT("R[{}]\n", field);
 	}
 }
 
@@ -378,7 +379,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_UNPACK:
 		    unpackOp(byte);
 			break;
-		case OP_VAR_REF:    case OP_FIELD_REF:
+		case OP_VAR_REF:    case OP_INDEX_REF:      case OP_FIELD_REF:
 		    referenceOp(byte);
 			break;
 		case OP_FORMAT_STR:	formatOp();		break;

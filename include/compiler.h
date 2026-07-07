@@ -346,6 +346,9 @@ class Compiler
         void varReference(
             const AST::Expression::ReferenceExpr* node
         );
+        void elementReference(
+            const AST::Expression::ReferenceExpr* node
+        );
         void fieldReference(
             const AST::Expression::ReferenceExpr* node
         );

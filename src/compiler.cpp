@@ -1928,6 +1928,18 @@ void Compiler::varReference(
     reserveReg();
 }
 
+void Compiler::elementReference(
+    const ReferenceExpr* node
+)
+{
+    const IndexExpr* expr{static_cast<const IndexExpr*>(node->obj.get())};
+    u8 objReg{compileExpr(expr->obj)};
+    u8 indexReg{compileExpr(expr->index)};
+
+    code.addOp(OP_INDEX_REF, objReg, indexReg);
+    freeReg(); // Free index register.
+}
+
 void Compiler::fieldReference(
     const ReferenceExpr* node
 )
@@ -1945,6 +1957,7 @@ DEF(ReferenceExpr)
     switch (node->obj->type)
     {
         case E_VAR_EXPR:    varReference(node);     break;
+        case E_INDEX_EXPR:  elementReference(node); break;
         case E_FIELD_EXPR:  fieldReference(node);   break;
         default: CH_UNREACHABLE();
     }

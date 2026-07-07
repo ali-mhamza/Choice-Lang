@@ -149,6 +149,11 @@ class Object
         [[nodiscard]] Object getIndex(const Object& index) const;
         void setIndex(const Object& index, const Object& value);
 
+        [[nodiscard]] Cell* indexRef(const Object& index);
+        // Only to be used on Cell objects.
+        // Does not type-check.
+        Object& deref();
+
         // Get the size of the collection object payload.
         // Only valid to call for collections.
         [[nodiscard]] u64 collectionSize() const;
@@ -573,11 +578,18 @@ struct Table : public HeapObj
 
 struct Cell : public HeapObj
 {
+    // Whether or not the captured object is an
+    // element within a sequence.
+    bool isElement{false};
+    i64 index{};
     Object* location{};
     Object obj{};
 
     Cell(Object* location) noexcept;
+    Cell(Object* obj, const Object& index) noexcept;
     void close();
+
+    void assign(const Object& value);
 };
 
 

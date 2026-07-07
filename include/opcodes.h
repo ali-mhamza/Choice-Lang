@@ -70,6 +70,7 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_SET_LOCAL,		// Assign to a local variable.
 
 	OP_VAR_REF,         // Construct a reference to a variable.
+	OP_INDEX_REF,       // Construct a reference to an element within another object.
 	OP_FIELD_REF,       // Construct a reference to an instance field.
 
 	/* Built-in Types. */
