@@ -31,10 +31,16 @@
 #include <unordered_set>
 #include <utility>
 
-#if COPY_INLINE
+#if !CH_USE_ALLOC && COPY_INLINE
     #define COPY(a, b) copyObject((a), (b))
 #else
     #define COPY(a, b) (a) = (b)
+#endif
+
+#if !CH_USE_ALLOC
+    #define MOVE(a) std::move(a)
+#else
+    #define MOVE(a) a
 #endif
 
 #if WATCH_REG
@@ -286,7 +292,7 @@ Object VM::arithOper(Opcode op, u8 firstOper)
             case OP_DIV:
             {
                 if (bVal == 0) throw RuntimeError(DIVISION_BY_ZERO);
-                return static_cast<double>(aVal) / bVal;
+                return static_cast<double>(aVal) / static_cast<double>(bVal);
             }
             case OP_MOD:
             {
@@ -982,7 +988,7 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
-            registers[dest] = std::move(registers[src]);
+            registers[dest] = MOVE(registers[src]);
             SET_REGSLOT_MAX(dest, src);
             DISPATCH();
         }
@@ -1426,7 +1432,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_RETURN):
         {
             u8 retSlot{readByte()};
-            registers[-1] = std::move(registers[retSlot]);
+            registers[-1] = MOVE(registers[retSlot]);
 
             // Correct regSlot after return.
             restoreData();
