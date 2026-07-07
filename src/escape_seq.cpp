@@ -6,6 +6,7 @@
 
 #include "../include/escape_seq.h"
 #include "../include/common.h"
+#include "../include/diagnostic.h"
 #include "../include/utils.h"
 #include <array>
 #include <limits>

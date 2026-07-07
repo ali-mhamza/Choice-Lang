@@ -7,6 +7,7 @@
 #include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
+#include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
@@ -14,6 +15,7 @@
 #include <personal/hash_functions.h>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +25,8 @@
 #include <string_view>
 #include <unordered_map>
 #include <variant>
+#include <vector>
+
 using Natives::funcNames;
 
 /* Object. */

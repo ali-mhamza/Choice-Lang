@@ -9,6 +9,7 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/debug.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include "../include/utils.h"

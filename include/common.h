@@ -84,6 +84,10 @@
 	>;
 #endif
 
+// EOF.
+
+#define CH_EOF static_cast<char>(-1)
+
 // Constructor name.
 
 #define CH_CONSTRUCTOR "Self"
@@ -151,6 +155,7 @@
 
 	#define CH_ALLOC(type, ...) allocator.alloc<type, CustomDealloc<type>>(__VA_ARGS__)
 	#define CH_DEALLOC(ptr)
+	#define CH_MOVE(obj) obj
 
 	#if defined(DEBUG)
 		#define CH_ASSERT_MEM(expr, msg, arena)								\
@@ -169,8 +174,11 @@
 		#define CH_ASSERT_MEM(expr, msg, arena)
 	#endif /* defined(DEBUG) */
 #else
+    #include <utility>
+
 	#define CH_ALLOC(type, ...) new type{__VA_ARGS__}
 	#define CH_DEALLOC(ptr) delete ptr
+	#define CH_MOVE(obj) std::move(obj)
 #endif
 
 // Unreachable points.

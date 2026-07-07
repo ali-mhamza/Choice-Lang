@@ -9,6 +9,7 @@
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/diagnostic.h"
 #include "../include/token.h"
 #include <memory>
 #include <string_view>

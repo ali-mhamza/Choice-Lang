@@ -3,12 +3,16 @@
  */
 
 #include "../include/args.h"
+#include "../include/common.h"
+#include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/options.h"
 #include "../include/utils.h"
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <filesystem>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 

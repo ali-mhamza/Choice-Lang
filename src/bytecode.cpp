@@ -8,15 +8,17 @@
 #include "../include/bytes.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <ios>
 #include <limits>
-#include <utility>
+#include <string>
 
 ByteCode::ByteCode(const vByte& block) :
 	block(block) {}
@@ -142,7 +144,7 @@ void ByteCode::loadRegConst(Object& constant, u8 reg)
 		}
 	}
 
-	pool.push_back(std::move(constant));
+	pool.push_back(CH_MOVE(constant));
 
 	size_t size{pool.size()};
 	if (size - 1 < (1 << 8))

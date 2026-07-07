@@ -4,19 +4,23 @@
  */
 
 #include "../include/diagnostic.h"
+#include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/object.h"
 #include "../include/token.h"
 #include "../include/utils.h"
+#include "../include/vm.h"
 #include <fast_float/fast_float.h>
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 

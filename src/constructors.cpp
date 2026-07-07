@@ -13,6 +13,7 @@
 #include "../include/object.h"
 #include <fast_float/fast_float.h>
 #include <array>
+#include <string>
 #include <unordered_map>
 
 const std::array<ObjType,

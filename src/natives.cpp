@@ -5,6 +5,7 @@
 
 #include "../include/natives.h"
 #include "../include/common.h"
+#include "../include/diagnostic.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"

@@ -19,6 +19,7 @@
 	#include <replxx/include/replxx.hxx>
 #endif
 
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -41,7 +42,7 @@ bool inRepl{false};
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 	#include "../include/linear_alloc.h"
-	LinearAlloc allocator{CH_ALLOC_SIZE};
+	LinearAlloc allocator{static_cast<size_t>(CH_ALLOC_SIZE)};
 #endif
 
 [[nodiscard]]

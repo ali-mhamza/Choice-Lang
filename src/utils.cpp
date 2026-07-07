@@ -5,10 +5,15 @@
 
 #include "../include/utils.h"
 #include "../include/config.h"
+#include <algorithm>
+#include <cctype>
 #include <cstddef>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <sstream>
+#include <string>
 #include <string_view>
 #include <vector>
 

@@ -5,6 +5,10 @@
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
 
 #include "../include/linear_alloc.h"
+#include "../include/common.h"
+#include "../include/gen_alloc.h"
+#include <cstddef>
+#include <cstdlib>
 
 LinearAlloc::LinearAlloc(size_t size) :
     start{malloc(size)}, cap{size}

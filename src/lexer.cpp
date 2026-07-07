@@ -7,6 +7,7 @@
 #include "../include/lexer.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/diagnostic.h"
 #include "../include/token.h"
 #include "../include/utils.h"
 #include <fast_float/fast_float.h>
@@ -15,10 +16,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-
-#pragma push_macro("EOF")
-#undef EOF
-#define EOF static_cast<char>(-1)
 
 #define PREVIOUS_OFFSET	(offset - 1)
 #define CURRENT_OFFSET	(offset)
@@ -90,7 +87,7 @@ char Lexer::advance()
 		return current[-1];
 	}
 
-	return EOF;
+	return CH_EOF;
 }
 
 bool Lexer::checkChar(char c) const
@@ -121,14 +118,14 @@ char Lexer::peekChar(size_t distance /* = 0 */) const
 {
 	if (current + distance < end)
 		return current[distance];
-	return EOF;
+	return CH_EOF;
 }
 
 char Lexer::previousChar(size_t distance /* = 0 */) const
 {
 	if (current - distance - 1 > start)
 		return *(current - distance - 1);
-	return EOF;
+	return CH_EOF;
 }
 
 TokenType Lexer::identifierType()
@@ -708,7 +705,6 @@ vT& Lexer::tokenize(FileID id, const std::string_view code)
 	return stream;
 }
 
-#pragma pop_macro("EOF")
 #undef PREVIOUS_OFFSET
 #undef CURRENT_OFFSET
 #undef NEXT_OFFSET

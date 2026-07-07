@@ -9,6 +9,7 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/constructors.h"
+#include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/escape_seq.h"
 #include "../include/linear_alloc.h"

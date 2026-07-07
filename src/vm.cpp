@@ -11,6 +11,7 @@
 #include "../include/compiler.h"
 #include "../include/config.h"
 #include "../include/constructors.h"
+#include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/disasm.h"
 #include "../include/error.h"
@@ -26,21 +27,16 @@
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
-#if !CH_USE_ALLOC && COPY_INLINE
+#if COPY_INLINE
     #define COPY(a, b) copyObject((a), (b))
 #else
     #define COPY(a, b) (a) = (b)
-#endif
-
-#if !CH_USE_ALLOC
-    #define MOVE(a) std::move(a)
-#else
-    #define MOVE(a) a
 #endif
 
 #if WATCH_REG
@@ -1004,7 +1000,7 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             u8 src{readByte()};
-            registers[dest] = MOVE(registers[src]);
+            registers[dest] = CH_MOVE(registers[src]);
             SET_REGSLOT_MAX(dest, src);
             DISPATCH();
         }
@@ -1448,7 +1444,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_RETURN):
         {
             u8 retSlot{readByte()};
-            registers[-1] = MOVE(registers[retSlot]);
+            registers[-1] = CH_MOVE(registers[retSlot]);
 
             // Correct regSlot after return.
             restoreData();

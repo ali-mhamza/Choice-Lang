@@ -4,19 +4,27 @@
  */
 
 #include "../include/options.h"
-#include "../include/compiler.h"
+#include "../include/astnodes.h"
+#include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
+#include "../include/compiler.h"
+#include "../include/debug.h"
 #include "../include/disasm.h"
-#include "../include/token.h"
 #include "../include/tokprinter.h"
 #include "../include/lexer.h"
 #include "../include/linear_alloc.h"
+#include "../include/object.h"
 #include "../include/parser.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
+#include <cstdio>
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <string>
 #include <string_view>
+#include <vector>
 
 [[nodiscard]]
 static inline vT& runLexer(FileID id, const std::string_view source)

@@ -5,6 +5,9 @@
 
 #include "../include/error.h"
 #include "../include/common.h"
+#include "../include/diagnostic.h"
+#include "../include/object.h"
+#include "../include/opcodes.h"
 #include <string>
 #include <string_view>
 
