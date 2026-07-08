@@ -133,7 +133,7 @@ make a = A(1, 2);
 a.print(); // Called with zero arguments.
 ```
 
-*Note:* the `self` parameter has variable mutability (see [mutability.md](./mutability.md) for more details on this concept in Choice). This means it cannot be reassigned within a method, even to a different instance of the same type:
+*Note:* the `self` parameter has variable immutability (see [mutability.md](./mutability.md) for more details on this concept in Choice). This means it cannot be reassigned within a method, even to a different instance of the same type:
 ```
 type A {
     func try()
