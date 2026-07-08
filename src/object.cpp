@@ -1200,20 +1200,20 @@ void Cell::close()
 void Cell::assign(const Object& value)
 {
     if (isElement)
-        obj.setIndex(Object{index}, value);
+        location->setIndex(Object{index}, value);
     else
     {
-        if (IS_FIXED(obj))
+        if (IS_FIXED(*location))
         {
             throw RuntimeError(MOD_FIXED_VARIABLE,
                 CH_STR(
                     "immutable ({}) being implicitly modified "
-                    "through a reference here", obj.printType()
+                    "through a reference here", location->printType()
                 )
             );
         }
 
-        obj = value;
+        *location = value;
     }
 }
 
