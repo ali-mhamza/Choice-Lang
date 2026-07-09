@@ -254,21 +254,33 @@ Cell* Object::indexRef(const Object& index)
 {
     CH_ASSERT(IS_COLLECTION(*this), "Incorrect object type for index reference.");
 
-    if (!IS_INT(index))
-        throw reportCollection(OBJ_NOT_INDEX, *this, index);
-
-    // For now.
-    if (AS_INT(index) < 0)
-        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
-
-    u64 size{collectionSize()};
-    if (AS_INT(index) >= static_cast<i64>(size))
+    if (!IS_TABLE(*this))
     {
-        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
-            CH_STR(
-                "index is {}, while referenced value has size {}", AS_INT(index), size
-            )
-        );
+        if (!IS_INT(index))
+            throw reportCollection(OBJ_NOT_INDEX, *this, index);
+
+        // For now.
+        if (AS_INT(index) < 0)
+            throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+
+        u64 size{collectionSize()};
+        if (AS_INT(index) >= static_cast<i64>(size))
+        {
+            throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+                CH_STR(
+                    "index is {}, while referenced value has size {}",
+                    AS_INT(index), size
+                )
+            );
+        }
+    }
+    else
+    {
+        if (!AS_TABLE(*this)->contains(index))
+        {
+            throw RuntimeError(TABLE_KEY_NOT_FOUND,
+                CH_STR("table does not contain key: {}", getElementText(index)));
+        }
     }
 
     Cell* cell{CH_ALLOC(Cell, this, index)};
