@@ -1313,6 +1313,8 @@ void VM::executeOp(Opcode op)
             // For now; built-in types may also have fields/methods later.
             if (!IS_INSTANCE(registers[instanceReg]))
                 throw RuntimeError(FIELD_NO_INSTANCE);
+            else if (IS_IMMUT(registers[instanceReg]))
+                throw RuntimeError(MOD_IMMUT_VALUE);
 
             Instance* obj{AS_INSTANCE(registers[instanceReg])};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
@@ -1599,8 +1601,19 @@ void VM::executeOp(Opcode op)
 
             Instance* obj{AS_INSTANCE(registers[instanceReg])};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
+            Object* find{obj->findField(field)};
 
-            registers[instanceReg] = CH_ALLOC(Cell, obj->findField(field));
+            if (IS_IMMUT(registers[instanceReg]))
+            {
+                // If the instance is immutable, we cannot reassign its
+                // fields.
+                MAKE_FIXED(*find);
+                // If the instance is immutable and the field *value* is
+                // not explicitly mutable, the value is made immutable.
+                if (!IS_MUT(*find)) MAKE_IMMUT(*find);
+            }
+
+            registers[instanceReg] = CH_ALLOC(Cell, find);
             DISPATCH();
         }
 

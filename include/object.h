@@ -309,8 +309,7 @@ TYPE_LIST
 #define IS_VALID(obj)       ((obj).type() != OBJ_INVALID)
 
 // Object has internal state that may be mutated without rebinding.
-// For now only applies to collection types.
-#define HAS_MUT_STATE(obj)  (IS_COLLECTION(obj))
+#define HAS_MUT_STATE(obj)  (IS_COLLECTION(obj) || IS_INSTANCE(obj))
 
 // Object was declared with "make" (mutable by default, can be reassigned).
 #define IS_VAR(obj)         (((obj).type_ & FIXED_FLAG) == 0)
