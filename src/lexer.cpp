@@ -222,8 +222,10 @@ bool Lexer::checkNumericLiteral(char start)
 
 void Lexer::reportError(DiagCode code, u64 offset, std::string_view message)
 {
+    if (inError) return;
+
 	diagEngine.source = ErrorSource::LEXER;
-	hitError = true;
+	hitError = inError = true;
 	// We did not find the expected character since we hit the end
 	// prematurely.
 	if ((code == WRONG_CHAR_FOUND) && (current[offset - this->offset] == '\0'))
@@ -691,7 +693,10 @@ vT& Lexer::tokenize(FileID id, const std::string_view code)
 	setUp(id, code);
 
 	while (!hitEnd())
-		singleToken();
+	{
+        inError = false;
+	    singleToken();
+	}
 
 	// Stream is only empty if an error occurred.
 	if (hitError)

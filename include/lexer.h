@@ -18,7 +18,9 @@ class Lexer
         vT stream{};
         u64 offset{0};
         NumBase base{DEC};
-        bool hitError{false};
+        // `hitError`: Across entire input.
+        // `inError`: In current token being constructed/scanned.
+        bool hitError{false}, inError{false};
 
         /* Utilities. */
 
