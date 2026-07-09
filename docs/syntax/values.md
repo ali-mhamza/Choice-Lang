@@ -319,7 +319,7 @@ To resolve this, a user can instead create a *reference* to a variable, and pass
 
 References follow three rules:
 1. They are created with the '*' operator preceding the referenced variable.
-2. References may only reference variables, not bare values. There is work in progress to expand references to be able to refer to collection elements or (once user-defined types are supported) fields as well, though both are currently unsupported.
+2. References must reference a target that supports assignment. This category is currently restricted to variables (e.g., `x`), index expressions (e.g., `x[0]`), and field-access expressions (e.g., `x.a`).
 3. References may only be created in function calls.
 
 Example:
