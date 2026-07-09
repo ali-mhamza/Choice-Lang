@@ -91,6 +91,8 @@ make a = A {
 As can be observed from the example, fields can be omitted, and can be specified in any order, even if it does not match the original type declaration order.\
 Any fields not initialized here will be initialized to `null` or use any specified default initializers.
 
+*Note:* it is not allowed to place a `return` statement anywhere within a custom constructor, even to return an instance of the type. The constructor automatically returns the instance it initializes.
+
 ## Default Initializers
 
 Type fields, if not initialized with a constructor or memberwise initializer, are automatically set to `null`.\
