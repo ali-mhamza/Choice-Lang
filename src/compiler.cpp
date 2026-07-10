@@ -554,11 +554,12 @@ Object Compiler::makeFuncObj(
     Object func{};
     bool variadic{!params.empty() && params.back().variadic};
     u8 arity{static_cast<u8>(params.size() - (variadic ? 1 : 0))};
+    u8 min{static_cast<u8>(arity - defaultCount)};
 
     if (name.empty()) // Compiling a lambda.
-        func = CH_ALLOC(Function, funcCode, arity - defaultCount, arity);
+        func = CH_ALLOC(Function, funcCode, min, arity);
     else
-        func = CH_ALLOC(Function, name, funcCode, arity - defaultCount, arity);
+        func = CH_ALLOC(Function, name, funcCode, min, arity);
 
     AS_USER_FUNC(func)->defaultArgs = defaultArgs;
     AS_USER_FUNC(func)->variadic = variadic;
