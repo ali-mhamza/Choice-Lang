@@ -1053,7 +1053,7 @@ std::string Range::printVal(bool nested) const
     return str;
 }
 
-List::List(u32 size) noexcept:
+List::List(u64 size) noexcept:
     array{size} {}
 
 bool List::operator==(const List& other) const
@@ -1112,13 +1112,7 @@ void List::setIndex(const Object& index, const Object& value)
 
 bool List::contains(const Object& obj) const
 {
-    for (const Object& entry : array)
-    {
-        if (entry == obj)
-            return true;
-    }
-
-    return false;
+    return (array.find(obj) != -1);
 }
 
 Hash List::hash() const

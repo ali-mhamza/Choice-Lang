@@ -540,7 +540,7 @@ struct List : public HeapObj
 {
     Array<Object> array{};
 
-    List(u32 size) noexcept;
+    List(u64 size) noexcept;
 
     [[nodiscard]] bool operator==(const List& other) const;
     [[nodiscard]] bool contains(const Object& obj) const;
