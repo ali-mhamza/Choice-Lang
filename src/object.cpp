@@ -33,12 +33,14 @@ using Natives::funcNames;
 
 #if !CH_USE_ALLOC
 
+#define CLEAR_DATA(obj) memset(&((obj).as), 0, sizeof((obj).as));
+
 void Object::clean()
 {
     #if !CH_USE_ALLOC
         if (IS_HEAP_OBJ(*this))
         {
-            HeapObj* temp{AS_HEAP_PTR(*this)};
+            HeapObj* temp{heapPointer()};
             CH_ASSERT(temp != nullptr, "NULL object pointer.");
 
             CH_ASSERT(temp->refCount != 0, "Zero object refcount.");
@@ -60,10 +62,8 @@ Object::Object(const Object& other) noexcept :
 {
     CH_ASSERT(!IS_ITER(other), "Copying an iterator is not allowed.");
 
-    #if !CH_USE_ALLOC
-        if (IS_HEAP_OBJ(*this))
-            AS_HEAP_PTR(*this)->refCount++;
-    #endif
+    if (IS_HEAP_OBJ(*this))
+        heapPointer()->refCount++;
 }
 
 Object& Object::operator=(const Object& other) noexcept
@@ -77,10 +77,8 @@ Object& Object::operator=(const Object& other) noexcept
         this->type_ = other.type_;
         this->as = other.as;
 
-        #if !CH_USE_ALLOC
-            if (IS_HEAP_OBJ(*this))
-                AS_HEAP_PTR(*this)->refCount++;
-        #endif
+        if (IS_HEAP_OBJ(*this))
+            heapPointer()->refCount++;
     }
 
     return *this;
@@ -90,7 +88,7 @@ Object::Object(Object&& other) noexcept :
     type_{other.type_}, as{other.as}
 {
     other.type_ = OBJ_INVALID; // To prevent deallocation when it is destroyed.
-    AS_INT(other) = 0;
+    CLEAR_DATA(other);
 }
 
 Object& Object::operator=(Object&& other) noexcept
@@ -103,7 +101,7 @@ Object& Object::operator=(Object&& other) noexcept
         this->as = other.as;
 
         other.type_ = OBJ_INVALID;
-        AS_INT(other) = 0;
+        CLEAR_DATA(other);
     }
 
     return *this;
@@ -114,7 +112,29 @@ Object::~Object()
     clean();
 }
 
+#undef CLEAR_DATA
+
 #endif
+
+HeapObj* Object::heapPointer() const
+{
+    switch (type())
+    {
+        case OBJ_MODULE:    return static_cast<HeapObj*>(as.moduleVal);
+        case OBJ_USER_TYPE: return static_cast<HeapObj*>(as.userTypeVal);
+        case OBJ_INSTANCE:  return static_cast<HeapObj*>(as.instanceVal);
+        case OBJ_USER_FUNC:
+        case OBJ_LAMBDA:    return static_cast<HeapObj*>(as.userFuncVal);
+        case OBJ_CLOSURE:   return static_cast<HeapObj*>(as.closureVal);
+        case OBJ_METHOD:    return static_cast<HeapObj*>(as.methodVal);
+        case OBJ_STRING:    return static_cast<HeapObj*>(as.stringVal);
+        case OBJ_RANGE:     return static_cast<HeapObj*>(as.rangeVal);
+        case OBJ_LIST:      return static_cast<HeapObj*>(as.listVal);
+        case OBJ_TABLE:     return static_cast<HeapObj*>(as.tableVal);
+        case OBJ_REF:       return static_cast<HeapObj*>(as.refVal);
+        default: CH_UNREACHABLE();
+    }
+}
 
 bool Object::operator==(const Object& other) const
 {
@@ -352,24 +372,24 @@ Hash Object::hash() const
 
 static std::unordered_map<const HeapObj*, u64> printedCollections{};
 
-#define PRINTING_ENTER(obj)                                                             \
-    do {                                                                                \
-        if (IS_COLLECTION(*obj))                                                        \
-        {                                                                               \
-            nested = (                                                                  \
-                printedCollections.find(AS_HEAP_PTR(*obj)) != printedCollections.end()  \
-            );                                                                          \
-            printedCollections[AS_HEAP_PTR(*obj)]++;                                    \
-        }                                                                               \
+#define PRINTING_ENTER(obj)                                                                 \
+    do {                                                                                    \
+        if (IS_COLLECTION(*(obj)))                                                          \
+        {                                                                                   \
+            nested = (                                                                      \
+                printedCollections.find((obj)->heapPointer()) != printedCollections.end()   \
+            );                                                                              \
+            printedCollections[(obj)->heapPointer()]++;                                     \
+        }                                                                                   \
     } while (false)
 
 #define PRINTING_EXIT(obj) \
-    do {                                                        \
-        if (IS_COLLECTION(*obj))                                \
-        {                                                       \
-            if ((--printedCollections[AS_HEAP_PTR(*obj)]) == 0) \
-                printedCollections.erase(AS_HEAP_PTR(*obj));    \
-        }                                                       \
+    do {                                                            \
+        if (IS_COLLECTION(*(obj)))                                  \
+        {                                                           \
+            if ((--printedCollections[(obj)->heapPointer()]) == 0)  \
+                printedCollections.erase((obj)->heapPointer());     \
+        }                                                           \
     } while (false)
 
 [[nodiscard]] static std::string doubleToStr(double d)

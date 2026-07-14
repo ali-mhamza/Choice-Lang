@@ -99,6 +99,11 @@ class Object
             void clean();
         #endif
 
+        template<typename T> decltype(auto) getTypePointer();
+        // Marked as 'const', but heap-allocated object payload
+        // may still be modified.
+        [[nodiscard]] HeapObj* heapPointer() const;
+
     public:
         u8 type_{};
         union Value {
@@ -120,7 +125,6 @@ class Object
             Cell*           refVal;
             HeapObj*        heapVal;
             ObjIter*        iterVal;
-            const HeapObj*  dummyVal;
         } as;
 
         Object() noexcept : type_{OBJ_INVALID}, as{0} {}
@@ -189,8 +193,27 @@ ObjType getObjectType(T val)
     if constexpr (std::is_same_v<U, List>)      return OBJ_LIST;
     if constexpr (std::is_same_v<U, Table>)     return OBJ_TABLE;
     if constexpr (std::is_same_v<U, Cell>)      return OBJ_REF;
+}
 
-    return OBJ_INVALID; // Dummy return value.
+template<typename T>
+decltype(auto) Object::getTypePointer()
+{
+    using U = std::remove_const_t<std::remove_pointer_t<T>>;
+
+    // Parentheses around return values to return by reference
+    // instead of by value.
+
+    if constexpr (std::is_same_v<U, Module>)    return (as.moduleVal);
+    if constexpr (std::is_same_v<U, Type>)      return (as.userTypeVal);
+    if constexpr (std::is_same_v<U, Instance>)  return (as.instanceVal);
+    if constexpr (std::is_same_v<U, Function>)  return (as.userFuncVal);
+    if constexpr (std::is_same_v<U, Closure>)   return (as.closureVal);
+    if constexpr (std::is_same_v<U, Method>)    return (as.methodVal);
+    if constexpr (std::is_same_v<U, String>)    return (as.stringVal);
+    if constexpr (std::is_same_v<U, Range>)     return (as.rangeVal);
+    if constexpr (std::is_same_v<U, List>)      return (as.listVal);
+    if constexpr (std::is_same_v<U, Table>)     return (as.tableVal);
+    if constexpr (std::is_same_v<U, Cell>)      return (as.refVal);
 }
 
 template<typename T>
@@ -237,14 +260,18 @@ Object::Object(T val) noexcept
     {
         type_ = getObjectType(val);
 
-        #if !CH_USE_ALLOC
-            val->refCount++;
-        #endif
-
+        auto& ptr{getTypePointer<T>()};
         if constexpr (std::is_const_v<std::remove_pointer_t<T>>)
-            as.dummyVal = val;
+        {
+            using U = std::remove_const_t<std::remove_pointer_t<T>>;
+            ptr = const_cast<U*>(val);
+        }
         else
-            as.heapVal = val;
+            ptr = val;
+
+        #if !CH_USE_ALLOC
+            ptr->refCount++;
+        #endif
     }
 }
 
@@ -332,7 +359,6 @@ TYPE_LIST
 #define MAKE_IMMUT(obj)     (MAKE_INIT(obj), ((obj).type_ |= IMMUT_FLAG))
 #define MAKE_MUT(obj)       (MAKE_INIT(obj), ((obj).type_ &= ~IMMUT_FLAG))
 
-#define AS_HEAP_PTR(obj)    ((obj).as.heapVal)
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
