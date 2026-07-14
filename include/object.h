@@ -125,8 +125,7 @@ class Object
 
         Object() noexcept : type_{OBJ_INVALID}, as{0} {}
         explicit Object(ObjType type) : type_{type}, as{0} {};
-        template<typename T>
-        Object(T val) noexcept;
+        template<typename T> Object(T val) noexcept;
 
         #if !CH_USE_ALLOC
             Object(const Object& other) noexcept;
