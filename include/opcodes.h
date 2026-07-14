@@ -145,8 +145,8 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_ENTER_SCOPE,		// Mark that a scope is being entered (for internal use).
 	OP_EXIT_SCOPE,		// Mark that a scope is being exited (for internal use).
 
-	OP_LOAD_R,			// Load a constant into a register.
-	OP_MOVE_R,			// Move a register's value into another register.
+	OP_LOAD_REG,		// Load a constant into a register.
+	OP_MOVE_REG,		// Move a register's value into another register.
 	OP_PRINT_VALID,		// Print the result of an expression (with exceptions).
 
 	OP_HALT,			// Halt the program (executes at the very end).

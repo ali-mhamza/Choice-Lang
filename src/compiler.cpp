@@ -1271,7 +1271,7 @@ void Compiler::compoundAssignToVar(
     // Since valueReg precedes varReg, we move the latter
     // into the former, keeping the final value in the
     // first-reserved register.
-    code.addOp(OP_MOVE_R, valueReg, varReg);
+    code.addOp(OP_MOVE_REG, valueReg, varReg);
 }
 
 void Compiler::assignToElement(
@@ -1311,7 +1311,7 @@ void Compiler::compoundAssignToElement(
     code.addOp(OP_SET_INDEX, objReg, indexReg, elementReg);
     // Final result should be in the first register reserved,
     // i.e., value register.
-    code.addOp(OP_MOVE_R, valueReg, elementReg);
+    code.addOp(OP_MOVE_REG, valueReg, elementReg);
     nextReg -= 3; // Free all registers besides value register.
 }
 
@@ -1357,7 +1357,7 @@ void Compiler::compoundAssignToField(
     code.addOp(OP_SET_INDEX, objReg, fieldReg, tempReg);
     // Final result should be in the first register reserved,
     // i.e., value register.
-    code.addOp(OP_MOVE_R, valueReg, tempReg);
+    code.addOp(OP_MOVE_REG, valueReg, tempReg);
     nextReg -= 3; // Free all registers besides value register.
 }
 
@@ -1576,7 +1576,7 @@ void Compiler::_crementVar(
     emitVariableOp(setVar, info, info.slot, nextReg);
 
     if (!node->prev)
-        code.addOp(OP_MOVE_R, tempReg, nextReg);
+        code.addOp(OP_MOVE_REG, tempReg, nextReg);
 }
 
 void Compiler::_crementElement(
@@ -1597,11 +1597,11 @@ void Compiler::_crementElement(
     code.addOp(OP_SET_INDEX, objReg, indexReg, nextReg);
 
     if (!node->prev)
-        code.addOp(OP_MOVE_R, tempReg, nextReg);
+        code.addOp(OP_MOVE_REG, tempReg, nextReg);
 
     // Final result should be in the first register reserved,
     // i.e., object register.
-    code.addOp(OP_MOVE_R, objReg, tempReg);
+    code.addOp(OP_MOVE_REG, objReg, tempReg);
     nextReg -= 2;
 }
 
@@ -1627,11 +1627,11 @@ void Compiler::_crementField(
     code.addOp(OP_SET_FIELD, objReg, fieldReg, nextReg);
 
     if (!node->prev)
-        code.addOp(OP_MOVE_R, tempReg, nextReg);
+        code.addOp(OP_MOVE_REG, tempReg, nextReg);
 
     // Final result should be in the first register reserved,
     // i.e., instance register.
-    code.addOp(OP_MOVE_R, objReg, tempReg);
+    code.addOp(OP_MOVE_REG, objReg, tempReg);
     nextReg -= 2;
 }
 

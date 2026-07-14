@@ -117,14 +117,14 @@ void ByteCode::addLoop(u64 start)
 
 void ByteCode::loadReg(u8 reg, u8 op)
 {
-	addOp(OP_LOAD_R, reg, op);
+	addOp(OP_LOAD_REG, reg, op);
 }
 
 void ByteCode::loadRegConst(Object& constant, u8 reg)
 {
     #define IS_SMALL(val) ((-3 < (val)) && ((val) < 3))
 
-	addOp(OP_LOAD_R, reg); // Destination first.
+	addOp(OP_LOAD_REG, reg); // Destination first.
 
 	if (IS_INT(constant))
 	{

@@ -989,14 +989,14 @@ void VM::executeOp(Opcode op)
 
     SWITCH(op)
     {
-        CASE(OP_LOAD_R):
+        CASE(OP_LOAD_REG):
         {
             u8 dest{readByte()};
             registers[dest] = loadOper();
             SET_REGSLOT(dest);
             DISPATCH();
         }
-        CASE(OP_MOVE_R):
+        CASE(OP_MOVE_REG):
         {
             u8 dest{readByte()};
             u8 src{readByte()};

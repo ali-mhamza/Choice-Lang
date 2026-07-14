@@ -132,7 +132,7 @@ void Disassembler::doubleOper(u8 byte)
 
 void Disassembler::loadOp()
 {
-	printOpcode(opNames[OP_LOAD_R]);
+	printOpcode(opNames[OP_LOAD_REG]);
 	CH_PRINT("R[{}] ", readByte());
 
 	switch (readByte())
@@ -338,7 +338,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_XOR:		case OP_SHIFT_R:	case OP_SHIFT_L:	case OP_GET_GLOBAL:
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
-		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_R:
+		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_REG:
 		case OP_RANGE:      case OP_METHOD:     case OP_MODULE:
 			doubleOper(byte);
 			break;
@@ -361,7 +361,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_PRINT_VALID:
 			singleOper(byte);
 			break;
-		case OP_LOAD_R:
+		case OP_LOAD_REG:
 			loadOp();
 			break;
 		case OP_LIST:		case OP_EXT_LIST:	case OP_TABLE:		case OP_EXT_TABLE:
