@@ -1465,16 +1465,22 @@ void VM::executeOp(Opcode op)
         {
             u8 reg{readByte()};
 
-            Object list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
-            auto& array{AS_LIST(list)->array};
-            for (u8 i{reg}; i < args; i++)
+            // Artificial scope in case we use a non-trivial destructor
+            // for objects.
+
             {
-                if (registers + i > globalRegisters + NUM_REGS)
-                    break;
-                array.push(registers[i]);
+                Object list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
+                auto& array{AS_LIST(list)->array};
+                for (u8 i{reg}; i < args; i++)
+                {
+                    if (registers + i > globalRegisters + NUM_REGS)
+                        break;
+                    array.push(registers[i]);
+                }
+
+                registers[reg] = list;
             }
 
-            registers[reg] = list;
             DISPATCH();
         }
 
