@@ -42,8 +42,7 @@ void Object::clean()
         {
             HeapObj* temp{heapPointer()};
             CH_ASSERT(temp != nullptr, "NULL object pointer.");
-
-            CH_ASSERT(temp->refCount != 0, "Zero object refcount.");
+            CH_ASSERT(temp->refCount > 0, "Refcount zero or negative.");
 
             temp->refCount--;
             if (temp->refCount == 0) delete temp;
