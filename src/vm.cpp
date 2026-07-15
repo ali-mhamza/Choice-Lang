@@ -847,7 +847,7 @@ void VM::unpackObject(u8 reg, u8 count)
 
 #if WATCH_REG
 
-void VM::printRegister()
+void VM::printRegisters()
 {
     u8 i{};
     if (frames.size() == 0)
@@ -960,7 +960,7 @@ void VM::executeOp(Opcode op)
         #endif
 
         #if WATCH_REG
-            #define PRINT_REGS()    printRegister()
+            #define PRINT_REGS()    printRegisters()
         #else
             #define PRINT_REGS()
         #endif
@@ -1693,7 +1693,7 @@ void VM::executeCode()
             executeOp(static_cast<Opcode>(readByte()));
 
             #if WATCH_REG
-                printRegister();
+                printRegisters();
             #endif
         }
     #else
