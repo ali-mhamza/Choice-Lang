@@ -141,7 +141,7 @@ class VM
         void unpackObject(u8 reg, u8 count);
 
         #if WATCH_REG
-        void printRegister();
+        void printRegisters();
         #endif
 
         // To report errors without any call-stack display.
