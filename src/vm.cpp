@@ -187,8 +187,8 @@ inline void VM::closeCells(Object* limit)
     while (!activeCells.empty())
     {
         Cell* cell{activeCells.back()};
-        if (cell->location < limit)
-            break;
+        if (cell->location < limit) break;
+
         cell->close();
         activeCells.pop_back();
     }
@@ -604,7 +604,7 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
 void VM::callType(const Object& callee, u8 start, u8 argCount)
 {
     const Type* type{AS_USER_TYPE(callee)};
-    bool hasCtor{type->methods.contains(CH_CONSTRUCTOR)};
+    bool hasCtor{type->defines(CH_CONSTRUCTOR)};
 
     if (!hasCtor && (argCount != 0) && (argCount != type->fields.size()))
     {
