@@ -50,6 +50,7 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
     X(METHOD, methodVal)        \
     X(BIGINT, heapVal)          \
     X(BIGDEC, heapVal)          \
+    X(TEXT, textVal)            \
     X(STRING, stringVal)        \
     X(RANGE, rangeVal)          \
     X(LIST, listVal)            \
@@ -81,6 +82,7 @@ struct Instance;
 struct Function;
 struct Closure;
 struct Method;
+struct Text;
 struct String;
 struct Range;
 struct List;
@@ -118,6 +120,7 @@ class Object
             Function*       userFuncVal;
             Closure*        closureVal;
             Method*         methodVal;
+            Text*           textVal;
             String*         stringVal;
             Range*          rangeVal;
             List*           listVal;
@@ -151,6 +154,11 @@ class Object
 
         [[nodiscard]] Object getIndex(const Object& index) const;
         void setIndex(const Object& index, const Object& value);
+
+        // Only to be used on Text or String objects.
+        // Should not be used if the String object may be modified
+        // while the view is in use.
+        std::string_view getObjectText() const;
 
         [[nodiscard]] Cell* indexRef(const Object& index);
         // Only to be used on Cell objects.
@@ -188,6 +196,7 @@ ObjType getObjectType(T val)
     if constexpr (std::is_same_v<U, Instance>)  return OBJ_INSTANCE;
     if constexpr (std::is_same_v<U, Closure>)   return OBJ_CLOSURE;
     if constexpr (std::is_same_v<U, Method>)    return OBJ_METHOD;
+    if constexpr (std::is_same_v<U, Text>)      return OBJ_TEXT;
     if constexpr (std::is_same_v<U, String>)    return OBJ_STRING;
     if constexpr (std::is_same_v<U, Range>)     return OBJ_RANGE;
     if constexpr (std::is_same_v<U, List>)      return OBJ_LIST;
@@ -209,6 +218,7 @@ decltype(auto) Object::getTypePointer()
     if constexpr (std::is_same_v<U, Function>)  return (as.userFuncVal);
     if constexpr (std::is_same_v<U, Closure>)   return (as.closureVal);
     if constexpr (std::is_same_v<U, Method>)    return (as.methodVal);
+    if constexpr (std::is_same_v<U, Text>)      return (as.textVal);
     if constexpr (std::is_same_v<U, String>)    return (as.stringVal);
     if constexpr (std::is_same_v<U, Range>)     return (as.rangeVal);
     if constexpr (std::is_same_v<U, List>)      return (as.listVal);
@@ -282,8 +292,8 @@ inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
     "Int", "Dec", "Bool", "Null", "Void", "Builtin Type",
     "Builtin Function", "Module", "User Type", "Type Instance",
     "User Function", "Lambda", "User Function", "Type Method",
-    "BigInt", "BigDec", "String", "Range", "List", "Table",
-    "", // References take the type of the contained object.
+    "BigInt", "BigDec", "Text", "String", "Range", "List",
+    "Table", "", // References take the type of the contained object.
     "Iterable"
 };
 
@@ -316,17 +326,20 @@ TYPE_LIST
 // Object is allocated/involves allocation on the heap.
 #define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_MODULE) && ((obj).type() <= OBJ_REF))
 
-// Object is a numeric object (int or dec/float).
+// Object is a numeric object (Int or Dec).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
 
+// Object is a Text or String object.
+#define IS_STRING_LIKE(obj) (IS_TEXT(obj) || IS_STRING(obj))
+
 // Object is iterable.
-#define IS_ITERABLE(obj)    (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_TABLE))
+#define IS_ITERABLE(obj)    (((obj).type() >= OBJ_TEXT) && ((obj).type() <= OBJ_TABLE))
 
 // Object is a collection (i.e., implements the [] operator).
-#define IS_COLLECTION(obj)  (((obj).type() >= OBJ_STRING) && ((obj).type() <= OBJ_TABLE))
+#define IS_COLLECTION(obj)  (((obj).type() >= OBJ_TEXT) && ((obj).type() <= OBJ_TABLE))
 
 // Object can be compared with <, >, or == operators.
-#define IS_COMPARABLE(obj)  (IS_NUM(obj) || ((obj).type() == OBJ_STRING))
+#define IS_COMPARABLE(obj)  (IS_NUM(obj) || IS_TEXT(obj) || IS_STRING(obj))
 
 // Object data is stored in-line within the object as a payload.
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_ITER(obj))
@@ -364,7 +377,7 @@ TYPE_LIST
 
 inline std::string getElementText(const Object& obj)
 {
-    if (IS_STRING(obj)) return CH_QUOTED(obj.printVal());
+    if (IS_STRING_LIKE(obj)) return CH_QUOTED(obj.printVal());
     return obj.printVal();
 }
 
@@ -522,6 +535,28 @@ struct Method : public HeapObj
     [[nodiscard]] Hash hash() const;
 };
 
+struct Text : public HeapObj
+{
+    const char* str{};
+    u64 len{};
+
+    Text(const std::string_view& view) noexcept;
+    Text(const char* str, size_t len) noexcept;
+    ~Text();
+
+    [[nodiscard]] Object getIndex(const Object& index) const;
+    void setIndex(const Object& index, const Object& value);
+
+    void reset(const std::string_view& view);
+    operator std::string_view();
+
+    // Parameter is not used, but it keeps our iterators
+    // consistent.
+    [[nodiscard]] std::string printVal(bool nested) const;
+    void emit(std::ofstream& os) const;
+    u64 byteSize() const;
+};
+
 struct String : public HeapObj
 {
     std::string str{};
@@ -530,14 +565,9 @@ struct String : public HeapObj
     String(const std::string_view& view) noexcept;
     String(const char* str, size_t len = -1) noexcept;
 
-    [[nodiscard]] bool operator==(const String& other) const;
-    [[nodiscard]] bool contains(const String& substr) const;
-
     [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
-    // Parameter is not used, but it keeps our iterators
-    // consistent.
     [[nodiscard]] std::string printVal(bool nested) const;
     void emit(std::ofstream& os) const;
     u64 byteSize() const;
@@ -620,10 +650,29 @@ struct Cell : public HeapObj
 
 /* Object iterator structs. */
 
+struct TextIter
+{
+    Text* obj{};
+    u64 pos{};
+    // Text strings are inherently immutable, so no
+    // flags needed.
+
+    TextIter() noexcept = default;
+    TextIter(Object& obj) noexcept;
+    TextIter(const TextIter&) = delete;
+    TextIter& operator=(const TextIter&) = delete;
+    TextIter(TextIter&& other) noexcept;
+    TextIter& operator=(TextIter&& other) noexcept;
+    ~TextIter();
+
+    [[nodiscard]] bool start(Object& var);
+    [[nodiscard]] bool next(Object& var);
+};
+
 struct StringIter
 {
     String* obj{};
-    u64 pos;
+    u64 pos{};
     const u8 flags{}; // Mutability flags for original object.
 
     StringIter() noexcept = default;
@@ -696,6 +745,7 @@ struct TableIter
 struct ObjIter
 {
     using Iter = std::variant<
+        TextIter,
         StringIter,
         RangeIter,
         ListIter,

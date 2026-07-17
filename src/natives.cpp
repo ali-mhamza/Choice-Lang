@@ -53,10 +53,11 @@ void Natives::print(iter it, u8 args)
         switch (it[i].type())
         {
             // Fast path printing.
-            case OBJ_INT:       CH_PRINT("{}", AS_INT(it[i]));          break;
-            case OBJ_BOOL:      CH_PRINT("{}", AS_BOOL(it[i]));         break;
-            case OBJ_NULL:      CH_PRINT("null");                       break;
-            case OBJ_STRING:    CH_PRINT("{}", AS_STRING(it[i])->str);  break;
+            case OBJ_INT:       CH_PRINT("{}", AS_INT(it[i]));              break;
+            case OBJ_BOOL:      CH_PRINT("{}", AS_BOOL(it[i]));             break;
+            case OBJ_NULL:      CH_PRINT("null");                           break;
+            case OBJ_TEXT:
+            case OBJ_STRING:    CH_PRINT("{}", it->getObjectText());        break;
             // Slower alternative.
             default: CH_PRINT("{}", it[i].printVal());
         }
@@ -84,7 +85,7 @@ void Natives::println(iter it, u8 args)
     static std::string defaultFormat(iter it, u8 args)
     {
         using sizeT = std::string::size_type;
-        const std::string& str{AS_STRING(it[0])->str};
+        std::string_view str{it->getObjectText()};
         sizeT size{str.size()};
         u8 count{0};
 
@@ -95,7 +96,7 @@ void Natives::println(iter it, u8 args)
 
             sizeT pos{0};
             sizeT start{pos};
-            while ((pos = str.find("{}", pos)) != std::string::npos)
+            while ((pos = str.find("{}", pos)) != std::string_view::npos)
             {
                 if ((pos > 0) && (pos < size - 2)
                     && (str[pos - 1] == '{') && (str[pos + 2] == '}'))
@@ -120,7 +121,7 @@ void Natives::println(iter it, u8 args)
 
         if (count < static_cast<u8>(args - 1))
             throw RuntimeError(ARITY_MISMATCH, "Too many format arguments.");
-        if (newStr.empty()) newStr = str;
+        if (newStr.empty()) newStr = std::string{str};
 
         return newStr;
     }
@@ -130,7 +131,7 @@ void Natives::format(iter it, u8 args)
 {
     if (args == 0)
         throw RuntimeError(WRONG_ARG_TYPE, "string argument not provided");
-    else if (!IS_STRING(it[0]))
+    else if (!IS_STRING_LIKE(it[0]))
         throw RuntimeError(WRONG_ARG_TYPE, "first argument must be a string");
 
     std::string result{};
@@ -140,7 +141,7 @@ void Natives::format(iter it, u8 args)
         for (u8 i{1}; i < args; i++)
             store.push_back(it[i].printVal());
 
-        const std::string& str{AS_STRING(it[0])->str};
+        std::string_view str{it->getObjectText()};
         try
         {
             result = fmt::vformat(str, store);
@@ -193,6 +194,9 @@ void Natives::len(iter it, u8 args)
     i64 len{0};
     switch (obj.type())
     {
+        case OBJ_TEXT:
+            len = AS_TEXT(obj)->len;
+            break;
         case OBJ_STRING:
             len = AS_STRING(obj)->str.size();
             break;
@@ -266,9 +270,9 @@ void Natives::read(iter it, u8 args)
     }
     if (args == 1)
     {
-        if (!IS_STRING(it[0]))
+        if (!IS_STRING_LIKE(it[0]))
             throw RuntimeError(WRONG_ARG_TYPE, "argument must be a string");
-        CH_PRINT("{}", AS_STRING(it[0])->str);
+        CH_PRINT("{}", it->getObjectText());
         fflush(stdout);
     }
 

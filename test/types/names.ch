@@ -2,9 +2,10 @@ println!(typeof!(1));           // Expect: Int
 println!(typeof!(1.1));         // Expect: Dec
 println!(typeof!(true));        // Expect: Bool
 println!(typeof!(null));        // Expect: Null
-println!(typeof!("Word"));      // Expect: String
+println!(typeof!("Word"));      // Expect: Text
+println!(typeof!("a" + "b"));   // Expect: String
 // Empty string.
-println!(typeof!(""));          // Expect: String
+println!(typeof!(""));          // Expect: Text
 println!(typeof!(1..10));       // Expect: Range
 println!(typeof!([1, 2, 3]));   // Expect: List
 // Empty list.

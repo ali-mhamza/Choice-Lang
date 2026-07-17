@@ -2058,17 +2058,15 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj{CH_ALLOC(String, parseStringToken(tok, 1, 2))};
+        Object obj{CH_ALLOC(Text, parseStringToken(tok, 1, 2))};
         code.loadRegConst(obj, nextReg);
-        code.addOp(OP_IMMUT, nextReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RAW_STR)
     {
-        Object obj{CH_ALLOC(String, getRawString(tok.text))};
+        Object obj{CH_ALLOC(Text, getRawString(tok.text))};
         code.loadRegConst(obj, nextReg);
-        code.addOp(OP_IMMUT, nextReg);
         reserveReg();
     }
 

@@ -71,6 +71,7 @@ namespace Bytes
             [[nodiscard]] Object reconstructModule();
             [[nodiscard]] Object reconstructType();
             [[nodiscard]] Object reconstructFunc();
+            [[nodiscard]] Object reconstructText();
             [[nodiscard]] Object reconstructString();
 
             /* Constant pool reconstructor. */
@@ -154,7 +155,7 @@ namespace Bytes
             void inspectBriefObject(u64& position);
             void inspectBriefInt(u64 start);
             void inspectBriefDec(u64 start);
-            void inspectBriefString(u64 start);
+            void inspectBriefTextOrString(u64 start, sv type);
             void inspectBriefModule(u64 start);
 
             void skipByteCode();
@@ -169,7 +170,7 @@ namespace Bytes
             void inspectDetailObject(u64& position);
             void inspectDetailInt(u64 start);
             void inspectDetailDec(u64 start);
-            void inspectDetailString(u64 start);
+            void inspectDetailTextOrString(u64 start, sv type);
             void inspectDetailModule(u64 start);
 
             void inspectDetailTypeFields();

@@ -126,6 +126,7 @@ HeapObj* Object::heapPointer() const
         case OBJ_LAMBDA:    return static_cast<HeapObj*>(as.userFuncVal);
         case OBJ_CLOSURE:   return static_cast<HeapObj*>(as.closureVal);
         case OBJ_METHOD:    return static_cast<HeapObj*>(as.methodVal);
+        case OBJ_TEXT:      return static_cast<HeapObj*>(as.textVal);
         case OBJ_STRING:    return static_cast<HeapObj*>(as.stringVal);
         case OBJ_RANGE:     return static_cast<HeapObj*>(as.rangeVal);
         case OBJ_LIST:      return static_cast<HeapObj*>(as.listVal);
@@ -139,6 +140,8 @@ bool Object::operator==(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
         return double(AS_NUM(*this)) == double(AS_NUM(other));
+    else if (IS_STRING_LIKE(*this) && IS_STRING_LIKE(other))
+        return this->getObjectText() == other.getObjectText();
     if (this->type() != other.type()) return false;
 
     switch (this->type())
@@ -154,7 +157,6 @@ bool Object::operator==(const Object& other) const
         case OBJ_LAMBDA:    return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
         case OBJ_CLOSURE:   return AS_CLOSURE(*this) == AS_CLOSURE(other);
         case OBJ_METHOD:    return *(AS_METHOD(*this)) == *(AS_METHOD(*this));
-        case OBJ_STRING:    return *(AS_STRING(*this)) == *(AS_STRING(other));
         case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
         case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
         case OBJ_TABLE:     return *(AS_TABLE(*this)) == *(AS_TABLE(other));
@@ -172,10 +174,10 @@ bool Object::operator>(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
         return AS_NUM(*this) > AS_NUM(other);
-    else if (IS_STRING(*this) && IS_STRING(other))
+    else if (IS_STRING_LIKE(*this) && IS_STRING_LIKE(other))
     {
-        const auto& str1{AS_STRING(*this)->str};
-        const auto& str2{AS_STRING(other)->str};
+        auto str1{this->getObjectText()};
+        auto str2{other.getObjectText()};
         return (str1.compare(str2) > 0);
     }
 
@@ -187,10 +189,10 @@ bool Object::operator<(const Object& other) const
 {
     if (IS_NUM(*this) && IS_NUM(other))
         return AS_NUM(*this) < AS_NUM(other);
-    else if (IS_STRING(*this) && IS_STRING(other))
+    else if (IS_STRING_LIKE(*this) && IS_STRING_LIKE(other))
     {
-        const auto& str1{AS_STRING(*this)->str};
-        const auto& str2{AS_STRING(other)->str};
+        auto str1{this->getObjectText()};
+        auto str2{other.getObjectText()};
         return (str1.compare(str2) < 0);
     }
 
@@ -202,8 +204,12 @@ bool Object::in(const Object& other) const
 {
     const Object& obj{*this};
 
-    if (IS_STRING(obj) && IS_STRING(other))
-        return AS_STRING(other)->contains(*AS_STRING(obj));
+    if (IS_STRING_LIKE(obj) && IS_STRING_LIKE(other))
+    {
+        auto str1{other.getObjectText()};
+        auto str2{obj.getObjectText()};
+        return (str1.find(str2) != std::string_view::npos);
+    }
     else if (IS_INT(obj) && IS_RANGE(other))
         return AS_RANGE(other)->contains(AS_INT(obj));
     else if (IS_LIST(other))
@@ -211,7 +217,7 @@ bool Object::in(const Object& other) const
     else if (IS_TABLE(other))
         return AS_TABLE(other)->contains(obj);
 
-    else if (!IS_STRING(other) && !IS_RANGE(other))
+    else if (!IS_STRING_LIKE(other) && !IS_RANGE(other))
         throw reportCollection(OBJ_NOT_ITERABLE, other);
     else
         throw reportCollection(OBJ_WRONG_ITER_TYPE, obj, other);
@@ -225,6 +231,7 @@ bool Object::isTruthy() const
         case OBJ_DEC:       return (AS_DEC(*this) != 0.0);
         case OBJ_BOOL:      return AS_BOOL(*this);
         case OBJ_NULL:      return false;
+        case OBJ_TEXT:      return (AS_TEXT(*this)->len != 0);
         case OBJ_STRING:    return (AS_STRING(*this)->str.size() != 0);
         case OBJ_LIST:      return (AS_LIST(*this)->array.count() != 0);
         case OBJ_TABLE:     return (AS_TABLE(*this)->table.size() != 0);
@@ -240,6 +247,7 @@ Object Object::getIndex(const Object& index) const
 
     switch (this->type())
     {
+        case OBJ_TEXT:      return AS_TEXT(*this)->getIndex(index);
         case OBJ_STRING:    return AS_STRING(*this)->getIndex(index);
         case OBJ_RANGE:     return AS_RANGE(*this)->getIndex(index);
         case OBJ_LIST:      return AS_LIST(*this)->getIndex(index);
@@ -261,12 +269,21 @@ void Object::setIndex(const Object& index, const Object& value)
 
     switch (this->type())
     {
+        case OBJ_TEXT:      return AS_TEXT(*this)->setIndex(index, value);
         case OBJ_STRING:    return AS_STRING(*this)->setIndex(index, value);
         case OBJ_RANGE:     return AS_RANGE(*this)->setIndex(index, value);
         case OBJ_LIST:      return AS_LIST(*this)->setIndex(index, value);
         case OBJ_TABLE:     return AS_TABLE(*this)->setIndex(index, value);
         default: CH_UNREACHABLE();
     }
+}
+
+std::string_view Object::getObjectText() const
+{
+    CH_ASSERT(IS_STRING_LIKE(*this), "Text retrieved from non-string.");
+
+    if (IS_TEXT(*this)) return *(AS_TEXT(*this));
+    return AS_STRING(*this)->str;
 }
 
 Cell* Object::indexRef(const Object& index)
@@ -321,6 +338,7 @@ u64 Object::collectionSize() const
 
     switch (type())
     {
+        case OBJ_TEXT:      return AS_TEXT(*this)->len;
         case OBJ_STRING:    return AS_STRING(*this)->str.size();
         case OBJ_RANGE:     return AS_RANGE(*this)->length();
         case OBJ_LIST:      return AS_LIST(*this)->array.count();
@@ -353,6 +371,7 @@ Hash Object::hash() const
         case OBJ_LAMBDA:    return hashPointer(AS_USER_FUNC(*this));
         case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
         case OBJ_METHOD:    return AS_METHOD(*this)->hash();
+        case OBJ_TEXT:      return hashKey(AS_TEXT(*this)->str, AS_TEXT(*this)->len);
         case OBJ_STRING:    return hashKey(AS_STRING(*this)->str);
         case OBJ_RANGE:
         {
@@ -448,6 +467,7 @@ std::string Object::printVal() const
         }
         // Pass nesting status to possibly nesting collection types.
         // Only lists and tables actually need this.
+        case OBJ_TEXT:      ret = AS_TEXT(*this)->printVal(nested);                         break;
         case OBJ_STRING:    ret = AS_STRING(*this)->printVal(nested);                       break;
         case OBJ_RANGE:     ret = AS_RANGE(*this)->printVal(nested);                        break;
         case OBJ_LIST:      ret = AS_LIST(*this)->printVal(nested);                         break;
@@ -488,6 +508,7 @@ void Object::emit(std::ofstream& os) const
         case OBJ_USER_TYPE: AS_USER_TYPE(*this)->emit(os);          break;
         case OBJ_USER_FUNC:
         case OBJ_LAMBDA:    AS_USER_FUNC(*this)->emit(os);          break;
+        case OBJ_TEXT:      AS_TEXT(*this)->emit(os);               break;
         case OBJ_STRING:    AS_STRING(*this)->emit(os);             break;
         default: CH_UNREACHABLE();
     }
@@ -905,6 +926,73 @@ Hash Method::hash() const
     return funcObj.hash() + boundInstance->hash();
 }
 
+Text::Text(const std::string_view& view) noexcept:
+    str{choiceStrdup(view.data())}, len{view.length()} {}
+
+Text::Text(const char* str, size_t len) noexcept :
+    str{choiceStrdup(str)}, len{len} {}
+
+Text::~Text()
+{
+    delete[] str;
+}
+
+Object Text::getIndex(const Object& index) const
+{
+    if (!IS_INT(index))
+        throw reportCollection(OBJ_NOT_INDEX, this, index);
+
+    // For now.
+    if (AS_INT(index) < 0)
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS, "index cannot be negative");
+    if (AS_UINT(index) >= len)
+    {
+        throw RuntimeError(INDEX_OUT_OF_BOUNDS,
+            CH_STR(
+                "index is {}, while string has length {}", AS_INT(index), len
+            )
+        );
+    }
+
+    return CH_ALLOC(Text, str + AS_INT(index), 1);
+}
+
+void Text::setIndex(const Object& index, const Object& value)
+{
+    (void) index; (void) value;
+    throw RuntimeError(OBJ_NO_ELEM_ASSIGN);
+}
+
+void Text::reset(const std::string_view& view)
+{
+    delete[] str;
+    str = choiceStrdup(view.data());
+    len = view.length();
+}
+
+Text::operator std::string_view()
+{
+    return std::string_view{str, len};
+}
+
+std::string Text::printVal(bool nested) const
+{
+    (void) nested;
+    return std::string{str, len};
+}
+
+void Text::emit(std::ofstream& os) const
+{
+    Bytes::encodeValue(os, len);
+    os.write(str, len);
+}
+
+u64 Text::byteSize() const
+{
+    // Added type byte (1) and string length bytes (8).
+    return sizeof(u8) + sizeof(u64) + len;
+}
+
 String::String(const std::string& str) noexcept:
     str{str} {}
 
@@ -915,16 +1003,6 @@ String::String(const char* str, size_t len) noexcept
 {
     len = (len == SIZE_MAX ? strlen(str) : len);
     this->str = std::string{str, len};
-}
-
-bool String::operator==(const String& other) const
-{
-    return (this->str == other.str);
-}
-
-bool String::contains(const String& substr) const
-{
-    return (this->str.find(substr.str) != std::string::npos);
 }
 
 Object String::getIndex(const Object& index) const
@@ -964,14 +1042,14 @@ void String::setIndex(const Object& index, const Object& value)
         );
     }
 
-    if (!IS_STRING(value))
+    if (!IS_STRING_LIKE(value))
     {
         throw RuntimeError(WRONG_ELEM_TYPE,
             CH_STR("cannot store ({}) in a string", value.printType())
         );
     }
 
-    const auto& insert{AS_STRING(value)->str};
+    auto insert{value.getObjectText()};
     if (insert.size() > 1)
     {
         throw RuntimeError(WRONG_ELEM_TYPE,
@@ -1250,6 +1328,61 @@ void Cell::assign(const Object& value)
 
 /* Object iterator struct types. */
 
+TextIter::TextIter(Object& obj) noexcept:
+    obj{AS_TEXT(obj)}, pos{0}
+{
+    #if !CH_USE_ALLOC
+        this->obj->refCount++;
+    #endif
+}
+
+TextIter::TextIter(TextIter&& other) noexcept :
+    obj{other.obj}, pos{other.pos}
+{
+    other.obj = nullptr;
+}
+
+TextIter& TextIter::operator=(TextIter&& other) noexcept
+{
+    if (this != &other)
+    {
+        this->obj = other.obj;
+        this->pos = other.pos;
+
+        other.obj = nullptr;
+    }
+
+    return *this;
+}
+
+TextIter::~TextIter()
+{
+    #if !CH_USE_ALLOC
+        if (obj != nullptr)
+        {
+            CH_ASSERT(obj->refCount != 0, "Zero iterable refcount.");
+            obj->refCount--;
+            if (obj->refCount == 0) delete obj;
+        }
+    #endif
+}
+
+bool TextIter::start(Object& var)
+{
+    if (obj->len == 0) return false;
+
+    var = Object{CH_ALLOC(Text, obj->str + pos, 1)};
+    return true;
+}
+
+bool TextIter::next(Object& var)
+{
+    if (++pos == obj->len) return false;
+
+    var = Object{CH_ALLOC(Text, obj->str + pos, 1)};
+    return true;
+}
+
 StringIter::StringIter(Object& obj) noexcept:
     obj{AS_STRING(obj)}, pos{0}, flags{getMutFlags(obj)}
 {
@@ -1517,6 +1650,7 @@ ObjIter::ObjIter(Object& obj) noexcept
 
     switch (obj.type())
     {
+        case OBJ_TEXT:      iter.emplace<TextIter>(obj);    break;
         case OBJ_STRING:    iter.emplace<StringIter>(obj);  break;
         case OBJ_RANGE:     iter.emplace<RangeIter>(obj);   break;
         case OBJ_LIST:      iter.emplace<ListIter>(obj);    break;

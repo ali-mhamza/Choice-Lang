@@ -15,6 +15,7 @@ namespace Constructors
         CTOR_INT,
         CTOR_DEC,
         CTOR_BOOL,
+        CTOR_TEXT,
         CTOR_STRING,
         CTOR_RANGE,
         CTOR_LIST,
@@ -26,6 +27,7 @@ namespace Constructors
     Object Int(iter it, u8 args);
     Object Dec(iter it, u8 args);
     Object Bool(iter it, u8 args);
+    Object Text(iter it, u8 args);
     Object String(iter it, u8 args);
     Object Range(iter it, u8 args);
     Object List(iter it, u8 args);

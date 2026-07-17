@@ -190,6 +190,20 @@ Object CodeReader::reconstructFunc()
 	return func;
 }
 
+Object CodeReader::reconstructText()
+{
+	u64 length{readValue<u64>()};
+	std::string str{};
+
+	if (length != 0)
+	{
+		str.resize(length);
+		readBytes(str.data(), length);
+	}
+
+	return Object{CH_ALLOC(Text, str)};
+}
+
 Object CodeReader::reconstructString()
 {
     u64 length{readValue<u64>()};
@@ -220,6 +234,7 @@ vObj CodeReader::reconstructPool(u64 poolByteSize)
 			case OBJ_USER_TYPE: pool.emplace_back(reconstructType());           break;
 			case OBJ_USER_FUNC:
 			case OBJ_LAMBDA:    pool.emplace_back(reconstructFunc());           break;
+			case OBJ_TEXT:		pool.emplace_back(reconstructText());			break;
 			case OBJ_STRING:    pool.emplace_back(reconstructString());         break;
 			default:
 			{
@@ -668,13 +683,14 @@ void BinaryInspector::inspectBriefObject(u64& position)
 
 	switch (type)
 	{
-		case OBJ_INT:		inspectBriefInt(start);		break;
-		case OBJ_DEC:		inspectBriefDec(start);		break;
-		case OBJ_STRING:	inspectBriefString(start);	break;
-		case OBJ_MODULE:    inspectBriefModule(start);  break;
-		case OBJ_USER_TYPE: inspectBriefType(start);    break;
+		case OBJ_INT:		inspectBriefInt(start);						break;
+		case OBJ_DEC:		inspectBriefDec(start);						break;
+		case OBJ_TEXT:		inspectBriefTextOrString(start, "Text");	break;
+		case OBJ_STRING:	inspectBriefTextOrString(start, "String");	break;
+		case OBJ_MODULE:    inspectBriefModule(start);  				break;
+		case OBJ_USER_TYPE: inspectBriefType(start);    				break;
 		case OBJ_USER_FUNC:
-		case OBJ_LAMBDA:	inspectBriefFunc(start);	break;
+		case OBJ_LAMBDA:	inspectBriefFunc(start);					break;
 		default: ;
 	}
 
@@ -701,7 +717,10 @@ void BinaryInspector::inspectBriefDec(u64 start)
 	CH_PRINT(" {:^30}\n", value);
 }
 
-void BinaryInspector::inspectBriefString(u64 start)
+void BinaryInspector::inspectBriefTextOrString(
+	u64 start,
+	sv type
+)
 {
 	CH_PRINT(" ");
 	u64 nameLen{readValue<u64>()};
@@ -714,7 +733,7 @@ void BinaryInspector::inspectBriefString(u64 start)
 	}
 
 	printStartEnd(start, getCurrentPosition(), false);
-	CH_PRINT(" {:^10}", "String");
+	CH_PRINT(" {:^10}", type);
 	CH_PRINT(" {:^7}", getCurrentPosition() - start);
 	str = formatMultiLineString(str);
 	printStringWithTruncation(str, str.size(),
@@ -844,13 +863,14 @@ void BinaryInspector::inspectDetailObject(u64& position)
 
 	switch (type)
 	{
-		case OBJ_INT:		inspectDetailInt(start);	break;
-		case OBJ_DEC:		inspectDetailDec(start);	break;
-		case OBJ_STRING:	inspectDetailString(start);	break;
-		case OBJ_MODULE:    inspectDetailModule(start); break;
-		case OBJ_USER_TYPE: inspectDetailType(start);   break;
+		case OBJ_INT:		inspectDetailInt(start);					break;
+		case OBJ_DEC:		inspectDetailDec(start);					break;
+		case OBJ_TEXT:		inspectDetailTextOrString(start, "Text");	break;
+		case OBJ_STRING:	inspectDetailTextOrString(start, "String");	break;
+		case OBJ_MODULE:    inspectDetailModule(start); 				break;
+		case OBJ_USER_TYPE: inspectDetailType(start);   				break;
 		case OBJ_USER_FUNC:
-		case OBJ_LAMBDA:	inspectDetailFunc(start);	break;
+		case OBJ_LAMBDA:	inspectDetailFunc(start);					break;
 		default: ;
 	}
 
@@ -882,15 +902,18 @@ void BinaryInspector::inspectDetailDec(u64 start)
 	CH_PRINT("Floating-point value: {}\n", value);
 }
 
-void BinaryInspector::inspectDetailString(u64 start)
+void BinaryInspector::inspectDetailTextOrString(
+	u64 start,
+	sv type
+)
 {
 	PRINT_ENTRY_RANGE();
-	CH_PRINT("Type: String\n");
+	CH_PRINT("Type: {}\n", type);
 
 	start = getCurrentPosition();
 	u64 nameLen{readValue<u64>()};
 	PRINT_ENTRY_RANGE();
-	CH_PRINT("String length: {}\n", nameLen);
+	CH_PRINT("{} length: {}\n", type, nameLen);
 
 	start = getCurrentPosition();
 	std::string str{};
@@ -902,7 +925,7 @@ void BinaryInspector::inspectDetailString(u64 start)
 
 	str = formatMultiLineString(str);
 	PRINT_ENTRY_RANGE();
-	CH_PRINT("String value:");
+	CH_PRINT("{} value:", type);
 	printStringWithTruncation(str, str.size(), "truncated", false);
 }
 

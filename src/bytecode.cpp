@@ -174,9 +174,10 @@ u64 ByteCode::countPool() const
 	{
 		switch (obj.type())
 		{
-			case OBJ_INT:	case OBJ_DEC:
+			case OBJ_INT:
+			case OBJ_DEC:
 			{
-				count += 9;
+				count += sizeof(u8) + sizeof(obj.as);
 				break;
 			}
 			case OBJ_MODULE:
@@ -189,9 +190,15 @@ u64 ByteCode::countPool() const
     		    count += AS_USER_TYPE(obj)->byteSize();
                 break;
     		}
-			case OBJ_USER_FUNC: case OBJ_LAMBDA:
+			case OBJ_USER_FUNC:
+			case OBJ_LAMBDA:
 			{
 				count += AS_USER_FUNC(obj)->byteSize();
+				break;
+			}
+			case OBJ_TEXT:
+			{
+				count += AS_TEXT(obj)->byteSize();
 				break;
 			}
 			case OBJ_STRING:

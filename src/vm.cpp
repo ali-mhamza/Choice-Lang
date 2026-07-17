@@ -99,7 +99,7 @@ void VM::defineBuiltinGlobals()
 {
     Object* temp{globalRegisters};
 
-    temp[FILENAME_LOC] = Object{CH_ALLOC(String, "")};
+    temp[FILENAME_LOC] = Object{CH_ALLOC(Text, "")};
     MAKE_FIXED(temp[FILENAME_LOC]);
     MAKE_IMMUT(temp[FILENAME_LOC]);
     temp++;
@@ -123,12 +123,12 @@ void VM::defineBuiltinGlobals()
 void VM::amendFileName()
 {
     Object& name{globalRegisters[FILENAME_LOC]};
-    if (!IS_STRING(name)) return; // '_file_' variable was redeclared in REPL.
+    if (!IS_TEXT(name)) return; // '_file_' variable was redeclared in REPL.
 
     if (inRepl)
-        AS_STRING(name)->str = "<repl>";
+        AS_TEXT(name)->reset("<repl>");
     else
-        AS_STRING(name)->str = sourceManager.getFile(currentCode->getID());
+        AS_TEXT(name)->reset(sourceManager.getFile(currentCode->getID()));
 }
 
 inline u8 VM::readByte()
@@ -210,7 +210,8 @@ inline void VM::closeCells(Object* limit)
 
 Object VM::concatStrings(const Object& str1, const Object& str2)
 {
-    std::string concat{AS_STRING(str1)->str + AS_STRING(str2)->str};
+    std::string concat{str1.getObjectText()};
+    concat += str2.getObjectText();
     return CH_ALLOC(String, concat);
 }
 
@@ -335,7 +336,7 @@ Object VM::arithOper(Opcode op, u8 firstOper)
             default: CH_UNREACHABLE();
         }
     }
-    else if (IS_STRING(a) && IS_STRING(b) && (op == OP_ADD))
+    else if (IS_STRING_LIKE(a) && IS_STRING_LIKE(b) && (op == OP_ADD))
         return concatStrings(a, b);
     else
         throw reportBinaryOperator(op, a, b);

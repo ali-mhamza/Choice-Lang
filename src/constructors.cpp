@@ -18,21 +18,21 @@
 
 const std::array<ObjType,
 Constructors::CtorType::NUM_CTORS> Constructors::types{
-    OBJ_VOID, OBJ_INT, OBJ_DEC, OBJ_BOOL, OBJ_STRING,
-    OBJ_RANGE, OBJ_LIST, OBJ_TABLE
+    OBJ_VOID, OBJ_INT, OBJ_DEC, OBJ_BOOL, OBJ_TEXT,
+    OBJ_STRING, OBJ_RANGE, OBJ_LIST, OBJ_TABLE
 };
 
 const std::array<Constructors::Ctor,
 Constructors::CtorType::NUM_CTORS> Constructors::ctors{
     Constructors::Obj, Constructors::Int, Constructors::Dec,
-    Constructors::Bool, Constructors::String, Constructors::Range,
-    Constructors::List, Constructors::Table
+    Constructors::Bool, Constructors::Text, Constructors::String,
+    Constructors::Range, Constructors::List, Constructors::Table
 };
 
 const std::array<const char*,
 Constructors::CtorType::NUM_CTORS> Constructors::ctorNames{
-    "Object", "Int", "Dec", "Bool", "String", "Range", "List",
-    "Table"
+    "Object", "Int", "Dec", "Bool", "Text", "String",
+    "Range", "List", "Table"
 };
 
 const std::unordered_map<ObjType,
@@ -41,6 +41,7 @@ Constructors::CtorType> Constructors::builtins{
     {OBJ_INT, Constructors::CTOR_INT},
     {OBJ_DEC, Constructors::CTOR_DEC},
     {OBJ_BOOL, Constructors::CTOR_BOOL},
+    {OBJ_TEXT, Constructors::CTOR_TEXT},
     {OBJ_STRING, Constructors::CTOR_STRING},
     {OBJ_RANGE, Constructors::CTOR_RANGE},
     {OBJ_LIST, Constructors::CTOR_LIST},
@@ -71,9 +72,9 @@ Object Constructors::Int(iter it, u8 args)
             return Object{AS_INT(*it)};
         else if (IS_DEC(*it))
             return Object{static_cast<i64>(AS_DEC(*it))};
-        else if (IS_STRING(*it))
+        else if (IS_STRING_LIKE(*it))
         {
-            const std::string& str{AS_STRING(*it)->str};
+            std::string_view str{it->getObjectText()};
             i64 value{};
             auto answer{fast_float::from_chars(str.data(), str.data() + str.size(),
                 value)};
@@ -88,7 +89,7 @@ Object Constructors::Int(iter it, u8 args)
 
     if (args == 2)
     {
-        if (!IS_STRING(it[0]))
+        if (!IS_STRING_LIKE(it[0]))
             throw RuntimeError(WRONG_ARG_TYPE, "first argument is not a string");
         if (!IS_INT(it[1]))
             throw RuntimeError(WRONG_ARG_TYPE, "second argument is not an integer");
@@ -97,7 +98,7 @@ Object Constructors::Int(iter it, u8 args)
         if ((base < 2) || (base > 36))
             throw RuntimeError(INVALID_NUM_BASE, "base must be >= 2 and <= 36");
 
-        const std::string& str{AS_STRING(*it)->str};
+        std::string_view str{it->getObjectText()};
         i64 value{};
         auto answer{fast_float::from_chars(str.data(), str.data() + str.size(),
             value, static_cast<int>(base))};
@@ -123,9 +124,9 @@ Object Constructors::Dec(iter it, u8 args)
             return Object{AS_DEC(*it)};
         else if (IS_INT(*it))
             return Object{static_cast<double>(AS_INT(*it))};
-        else if (IS_STRING(*it))
+        else if (IS_STRING_LIKE(*it))
         {
-            const std::string& str{AS_STRING(*it)->str};
+            std::string_view str{it->getObjectText()};
             double value{};
             auto answer{fast_float::from_chars(str.data(), str.data() + str.size(),
                 value)};
@@ -155,6 +156,20 @@ Object Constructors::Bool(iter it, u8 args)
     if (args == 0)
         return Object{false};
     return Object{it->isTruthy()};
+}
+
+Object Constructors::Text(iter it, u8 args)
+{
+    if (args > 1)
+    {
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expected at most 1 argument but found {}", args)
+        );
+    }
+
+    if (args == 0)
+        return Object{CH_ALLOC(::Text, "")};
+    return Object{CH_ALLOC(::Text, it->printVal())};
 }
 
 Object Constructors::String(iter it, u8 args)

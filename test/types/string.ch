@@ -1,7 +1,7 @@
 make x = "Hello";
 
 println!(x);                        // Expect: Hello
-println!(typeof!(x));               // Expect: String
+println!(typeof!(x));               // Expect: Text
 
 println!(x + ", world!");           // Expect: Hello, world!
 println!(typeof!(x + ", world!"));  // Expect: String
