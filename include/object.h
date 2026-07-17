@@ -445,6 +445,7 @@ struct Type : public HeapObj
     ~Type() noexcept;
 
     void addMethod(const Object& method);
+    bool defines(const std::string& method) const;
 
     void emit(std::ofstream& os) const;
     // Emits only metadata components.

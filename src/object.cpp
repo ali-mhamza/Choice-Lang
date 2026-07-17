@@ -603,6 +603,11 @@ void Type::addMethod(const Object& method)
     methods.add(name, Object{CH_ALLOC(Method, method)});
 }
 
+bool Type::defines(const std::string& method) const
+{
+    return methods.contains(method);
+}
+
 void Type::emit(std::ofstream& os) const
 {
     auto emitName = [&os](const std::string& name) {
