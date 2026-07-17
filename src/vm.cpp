@@ -601,7 +601,7 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
     registers[start - 1] = ctor(&registers[start], argCount);
 }
 
-void VM::callClass(const Object& callee, u8 start, u8 argCount)
+void VM::callType(const Object& callee, u8 start, u8 argCount)
 {
     const Type* type{AS_USER_TYPE(callee)};
     bool hasCtor{type->methods.contains(CH_CONSTRUCTOR)};
@@ -676,7 +676,7 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
             callCtor(callee, start, argCount);
             break;
         case OBJ_USER_TYPE:
-            callClass(callee, start, argCount);
+            callType(callee, start, argCount);
             break;
         case OBJ_METHOD:
             callMethod(callee, start, argCount);
