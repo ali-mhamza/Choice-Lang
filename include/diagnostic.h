@@ -59,6 +59,7 @@ enum DiagFamily : u8
 
     SYNTAX_ERROR,       // General syntax issue.
     VARIABLE_ERROR,     // Variable undefined, redefined, etc.
+    FUNCTION_ERROR,     // Issue with function definition.
     TYPE_ERROR,         // Incorrect type for statement/expression.
     VALUE_ERROR,        // Valus is not permissible in context (e.g., division by zero).
     CALL_ERROR,         // General issue with function call (arity, callee type, etc.).
@@ -158,6 +159,12 @@ enum DiagCode : u8
     METHOD_FIELD_COLLIDE,
     // Field being read has not been initialized.
     FIELD_UNINIT_READ,
+
+
+    /* Function errors. */
+
+    // 'Drop' special method does not accept parameters.
+    DROP_HAS_PARAMS,
 
 
     /* Type errors. */

@@ -60,6 +60,10 @@ class VM
         std::vector<Object*> scopeStarts{};
         std::vector<CallFrame> frames{};
         std::vector<Cell*> activeCells{};
+        // We keep Object* pointers instead of Instance* pointers
+        // so we can find the locations of these instance in our
+        // registers.
+        std::vector<Object*> activeInstances{};
 
         // Set to 'true' if each function call in 'callFunc'
         // should run until termination.
@@ -137,6 +141,7 @@ class VM
         // object.
         // `start`: First available register after instance object.
         void finishFields(Instance& instance, u8 start);
+        void dropInstances(Object* limit);
 
         void unpackObject(u8 reg, u8 count);
 

@@ -641,8 +641,7 @@ void VM::callType(const Object& callee, u8 start, u8 argCount)
 
     finishFields(*instance, start);
     registers[start - 1] = instance;
-
-    #undef CH_CONSTRUCTOR
+    activeInstances.emplace_back(registers + start - 1);
 }
 
 void VM::callMethod(const Object& callee, u8 start, u8 argCount)
@@ -798,6 +797,36 @@ void VM::finishFields(Instance& instance, u8 start)
             instance.initField(field, this->registers[0]);
             reset();
         }
+    }
+}
+
+void VM::dropInstances(Object* limit)
+{
+    while (!activeInstances.empty())
+    {
+        Object* addr{activeInstances.back()};
+        if (addr < limit) break;
+
+        Instance* instance{AS_INSTANCE(*addr)};
+        if (instance->type->defines(CH_DESTRUCTOR))
+        {
+            Object ctor{instance->getField(CH_DESTRUCTOR)};
+
+            // Calls to Drop() replace the object before the instance
+            // with their return value, so we make a copy before calling
+            // Drop() to restore that object after calling it.
+
+            Object temp{addr[-1]};
+            bool encapsulate{encapsulateCall};
+            encapsulateCall = true;
+
+            callMethod(ctor, static_cast<u8>(addr - registers), 0);
+
+            encapsulateCall = encapsulate;
+            addr[-1] = temp;
+        }
+
+        activeInstances.pop_back();
     }
 }
 
@@ -1264,6 +1293,7 @@ void VM::executeOp(Opcode op)
             Type* type{AS_USER_TYPE(registers[typeReg])};
             // Replace the class.
             registers[typeReg] = CH_ALLOC(Instance, type);
+            activeInstances.emplace_back(registers + typeReg);
             DISPATCH();
         }
         CASE(OP_FINISH_FIELDS):
@@ -1630,6 +1660,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_EXIT_SCOPE):
         {
             closeCells(scopeStarts.back());
+            dropInstances(scopeStarts.back());
             scopeStarts.pop_back();
             DISPATCH();
         }

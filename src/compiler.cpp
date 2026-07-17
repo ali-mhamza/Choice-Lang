@@ -751,6 +751,9 @@ DEF(TypeDecl)
     for (const auto& method : node->methods)
     {
         FuncDecl* decl{static_cast<FuncDecl*>(method.get())};
+        if ((decl->name.text == CH_DESTRUCTOR) && (decl->params.size() != 0))
+            REPORT_ERROR(DROP_HAS_PARAMS, decl->params[0].param);
+
         std::string name{decl->name.text};
 
         Compiler miniCompiler{this};

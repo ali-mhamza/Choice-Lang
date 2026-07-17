@@ -88,9 +88,10 @@
 
 #define CH_EOF static_cast<char>(-1)
 
-// Constructor name.
+// Constructor/destructor name.
 
-#define CH_CONSTRUCTOR "Self"
+#define CH_CONSTRUCTOR	"Self"
+#define CH_DESTRUCTOR	"Drop"
 
 // Opcode appearance.
 
