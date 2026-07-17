@@ -145,6 +145,7 @@ enum TokenType : u8
 	TOK_PRIVATE,        // private
 	TOK_STATIC,			// static
 	TOK_COMPUTED,		// computed
+	TOK_CLOSED,			// closed
 
 	TOK_EOF,
 	NUM_TOK_TYPES

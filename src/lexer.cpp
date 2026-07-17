@@ -56,7 +56,8 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	// Attributes.
 
-	{"private", TOK_PRIVATE}, {"static", TOK_STATIC}, {"computed", TOK_COMPUTED}
+	{"private", TOK_PRIVATE}, {"static", TOK_STATIC}, {"computed", TOK_COMPUTED},
+	{"closed", TOK_CLOSED}
 };
 
 void Lexer::setUp(FileID id, const std::string_view& code)

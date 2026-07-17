@@ -344,6 +344,7 @@ void Parser::consumeAttributes()
                 case TOK_PRIVATE:
                 case TOK_STATIC:
                 case TOK_COMPUTED:
+                case TOK_CLOSED:
                     break;
                 default:
                     reportSemantic(INVALID_ATTR, previousTok);
