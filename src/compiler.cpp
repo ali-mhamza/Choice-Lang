@@ -1378,7 +1378,8 @@ DEF(MutExpr)
                 false, REDUNDANT_MUT_SPECIFIER, node->sourceStart,
                 (node->mut ? 3 : 5),
                 CH_STR(
-                    "'{}' specifier has no effect with another '{}'", nodeType, nestedType
+                    "'{}' specifier has no effect with another '{}'",
+                    nodeType, nestedType
                 )
             );
         }
