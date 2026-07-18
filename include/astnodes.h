@@ -1,4 +1,5 @@
 #pragma once
+#include "attributes.h"
 #include "token.h"
 #include <array>
 #include <cstdint>
@@ -19,6 +20,11 @@ using ExprVec   = std::vector<ExprUP>;
 
 namespace AST
 {
+    struct Decl
+    {
+        VarAttr attr{};
+    };
+
     struct Param
     {
         const bool fix{};
@@ -98,7 +104,7 @@ namespace AST
             virtual ~Stmt() = default;
         };
 
-        struct VarDecl : public Stmt
+        struct VarDecl : public Stmt, public Decl
         {
             const bool fix{};
             const vT names{};
@@ -115,7 +121,7 @@ namespace AST
             );
         };
 
-        struct FuncDecl : public Stmt
+        struct FuncDecl : public Stmt, public Decl
         {
             const Token name{};
             const std::vector<Param> params{};
@@ -128,15 +134,17 @@ namespace AST
             );
         };
 
-        struct TypeDecl : public Stmt
+        struct TypeDecl : public Stmt, public Decl
         {
             struct Field
             {
+                VarAttr attr{};
                 const bool fix{};
                 const Token name{};
                 ExprUP init{};
 
                 Field(
+                    VarAttr attr,
                     bool fix,
                     const Token& name,
                     ExprUP& init

@@ -330,22 +330,23 @@ void Parser::setExprLocation(ExprUP& expr, u64 start)
     }
 }
 
-void Parser::consumeAttributes()
+VarAttr Parser::consumeAttributes()
 {
+    VarAttr attr{};
+
     while (consumeTok(TOK_AT))
     {
         if (!matchError(TOK_LEFT_PAREN, "expect '(' before attribute(s)"))
-            return;
+            break;
 
         do {
             nextTok();
             switch (previousTok.type)
             {
-                case TOK_PRIVATE:
-                case TOK_STATIC:
-                case TOK_COMPUTED:
-                case TOK_CLOSED:
-                    break;
+                case TOK_PRIVATE:   markAttribute(attr, ATTR_PRIVATE);  break;
+                case TOK_STATIC:    markAttribute(attr, ATTR_STATIC);   break;
+                case TOK_COMPUTED:  markAttribute(attr, ATTR_COMPUTED); break;
+                case TOK_CLOSED:    markAttribute(attr, ATTR_CLOSED);   break;
                 default:
                     reportSemantic(INVALID_ATTR, previousTok);
                     break;
@@ -353,8 +354,10 @@ void Parser::consumeAttributes()
         } while (consumeTok(TOK_COMMA));
 
         if (!matchError(TOK_RIGHT_PAREN, "expect ')' after attribute(s)"))
-            return;
+            break;
     }
+
+    return attr;
 }
 
 void Parser::parseVariableList(
@@ -389,19 +392,27 @@ void Parser::parseVariableList(
 
 StmtUP Parser::declaration()
 {
-    consumeAttributes();
-
+    VarAttr attr{consumeAttributes()};
     StmtUP ret{nullptr};
     u64 start{currentTok.byteOffset};
 
     if (consumeTok(TOK_SEMICOLON)) // Empty statement.
         return ret;
     else if (consumeToks(TOK_MAKE, TOK_FIX))
+    {
         ret = varDecl();
+        static_cast<VarDecl*>(ret.get())->attr = attr;
+    }
     else if (consumeTok(TOK_FUNC))
+    {
         ret = funcDecl();
+        static_cast<FuncDecl*>(ret.get())->attr = attr;
+    }
     else if (consumeTok(TOK_TYPE))
+    {
         ret = typeDecl();
+        static_cast<TypeDecl*>(ret.get())->attr = attr;
+    }
     else
         ret = statement();
 
@@ -527,6 +538,7 @@ StmtUP Parser::typeDecl()
         if (!checkTok(TOK_FUNC) && !checkTok(TOK_RIGHT_BRACE))
         {
             do {
+                VarAttr attr{consumeAttributes()};
                 bool fix{consumeTok(TOK_FIX)};
                 MATCH_TOK(TOK_IDENTIFIER, "expect field name");
                 Token name{previousTok};
@@ -537,7 +549,7 @@ StmtUP Parser::typeDecl()
                     init = expression();
                 else if (fix)
                     REPORT_SEMANTIC(MISSING_INITIALIZER, currentTok);
-                fields.emplace_back(fix, name, init);
+                fields.emplace_back(attr, fix, name, init);
             } while (consumeTok(TOK_COMMA));
         }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "astnodes.h"
+#include "attributes.h"
 #include "common.h"
 #include "diagnostic.h"
 #include <string_view>
@@ -71,7 +72,7 @@ class Parser
 
         // Declarations.
 
-        void consumeAttributes();
+        [[nodiscard]] VarAttr consumeAttributes();
         void parseVariableList(
             vT& vars,
             AST::UnpackState& unpack,
