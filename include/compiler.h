@@ -382,4 +382,7 @@ class Compiler
         [[nodiscard]] Function* compile(FileID id, const StmtVec& program);
         // Only to be used for modules.
         [[nodiscard]] const VarTable& getSymbolTable() const;
+
+        #undef DECL_STMT
+        #undef DECL_EXPR
 };
