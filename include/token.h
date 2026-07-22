@@ -164,7 +164,7 @@ struct Token
 {
 	std::string_view text{};	// The actual text of the token.
 	Value content{};			// The literal's actual value.
-	u64 byteOffset;			    // Byte offset into the source code for the start of the token.
+	u64 byteOffset{};			// Byte offset into the source code for the start of the token.
 	TokenType type{TOK_EOF};
 
 	Token() = default;
