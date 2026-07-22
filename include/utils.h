@@ -1,5 +1,6 @@
 #include "common.h"
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <string_view>
@@ -67,6 +68,13 @@ bool starts_with(const std::string_view str, const std::string_view prefix);
 std::vector<std::string> split(std::string_view str, std::string_view delim);
 
 /* Inline functions. */
+
+[[nodiscard]] static inline i64 fromUnsigned(u64 num)
+{
+    i64 i{};
+    std::memcpy(&i, &num, sizeof(u64));
+    return i;
+}
 
 [[nodiscard]] static inline bool isBinary(char c)
 {

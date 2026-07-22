@@ -110,7 +110,7 @@ namespace AST
             const vT names{};
             UnpackState unpack{};
             const Token oper{};
-            const ExprVec values{};
+            ExprVec values{};
 
             VarDecl(
                 bool fix,
@@ -124,8 +124,8 @@ namespace AST
         struct FuncDecl : public Stmt, public Decl
         {
             const Token name{};
-            const std::vector<Param> params{};
-            const StmtUP body{};
+            std::vector<Param> params{};
+            StmtUP body{};
 
             FuncDecl(
                 const Token& name,
@@ -152,8 +152,8 @@ namespace AST
             };
 
             const Token name{};
-            const std::vector<Field> fields{};
-            const StmtVec methods{}; // Only contains function declarations.
+            std::vector<Field> fields{};
+            StmtVec methods{}; // Only contains function declarations.
 
             TypeDecl(
                 const Token& name,
@@ -185,8 +185,8 @@ namespace AST
 
         struct IfStmt : public Stmt
         {
-            const ExprUP condition{};
-            const StmtUP trueBranch{}, falseBranch{};
+            ExprUP condition{};
+            StmtUP trueBranch{}, falseBranch{};
 
             IfStmt(
                 ExprUP& condition,
@@ -197,9 +197,9 @@ namespace AST
 
         struct WhileStmt : public Stmt
         {
-            const ExprUP condition{};
+            ExprUP condition{};
             const Token label{};
-            const StmtUP body{}, elseClause{};
+            StmtUP body{}, elseClause{};
 
             WhileStmt(
                 ExprUP& condition,
@@ -211,9 +211,9 @@ namespace AST
 
         struct ForStmt : public Stmt
         {
-            const LoopHeader header{};
+            LoopHeader header{};
             const Token label{};
-            const StmtUP body{}, elseClause{};
+            StmtUP body{}, elseClause{};
 
             ForStmt(
                 LoopHeader& header,
@@ -238,8 +238,8 @@ namespace AST
                 );
             };
 
-            const ExprUP matchValue{};
-            const std::vector<MatchCase> cases{};
+            ExprUP matchValue{};
+            std::vector<MatchCase> cases{};
 
             MatchStmt(
                 ExprUP& matchValue,
@@ -249,9 +249,9 @@ namespace AST
 
         struct RepeatStmt : public Stmt
         {
-            const ExprUP condition{};
+            ExprUP condition{};
             const Token label{};
-            const StmtUP body{}; // Must be a block statement.
+            StmtUP body{}; // Must be a block statement.
 
             RepeatStmt(
                 ExprUP& condition,
@@ -263,7 +263,7 @@ namespace AST
         struct ReturnStmt : public Stmt
         {
             const Token keyword{};
-            const ExprUP expr{};
+            ExprUP expr{};
 
             ReturnStmt(
                 const Token& keyword,
@@ -292,14 +292,14 @@ namespace AST
 
         struct ExprStmt : public Stmt
         {
-            const ExprUP expr{};
+            ExprUP expr{};
 
             ExprStmt(ExprUP& expr);
         };
 
         struct BlockStmt : public Stmt
         {
-            const StmtVec block{};
+            StmtVec block{};
 
             BlockStmt(StmtVec& block);
         };
@@ -349,7 +349,7 @@ namespace AST
         struct MutExpr : public Expr
         {
             bool mut;
-            const ExprUP value{};
+            ExprUP value{};
 
             MutExpr(
                 bool mut,
@@ -362,7 +362,7 @@ namespace AST
             const ExprVec targets{};
             UnpackState unpack{};
             const Token oper{};
-            const ExprVec values{};
+            ExprVec values{};
 
             AssignExpr(
                 ExprVec& targets,
@@ -374,9 +374,9 @@ namespace AST
 
         struct LogicExpr : public Expr
         {
-            const ExprUP left{};
+            ExprUP left{};
             const TokenType oper{};
-            const ExprUP right{};
+            ExprUP right{};
 
             LogicExpr(
                 ExprUP& left,
@@ -387,9 +387,9 @@ namespace AST
 
         struct CompareExpr : public Expr
         {
-            const ExprUP left{};
+            ExprUP left{};
             const TokenType oper{};
-            const ExprUP right{};
+            ExprUP right{};
 
             CompareExpr(
                 ExprUP& left,
@@ -400,9 +400,9 @@ namespace AST
 
         struct BitExpr : public Expr
         {
-            const ExprUP left{};
+            ExprUP left{};
             const TokenType oper{};
-            const ExprUP right{};
+            ExprUP right{};
 
             BitExpr(
                 ExprUP& left,
@@ -413,9 +413,9 @@ namespace AST
 
         struct ShiftExpr : public Expr
         {
-            const ExprUP left{};
+            ExprUP left{};
             const TokenType oper{};
-            const ExprUP right{};
+            ExprUP right{};
 
             ShiftExpr(
                 ExprUP& left,
@@ -426,9 +426,9 @@ namespace AST
 
         struct BinaryExpr : public Expr
         {
-            const ExprUP left{};
+            ExprUP left{};
             const TokenType oper{};
-            const ExprUP right{};
+            ExprUP right{};
 
             BinaryExpr(
                 ExprUP& left,
@@ -440,7 +440,7 @@ namespace AST
         struct UnaryExpr : public Expr
         {
             const Token oper{};
-            const ExprUP expr{};
+            ExprUP expr{};
             // Whether or not it evaluates to the previous
             // value in the register (like with post-increment/
             // decrement operators) or the new value.
@@ -455,8 +455,8 @@ namespace AST
 
         struct IndexExpr : public Expr
         {
-            const ExprUP obj{};
-            const ExprUP index{};
+            ExprUP obj{};
+            ExprUP index{};
 
             IndexExpr(
                 ExprUP& obj,
@@ -466,8 +466,8 @@ namespace AST
 
         struct CallExpr : public Expr
         {
-            const ExprUP callee{};
-            const ExprVec args{};
+            ExprUP callee{};
+            ExprVec args{};
             const bool builtin{};
 
             CallExpr(
@@ -479,7 +479,7 @@ namespace AST
 
         struct FieldExpr : public Expr
         {
-            const ExprUP obj{};
+            ExprUP obj{};
             const Token field{};
 
             FieldExpr(
@@ -492,7 +492,7 @@ namespace AST
         // E.g., module::variable.
         struct ScopeExpr : public Expr
         {
-            const ExprUP module{};
+            ExprUP module{};
             const Token entry{};
 
             ScopeExpr(
@@ -503,7 +503,8 @@ namespace AST
 
         struct IfExpr : public Expr
         {
-            const ExprUP condition{}, trueExpr{}, falseExpr{};
+            ExprUP condition{};
+            ExprUP trueExpr{}, falseExpr{};
 
             IfExpr(
                 ExprUP& condition,
@@ -514,8 +515,8 @@ namespace AST
 
         struct LambdaExpr : public Expr
         {
-            const std::vector<Param> params{};
-            const StmtUP body{};
+            std::vector<Param> params{};
+            StmtUP body{};
 
             LambdaExpr(
                 std::vector<Param>& params,
@@ -525,7 +526,7 @@ namespace AST
 
         struct ListExpr : public Expr
         {
-            const ExprVec entries{};
+            ExprVec entries{};
 
             ListExpr(ExprVec& entries);
         };
@@ -538,7 +539,7 @@ namespace AST
                 ExprUP value;
             };
 
-            const std::vector<TablePair> pairs{};
+            std::vector<TablePair> pairs{};
 
             TableExpr(std::vector<TablePair>& pairs);
         };
@@ -559,7 +560,7 @@ namespace AST
             // Expression so we can evaluate it easily.
             // Must still be a variable.
             const ExprUP typeName{};
-            const std::vector<Field> fields{};
+            std::vector<Field> fields{};
 
             InstanceExpr(
                 ExprUP& typeName,
@@ -571,8 +572,8 @@ namespace AST
 
         struct ListCompExpr : public Expr
         {
-            const LoopHeader header{};
-            const ExprUP expr{};
+            LoopHeader header{};
+            ExprUP expr{};
 
             ListCompExpr(
                 LoopHeader& header,
@@ -582,9 +583,9 @@ namespace AST
 
         struct TableCompExpr : public Expr
         {
-            const LoopHeader header{};
-            const ExprUP key{};
-            const ExprUP value{};
+            LoopHeader header{};
+            ExprUP key{};
+            ExprUP value{};
 
             TableCompExpr(
                 LoopHeader& header,

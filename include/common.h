@@ -84,6 +84,16 @@
 	>;
 #endif
 
+// Optimization feature flag.
+
+#if !defined(CH_OPTIMIZATIONS_ON)
+	#if defined(DEBUG)
+		#define CH_OPTIMIZATIONS_ON 1
+	#else
+		#define CH_OPTIMIZATIONS_ON 0
+	#endif
+#endif
+
 // EOF.
 
 #define CH_EOF static_cast<char>(-1)

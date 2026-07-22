@@ -363,13 +363,6 @@ Object VM::compareOper(Opcode op, u8 firstOper)
     }
 }
 
-[[nodiscard]] static inline i64 fromUnsigned(u64 num)
-{
-    i64 i{};
-    std::memcpy(&i, &num, sizeof(u64));
-    return i;
-}
-
 Object VM::bitOper(Opcode op, u8 firstOper)
 {
     const Object& a{registers[firstOper]};

@@ -15,6 +15,7 @@
 #include "../include/lexer.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
+#include "../include/optimizer.h"
 #include "../include/parser.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
@@ -38,14 +39,14 @@ static Function* runCompiler(FileID id, const vT& tokens)
 {
 	static Parser parser{};
 	static Compiler compiler{};
-	const StmtVec& program{parser.parseToAST(id, tokens)};
+	StmtVec& program{parser.parseToAST(id, tokens)};
 
 	#ifdef TYPE
 		// Perform type-checking here.
 	#endif
 
-	#ifdef OPT
-		// Optimize here.
+	#if CH_OPTIMIZATIONS_ON
+		Optimizer::optimize(program);
 	#endif
 
 	// To stop after compilation if either hit an error.
