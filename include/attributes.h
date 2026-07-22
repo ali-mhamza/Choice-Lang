@@ -9,7 +9,8 @@ using VarAttr = AttrBaseType;
     X(PRIVATE, Private, 1)      \
     X(STATIC, Static, 2)        \
     X(COMPUTED, Computed, 3)    \
-    X(CLOSED, Closed, 4)
+    X(CLOSED, Closed, 4)        \
+    X(TEST, Test, 5)
 
 #define NUM_BITS(type)          (sizeof(type) * CHAR_BIT)
 #define POS_BIT(type, shift)    (1 << (NUM_BITS(type) - shift))

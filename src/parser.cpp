@@ -347,6 +347,7 @@ VarAttr Parser::consumeAttributes()
                 case TOK_STATIC:    markAttribute(attr, ATTR_STATIC);   break;
                 case TOK_COMPUTED:  markAttribute(attr, ATTR_COMPUTED); break;
                 case TOK_CLOSED:    markAttribute(attr, ATTR_CLOSED);   break;
+                case TOK_TEST:      markAttribute(attr, ATTR_TEST);     break;
                 default:
                     reportSemantic(INVALID_ATTR, previousTok);
                     break;
