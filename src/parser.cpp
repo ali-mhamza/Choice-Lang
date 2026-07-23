@@ -402,17 +402,17 @@ StmtUP Parser::declaration()
     else if (consumeToks(TOK_MAKE, TOK_FIX))
     {
         ret = varDecl();
-        static_cast<VarDecl*>(ret.get())->attr = attr;
+        if (ret != nullptr) static_cast<VarDecl*>(ret.get())->attr = attr;
     }
     else if (consumeTok(TOK_FUNC))
     {
         ret = funcDecl();
-        static_cast<FuncDecl*>(ret.get())->attr = attr;
+        if (ret != nullptr) static_cast<FuncDecl*>(ret.get())->attr = attr;
     }
     else if (consumeTok(TOK_TYPE))
     {
         ret = typeDecl();
-        static_cast<TypeDecl*>(ret.get())->attr = attr;
+        if (ret != nullptr) static_cast<TypeDecl*>(ret.get())->attr = attr;
     }
     else
         ret = statement();
