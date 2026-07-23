@@ -10,48 +10,48 @@
 
 namespace Args
 {
-    enum Option : u8
+    enum class Option : u8
     {
         // Show the tokens for the given
         // script or REPL input.
-        EMIT_TOKENS,
+        EmitTokens,
 
         // Compile and show the bytecode for the
         // given script or REPL input.
-        EMIT_BYTECODE,
+        EmitBytecode,
 
         // Compile and store the bytecode for the
         // given script in a file.
-        CACHE_BYTECODE,
+        CacheBytecode,
 
         // Load a bytecode file/program and display
         // the bytecode held in it.
-        DIS_PROGRAM,
+        DisProgram,
 
         // Load a bytecode file/program and run it.
-        LOAD_PROGRAM,
+        LoadProgram,
 
         // Check that a source compiles successfully.
         // Emits a success message if so, and diagnostics otherwise.
-        CHECK_PROGRAM,
+        CheckProgram,
 
         // Inspect the sections and info in a bytecode file.
-        INSPECT_BYTECODE,
+        InspectBytecode,
 
         // Explain a particular error/warning code.
-        EXPLAIN_ERROR,
+        ExplainError,
 
         // Entire execution pipeline.
         // Scan, compile, and execute given program
         // or REPL input.
-        EXECUTE
+        Execute
     };
 
-    enum RunOption : u8
+    enum class RunOption : u8
     {
-        RUN_FILE,
-        RUN_REPL,
-        RUN_DIRECT
+        RunFile,
+        RunRepl,
+        RunDirect
     };
 
     using Handler = void (*)(FileID, std::string_view);
@@ -59,7 +59,7 @@ namespace Args
     struct Config
     {
         RunOption runOption{};
-        Option option{EXECUTE};
+        Option option{Option::Execute};
         Handler handler{optionExecute};
         std::string arg{}; // Currently: file or error code.
 

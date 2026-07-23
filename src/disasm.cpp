@@ -286,7 +286,7 @@ void Disassembler::unpackOp(u8 byte)
 void Disassembler::referenceOp(u8 byte)
 {
     // Mimicking the compiler.
-    enum VarType : u8 { GLOBAL, CELL, LOCAL };
+    enum class VarType : u8 { Global, Cell, Local };
 
 	printOpcode(opNames[byte]);
 	u8 reg{readByte()};
@@ -305,9 +305,9 @@ void Disassembler::referenceOp(u8 byte)
 
     	switch (type)
     	{
-    		case GLOBAL:	CH_PRINT("GLOBAL ");	break;
-    		case CELL:		CH_PRINT("CELL ");		break;
-    		case LOCAL:		CH_PRINT("LOCAL ");		break;
+    		case VarType::Global:	CH_PRINT("GLOBAL ");	break;
+    		case VarType::Cell:		CH_PRINT("CELL ");		break;
+    		case VarType::Local:	CH_PRINT("LOCAL ");		break;
     	}
 
     	CH_PRINT("R[{}]\n", target);

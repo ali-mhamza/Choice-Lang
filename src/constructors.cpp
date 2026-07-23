@@ -18,8 +18,9 @@
 
 const std::array<ObjType,
 Constructors::CtorType::NUM_CTORS> Constructors::types{
-    OBJ_VOID, OBJ_INT, OBJ_DEC, OBJ_BOOL, OBJ_TEXT,
-    OBJ_STRING, OBJ_RANGE, OBJ_LIST, OBJ_TABLE
+    ObjType::Void, ObjType::Int, ObjType::Dec, ObjType::Bool,
+    ObjType::Text, ObjType::String, ObjType::Range, ObjType::List,
+    ObjType::Table
 };
 
 const std::array<Constructors::Ctor,
@@ -37,15 +38,15 @@ Constructors::CtorType::NUM_CTORS> Constructors::ctorNames{
 
 const std::unordered_map<ObjType,
 Constructors::CtorType> Constructors::builtins{
-    {OBJ_VOID, Constructors::CTOR_OBJ},
-    {OBJ_INT, Constructors::CTOR_INT},
-    {OBJ_DEC, Constructors::CTOR_DEC},
-    {OBJ_BOOL, Constructors::CTOR_BOOL},
-    {OBJ_TEXT, Constructors::CTOR_TEXT},
-    {OBJ_STRING, Constructors::CTOR_STRING},
-    {OBJ_RANGE, Constructors::CTOR_RANGE},
-    {OBJ_LIST, Constructors::CTOR_LIST},
-    {OBJ_TABLE, Constructors::CTOR_TABLE}
+    {ObjType::Void, Constructors::CTOR_OBJ},
+    {ObjType::Int, Constructors::CTOR_INT},
+    {ObjType::Dec, Constructors::CTOR_DEC},
+    {ObjType::Bool, Constructors::CTOR_BOOL},
+    {ObjType::Text, Constructors::CTOR_TEXT},
+    {ObjType::String, Constructors::CTOR_STRING},
+    {ObjType::Range, Constructors::CTOR_RANGE},
+    {ObjType::List, Constructors::CTOR_LIST},
+    {ObjType::Table, Constructors::CTOR_TABLE}
 };
 
 Object Constructors::Obj(iter it, u8 args)
@@ -58,7 +59,7 @@ Object Constructors::Obj(iter it, u8 args)
         );
     }
 
-    return Object{OBJ_VOID};
+    return Object{ObjType::Void};
 }
 
 Object Constructors::Int(iter it, u8 args)

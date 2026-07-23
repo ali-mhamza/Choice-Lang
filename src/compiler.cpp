@@ -94,12 +94,12 @@ void Compiler::defineBuiltinLocals(const std::string& funcName)
 
 void Compiler::emitVariableOp(bool type, const VarInfo& info, u8 dest, u8 src)
 {
-    if (info.type == GLOBAL)
+    if (info.type == VarType::Global)
     {
         code.addOp((type == getVar ? OP_GET_GLOBAL : OP_SET_GLOBAL),
             dest, src);
     }
-    else if (info.type == LOCAL)
+    else if (info.type == VarType::Local)
     {
         code.addOp((type == getVar ? OP_GET_LOCAL : OP_SET_LOCAL),
             dest, src);
@@ -194,9 +194,9 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
         u8* slot{varLocations->get(entry)};
         if (slot != nullptr)
         {
-            VarType type{LOCAL};
+            VarType type{VarType::Local};
             if ((depth == 0) && (entry.scope == 0))
-                type = GLOBAL;
+                type = VarType::Global;
             return { true, *slot, type, getAccess(*slot) };
         }
     }
@@ -211,7 +211,8 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
             // Local variables in enclosing scopes become cells in
             // the current scope.
             // Likewise with globals in modules.
-            if (inModule || (info.type == LOCAL)) info.type = CELL;
+            if (inModule || (info.type == VarType::Local))
+                info.type = VarType::Cell;
             return info;
         }
     }
@@ -221,7 +222,7 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
 
 u8 Compiler::captureVariable(const Token& token, const VarInfo& info)
 {
-    if (!inModule && (info.type == GLOBAL))
+    if (!inModule && (info.type == VarType::Global))
         return info.slot;
 
     std::string name{token.text};
@@ -359,7 +360,7 @@ void Compiler::reportError(
     std::string_view message
 )
 {
-    diagEngine.source = ErrorSource::COMPILER;
+    diagEngine.source = ErrorSource::Compiler;
     hitError = true;
     if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
         code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
@@ -374,7 +375,7 @@ void Compiler::reportPart(
     std::string_view message
 )
 {
-    diagEngine.source = ErrorSource::COMPILER;
+    diagEngine.source = ErrorSource::Compiler;
 
     if (isError)
         diagEngine.recordError(id, code, offset, length, std::string{message});
@@ -588,9 +589,9 @@ void Compiler::funcBodyHelper(
         // or reuse the cell at index [slot] from enclosing scope.
         switch (info.type)
         {
-            case GLOBAL:    code.addOp(OP_CAPTURE_GLOBAL);  break;
-            case LOCAL:     code.addOp(OP_CAPTURE_LOCAL);   break;
-            case CELL:      code.addOp(OP_CAPTURE_CELL);    break;
+            case VarType::Global:   code.addOp(OP_CAPTURE_GLOBAL);  break;
+            case VarType::Local:    code.addOp(OP_CAPTURE_LOCAL);   break;
+            case VarType::Cell:     code.addOp(OP_CAPTURE_CELL);    break;
         }
         code.addBytes(funcReg, info.slot);
     }
@@ -1173,7 +1174,7 @@ DEF(ExprStmt)
     if (node->expr == nullptr) return;
 
     u8 reg{compileExpr(node->expr)};
-    if (inRepl && (node->expr->type != E_ASSIGN_EXPR))
+    if (inRepl && (node->expr->type != ExprType::AssignExpr))
         code.addOp(OP_PRINT_VALID, reg);
 
     // Expressions have multiple failure points, so we
@@ -1196,7 +1197,8 @@ std::pair<bool, Compiler::VarInfo> Compiler::checkMutability(
     const ExprUP& expr
 )
 {
-    if (expr->type != E_VAR_EXPR) return std::make_pair(true, VarInfo{});
+    if (expr->type != ExprType::VarExpr)
+        return std::make_pair(true, VarInfo{});
 
     VarExpr* temp{static_cast<VarExpr*>(expr.get())};
     VarInfo info{resolveVariable(temp->name)};
@@ -1366,7 +1368,7 @@ void Compiler::compoundAssignToField(
 
 DEF(MutExpr)
 {
-    if (node->value->type == E_MUT_EXPR)
+    if (node->value->type == ExprType::MutExpr)
     {
         const MutExpr* temp{static_cast<const MutExpr*>(node->value.get())};
         std::string_view nodeType{node->mut ? "mut" : "immut"};
@@ -1424,9 +1426,9 @@ DEF(AssignExpr)
         const auto& target{node->targets[i]};
         switch (target->type)
         {
-            case E_VAR_EXPR:    assignToVar(node, target, valueStart + i);      break;
-            case E_INDEX_EXPR:  assignToElement(node, target, valueStart + i);  break;
-            case E_FIELD_EXPR:  assignToField(node, target, valueStart + i);    break;
+            case ExprType::VarExpr:     assignToVar(node, target, valueStart + i);      break;
+            case ExprType::IndexExpr:   assignToElement(node, target, valueStart + i);  break;
+            case ExprType::FieldExpr:   assignToField(node, target, valueStart + i);    break;
             default: CH_UNREACHABLE();
         }
     }
@@ -1647,9 +1649,9 @@ DEF(UnaryExpr)
         {
             switch (node->expr->type)
             {
-                case E_VAR_EXPR:    _crementVar(node);      return;
-                case E_INDEX_EXPR:  _crementElement(node);  return;
-                case E_FIELD_EXPR:  _crementField(node);    return;
+                case ExprType::VarExpr:     _crementVar(node);      return;
+                case ExprType::IndexExpr:   _crementElement(node);  return;
+                case ExprType::FieldExpr:   _crementField(node);    return;
                 default: CH_UNREACHABLE();
             }
         }
@@ -1917,9 +1919,7 @@ DEF(TableCompExpr)
     comprehension(node, append);
 }
 
-void Compiler::varReference(
-    const ReferenceExpr* node
-)
+void Compiler::varReference(const RefExpr* node)
 {
     const VarExpr* expr{static_cast<const VarExpr*>(node->obj.get())};
     VarInfo info{resolveVariable(expr->name)};
@@ -1934,9 +1934,7 @@ void Compiler::varReference(
     reserveReg();
 }
 
-void Compiler::elementReference(
-    const ReferenceExpr* node
-)
+void Compiler::elementReference(const RefExpr* node)
 {
     const IndexExpr* expr{static_cast<const IndexExpr*>(node->obj.get())};
     u8 objReg{compileExpr(expr->obj)};
@@ -1946,9 +1944,7 @@ void Compiler::elementReference(
     freeReg(); // Free index register.
 }
 
-void Compiler::fieldReference(
-    const ReferenceExpr* node
-)
+void Compiler::fieldReference(const RefExpr* node)
 {
     const FieldExpr* field{static_cast<const FieldExpr*>(node->obj.get())};
     u8 objReg{compileExpr(field->obj)};
@@ -1958,13 +1954,13 @@ void Compiler::fieldReference(
     code.addOp(OP_FIELD_REF, objReg, nextReg);
 }
 
-DEF(ReferenceExpr)
+DEF(RefExpr)
 {
     switch (node->obj->type)
     {
-        case E_VAR_EXPR:    varReference(node);     break;
-        case E_INDEX_EXPR:  elementReference(node); break;
-        case E_FIELD_EXPR:  fieldReference(node);   break;
+        case ExprType::VarExpr:     varReference(node);     break;
+        case ExprType::IndexExpr:   elementReference(node); break;
+        case ExprType::FieldExpr:   fieldReference(node);   break;
         default: CH_UNREACHABLE();
     }
 }
@@ -2089,6 +2085,8 @@ DEF(LiteralExpr)
 
 u8 Compiler::compileExpr(const ExprUP& node)
 {
+    #define CASE(type) case ExprType::type
+
     if (node == nullptr) return 0; // Dummy return value.
 
     u64 lastIndex{metadata.size()};
@@ -2099,38 +2097,42 @@ u8 Compiler::compileExpr(const ExprUP& node)
     u8 reg{nextReg};
     switch (node->type)
     {
-        case E_MUT_EXPR:        COMPILE(MutExpr);           break;
-        case E_ASSIGN_EXPR:     COMPILE(AssignExpr);        break;
-        case E_LOGIC_EXPR:      COMPILE(LogicExpr);         break;
-        case E_COMPARE_EXPR:    COMPILE(CompareExpr);       break;
-        case E_BIT_EXPR:        COMPILE(BitExpr);           break;
-        case E_SHIFT_EXPR:      COMPILE(ShiftExpr);         break;
-        case E_BINARY_EXPR:     COMPILE(BinaryExpr);        break;
-        case E_UNARY_EXPR:      COMPILE(UnaryExpr);         break;
-        case E_INDEX_EXPR:      COMPILE(IndexExpr);         break;
-        case E_CALL_EXPR:       COMPILE(CallExpr);          break;
-        case E_FIELD_EXPR:      COMPILE(FieldExpr);         break;
-        case E_SCOPE_EXPR:      COMPILE(ScopeExpr);         break;
-        case E_IF_EXPR:         COMPILE(IfExpr);            break;
-        case E_LAMBDA_EXPR:     COMPILE(LambdaExpr);        break;
-        case E_LIST_EXPR:       COMPILE(ListExpr);          break;
-        case E_TABLE_EXPR:      COMPILE(TableExpr);         break;
-        case E_INSTANCE_EXPR:   COMPILE(InstanceExpr);      break;
-        case E_LIST_COMP_EXPR:  COMPILE(ListCompExpr);      break;
-        case E_TABLE_COMP_EXPR: COMPILE(TableCompExpr);     break;
-        case E_REF_EXPR:        COMPILE(ReferenceExpr);     break;
-        case E_VAR_EXPR:        COMPILE(VarExpr);           break;
-        case E_STR_PART_EXPR:   COMPILE(StringPartExpr);    break;
-        case E_FORMAT_EXPR:     COMPILE(FormatExpr);        break;
-        case E_LITERAL_EXPR:    COMPILE(LiteralExpr);       break;
+        CASE(MutExpr):          COMPILE(MutExpr);           break;
+        CASE(AssignExpr):       COMPILE(AssignExpr);        break;
+        CASE(LogicExpr):        COMPILE(LogicExpr);         break;
+        CASE(CompareExpr):      COMPILE(CompareExpr);       break;
+        CASE(BitExpr):          COMPILE(BitExpr);           break;
+        CASE(ShiftExpr):        COMPILE(ShiftExpr);         break;
+        CASE(BinaryExpr):       COMPILE(BinaryExpr);        break;
+        CASE(UnaryExpr):        COMPILE(UnaryExpr);         break;
+        CASE(IndexExpr):        COMPILE(IndexExpr);         break;
+        CASE(CallExpr):         COMPILE(CallExpr);          break;
+        CASE(FieldExpr):        COMPILE(FieldExpr);         break;
+        CASE(ScopeExpr):        COMPILE(ScopeExpr);         break;
+        CASE(IfExpr):           COMPILE(IfExpr);            break;
+        CASE(LambdaExpr):       COMPILE(LambdaExpr);        break;
+        CASE(ListExpr):         COMPILE(ListExpr);          break;
+        CASE(TableExpr):        COMPILE(TableExpr);         break;
+        CASE(InstanceExpr):     COMPILE(InstanceExpr);      break;
+        CASE(ListCompExpr):     COMPILE(ListCompExpr);      break;
+        CASE(TableCompExpr):    COMPILE(TableCompExpr);     break;
+        CASE(RefExpr):          COMPILE(RefExpr);           break;
+        CASE(VarExpr):          COMPILE(VarExpr);           break;
+        CASE(StringPartExpr):   COMPILE(StringPartExpr);    break;
+        CASE(FormatExpr):       COMPILE(FormatExpr);        break;
+        CASE(LiteralExpr):      COMPILE(LiteralExpr);       break;
     }
 
     metadata[lastIndex].byteEnd = code.codeSize();
     return reg;
+
+    #undef CASE
 }
 
 void Compiler::compileStmt(const StmtUP& node)
 {
+    #define CASE(type) case StmtType::type
+
     if (node == nullptr) return;
 
     u64 lastIndex{metadata.size()};
@@ -2140,24 +2142,26 @@ void Compiler::compileStmt(const StmtUP& node)
 
     switch (node->type)
     {
-        case S_VAR_DECL:    COMPILE(VarDecl);       break;
-        case S_FUNC_DECL:   COMPILE(FuncDecl);      break;
-        case S_TYPE_DECL:   COMPILE(TypeDecl);      break;
-        case S_USE_STMT:    COMPILE(UseStmt);       break;
-        case S_IF_STMT:     COMPILE(IfStmt);        break;
-        case S_WHILE_STMT:  COMPILE(WhileStmt);     break;
-        case S_FOR_STMT:    COMPILE(ForStmt);       break;
-        case S_MATCH_STMT:  COMPILE(MatchStmt);     break;
-        case S_REPEAT_STMT: COMPILE(RepeatStmt);    break;
-        case S_RETURN_STMT: COMPILE(ReturnStmt);    break;
-        case S_BREAK_STMT:  COMPILE(BreakStmt);     break;
-        case S_CONT_STMT:   COMPILE(ContinueStmt);  break;
-        case S_END_STMT:    COMPILE(EndStmt);       break;
-        case S_EXPR_STMT:   COMPILE(ExprStmt);      break;
-        case S_BLOCK_STMT:  COMPILE(BlockStmt);     break;
+        CASE(VarDecl):      COMPILE(VarDecl);       break;
+        CASE(FuncDecl):     COMPILE(FuncDecl);      break;
+        CASE(TypeDecl):     COMPILE(TypeDecl);      break;
+        CASE(UseStmt):      COMPILE(UseStmt);       break;
+        CASE(IfStmt):       COMPILE(IfStmt);        break;
+        CASE(WhileStmt):    COMPILE(WhileStmt);     break;
+        CASE(ForStmt):      COMPILE(ForStmt);       break;
+        CASE(MatchStmt):    COMPILE(MatchStmt);     break;
+        CASE(RepeatStmt):   COMPILE(RepeatStmt);    break;
+        CASE(ReturnStmt):   COMPILE(ReturnStmt);    break;
+        CASE(BreakStmt):    COMPILE(BreakStmt);     break;
+        CASE(ContinueStmt): COMPILE(ContinueStmt);  break;
+        CASE(EndStmt):      COMPILE(EndStmt);       break;
+        CASE(ExprStmt):     COMPILE(ExprStmt);      break;
+        CASE(BlockStmt):    COMPILE(BlockStmt);     break;
     }
 
     metadata[lastIndex].byteEnd = code.codeSize();
+
+    #undef CASE
 }
 
 ByteCode& Compiler::getCode()

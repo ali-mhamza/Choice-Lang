@@ -43,14 +43,14 @@ ExprUP TreeWalker::objectToNode(const Object& obj)
 {
     switch (obj.type())
     {
-        case OBJ_INT:   return MAKE_LIT(NUM, AS_INT(obj));
-        case OBJ_DEC:   return MAKE_LIT(NUM_DEC, AS_DEC(obj));
-        case OBJ_BOOL:
+        case ObjType::Int:  return MAKE_LIT(NUM, AS_INT(obj));
+        case ObjType::Dec:  return MAKE_LIT(NUM_DEC, AS_DEC(obj));
+        case ObjType::Bool:
         {
             bool val{AS_BOOL(obj)};
             return (val ? MAKE_LIT(TRUE, val) : MAKE_LIT(FALSE, val));
         }
-        case OBJ_NULL:  return MAKE_LIT(NULL, AS_NULL(obj));
+        case ObjType::Null: return MAKE_LIT(NULL, AS_NULL(obj));
         default: CH_UNREACHABLE();
     }
 }
@@ -169,7 +169,7 @@ WALKER(LiteralExpr)
         case TOK_RAW_STR:   return Object{};
         case TOK_TRUE:      return Object{true};
         case TOK_FALSE:     return Object{false};
-        case TOK_NULL:      return Object{OBJ_NULL};
+        case TOK_NULL:      return Object{ObjType::Null};
         default: CH_UNREACHABLE();
     }
 }
@@ -180,14 +180,14 @@ Object TreeWalker::evaluateExpr(ExprUP& expr)
 
     switch (expr->type)
     {
-        case E_LOGIC_EXPR:      WALK(LogicExpr);
-        case E_COMPARE_EXPR:    WALK(CompareExpr);
-        case E_BIT_EXPR:        WALK(BitExpr);
-        case E_SHIFT_EXPR:      WALK(ShiftExpr);
-        case E_BINARY_EXPR:     WALK(BinaryExpr);
-        case E_UNARY_EXPR:      WALK(UnaryExpr);
-        case E_LITERAL_EXPR:    WALK(LiteralExpr);
-        default:            return Object{};
+        case ExprType::LogicExpr:   WALK(LogicExpr);
+        case ExprType::CompareExpr: WALK(CompareExpr);
+        case ExprType::BitExpr:     WALK(BitExpr);
+        case ExprType::ShiftExpr:   WALK(ShiftExpr);
+        case ExprType::BinaryExpr:  WALK(BinaryExpr);
+        case ExprType::UnaryExpr:   WALK(UnaryExpr);
+        case ExprType::LiteralExpr: WALK(LiteralExpr);
+        default: return Object{};
     }
 }
 
@@ -244,38 +244,38 @@ bool Optimizer::isConstant(const ExprUP& node)
 
     switch (node->type)
     {
-        case E_MUT_EXPR:
+        case ExprType::MutExpr:
         {
             MutExpr* mut{static_cast<MutExpr*>(node.get())};
             return isConstant(mut->value);
         }
-        case E_ASSIGN_EXPR:     return false;
-        case E_LOGIC_EXPR:      CHECK_OPERANDS(LogicExpr);
-        case E_COMPARE_EXPR:    CHECK_OPERANDS(CompareExpr);
-        case E_BIT_EXPR:        CHECK_OPERANDS(BitExpr);
-        case E_SHIFT_EXPR:      CHECK_OPERANDS(ShiftExpr);
-        case E_BINARY_EXPR:     CHECK_OPERANDS(BinaryExpr);
-        case E_UNARY_EXPR:
+        case ExprType::AssignExpr:  return false;
+        case ExprType::LogicExpr:   CHECK_OPERANDS(LogicExpr);
+        case ExprType::CompareExpr: CHECK_OPERANDS(CompareExpr);
+        case ExprType::BitExpr:     CHECK_OPERANDS(BitExpr);
+        case ExprType::ShiftExpr:   CHECK_OPERANDS(ShiftExpr);
+        case ExprType::BinaryExpr:  CHECK_OPERANDS(BinaryExpr);
+        case ExprType::UnaryExpr:
         {
             UnaryExpr* unary{static_cast<UnaryExpr*>(node.get())};
             return isConstant(unary->expr);
         }
-        case E_INDEX_EXPR:
+        case ExprType::IndexExpr:
         {
             IndexExpr* index{static_cast<IndexExpr*>(node.get())};
             return isConstant(index->obj) && isConstant(index->index);
         }
-        case E_CALL_EXPR:   return false;
-        case E_FIELD_EXPR:  return false;
-        case E_SCOPE_EXPR:  return false;
-        case E_IF_EXPR:
+        case ExprType::CallExpr:    return false;
+        case ExprType::FieldExpr:   return false;
+        case ExprType::ScopeExpr:   return false;
+        case ExprType::IfExpr:
         {
             IfExpr* expr{static_cast<IfExpr*>(node.get())};
             return (isConstant(expr->condition) && isConstant(expr->trueExpr)
                 && isConstant(expr->falseExpr));
         }
-        case E_LAMBDA_EXPR: return false;
-        case E_LIST_EXPR:
+        case ExprType::LambdaExpr: return false;
+        case ExprType::ListExpr:
         {
             ListExpr* list{static_cast<ListExpr*>(node.get())};
             for (const auto& entry : list->entries)
@@ -286,7 +286,7 @@ bool Optimizer::isConstant(const ExprUP& node)
 
             return true;
         }
-        case E_TABLE_EXPR:
+        case ExprType::TableExpr:
         {
             TableExpr* table{static_cast<TableExpr*>(node.get())};
             for (const auto& pair : table->pairs)
@@ -297,14 +297,14 @@ bool Optimizer::isConstant(const ExprUP& node)
 
             return true;
         }
-        case E_INSTANCE_EXPR:   return false;
-        case E_LIST_COMP_EXPR:  return false;
-        case E_TABLE_COMP_EXPR: return false;
-        case E_REF_EXPR:        return false;
-        case E_VAR_EXPR:        return false;
-        case E_STR_PART_EXPR:   return false;
-        case E_FORMAT_EXPR:     return false;
-        case E_LITERAL_EXPR:    return true;
+        case ExprType::InstanceExpr:    return false;
+        case ExprType::ListCompExpr:    return false;
+        case ExprType::TableCompExpr:   return false;
+        case ExprType::RefExpr:         return false;
+        case ExprType::VarExpr:         return false;
+        case ExprType::StringPartExpr:  return false;
+        case ExprType::FormatExpr:      return false;
+        case ExprType::LiteralExpr:     return true;
         default: CH_UNREACHABLE();
     }
 }
@@ -332,37 +332,37 @@ bool Optimizer::isImmutableConstant(const ExprUP& node)
 
     switch (node->type)
     {
-        case E_MUT_EXPR:
+        case ExprType::MutExpr:
         {
             MutExpr* expr{static_cast<MutExpr*>(node.get())};
             if (!expr->mut && isConstant(expr->value))
                 return true;
             return isImmutableConstant(expr->value);
         }
-        case E_ASSIGN_EXPR:
+        case ExprType::AssignExpr:
         {
             AssignExpr* expr{static_cast<AssignExpr*>(node.get())};
             return isImmutableConstant(expr->values.front());
         }
-        case E_LOGIC_EXPR:      return isConstant(node);
-        case E_COMPARE_EXPR:    return isConstant(node);
-        case E_BIT_EXPR:        return isConstant(node);
-        case E_SHIFT_EXPR:      return isConstant(node);
-        case E_BINARY_EXPR:     return false;
+        case ExprType::LogicExpr:   return isConstant(node);
+        case ExprType::CompareExpr: return isConstant(node);
+        case ExprType::BitExpr:     return isConstant(node);
+        case ExprType::ShiftExpr:   return isConstant(node);
+        case ExprType::BinaryExpr:  return false;
         // Unary expressions (currently) all evaluate to either
         // numbers or Booleans, which are both immutable types.
-        case E_UNARY_EXPR:
+        case ExprType::UnaryExpr:
         {
             UnaryExpr* expr{static_cast<UnaryExpr*>(node.get())};
             return isConstant(expr->expr);
         }
-        case E_INDEX_EXPR:      return false;
-        case E_CALL_EXPR:       return false;
-        case E_FIELD_EXPR:      return false;
+        case ExprType::IndexExpr:   return false;
+        case ExprType::CallExpr:    return false;
+        case ExprType::FieldExpr:   return false;
         // Scoped entries do not (currently) support any form of
         // modification.
-        case E_SCOPE_EXPR:      return true;
-        case E_IF_EXPR:
+        case ExprType::ScopeExpr:   return true;
+        case ExprType::IfExpr:
         {
             IfExpr* expr{static_cast<IfExpr*>(node.get())};
             if (isTruthyConstant(expr->condition))
@@ -371,17 +371,17 @@ bool Optimizer::isImmutableConstant(const ExprUP& node)
                 return isImmutableConstant(expr->falseExpr);
             return false;
         }
-        case E_LAMBDA_EXPR:     return true;
-        case E_LIST_EXPR:       return false;
-        case E_TABLE_EXPR:      return false;
-        case E_INSTANCE_EXPR:   return false;
-        case E_LIST_COMP_EXPR:  return false;
-        case E_TABLE_COMP_EXPR: return false;
-        case E_REF_EXPR:        return false;
-        case E_VAR_EXPR:        return false;
-        case E_STR_PART_EXPR:   return false;
-        case E_FORMAT_EXPR:     return false;
-        case E_LITERAL_EXPR:    return true;
+        case ExprType::LambdaExpr:      return true;
+        case ExprType::ListExpr:        return false;
+        case ExprType::TableExpr:       return false;
+        case ExprType::InstanceExpr:    return false;
+        case ExprType::ListCompExpr:    return false;
+        case ExprType::TableCompExpr:   return false;
+        case ExprType::RefExpr:         return false;
+        case ExprType::VarExpr:         return false;
+        case ExprType::StringPartExpr:  return false;
+        case ExprType::FormatExpr:      return false;
+        case ExprType::LiteralExpr:     return true;
         default: CH_UNREACHABLE();
     }
 }
@@ -394,22 +394,22 @@ bool Optimizer::isTruthyConstant(const ExprUP& node)
 
     switch (node->type)
     {
-        case E_MUT_EXPR:
+        case ExprType::MutExpr:
         {
             MutExpr* mut{static_cast<MutExpr*>(node.get())};
             return isTruthyConstant(mut->value);
         }
-        case E_LITERAL_EXPR:
+        case ExprType::LiteralExpr:
         {
             LiteralExpr* lit{static_cast<LiteralExpr*>(node.get())};
             return isTruthyLit(lit->value);
         }
-        case E_LIST_EXPR:
+        case ExprType::ListExpr:
         {
             ListExpr* list{static_cast<ListExpr*>(node.get())};
             return !list->entries.empty();
         }
-        case E_TABLE_EXPR:
+        case ExprType::TableExpr:
         {
             TableExpr* table{static_cast<TableExpr*>(node.get())};
             return !table->pairs.empty();
@@ -432,12 +432,12 @@ bool Optimizer::isEmptyConstant(const ExprUP& node)
 
     switch (node->type)
     {
-        case E_LIST_EXPR:
+        case ExprType::ListExpr:
         {
             ListExpr* list{static_cast<ListExpr*>(node.get())};
             return list->entries.empty();
         }
-        case E_TABLE_EXPR:
+        case ExprType::TableExpr:
         {
             TableExpr* table{static_cast<TableExpr*>(node.get())};
             return table->pairs.empty();
@@ -572,7 +572,7 @@ static bool isDirectLoop(const RepeatStmt* repeat)
     {
         switch (stmt->type)
         {
-            case S_BREAK_STMT:
+            case StmtType::BreakStmt:
             {
                 const BreakStmt* breakStmt{static_cast<const BreakStmt*>(stmt.get())};
                 bool equalLabels{
@@ -581,7 +581,7 @@ static bool isDirectLoop(const RepeatStmt* repeat)
                 if (!breakStmt->label || equalLabels) return false;
                 continue;
             }
-            case S_CONT_STMT:
+            case StmtType::ContinueStmt:
             {
                 const ContinueStmt* contStmt{static_cast<const ContinueStmt*>(stmt.get())};
                 bool equalLabels{
@@ -803,7 +803,7 @@ DEF_EXPR(TableCompExpr)
     }
 }
 
-DEF_EXPR(ReferenceExpr)     { PASS; }
+DEF_EXPR(RefExpr)           { PASS; }
 DEF_EXPR(VarExpr)           { PASS; }
 DEF_EXPR(StringPartExpr)    { PASS; }
 
@@ -819,59 +819,67 @@ DEF_EXPR(LiteralExpr) { PASS; }
 
 void Optimizer::optimizeExpr(ExprUP& node)
 {
+    #define CASE(type) case ExprType::type
+
     if (node == nullptr) return;
 
     switch (node->type)
     {
-        case E_MUT_EXPR:        OPTIMIZE(MutExpr);          break;
-        case E_ASSIGN_EXPR:     OPTIMIZE(AssignExpr);       break;
-        case E_LOGIC_EXPR:      OPTIMIZE(LogicExpr);        break;
-        case E_COMPARE_EXPR:    OPTIMIZE(CompareExpr);      break;
-        case E_BIT_EXPR:        OPTIMIZE(BitExpr);          break;
-        case E_SHIFT_EXPR:      OPTIMIZE(ShiftExpr);        break;
-        case E_BINARY_EXPR:     OPTIMIZE(BinaryExpr);       break;
-        case E_UNARY_EXPR:      OPTIMIZE(UnaryExpr);        break;
-        case E_INDEX_EXPR:      OPTIMIZE(IndexExpr);        break;
-        case E_CALL_EXPR:       OPTIMIZE(CallExpr);         break;
-        case E_FIELD_EXPR:      OPTIMIZE(FieldExpr);        break;
-        case E_SCOPE_EXPR:      OPTIMIZE(ScopeExpr);        break;
-        case E_IF_EXPR:         OPTIMIZE(IfExpr);           break;
-        case E_LAMBDA_EXPR:     OPTIMIZE(LambdaExpr);       break;
-        case E_LIST_EXPR:       OPTIMIZE(ListExpr);         break;
-        case E_TABLE_EXPR:      OPTIMIZE(TableExpr);        break;
-        case E_INSTANCE_EXPR:   OPTIMIZE(InstanceExpr);     break;
-        case E_LIST_COMP_EXPR:  OPTIMIZE(ListCompExpr);     break;
-        case E_TABLE_COMP_EXPR: OPTIMIZE(TableCompExpr);    break;
-        case E_REF_EXPR:        OPTIMIZE(ReferenceExpr);    break;
-        case E_VAR_EXPR:        OPTIMIZE(VarExpr);          break;
-        case E_STR_PART_EXPR:   OPTIMIZE(StringPartExpr);   break;
-        case E_FORMAT_EXPR:     OPTIMIZE(FormatExpr);       break;
-        case E_LITERAL_EXPR:    OPTIMIZE(LiteralExpr);      break;
+        CASE(MutExpr):          OPTIMIZE(MutExpr);          break;
+        CASE(AssignExpr):       OPTIMIZE(AssignExpr);       break;
+        CASE(LogicExpr):        OPTIMIZE(LogicExpr);        break;
+        CASE(CompareExpr):      OPTIMIZE(CompareExpr);      break;
+        CASE(BitExpr):          OPTIMIZE(BitExpr);          break;
+        CASE(ShiftExpr):        OPTIMIZE(ShiftExpr);        break;
+        CASE(BinaryExpr):       OPTIMIZE(BinaryExpr);       break;
+        CASE(UnaryExpr):        OPTIMIZE(UnaryExpr);        break;
+        CASE(IndexExpr):        OPTIMIZE(IndexExpr);        break;
+        CASE(CallExpr):         OPTIMIZE(CallExpr);         break;
+        CASE(FieldExpr):        OPTIMIZE(FieldExpr);        break;
+        CASE(ScopeExpr):        OPTIMIZE(ScopeExpr);        break;
+        CASE(IfExpr):           OPTIMIZE(IfExpr);           break;
+        CASE(LambdaExpr):       OPTIMIZE(LambdaExpr);       break;
+        CASE(ListExpr):         OPTIMIZE(ListExpr);         break;
+        CASE(TableExpr):        OPTIMIZE(TableExpr);        break;
+        CASE(InstanceExpr):     OPTIMIZE(InstanceExpr);     break;
+        CASE(ListCompExpr):     OPTIMIZE(ListCompExpr);     break;
+        CASE(TableCompExpr):    OPTIMIZE(TableCompExpr);    break;
+        CASE(RefExpr):          OPTIMIZE(RefExpr);          break;
+        CASE(VarExpr):          OPTIMIZE(VarExpr);          break;
+        CASE(StringPartExpr):   OPTIMIZE(StringPartExpr);   break;
+        CASE(FormatExpr):       OPTIMIZE(FormatExpr);       break;
+        CASE(LiteralExpr):      OPTIMIZE(LiteralExpr);      break;
     }
+
+    #undef CASE
 }
 
 void Optimizer::optimizeStmt(StmtUP& node)
 {
+    #define CASE(type) case StmtType::type
+
     if (node == nullptr) return;
 
     switch (node->type)
     {
-        case S_VAR_DECL:    OPTIMIZE(VarDecl);      break;
-        case S_FUNC_DECL:   OPTIMIZE(FuncDecl);     break;
-        case S_TYPE_DECL:   OPTIMIZE(TypeDecl);     break;
-        case S_USE_STMT:    OPTIMIZE(UseStmt);      break;
-        case S_IF_STMT:     OPTIMIZE(IfStmt);       break;
-        case S_WHILE_STMT:  OPTIMIZE(WhileStmt);    break;
-        case S_FOR_STMT:    OPTIMIZE(ForStmt);      break;
-        case S_MATCH_STMT:  OPTIMIZE(MatchStmt);    break;
-        case S_REPEAT_STMT: OPTIMIZE(RepeatStmt);   break;
-        case S_RETURN_STMT: OPTIMIZE(ReturnStmt);   break;
-        case S_BREAK_STMT:  OPTIMIZE(BreakStmt);    break;
-        case S_CONT_STMT:   OPTIMIZE(ContinueStmt); break;
-        case S_END_STMT:    OPTIMIZE(EndStmt);      break;
-        case S_EXPR_STMT:   OPTIMIZE(ExprStmt);     break;
-        case S_BLOCK_STMT:  OPTIMIZE(BlockStmt);    break;
+        CASE(VarDecl):      OPTIMIZE(VarDecl);      break;
+        CASE(FuncDecl):     OPTIMIZE(FuncDecl);     break;
+        CASE(TypeDecl):     OPTIMIZE(TypeDecl);     break;
+        CASE(UseStmt):      OPTIMIZE(UseStmt);      break;
+        CASE(IfStmt):       OPTIMIZE(IfStmt);       break;
+        CASE(WhileStmt):    OPTIMIZE(WhileStmt);    break;
+        CASE(ForStmt):      OPTIMIZE(ForStmt);      break;
+        CASE(MatchStmt):    OPTIMIZE(MatchStmt);    break;
+        CASE(RepeatStmt):   OPTIMIZE(RepeatStmt);   break;
+        CASE(ReturnStmt):   OPTIMIZE(ReturnStmt);   break;
+        CASE(BreakStmt):    OPTIMIZE(BreakStmt);    break;
+        CASE(ContinueStmt): OPTIMIZE(ContinueStmt); break;
+        CASE(EndStmt):      OPTIMIZE(EndStmt);      break;
+        CASE(ExprStmt):     OPTIMIZE(ExprStmt);     break;
+        CASE(BlockStmt):    OPTIMIZE(BlockStmt);    break;
     }
+
+    #undef CASE
 }
 
 void Optimizer::optimize(StmtVec& program)

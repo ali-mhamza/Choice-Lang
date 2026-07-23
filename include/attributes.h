@@ -5,27 +5,27 @@
 using AttrBaseType = u8;
 using VarAttr = AttrBaseType;
 
-#define ATTR_LIST               \
-    X(PRIVATE, Private, 1)      \
-    X(STATIC, Static, 2)        \
-    X(COMPUTED, Computed, 3)    \
-    X(CLOSED, Closed, 4)        \
-    X(TEST, Test, 5)
+#define ATTR_LIST   \
+    X(Private, 1)   \
+    X(Static, 2)    \
+    X(Computed, 3)  \
+    X(Closed, 4)    \
+    X(Test, 5)
 
 #define NUM_BITS(type)          (sizeof(type) * CHAR_BIT)
 #define POS_BIT(type, shift)    (1 << (NUM_BITS(type) - shift))
 
-enum DeclAttr : AttrBaseType
+enum class DeclAttr : AttrBaseType
 {
-    #define X(name, _, shift) \
-        ATTR_##name = AttrBaseType(POS_BIT(AttrBaseType, shift)),
+    #define X(name, shift) \
+        name = AttrBaseType(POS_BIT(AttrBaseType, shift)),
 
     ATTR_LIST
 
     #undef X
 };
 
-#define X(_, name, pos)                                         \
+#define X(name, pos)                                            \
     [[nodiscard]] static inline bool is##name(VarAttr attr) {   \
         return ((attr & POS_BIT(AttrBaseType, pos)) != 0);      \
     }
@@ -40,5 +40,5 @@ ATTR_LIST
 static inline
 void markAttribute(VarAttr& varAttr, DeclAttr declAttr)
 {
-    varAttr |= declAttr;
+    varAttr |= static_cast<AttrBaseType>(declAttr);
 }

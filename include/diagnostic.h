@@ -398,13 +398,7 @@ struct Diagnostic
     void report() const;
 };
 
-enum class ErrorSource : u8
-{
-    LEXER,
-    PARSER,
-    COMPILER,
-    VM
-};
+enum class ErrorSource : u8 { Lexer, Parser, Compiler, VM };
 
 class DiagnosticEngine
 {

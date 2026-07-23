@@ -228,17 +228,17 @@ vObj CodeReader::reconstructPool(u64 poolByteSize)
 		ObjType type{readValue<ObjType>()};
 		switch (type)
 		{
-			case OBJ_INT:       pool.emplace_back(readValue<i64>());            break;
-			case OBJ_DEC:       pool.emplace_back(readValue<double>());         break;
-			case OBJ_MODULE:    pool.emplace_back(reconstructModule());         break;
-			case OBJ_USER_TYPE: pool.emplace_back(reconstructType());           break;
-			case OBJ_USER_FUNC:
-			case OBJ_LAMBDA:    pool.emplace_back(reconstructFunc());           break;
-			case OBJ_TEXT:		pool.emplace_back(reconstructText());			break;
-			case OBJ_STRING:    pool.emplace_back(reconstructString());         break;
+			case ObjType::Int:		pool.emplace_back(readValue<i64>());	break;
+			case ObjType::Dec:      pool.emplace_back(readValue<double>());	break;
+			case ObjType::Module:   pool.emplace_back(reconstructModule());	break;
+			case ObjType::UserType:	pool.emplace_back(reconstructType());	break;
+			case ObjType::UserFunc:
+			case ObjType::Lambda:   pool.emplace_back(reconstructFunc());	break;
+			case ObjType::Text:		pool.emplace_back(reconstructText());	break;
+			case ObjType::String:   pool.emplace_back(reconstructString());	break;
 			default:
 			{
-				if ((type != OBJ_BOOL) && (type != OBJ_NULL))
+				if ((type != ObjType::Bool) && (type != ObjType::Null))
 				{
 					CH_PRINT_ERROR_ARGS("Error: byte {} is {}.\n", it - cacheBytes.begin(),
 						static_cast<u8>(type));
@@ -527,9 +527,9 @@ void BinaryInspector::inspectHeaders()
 	printEntryTitle("Debug info:", titleLength);
 	switch (state)
 	{
-		case DEBUG_COMBINED:	CH_PRINT("Combined\n");	break;
-		case DEBUG_SEPARATE:	CH_PRINT("Separate\n");	break;
-		case DEBUG_STRIPPED:	CH_PRINT("Stripped\n");	break;
+		case DebugInfoState::Combined:	CH_PRINT("Combined\n");	break;
+		case DebugInfoState::Separate:	CH_PRINT("Separate\n");	break;
+		case DebugInfoState::Stripped:	CH_PRINT("Stripped\n");	break;
 	}
 }
 
@@ -683,14 +683,14 @@ void BinaryInspector::inspectBriefObject(u64& position)
 
 	switch (type)
 	{
-		case OBJ_INT:		inspectBriefInt(start);						break;
-		case OBJ_DEC:		inspectBriefDec(start);						break;
-		case OBJ_TEXT:		inspectBriefTextOrString(start, "Text");	break;
-		case OBJ_STRING:	inspectBriefTextOrString(start, "String");	break;
-		case OBJ_MODULE:    inspectBriefModule(start);  				break;
-		case OBJ_USER_TYPE: inspectBriefType(start);    				break;
-		case OBJ_USER_FUNC:
-		case OBJ_LAMBDA:	inspectBriefFunc(start);					break;
+		case ObjType::Int:		inspectBriefInt(start);						break;
+		case ObjType::Dec:		inspectBriefDec(start);						break;
+		case ObjType::Text:		inspectBriefTextOrString(start, "Text");	break;
+		case ObjType::String:	inspectBriefTextOrString(start, "String");	break;
+		case ObjType::Module:   inspectBriefModule(start);  				break;
+		case ObjType::UserType:	inspectBriefType(start);    				break;
+		case ObjType::UserFunc:
+		case ObjType::Lambda:	inspectBriefFunc(start);					break;
 		default: ;
 	}
 
@@ -772,7 +772,7 @@ void BinaryInspector::skipByteCode()
 	if (it > end) eofError();
 
 	// Skip metadata.
-	if (state == DEBUG_COMBINED)
+	if (state == DebugInfoState::Combined)
 	{
 		u64 metadataBlockCount{readValue<u64>()};
 		it += metadataBlockCount * sizeof(DebugRange);
@@ -863,14 +863,14 @@ void BinaryInspector::inspectDetailObject(u64& position)
 
 	switch (type)
 	{
-		case OBJ_INT:		inspectDetailInt(start);					break;
-		case OBJ_DEC:		inspectDetailDec(start);					break;
-		case OBJ_TEXT:		inspectDetailTextOrString(start, "Text");	break;
-		case OBJ_STRING:	inspectDetailTextOrString(start, "String");	break;
-		case OBJ_MODULE:    inspectDetailModule(start); 				break;
-		case OBJ_USER_TYPE: inspectDetailType(start);   				break;
-		case OBJ_USER_FUNC:
-		case OBJ_LAMBDA:	inspectDetailFunc(start);					break;
+		case ObjType::Int:		inspectDetailInt(start);					break;
+		case ObjType::Dec:		inspectDetailDec(start);					break;
+		case ObjType::Text:		inspectDetailTextOrString(start, "Text");	break;
+		case ObjType::String:	inspectDetailTextOrString(start, "String");	break;
+		case ObjType::Module:   inspectDetailModule(start); 				break;
+		case ObjType::UserType:	inspectDetailType(start);   				break;
+		case ObjType::UserFunc:
+		case ObjType::Lambda:	inspectDetailFunc(start);					break;
 		default: ;
 	}
 
@@ -1079,7 +1079,7 @@ void BinaryInspector::skipFuncDefaultArgs(u8 defaultArgs)
 		u64 poolSize{readValue<u64>()};
 		it += codeSize + poolSize;
 
-		if (state == DEBUG_COMBINED)
+		if (state == DebugInfoState::Combined)
 		{
 			u64 metadataBlocks{readValue<u64>()};
 			it += metadataBlocks * sizeof(DebugRange);
@@ -1089,7 +1089,7 @@ void BinaryInspector::skipFuncDefaultArgs(u8 defaultArgs)
 
 void BinaryInspector::inspectDetailFuncExtras(u8 arityMin, u8 arityMax)
 {
-	if (state == DEBUG_COMBINED)
+	if (state == DebugInfoState::Combined)
 	{
 		if (it > end) eofError();
 		CH_PRINT("  ");
@@ -1140,7 +1140,7 @@ void BinaryInspector::inspect()
 	CH_PRINT("\nFile name:\n");
 	inspectFileName();
 
-	if (state == DEBUG_COMBINED)
+	if (state == DebugInfoState::Combined)
 	{
 		CH_PRINT("\nDebug line markers:\n");
 		inspectLineMarkers();
@@ -1149,7 +1149,7 @@ void BinaryInspector::inspect()
 	CH_PRINT("\nCompiled code:\n");
 	inspectByteCode();
 
-	if (state == DEBUG_COMBINED)
+	if (state == DebugInfoState::Combined)
 	{
 		CH_PRINT("\nScript debug metadata:\n");
 		inspectMetadata();

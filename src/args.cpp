@@ -19,41 +19,42 @@
 namespace Args
 {
     const std::unordered_map<std::string_view, Option> options{
-        {"-token", EMIT_TOKENS},		{"-t", EMIT_TOKENS},
-        {"-bytecode", EMIT_BYTECODE},	{"-b", EMIT_BYTECODE},
-        {"-cache", CACHE_BYTECODE},		{"-c", CACHE_BYTECODE},
-        {"-dis", DIS_PROGRAM},			{"-d", DIS_PROGRAM},
-        {"-load", LOAD_PROGRAM},		{"-l", LOAD_PROGRAM},
-        {"-check", CHECK_PROGRAM},      {"-k", CHECK_PROGRAM},
-        {"-inspect", INSPECT_BYTECODE}, {"-i", INSPECT_BYTECODE},
-        {"-explain", EXPLAIN_ERROR},    {"-e", EXPLAIN_ERROR}
+        {"-token", Option::EmitTokens},         {"-t", Option::EmitTokens},
+        {"-bytecode", Option::EmitBytecode},    {"-b", Option::EmitBytecode},
+        {"-cache", Option::CacheBytecode},		{"-c", Option::CacheBytecode},
+        {"-dis", Option::DisProgram},			{"-d", Option::DisProgram},
+        {"-load", Option::LoadProgram},		    {"-l", Option::LoadProgram},
+        {"-check", Option::CheckProgram},       {"-k", Option::CheckProgram},
+        {"-inspect", Option::InspectBytecode},  {"-i", Option::InspectBytecode},
+        {"-explain", Option::ExplainError},     {"-e", Option::ExplainError}
     };
 
     const std::unordered_map<Option, Handler> optionHandlers{
-        {EMIT_TOKENS, optionEmitTokens},
-        {EMIT_BYTECODE, optionEmitBytecode},
-        {CACHE_BYTECODE, optionCacheBytecode},
-        {DIS_PROGRAM, optionDisProgram},
-        {LOAD_PROGRAM, optionLoadProgram},
-        {CHECK_PROGRAM, optionCheckProgram},
-        {INSPECT_BYTECODE, optionInspectBytecode},
-        {EXPLAIN_ERROR, optionExplainError}
+        {Option::EmitTokens, optionEmitTokens},
+        {Option::EmitBytecode, optionEmitBytecode},
+        {Option::CacheBytecode, optionCacheBytecode},
+        {Option::DisProgram, optionDisProgram},
+        {Option::LoadProgram, optionLoadProgram},
+        {Option::CheckProgram, optionCheckProgram},
+        {Option::InspectBytecode, optionInspectBytecode},
+        {Option::ExplainError, optionExplainError}
     };
 
     const std::unordered_map<std::string_view, DebugInfoState> debugInfoOptions{
-        {"-c", DEBUG_COMBINED},	{"-combined", DEBUG_COMBINED},
-        {"-s", DEBUG_SEPARATE},	{"-separate", DEBUG_SEPARATE},
-        {"-n", DEBUG_STRIPPED},	{"-nodebug", DEBUG_STRIPPED}
+        {"-c", DebugInfoState::Combined},   {"-combined", DebugInfoState::Combined},
+        {"-s", DebugInfoState::Separate},	{"-separate", DebugInfoState::Separate},
+        {"-n", DebugInfoState::Stripped},	{"-nodebug", DebugInfoState::Stripped}
     };
 
     const std::array fileOnlyOptions{
-        CACHE_BYTECODE, DIS_PROGRAM, LOAD_PROGRAM, CHECK_PROGRAM,
-        INSPECT_BYTECODE
+        Option::CacheBytecode, Option::DisProgram, Option::LoadProgram,
+        Option::CheckProgram, Option::InspectBytecode
     };
 
     // Options that potentially handle source files.
     const std::array optionsUsingSourceFiles{
-        EXECUTE, EMIT_TOKENS, EMIT_BYTECODE, CACHE_BYTECODE, CHECK_PROGRAM
+        Option::Execute, Option::EmitTokens, Option::EmitBytecode,
+        Option::CacheBytecode, Option::CheckProgram
     };
 
     void Config::run()
@@ -114,7 +115,7 @@ namespace Args
         if (argc == 4)
         {
             auto it{options.find(argv[1])};
-            if ((it == options.end()) || (it->second != CACHE_BYTECODE))
+            if ((it == options.end()) || (it->second != Option::CacheBytecode))
                 invalidOption();
 
             auto stateIt{debugInfoOptions.find(argv[2])};
@@ -123,7 +124,7 @@ namespace Args
 
             debugInfoState = stateIt->second;
             validateChoiceFile(argv[3], false);
-            return { RUN_FILE, it->second, optionCacheBytecode, argv[3] };
+            return { RunOption::RunFile, it->second, optionCacheBytecode, argv[3] };
         }
 
         else if (argc == 3)
@@ -131,15 +132,16 @@ namespace Args
             auto it{options.find(argv[1])};
             if (it == options.end()) invalidOption();
 
-            if (it->second == EXPLAIN_ERROR)
-                return { RUN_DIRECT, it->second, optionExplainError, argv[2] };
+            if (it->second == Option::ExplainError)
+                return { RunOption::RunDirect, it->second, optionExplainError, argv[2] };
             else
             {
                 auto checkIt{std::find(optionsUsingSourceFiles.begin(),
                     optionsUsingSourceFiles.end(), it->second)};
                 bool isCacheFile{checkIt == optionsUsingSourceFiles.end()};
                 validateChoiceFile(argv[2], isCacheFile);
-                return { RUN_FILE, it->second, optionHandlers.at(it->second), argv[2] };
+                return { RunOption::RunFile, it->second, optionHandlers.at(it->second),
+                    argv[2] };
             }
         }
 
@@ -156,17 +158,17 @@ namespace Args
                     exit(64);
                 }
 
-                return { RUN_REPL, it->second, optionHandlers.at(it->second) };
+                return { RunOption::RunRepl, it->second, optionHandlers.at(it->second) };
             }
             else
             {
                 validateChoiceFile(argv[1], false);
-                return { RUN_FILE, EXECUTE, optionExecute, argv[1] };
+                return { RunOption::RunFile, Option::Execute, optionExecute, argv[1] };
             }
         }
 
         else if (argc == 1)
-            return Config{ RUN_REPL };
+            return Config{ RunOption::RunRepl };
 
         else
         {

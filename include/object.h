@@ -33,42 +33,42 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
 #undef NULL
 #undef AS_VOID
 
-#define TYPE_LIST               \
-    X(INT, intVal)              \
-    X(DEC, decVal)              \
-    X(BOOL, boolVal)            \
-    X(NULL, heapVal)            \
-    X(VOID, heapVal)            \
-    X(CORE_TYPE, coreTypeVal)   \
-    X(CORE_FUNC, coreFuncVal)   \
-    X(MODULE, moduleVal)        \
-    X(USER_TYPE, userTypeVal)   \
-    X(INSTANCE, instanceVal)    \
-    X(USER_FUNC, userFuncVal)   \
-    X(LAMBDA, userFuncVal)      \
-    X(CLOSURE, closureVal)      \
-    X(METHOD, methodVal)        \
-    X(BIGINT, heapVal)          \
-    X(BIGDEC, heapVal)          \
-    X(TEXT, textVal)            \
-    X(STRING, stringVal)        \
-    X(RANGE, rangeVal)          \
-    X(LIST, listVal)            \
-    X(TABLE, tableVal)          \
-    X(REF, refVal)              \
-    /* Used in for-loops. */    \
-    X(ITER, iterVal)            \
+#define TYPE_LIST                       \
+    X(INT, Int, intVal)                 \
+    X(DEC, Dec, decVal)                 \
+    X(BOOL, Bool, boolVal)              \
+    X(NULL, Null, heapVal)              \
+    X(VOID, Void, heapVal)              \
+    X(CORE_TYPE, CoreType, coreTypeVal) \
+    X(CORE_FUNC, CoreFunc, coreFuncVal) \
+    X(MODULE, Module, moduleVal)        \
+    X(USER_TYPE, UserType, userTypeVal) \
+    X(INSTANCE, Instance, instanceVal)  \
+    X(USER_FUNC, UserFunc, userFuncVal) \
+    X(LAMBDA, Lambda, userFuncVal)      \
+    X(CLOSURE, Closure, closureVal)     \
+    X(METHOD, Method, methodVal)        \
+    X(BIGINT, BigInt, heapVal)          \
+    X(BIGDEC, BigDec, heapVal)          \
+    X(TEXT, Text, textVal)              \
+    X(STRING, String, stringVal)        \
+    X(RANGE, Range, rangeVal)           \
+    X(LIST, List, listVal)              \
+    X(TABLE, Table, tableVal)           \
+    X(REF, Ref, refVal)                 \
+    /* Used in for-loops. */            \
+    X(ITER, Iter, iterVal)              \
 
 /* Type enum. */
 
-#define X(TYPE, field) OBJ_##TYPE,
+#define X(_, name, field) name,
 
-enum ObjType : u8
+enum class ObjType : u8
 {
     TYPE_LIST
 
-    NUM_TYPES,
-    OBJ_INVALID,
+    Count,
+    Invalid,
 };
 
 #undef X
@@ -130,8 +130,8 @@ class Object
             ObjIter*        iterVal;
         } as;
 
-        Object() noexcept : type_{OBJ_INVALID}, as{0} {}
-        explicit Object(ObjType type) : type_{type}, as{0} {};
+        Object() noexcept : type_{static_cast<u8>(ObjType::Invalid)}, as{0} {}
+        explicit Object(ObjType type) : type_{static_cast<u8>(type)}, as{0} {}
         template<typename T> Object(T val) noexcept;
 
         #if !CH_USE_ALLOC
@@ -187,21 +187,21 @@ ObjType getObjectType(T val)
 
     if constexpr (std::is_same_v<U, Function>)
     {
-        if (val->name == nullptr) return OBJ_LAMBDA;
-        return OBJ_USER_FUNC;
+        if (val->name == nullptr) return ObjType::Lambda;
+        return ObjType::UserFunc;
     }
 
-    if constexpr (std::is_same_v<U, Module>)    return OBJ_MODULE;
-    if constexpr (std::is_same_v<U, Type>)      return OBJ_USER_TYPE;
-    if constexpr (std::is_same_v<U, Instance>)  return OBJ_INSTANCE;
-    if constexpr (std::is_same_v<U, Closure>)   return OBJ_CLOSURE;
-    if constexpr (std::is_same_v<U, Method>)    return OBJ_METHOD;
-    if constexpr (std::is_same_v<U, Text>)      return OBJ_TEXT;
-    if constexpr (std::is_same_v<U, String>)    return OBJ_STRING;
-    if constexpr (std::is_same_v<U, Range>)     return OBJ_RANGE;
-    if constexpr (std::is_same_v<U, List>)      return OBJ_LIST;
-    if constexpr (std::is_same_v<U, Table>)     return OBJ_TABLE;
-    if constexpr (std::is_same_v<U, Cell>)      return OBJ_REF;
+    if constexpr (std::is_same_v<U, Module>)    return ObjType::Module;
+    if constexpr (std::is_same_v<U, Type>)      return ObjType::UserType;
+    if constexpr (std::is_same_v<U, Instance>)  return ObjType::Instance;
+    if constexpr (std::is_same_v<U, Closure>)   return ObjType::Closure;
+    if constexpr (std::is_same_v<U, Method>)    return ObjType::Method;
+    if constexpr (std::is_same_v<U, Text>)      return ObjType::Text;
+    if constexpr (std::is_same_v<U, String>)    return ObjType::String;
+    if constexpr (std::is_same_v<U, Range>)     return ObjType::Range;
+    if constexpr (std::is_same_v<U, List>)      return ObjType::List;
+    if constexpr (std::is_same_v<U, Table>)     return ObjType::Table;
+    if constexpr (std::is_same_v<U, Cell>)      return ObjType::Ref;
 }
 
 template<typename T>
@@ -231,44 +231,44 @@ Object::Object(T val) noexcept
 {
     if constexpr (std::is_same_v<T, i64>)
     {
-        type_ = OBJ_INT;
+        type_ = static_cast<u8>(ObjType::Int);
         as.intVal = val;
     }
     else if constexpr (std::is_same_v<T, double>)
     {
-        type_ = OBJ_DEC;
+        type_ = static_cast<u8>(ObjType::Dec);
         as.decVal = val;
     }
     else if constexpr (std::is_same_v<T, bool>)
     {
-        type_ = OBJ_BOOL;
+        type_ = static_cast<u8>(ObjType::Bool);
         as.boolVal = val;
     }
     else if constexpr (std::is_same_v<T, std::nullptr_t>)
     {
-        type_ = OBJ_NULL;
+        type_ = static_cast<u8>(ObjType::Null);
         as.heapVal = val; // Dummy assignment.
     }
     else if constexpr (std::is_same_v<T, ObjType>)
     {
-        type_ = OBJ_CORE_TYPE;
+        type_ = static_cast<u8>(ObjType::CoreType);
         as.coreTypeVal = val;
     }
     else if constexpr (std::is_same_v<T, FuncType>)
     {
-        type_ = OBJ_CORE_FUNC;
+        type_ = static_cast<u8>(ObjType::CoreFunc);
         as.coreFuncVal = val;
     }
     else if constexpr (std::is_same_v<T, ObjIter*>)
     {
-        type_ = OBJ_ITER;
+        type_ = static_cast<u8>(ObjType::Iter);
         // Iterators should never be copied, so we
         // don't use a refcount.
         as.iterVal = val;
     }
     else
     {
-        type_ = getObjectType(val);
+        type_ = static_cast<u8>(getObjectType(val));
 
         auto& ptr{getTypePointer<T>()};
         if constexpr (std::is_const_v<std::remove_pointer_t<T>>)
@@ -288,7 +288,8 @@ Object::Object(T val) noexcept
 
 /* Object type names. */
 
-inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
+inline constexpr
+std::array<std::string_view, static_cast<u64>(ObjType::Count)> objTypes{
     "Int", "Dec", "Bool", "Null", "Void", "Builtin Type",
     "Builtin Function", "Module", "User Type", "Type Instance",
     "User Function", "Lambda", "User Function", "Type Method",
@@ -300,9 +301,9 @@ inline constexpr std::array<std::string_view, NUM_TYPES> objTypes{
 
 /* Object helper functions and macros. */
 
-#define X(TYPE, field) \
+#define X(TYPE, name, field) \
     [[nodiscard]] static inline bool IS_##TYPE(const Object& obj) { \
-        return (obj.type() == OBJ_##TYPE);                          \
+        return (obj.type() == ObjType::name);                       \
     }                                                               \
     [[nodiscard]] static inline auto AS_##TYPE(const Object& obj) { \
         return obj.as.field;                                        \
@@ -324,7 +325,8 @@ TYPE_LIST
     (IS_CORE_FUNC(obj) || IS_FUNCOBJ(obj) || IS_CORE_TYPE(obj) || IS_USER_TYPE(obj))
 
 // Object is allocated/involves allocation on the heap.
-#define IS_HEAP_OBJ(obj)    (((obj).type() >= OBJ_MODULE) && ((obj).type() <= OBJ_REF))
+#define IS_HEAP_OBJ(obj) \
+    (((obj).type() >= ObjType::Module) && ((obj).type() <= ObjType::Ref))
 
 // Object is a numeric object (Int or Dec).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
@@ -333,10 +335,12 @@ TYPE_LIST
 #define IS_STRING_LIKE(obj) (IS_TEXT(obj) || IS_STRING(obj))
 
 // Object is iterable.
-#define IS_ITERABLE(obj)    (((obj).type() >= OBJ_TEXT) && ((obj).type() <= OBJ_TABLE))
+#define IS_ITERABLE(obj) \
+    (((obj).type() >= ObjType::Text) && ((obj).type() <= ObjType::Table))
 
 // Object is a collection (i.e., implements the [] operator).
-#define IS_COLLECTION(obj)  (((obj).type() >= OBJ_TEXT) && ((obj).type() <= OBJ_TABLE))
+#define IS_COLLECTION(obj) \
+    (((obj).type() >= ObjType::Text) && ((obj).type() <= ObjType::Table))
 
 // Object can be compared with <, >, or == operators.
 #define IS_COMPARABLE(obj)  (IS_NUM(obj) || IS_TEXT(obj) || IS_STRING(obj))
@@ -345,7 +349,7 @@ TYPE_LIST
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_ITER(obj))
 
 // Object is a valid, initialized object.
-#define IS_VALID(obj)       ((obj).type() != OBJ_INVALID)
+#define IS_VALID(obj)       ((obj).type() != ObjType::Invalid)
 
 // Object has internal state that may be mutated without rebinding.
 #define HAS_MUT_STATE(obj)  (IS_COLLECTION(obj) || IS_INSTANCE(obj))

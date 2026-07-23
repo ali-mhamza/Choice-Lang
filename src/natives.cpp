@@ -53,11 +53,11 @@ void Natives::print(iter it, u8 args)
         switch (it[i].type())
         {
             // Fast path printing.
-            case OBJ_INT:       CH_PRINT("{}", AS_INT(it[i]));              break;
-            case OBJ_BOOL:      CH_PRINT("{}", AS_BOOL(it[i]));             break;
-            case OBJ_NULL:      CH_PRINT("null");                           break;
-            case OBJ_TEXT:
-            case OBJ_STRING:    CH_PRINT("{}", it->getObjectText());        break;
+            case ObjType::Int:      CH_PRINT("{}", AS_INT(it[i]));          break;
+            case ObjType::Bool:     CH_PRINT("{}", AS_BOOL(it[i]));         break;
+            case ObjType::Null:     CH_PRINT("null");                       break;
+            case ObjType::Text:
+            case ObjType::String:   CH_PRINT("{}", it->getObjectText());    break;
             // Slower alternative.
             default: CH_PRINT("{}", it[i].printVal());
         }
@@ -70,7 +70,7 @@ void Natives::print(iter it, u8 args)
     else
         fflush(stdout);
 
-    it[-1] = Object{OBJ_VOID};
+    it[-1] = Object{ObjType::Void};
 }
 
 void Natives::println(iter it, u8 args)
@@ -194,19 +194,19 @@ void Natives::len(iter it, u8 args)
     i64 len{0};
     switch (obj.type())
     {
-        case OBJ_TEXT:
+        case ObjType::Text:
             len = AS_TEXT(obj)->len;
             break;
-        case OBJ_STRING:
+        case ObjType::String:
             len = AS_STRING(obj)->str.size();
             break;
-        case OBJ_RANGE:
+        case ObjType::Range:
             len = AS_RANGE(obj)->length();
             break;
-        case OBJ_LIST:
+        case ObjType::List:
             len = AS_LIST(obj)->array.count();
             break;
-        case OBJ_TABLE:
+        case ObjType::Table:
             len = AS_TABLE(obj)->table.size();
             break;
         default:

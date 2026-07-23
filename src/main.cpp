@@ -37,7 +37,7 @@
 
 SourceManager sourceManager{};
 DiagnosticEngine diagEngine{};
-DebugInfoState debugInfoState{DEBUG_COMBINED};
+DebugInfoState debugInfoState{DebugInfoState::Combined};
 bool inRepl{false};
 
 #if CH_USE_ALLOC && defined(CH_LINEAR_ALLOC)
@@ -72,7 +72,7 @@ static DebugInfoState readCacheFileState(const std::filesystem::path& path)
 	if (fileMoreRecent(cache, config.arg))
 	{
 	    DebugInfoState fileState{readCacheFileState(cache)};
-		if ((config.option == Args::CACHE_BYTECODE)
+		if ((config.option == Args::Option::CacheBytecode)
 		    && (debugInfoState == fileState))
 		{
 		    // We only return true here so that `config.run()`
@@ -82,20 +82,20 @@ static DebugInfoState readCacheFileState(const std::filesystem::path& path)
 
 		// We don't want the debug restructuring function(s)
 		// to go searching for a (possibly missing) debug info file.
-		if ((config.option == Args::EMIT_BYTECODE)
-		    && (fileState != DEBUG_SEPARATE))
+		if ((config.option == Args::Option::EmitBytecode)
+		    && (fileState != DebugInfoState::Separate))
 		{
-		    config.option = Args::DIS_PROGRAM;
+		    config.option = Args::Option::DisProgram;
 			config.handler = optionDisProgram;
 		    config.arg = cache.string();
 		}
 
 		// Only combined debug info can guarantee the same level
 		// of detail in error reporting as the source file itself.
-		if ((config.option == Args::EXECUTE)
-		    && (fileState == DEBUG_COMBINED))
+		if ((config.option == Args::Option::Execute)
+		    && (fileState == DebugInfoState::Combined))
 		{
-		    config.option = Args::LOAD_PROGRAM;
+		    config.option = Args::Option::LoadProgram;
 			config.handler = optionLoadProgram;
 			config.arg = cache.string();
 		}
@@ -204,9 +204,9 @@ int main(int argc, const char* argv[])
 
 	switch (config.runOption)
 	{
-		case Args::RUN_FILE:	runFile(config);	break;
-		case Args::RUN_REPL:	repl(config);		break;
-		case Args::RUN_DIRECT:	config.run();		break;
+		case Args::RunOption::RunFile:		runFile(config);	break;
+		case Args::RunOption::RunRepl:		repl(config);		break;
+		case Args::RunOption::RunDirect:	config.run();		break;
 	}
 
 	return 0;

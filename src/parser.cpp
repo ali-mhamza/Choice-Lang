@@ -40,9 +40,9 @@ using namespace AST::Expression;
 #define CONSUME_RETURN_TYPE()                   \
     if (consumeTok(TOK_RARROW)) consumeType();
 
-#define CAN_ASSIGN(node)                                            \
-    (((node)->type == E_VAR_EXPR) || ((node)->type == E_INDEX_EXPR) \
-        || ((node)->type == E_FIELD_EXPR))
+#define CAN_ASSIGN(node)                                                            \
+    (((node)->type == ExprType::VarExpr) || ((node)->type == ExprType::IndexExpr)   \
+        || ((node)->type == ExprType::FieldExpr))
 
 #define FIELD_OPER_TOK TOK_DOT
 
@@ -79,7 +79,7 @@ void Parser::DepthCounter::checkExprDepth(FileID id, const Token& token)
         hitError = true;
     else if (++exprDepthCount > MAX_EXPR_NEST_DEPTH)
     {
-        diagEngine.source = ErrorSource::PARSER;
+        diagEngine.source = ErrorSource::Parser;
         hitError = true;
 
         diagEngine.recordError(id, HIT_EXPR_NESTING_MAX,
@@ -97,7 +97,7 @@ void Parser::DepthCounter::checkBlockDepth(FileID id, const Token& token)
         hitError = true;
     else if (++blockDepthCount > MAX_EXPR_NEST_DEPTH)
     {
-        diagEngine.source = ErrorSource::PARSER;
+        diagEngine.source = ErrorSource::Parser;
         hitError = true;
 
         diagEngine.recordError(id, HIT_BLOCK_NESTING_MAX,
@@ -275,7 +275,7 @@ void Parser::reportSyntax(
     std::string_view message
 )
 {
-    diagEngine.source = ErrorSource::PARSER;
+    diagEngine.source = ErrorSource::Parser;
     hitError = true;
     if (syntaxError) return;
     syntaxError = true;
@@ -289,7 +289,7 @@ void Parser::reportSemantic(
     std::string_view message
 )
 {
-    diagEngine.source = ErrorSource::PARSER;
+    diagEngine.source = ErrorSource::Parser;
     hitError = true;
     if (semanticError) return;
     semanticError = true;
@@ -343,11 +343,11 @@ VarAttr Parser::consumeAttributes()
             nextTok();
             switch (previousTok.type)
             {
-                case TOK_PRIVATE:   markAttribute(attr, ATTR_PRIVATE);  break;
-                case TOK_STATIC:    markAttribute(attr, ATTR_STATIC);   break;
-                case TOK_COMPUTED:  markAttribute(attr, ATTR_COMPUTED); break;
-                case TOK_CLOSED:    markAttribute(attr, ATTR_CLOSED);   break;
-                case TOK_TEST:      markAttribute(attr, ATTR_TEST);     break;
+                case TOK_PRIVATE:   markAttribute(attr, DeclAttr::Private);     break;
+                case TOK_STATIC:    markAttribute(attr, DeclAttr::Static);      break;
+                case TOK_COMPUTED:  markAttribute(attr, DeclAttr::Computed);    break;
+                case TOK_CLOSED:    markAttribute(attr, DeclAttr::Closed);      break;
+                case TOK_TEST:      markAttribute(attr, DeclAttr::Test);        break;
                 default:
                     reportSemantic(INVALID_ATTR, previousTok);
                     break;
@@ -1243,7 +1243,7 @@ ExprUP Parser::reference()
     if ((expr == nullptr) || !CAN_ASSIGN(expr))
         REPORT_SYNTAX(REF_NOT_ASSIGN, oper);
 
-    expr = std::make_unique<ReferenceExpr>(expr);
+    expr = std::make_unique<RefExpr>(expr);
     setExprLocation(expr, oper.byteOffset);
     return expr;
 }
@@ -1257,7 +1257,7 @@ ExprUP Parser::call(ExprUP&& expr, u64 start)
     bool builtin{false};
     if (previousTok.type == TOK_BANG)
     {
-        if ((expr == nullptr) || (expr->type != E_VAR_EXPR))
+        if ((expr == nullptr) || (expr->type != ExprType::VarExpr))
             REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, previousTok);
         MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name and '!'");
         builtin = true;

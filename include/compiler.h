@@ -21,7 +21,7 @@ class Compiler
         void compile##type(const AST::Expression::type* node)
 
     private:
-        enum VarType : u8 { GLOBAL, CELL, LOCAL };
+        enum class VarType : u8 { Global, Cell, Local };
         struct VarInfo
         {
             // Whether or not the variable was found.
@@ -344,15 +344,15 @@ class Compiler
         DECL_EXPR(ListCompExpr);
         DECL_EXPR(TableCompExpr);
         void varReference(
-            const AST::Expression::ReferenceExpr* node
+            const AST::Expression::RefExpr* node
         );
         void elementReference(
-            const AST::Expression::ReferenceExpr* node
+            const AST::Expression::RefExpr* node
         );
         void fieldReference(
-            const AST::Expression::ReferenceExpr* node
+            const AST::Expression::RefExpr* node
         );
-        DECL_EXPR(ReferenceExpr);
+        DECL_EXPR(RefExpr);
         DECL_EXPR(VarExpr);
         DECL_EXPR(StringPartExpr);
         DECL_EXPR(FormatExpr);

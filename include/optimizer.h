@@ -96,7 +96,7 @@ class Optimizer
         DECL_EXPR(InstanceExpr);
         DECL_EXPR(ListCompExpr);
         DECL_EXPR(TableCompExpr);
-        DECL_EXPR(ReferenceExpr);
+        DECL_EXPR(RefExpr);
         DECL_EXPR(VarExpr);
         DECL_EXPR(StringPartExpr);
         DECL_EXPR(FormatExpr);

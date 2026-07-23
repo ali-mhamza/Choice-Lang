@@ -74,23 +74,23 @@ namespace AST
 
     namespace Statement
     {
-        enum StmtType : u8
+        enum class StmtType : u8
         {
-            S_VAR_DECL,
-            S_FUNC_DECL,
-            S_TYPE_DECL,
-            S_USE_STMT,
-            S_IF_STMT,
-            S_WHILE_STMT,
-            S_FOR_STMT,
-            S_MATCH_STMT,
-            S_REPEAT_STMT,
-            S_RETURN_STMT,
-            S_BREAK_STMT,
-            S_CONT_STMT,
-            S_END_STMT,
-            S_EXPR_STMT,
-            S_BLOCK_STMT
+            VarDecl,
+            FuncDecl,
+            TypeDecl,
+            UseStmt,
+            IfStmt,
+            WhileStmt,
+            ForStmt,
+            MatchStmt,
+            RepeatStmt,
+            ReturnStmt,
+            BreakStmt,
+            ContinueStmt,
+            EndStmt,
+            ExprStmt,
+            BlockStmt
         };
 
         struct Stmt
@@ -307,32 +307,32 @@ namespace AST
 
     namespace Expression
     {
-        enum ExprType : u8
+        enum class ExprType : u8
         {
-            E_MUT_EXPR,
-            E_ASSIGN_EXPR,
-            E_LOGIC_EXPR,
-            E_COMPARE_EXPR,
-            E_BIT_EXPR,
-            E_SHIFT_EXPR,
-            E_BINARY_EXPR,
-            E_UNARY_EXPR,
-            E_INDEX_EXPR,
-            E_CALL_EXPR,
-            E_FIELD_EXPR,
-            E_SCOPE_EXPR,
-            E_IF_EXPR,
-            E_LAMBDA_EXPR,
-            E_LIST_EXPR,
-            E_TABLE_EXPR,
-            E_INSTANCE_EXPR,
-            E_LIST_COMP_EXPR,
-            E_TABLE_COMP_EXPR,
-            E_REF_EXPR,
-            E_VAR_EXPR,
-            E_STR_PART_EXPR,
-            E_FORMAT_EXPR,
-            E_LITERAL_EXPR
+            MutExpr,
+            AssignExpr,
+            LogicExpr,
+            CompareExpr,
+            BitExpr,
+            ShiftExpr,
+            BinaryExpr,
+            UnaryExpr,
+            IndexExpr,
+            CallExpr,
+            FieldExpr,
+            ScopeExpr,
+            IfExpr,
+            LambdaExpr,
+            ListExpr,
+            TableExpr,
+            InstanceExpr,
+            ListCompExpr,
+            TableCompExpr,
+            RefExpr,
+            VarExpr,
+            StringPartExpr,
+            FormatExpr,
+            LiteralExpr
         };
 
         struct Expr
@@ -594,11 +594,11 @@ namespace AST
             );
         };
 
-        struct ReferenceExpr : public Expr
+        struct RefExpr : public Expr
         {
             const ExprUP obj{};
 
-            ReferenceExpr(ExprUP& obj);
+            RefExpr(ExprUP& obj);
         };
 
         struct VarExpr : public Expr

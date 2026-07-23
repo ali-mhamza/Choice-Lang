@@ -86,7 +86,8 @@ Object& Object::operator=(const Object& other) noexcept
 Object::Object(Object&& other) noexcept :
     type_{other.type_}, as{other.as}
 {
-    other.type_ = OBJ_INVALID; // To prevent deallocation when it is destroyed.
+    // To prevent deallocation when it is destroyed.
+    other.type_ = static_cast<u8>(ObjType::Invalid);
     CLEAR_DATA(other);
 }
 
@@ -99,7 +100,7 @@ Object& Object::operator=(Object&& other) noexcept
         this->type_ = other.type_;
         this->as = other.as;
 
-        other.type_ = OBJ_INVALID;
+        other.type_ = static_cast<u8>(ObjType::Invalid);
         CLEAR_DATA(other);
     }
 
@@ -119,19 +120,19 @@ HeapObj* Object::heapPointer() const
 {
     switch (type())
     {
-        case OBJ_MODULE:    return static_cast<HeapObj*>(as.moduleVal);
-        case OBJ_USER_TYPE: return static_cast<HeapObj*>(as.userTypeVal);
-        case OBJ_INSTANCE:  return static_cast<HeapObj*>(as.instanceVal);
-        case OBJ_USER_FUNC:
-        case OBJ_LAMBDA:    return static_cast<HeapObj*>(as.userFuncVal);
-        case OBJ_CLOSURE:   return static_cast<HeapObj*>(as.closureVal);
-        case OBJ_METHOD:    return static_cast<HeapObj*>(as.methodVal);
-        case OBJ_TEXT:      return static_cast<HeapObj*>(as.textVal);
-        case OBJ_STRING:    return static_cast<HeapObj*>(as.stringVal);
-        case OBJ_RANGE:     return static_cast<HeapObj*>(as.rangeVal);
-        case OBJ_LIST:      return static_cast<HeapObj*>(as.listVal);
-        case OBJ_TABLE:     return static_cast<HeapObj*>(as.tableVal);
-        case OBJ_REF:       return static_cast<HeapObj*>(as.refVal);
+        case ObjType::Module:   return static_cast<HeapObj*>(as.moduleVal);
+        case ObjType::UserType: return static_cast<HeapObj*>(as.userTypeVal);
+        case ObjType::Instance: return static_cast<HeapObj*>(as.instanceVal);
+        case ObjType::UserFunc:
+        case ObjType::Lambda:   return static_cast<HeapObj*>(as.userFuncVal);
+        case ObjType::Closure:  return static_cast<HeapObj*>(as.closureVal);
+        case ObjType::Method:   return static_cast<HeapObj*>(as.methodVal);
+        case ObjType::Text:     return static_cast<HeapObj*>(as.textVal);
+        case ObjType::String:   return static_cast<HeapObj*>(as.stringVal);
+        case ObjType::Range:    return static_cast<HeapObj*>(as.rangeVal);
+        case ObjType::List:     return static_cast<HeapObj*>(as.listVal);
+        case ObjType::Table:    return static_cast<HeapObj*>(as.tableVal);
+        case ObjType::Ref:      return static_cast<HeapObj*>(as.refVal);
         default: CH_UNREACHABLE();
     }
 }
@@ -146,21 +147,21 @@ bool Object::operator==(const Object& other) const
 
     switch (this->type())
     {
-        case OBJ_BOOL:      return AS_BOOL(*this) == AS_BOOL(other);
-        case OBJ_NULL:      return true;
-        case OBJ_MODULE:    return *(AS_MODULE(*this)) == *(AS_MODULE(other));
-        case OBJ_CORE_TYPE: return AS_CORE_TYPE(*this) == AS_CORE_TYPE(other);
-        case OBJ_USER_TYPE: return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
-        case OBJ_INSTANCE:  return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
-        case OBJ_CORE_FUNC: return AS_CORE_FUNC(*this) == AS_CORE_FUNC(other);
-        case OBJ_USER_FUNC:
-        case OBJ_LAMBDA:    return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
-        case OBJ_CLOSURE:   return AS_CLOSURE(*this) == AS_CLOSURE(other);
-        case OBJ_METHOD:    return *(AS_METHOD(*this)) == *(AS_METHOD(*this));
-        case OBJ_RANGE:     return *(AS_RANGE(*this)) == *(AS_RANGE(other));
-        case OBJ_LIST:      return *(AS_LIST(*this)) == *(AS_LIST(other));
-        case OBJ_TABLE:     return *(AS_TABLE(*this)) == *(AS_TABLE(other));
-        case OBJ_VOID:      return true;
+        case ObjType::Bool:     return AS_BOOL(*this) == AS_BOOL(other);
+        case ObjType::Null:     return true;
+        case ObjType::Module:   return *(AS_MODULE(*this)) == *(AS_MODULE(other));
+        case ObjType::CoreType: return AS_CORE_TYPE(*this) == AS_CORE_TYPE(other);
+        case ObjType::UserType: return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
+        case ObjType::Instance: return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
+        case ObjType::CoreFunc: return AS_CORE_FUNC(*this) == AS_CORE_FUNC(other);
+        case ObjType::UserFunc:
+        case ObjType::Lambda:   return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
+        case ObjType::Closure:  return AS_CLOSURE(*this) == AS_CLOSURE(other);
+        case ObjType::Method:   return *(AS_METHOD(*this)) == *(AS_METHOD(*this));
+        case ObjType::Range:    return *(AS_RANGE(*this)) == *(AS_RANGE(other));
+        case ObjType::List:     return *(AS_LIST(*this)) == *(AS_LIST(other));
+        case ObjType::Table:    return *(AS_TABLE(*this)) == *(AS_TABLE(other));
+        case ObjType::Void:     return true;
         default: CH_UNREACHABLE();
     }
 }
@@ -227,15 +228,15 @@ bool Object::isTruthy() const
 {
     switch (type())
     {
-        case OBJ_INT:       return (AS_INT(*this) != 0);
-        case OBJ_DEC:       return (AS_DEC(*this) != 0.0);
-        case OBJ_BOOL:      return AS_BOOL(*this);
-        case OBJ_NULL:      return false;
-        case OBJ_TEXT:      return (AS_TEXT(*this)->len != 0);
-        case OBJ_STRING:    return (AS_STRING(*this)->str.size() != 0);
-        case OBJ_LIST:      return (AS_LIST(*this)->array.count() != 0);
-        case OBJ_TABLE:     return (AS_TABLE(*this)->table.size() != 0);
-        case OBJ_VOID:      return false;
+        case ObjType::Int:      return (AS_INT(*this) != 0);
+        case ObjType::Dec:      return (AS_DEC(*this) != 0.0);
+        case ObjType::Bool:     return AS_BOOL(*this);
+        case ObjType::Null:     return false;
+        case ObjType::Text:     return (AS_TEXT(*this)->len != 0);
+        case ObjType::String:   return (AS_STRING(*this)->str.size() != 0);
+        case ObjType::List:     return (AS_LIST(*this)->array.count() != 0);
+        case ObjType::Table:    return (AS_TABLE(*this)->table.size() != 0);
+        case ObjType::Void:     return false;
         // Rest are always truthy.
         default:            return true;
     }
@@ -247,11 +248,11 @@ Object Object::getIndex(const Object& index) const
 
     switch (this->type())
     {
-        case OBJ_TEXT:      return AS_TEXT(*this)->getIndex(index);
-        case OBJ_STRING:    return AS_STRING(*this)->getIndex(index);
-        case OBJ_RANGE:     return AS_RANGE(*this)->getIndex(index);
-        case OBJ_LIST:      return AS_LIST(*this)->getIndex(index);
-        case OBJ_TABLE:     return AS_TABLE(*this)->getIndex(index);
+        case ObjType::Text:     return AS_TEXT(*this)->getIndex(index);
+        case ObjType::String:   return AS_STRING(*this)->getIndex(index);
+        case ObjType::Range:    return AS_RANGE(*this)->getIndex(index);
+        case ObjType::List:     return AS_LIST(*this)->getIndex(index);
+        case ObjType::Table:    return AS_TABLE(*this)->getIndex(index);
         default: CH_UNREACHABLE();
     }
 }
@@ -269,11 +270,11 @@ void Object::setIndex(const Object& index, const Object& value)
 
     switch (this->type())
     {
-        case OBJ_TEXT:      return AS_TEXT(*this)->setIndex(index, value);
-        case OBJ_STRING:    return AS_STRING(*this)->setIndex(index, value);
-        case OBJ_RANGE:     return AS_RANGE(*this)->setIndex(index, value);
-        case OBJ_LIST:      return AS_LIST(*this)->setIndex(index, value);
-        case OBJ_TABLE:     return AS_TABLE(*this)->setIndex(index, value);
+        case ObjType::Text:     return AS_TEXT(*this)->setIndex(index, value);
+        case ObjType::String:   return AS_STRING(*this)->setIndex(index, value);
+        case ObjType::Range:    return AS_RANGE(*this)->setIndex(index, value);
+        case ObjType::List:     return AS_LIST(*this)->setIndex(index, value);
+        case ObjType::Table:    return AS_TABLE(*this)->setIndex(index, value);
         default: CH_UNREACHABLE();
     }
 }
@@ -338,11 +339,11 @@ u64 Object::collectionSize() const
 
     switch (type())
     {
-        case OBJ_TEXT:      return AS_TEXT(*this)->len;
-        case OBJ_STRING:    return AS_STRING(*this)->str.size();
-        case OBJ_RANGE:     return AS_RANGE(*this)->length();
-        case OBJ_LIST:      return AS_LIST(*this)->array.count();
-        case OBJ_TABLE:     return AS_TABLE(*this)->table.size();
+        case ObjType::Text:     return AS_TEXT(*this)->len;
+        case ObjType::String:   return AS_STRING(*this)->str.size();
+        case ObjType::Range:    return AS_RANGE(*this)->length();
+        case ObjType::List:     return AS_LIST(*this)->array.count();
+        case ObjType::Table:    return AS_TABLE(*this)->table.size();
         default: CH_UNREACHABLE();
     }
 }
@@ -358,32 +359,32 @@ Hash Object::hash() const
 {
     switch (type())
     {
-        case OBJ_INT:       return hashKey(AS_INT(*this));
-        case OBJ_DEC:       return hashKey(AS_DEC(*this));
-        case OBJ_BOOL:      return hashKey(AS_BOOL(*this));
-        case OBJ_NULL:      return 0;
-        case OBJ_MODULE:    return hashKey(AS_MODULE(*this)->name);
-        case OBJ_CORE_TYPE: return hashKey(static_cast<u8>(AS_CORE_TYPE(*this)));
-        case OBJ_USER_TYPE: return hashPointer(AS_USER_TYPE(*this));
-        case OBJ_INSTANCE:  return AS_INSTANCE(*this)->hash();
-        case OBJ_CORE_FUNC: return hashKey(static_cast<u8>(AS_CORE_FUNC(*this)));
-        case OBJ_USER_FUNC:
-        case OBJ_LAMBDA:    return hashPointer(AS_USER_FUNC(*this));
-        case OBJ_CLOSURE:   return hashPointer(AS_CLOSURE(*this));
-        case OBJ_METHOD:    return AS_METHOD(*this)->hash();
-        case OBJ_TEXT:      return hashKey(AS_TEXT(*this)->str, AS_TEXT(*this)->len);
-        case OBJ_STRING:    return hashKey(AS_STRING(*this)->str);
-        case OBJ_RANGE:
+        case ObjType::Int:      return hashKey(AS_INT(*this));
+        case ObjType::Dec:      return hashKey(AS_DEC(*this));
+        case ObjType::Bool:     return hashKey(AS_BOOL(*this));
+        case ObjType::Null:     return 0;
+        case ObjType::Module:   return hashKey(AS_MODULE(*this)->name);
+        case ObjType::CoreType: return hashKey(static_cast<u8>(AS_CORE_TYPE(*this)));
+        case ObjType::UserType: return hashPointer(AS_USER_TYPE(*this));
+        case ObjType::Instance: return AS_INSTANCE(*this)->hash();
+        case ObjType::CoreFunc: return hashKey(static_cast<u8>(AS_CORE_FUNC(*this)));
+        case ObjType::UserFunc:
+        case ObjType::Lambda:   return hashPointer(AS_USER_FUNC(*this));
+        case ObjType::Closure:  return hashPointer(AS_CLOSURE(*this));
+        case ObjType::Method:   return AS_METHOD(*this)->hash();
+        case ObjType::Text:     return hashKey(AS_TEXT(*this)->str, AS_TEXT(*this)->len);
+        case ObjType::String:   return hashKey(AS_STRING(*this)->str);
+        case ObjType::Range:
         {
             const Range* range{AS_RANGE(*this)};
             return hashKey(range->start) + hashKey(range->stop)
                 + hashKey(range->step);
         }
-        case OBJ_LIST:      return AS_LIST(*this)->hash();
+        case ObjType::List:     return AS_LIST(*this)->hash();
         // For now, at least.
-        case OBJ_TABLE:     return hashPointer(AS_TABLE(*this));
-        case OBJ_REF:       return AS_REF(*this)->location->hash();
-        case OBJ_VOID:      return 0;
+        case ObjType::Table:    return hashPointer(AS_TABLE(*this));
+        case ObjType::Ref:      return AS_REF(*this)->location->hash();
+        case ObjType::Void:     return 0;
         default: CH_UNREACHABLE();
     }
 }
@@ -434,18 +435,18 @@ std::string Object::printVal() const
 
     switch (type())
     {
-        case OBJ_INT:       ret = std::to_string(AS_INT(*this));                            break;
-        case OBJ_DEC:       ret = doubleToStr(AS_DEC(*this));                               break;
-        case OBJ_BOOL:      ret = (AS_BOOL(*this) ? "true" : "false");                      break;
-        case OBJ_NULL:      ret = "null";                                                   break;
-        case OBJ_MODULE:    ret = CH_STR("<module {}>", AS_MODULE(*this)->name);            break;
-        case OBJ_CORE_TYPE: ret = objTypes[AS_CORE_TYPE(*this)];                            break;
-        case OBJ_USER_TYPE: ret = CH_STR("<type {}>", AS_USER_TYPE(*this)->name);           break;
-        case OBJ_INSTANCE:  ret = AS_INSTANCE(*this)->printVal();                           break;
-        case OBJ_CORE_FUNC: ret = CH_STR("<builtin {}>", funcNames[AS_CORE_FUNC(*this)]);   break;
-        case OBJ_USER_FUNC: ret = CH_STR("<func {}>", AS_USER_FUNC(*this)->name);           break;
-        case OBJ_LAMBDA:    ret = "<lambda>";                                               break;
-        case OBJ_CLOSURE:
+        case ObjType::Int:      ret = std::to_string(AS_INT(*this));                            break;
+        case ObjType::Dec:      ret = doubleToStr(AS_DEC(*this));                               break;
+        case ObjType::Bool:     ret = (AS_BOOL(*this) ? "true" : "false");                      break;
+        case ObjType::Null:     ret = "null";                                                   break;
+        case ObjType::Module:   ret = CH_STR("<module {}>", AS_MODULE(*this)->name);            break;
+        case ObjType::CoreType: ret = objTypes[static_cast<u8>(AS_CORE_TYPE(*this))];           break;
+        case ObjType::UserType: ret = CH_STR("<type {}>", AS_USER_TYPE(*this)->name);           break;
+        case ObjType::Instance: ret = AS_INSTANCE(*this)->printVal();                           break;
+        case ObjType::CoreFunc: ret = CH_STR("<builtin {}>", funcNames[AS_CORE_FUNC(*this)]);   break;
+        case ObjType::UserFunc: ret = CH_STR("<func {}>", AS_USER_FUNC(*this)->name);           break;
+        case ObjType::Lambda:   ret = "<lambda>";                                               break;
+        case ObjType::Closure:
         {
             Closure* closure{AS_CLOSURE(*this)};
             if (closure->function->name == nullptr)
@@ -454,7 +455,7 @@ std::string Object::printVal() const
                 ret = CH_STR("<func {}>", closure->function->name);
             break;
         }
-        case OBJ_METHOD:
+        case ObjType::Method:
         {
             Method* method{AS_METHOD(*this)};
             Function* func{};
@@ -467,14 +468,14 @@ std::string Object::printVal() const
         }
         // Pass nesting status to possibly nesting collection types.
         // Only lists and tables actually need this.
-        case OBJ_TEXT:      ret = AS_TEXT(*this)->printVal(nested);                         break;
-        case OBJ_STRING:    ret = AS_STRING(*this)->printVal(nested);                       break;
-        case OBJ_RANGE:     ret = AS_RANGE(*this)->printVal(nested);                        break;
-        case OBJ_LIST:      ret = AS_LIST(*this)->printVal(nested);                         break;
-        case OBJ_TABLE:     ret = AS_TABLE(*this)->printVal(nested);                        break;
-        case OBJ_REF:       ret = CH_STR("*({})", AS_REF(*this)->location->printVal());     break;
-        case OBJ_VOID:      ret = "()";                                                     break;
-        case OBJ_ITER:
+        case ObjType::Text:     ret = AS_TEXT(*this)->printVal(nested);                         break;
+        case ObjType::String:   ret = AS_STRING(*this)->printVal(nested);                       break;
+        case ObjType::Range:    ret = AS_RANGE(*this)->printVal(nested);                        break;
+        case ObjType::List:     ret = AS_LIST(*this)->printVal(nested);                         break;
+        case ObjType::Table:    ret = AS_TABLE(*this)->printVal(nested);                        break;
+        case ObjType::Ref:      ret = CH_STR("*({})", AS_REF(*this)->location->printVal());     break;
+        case ObjType::Void:     ret = "()";                                                     break;
+        case ObjType::Iter:
         {
             const auto& iter{AS_ITER(*this)->iter};
             std::visit([&ret, nested](auto&& iter) {
@@ -493,7 +494,7 @@ std::string_view Object::printType() const
 {
     if (IS_INSTANCE(*this))
         return AS_INSTANCE(*this)->type->name;
-    return objTypes[type()];
+    return objTypes[static_cast<u8>(type())];
 }
 
 void Object::emit(std::ofstream& os) const
@@ -502,14 +503,14 @@ void Object::emit(std::ofstream& os) const
 
     switch (type())
     {
-        case OBJ_INT:       Bytes::encodeValue(os, AS_INT(*this));  break;
-        case OBJ_DEC:       Bytes::encodeValue(os, AS_DEC(*this));  break;
-        case OBJ_MODULE:    AS_MODULE(*this)->emit(os);             break;
-        case OBJ_USER_TYPE: AS_USER_TYPE(*this)->emit(os);          break;
-        case OBJ_USER_FUNC:
-        case OBJ_LAMBDA:    AS_USER_FUNC(*this)->emit(os);          break;
-        case OBJ_TEXT:      AS_TEXT(*this)->emit(os);               break;
-        case OBJ_STRING:    AS_STRING(*this)->emit(os);             break;
+        case ObjType::Int:      Bytes::encodeValue(os, AS_INT(*this));  break;
+        case ObjType::Dec:      Bytes::encodeValue(os, AS_DEC(*this));  break;
+        case ObjType::Module:   AS_MODULE(*this)->emit(os);             break;
+        case ObjType::UserType: AS_USER_TYPE(*this)->emit(os);          break;
+        case ObjType::UserFunc:
+        case ObjType::Lambda:   AS_USER_FUNC(*this)->emit(os);          break;
+        case ObjType::Text:     AS_TEXT(*this)->emit(os);               break;
+        case ObjType::String:   AS_STRING(*this)->emit(os);             break;
         default: CH_UNREACHABLE();
     }
 }
@@ -518,9 +519,9 @@ void Object::emitMetadata(std::ofstream& os) const
 {
     switch (type())
     {
-        case OBJ_USER_TYPE: AS_USER_TYPE(*this)->emitMetadata(os);  break;
-        case OBJ_USER_FUNC:
-        case OBJ_LAMBDA:    AS_USER_FUNC(*this)->emitMetadata(os);  break;
+        case ObjType::UserType: AS_USER_TYPE(*this)->emitMetadata(os);  break;
+        case ObjType::UserFunc:
+        case ObjType::Lambda:   AS_USER_FUNC(*this)->emitMetadata(os);  break;
         default: break;
     }
 }
@@ -649,7 +650,7 @@ void Type::emit(std::ofstream& os) const
     for (u8 i{0}; i < fieldCount; i++)
     {
         fieldCode[i].encodeData(os);
-        if (debugInfoState == DEBUG_COMBINED)
+        if (debugInfoState == DebugInfoState::Combined)
             fieldCode[i].encodeMetadata(os);
     }
 }
@@ -684,7 +685,7 @@ u64 Type::byteSize() const
     for (u8 i{0}; i < fieldCount; i++)
     {
         size += chunkDataSize(fieldCode[i]);
-        if (debugInfoState == DEBUG_COMBINED)
+        if (debugInfoState == DebugInfoState::Combined)
             size += chunkMetadataSize(fieldCode[i]);
     }
 
@@ -831,7 +832,7 @@ void Function::emit(std::ofstream& os) const
     os.put(static_cast<char>(variadic));
 
     code.encodeData(os);
-    if (debugInfoState == DEBUG_COMBINED)
+    if (debugInfoState == DebugInfoState::Combined)
         code.encodeMetadata(os);
 
     // Can be computed from cached bytes with arityMax - arityMin.
@@ -839,7 +840,7 @@ void Function::emit(std::ofstream& os) const
     for (u8 i{0}; i < defaultCount; i++)
     {
         defaultArgs[i].encodeData(os);
-        if (debugInfoState == DEBUG_COMBINED)
+        if (debugInfoState == DebugInfoState::Combined)
             defaultArgs[i].encodeMetadata(os);
     }
 }
@@ -867,7 +868,7 @@ u64 Function::byteSize() const
     for (u8 i{0}; i < defaultCount; i++)
         size += chunkDataSize(defaultArgs[i]);
 
-    if (debugInfoState == DEBUG_COMBINED)
+    if (debugInfoState == DebugInfoState::Combined)
     {
         size += chunkMetadataSize(code);
         // Same as above for default arguments.
@@ -1650,11 +1651,11 @@ ObjIter::ObjIter(Object& obj) noexcept
 
     switch (obj.type())
     {
-        case OBJ_TEXT:      iter.emplace<TextIter>(obj);    break;
-        case OBJ_STRING:    iter.emplace<StringIter>(obj);  break;
-        case OBJ_RANGE:     iter.emplace<RangeIter>(obj);   break;
-        case OBJ_LIST:      iter.emplace<ListIter>(obj);    break;
-        case OBJ_TABLE:     iter.emplace<TableIter>(obj);   break;
+        case ObjType::Text:     iter.emplace<TextIter>(obj);    break;
+        case ObjType::String:   iter.emplace<StringIter>(obj);  break;
+        case ObjType::Range:    iter.emplace<RangeIter>(obj);   break;
+        case ObjType::List:     iter.emplace<ListIter>(obj);    break;
+        case ObjType::Table:    iter.emplace<TableIter>(obj);   break;
         default: CH_UNREACHABLE();
     }
 }

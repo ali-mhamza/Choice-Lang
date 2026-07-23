@@ -174,34 +174,34 @@ u64 ByteCode::countPool() const
 	{
 		switch (obj.type())
 		{
-			case OBJ_INT:
-			case OBJ_DEC:
+			case ObjType::Int:
+			case ObjType::Dec:
 			{
 				count += sizeof(u8) + sizeof(obj.as);
 				break;
 			}
-			case OBJ_MODULE:
+			case ObjType::Module:
 		    {
 				count += AS_MODULE(obj)->byteSize();
 				break;
 			}
-			case OBJ_USER_TYPE:
+			case ObjType::UserType:
     		{
     		    count += AS_USER_TYPE(obj)->byteSize();
                 break;
     		}
-			case OBJ_USER_FUNC:
-			case OBJ_LAMBDA:
+			case ObjType::UserFunc:
+			case ObjType::Lambda:
 			{
 				count += AS_USER_FUNC(obj)->byteSize();
 				break;
 			}
-			case OBJ_TEXT:
+			case ObjType::Text:
 			{
 				count += AS_TEXT(obj)->byteSize();
 				break;
 			}
-			case OBJ_STRING:
+			case ObjType::String:
 			{
 				count += AS_STRING(obj)->byteSize();
 				break;
@@ -291,7 +291,7 @@ void ByteCode::encodeMetadata(std::ofstream& os) const
 {
     // Debug metadata is all stored together, back-to-back,
     // and matched up later when the bytecode is recomposed.
-	if (debugInfoState == DEBUG_SEPARATE)
+	if (debugInfoState == DebugInfoState::Separate)
 	{
 		for (const Object& obj : pool)
 		    obj.emitMetadata(os);

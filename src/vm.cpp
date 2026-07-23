@@ -114,7 +114,7 @@ void VM::defineBuiltinGlobals()
 
     for (u8 i{0}; i < Natives::FuncType::NUM_FUNCS; i++)
     {
-        *temp = Object{Natives::FuncType(i)};
+        *temp = Object{Natives::FuncType{i}};
         temp++;
     }
     SET_REGSLOT(temp - globalRegisters);
@@ -231,7 +231,7 @@ Object VM::makeRange(const Object& start, const Object& stop)
 Object VM::makeReference()
 {
     // Mimicking the compiler.
-    enum VarType : u8 { GLOBAL, CELL, LOCAL };
+    enum class VarType : u8 { Global, Cell, Local };
 
     VarType type{static_cast<VarType>(readByte())};
     u8 index{readByte()};
@@ -239,13 +239,13 @@ Object VM::makeReference()
 
     switch (type)
     {
-        case GLOBAL:
+        case VarType::Global:
             addr = &globalRegisters[index];
             break;
-        case CELL:
+        case VarType::Cell:
             addr = currentClosure->cells[index]->location;
             break;
-        case LOCAL:
+        case VarType::Local:
             addr = &registers[index];
             break;
         default:
@@ -264,7 +264,7 @@ inline Object VM::loadOper()
             return Object{i64(oper - 2)};
         case OP_TRUE:       return Object{true};
         case OP_FALSE:      return Object{false};
-        case OP_NULL:       return Object{OBJ_NULL};
+        case OP_NULL:       return Object{ObjType::Null};
         case OP_BYTE_OPER:  return pool[readByte()];
         case OP_SHORT_OPER: return pool[readShort()];
         case OP_LONG_OPER:  return pool[readLong()];
@@ -577,7 +577,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
 
 void VM::callNative(const Object& callee, u8 start, u8 argCount)
 {
-    auto* func{Natives::functions[AS_CORE_FUNC(callee)]};
+    auto func{Natives::functions[AS_CORE_FUNC(callee)]};
     func(&registers[start], argCount);
 }
 
@@ -588,7 +588,11 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
     if (it == Constructors::builtins.end())
     {
         throw RuntimeError(NO_TYPE_CTOR,
-            CH_STR("type ({}) has no defined constructor", objTypes[type]));
+            CH_STR(
+                "type ({}) has no defined constructor",
+                objTypes[static_cast<u8>(type)]
+            )
+        );
     }
 
     auto ctor{Constructors::ctors[it->second]};
@@ -657,21 +661,21 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
 
     switch (callee.type())
     {
-        case OBJ_CORE_FUNC:
+        case ObjType::CoreFunc:
             callNative(callee, start, argCount);
             break;
-        case OBJ_USER_FUNC:
-        case OBJ_CLOSURE:
-        case OBJ_LAMBDA:
+        case ObjType::UserFunc:
+        case ObjType::Closure:
+        case ObjType::Lambda:
             callFunc(callee, start, argCount);
             break;
-        case OBJ_CORE_TYPE:
+        case ObjType::CoreType:
             callCtor(callee, start, argCount);
             break;
-        case OBJ_USER_TYPE:
+        case ObjType::UserType:
             callType(callee, start, argCount);
             break;
-        case OBJ_METHOD:
+        case ObjType::Method:
             callMethod(callee, start, argCount);
             break;
         default:
@@ -782,7 +786,7 @@ void VM::finishFields(Instance& instance, u8 start)
     const Type* type{instance.type};
     for (auto& [field, value] : instance.fields)
     {
-        if (value.type() == OBJ_INVALID)
+        if (!IS_VALID(value))
         {
             u8 codePos{*(type->fieldTable.get(field))};
             const ByteCode& chunk{type->fieldCode[codePos]};
@@ -895,7 +899,7 @@ void VM::reportShortError(const RuntimeError& error)
 {
     diagEngine.source = ErrorSource::VM;
 
-    if (debugInfoState != DEBUG_STRIPPED)
+    if (debugInfoState != DebugInfoState::Stripped)
     {
         const auto& range{currentCode->getErrorRange(ip)};
         diagEngine.recordError(currentCode->getID(), error.code,
@@ -914,7 +918,7 @@ void VM::reportError(const RuntimeError& error)
     pushCurrentStackFrame();
     diagEngine.source = ErrorSource::VM;
 
-    if (debugInfoState != DEBUG_STRIPPED)
+    if (debugInfoState != DebugInfoState::Stripped)
     {
         const auto& range{currentCode->getErrorRange(ip)};
         diagEngine.recordError(currentCode->getID(), error.code,
@@ -935,7 +939,7 @@ void VM::reportWarning(DiagCode code, const std::string& label)
 {
     diagEngine.source = ErrorSource::VM;
 
-    if (debugInfoState != DEBUG_STRIPPED)
+    if (debugInfoState != DebugInfoState::Stripped)
     {
         const auto& range{currentCode->getErrorRange(ip)};
         diagEngine.recordWarning(currentCode->getID(), code,
@@ -1481,7 +1485,7 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_VOID):
         {
-            registers[readByte()] = Object{OBJ_VOID};
+            registers[readByte()] = Object{ObjType::Void};
             DISPATCH();
         }
 

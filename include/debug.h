@@ -22,9 +22,5 @@ struct DebugRange
 };
 
 // The three cases for debug info with respect to a ByteCode cache file.
-enum DebugInfoState : u8
-{
-    DEBUG_COMBINED, DEBUG_SEPARATE, DEBUG_STRIPPED
-};
-
+enum class DebugInfoState : u8 { Combined, Separate, Stripped };
 using DebugMetadata = std::vector<DebugRange>;

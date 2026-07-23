@@ -113,15 +113,16 @@ void optionCacheBytecode(FileID id, std::string_view input)
 			std::ios::binary};
 
 		std::ofstream debugFile{};
-		if (debugInfoState == DEBUG_SEPARATE)
+		if (debugInfoState == DebugInfoState::Separate)
 			debugFile.open(filePath.stem().concat(CH_DEBUG_EXT), std::ios::binary);
 
-		std::ofstream& debugDestination{(debugInfoState == DEBUG_COMBINED) ?
-			cacheFile : debugFile};
+		std::ofstream& debugDestination{
+			(debugInfoState == DebugInfoState::Combined) ? cacheFile : debugFile
+		};
 		const auto& lineMarkers{sourceManager.getLineMarkers(id)};
 
 		script->code.encodeHeaders(cacheFile);
-		if (debugInfoState != DEBUG_STRIPPED)
+		if (debugInfoState != DebugInfoState::Stripped)
 		{
 			Bytes::encodeValue(debugDestination, static_cast<u64>(lineMarkers.size()));
 			for (const auto& marker : lineMarkers)
@@ -129,7 +130,7 @@ void optionCacheBytecode(FileID id, std::string_view input)
 		}
 
 		script->code.encodeData(cacheFile);
-		if (debugInfoState != DEBUG_STRIPPED)
+		if (debugInfoState != DebugInfoState::Stripped)
 			script->code.encodeMetadata(debugDestination);
 	}
 
@@ -184,18 +185,18 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 	FileID id{sourceManager.addFile(originalFile)};
 	codeReader.setFileID(id); // Before any code is read.
 
-	if (debugInfoState != DEBUG_STRIPPED)
+	if (debugInfoState != DebugInfoState::Stripped)
 	{
 		std::vector<u64> lineMarkers{};
 		std::vector<DebugMetadata> metadataBlocks{};
 
 		std::filesystem::path checkPath{};
-		if (debugInfoState == DEBUG_COMBINED)
+		if (debugInfoState == DebugInfoState::Combined)
 			checkPath = file;
 		else
 			checkPath = debugFile;
 
-		if (debugInfoState == DEBUG_SEPARATE)
+		if (debugInfoState == DebugInfoState::Separate)
 		{
 			std::ifstream debugStream{openFile(debugFile, true,
 				"Failed to access debug information.")};

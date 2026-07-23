@@ -28,13 +28,13 @@ Stmt::Stmt(StmtType type) :
 
 VarDecl::VarDecl(bool fix, const vT& names, UnpackState unpack,
     const Token& oper, ExprVec& values) :
-    Stmt{S_VAR_DECL},
+    Stmt{StmtType::VarDecl},
     fix{fix}, names{names}, unpack{unpack}, oper{oper},
     values{std::move(values)} {}
 
 FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     StmtUP& body) :
-    Stmt{S_FUNC_DECL},
+    Stmt{StmtType::FuncDecl},
     name{name}, params{std::move(params)}, body{std::move(body)} {}
 
 TypeDecl::Field::Field(VarAttr attr, bool fix, const Token& name,
@@ -46,28 +46,28 @@ TypeDecl::TypeDecl(
     std::vector<Field>& fields,
     StmtVec& methods
 ) :
-    Stmt{S_TYPE_DECL},
+    Stmt{StmtType::TypeDecl},
     name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}
 
 UseStmt::UseStmt(const Token& module, const Token& directory,
     const Token& alias, const std::vector<Entry>& entries) :
-    Stmt{S_USE_STMT},
+    Stmt{StmtType::UseStmt},
     module{module}, directory{directory}, alias{alias}, entries{entries} {}
 
 IfStmt::IfStmt(ExprUP& condition, StmtUP& trueBranch, StmtUP& falseBranch) :
-    Stmt{S_IF_STMT},
+    Stmt{StmtType::IfStmt},
     condition{std::move(condition)}, trueBranch{std::move(trueBranch)},
     falseBranch{std::move(falseBranch)} {}
 
 WhileStmt::WhileStmt(ExprUP& condition, const Token& label, StmtUP& body,
     StmtUP& elseClause) :
-    Stmt{S_WHILE_STMT},
+    Stmt{StmtType::WhileStmt},
     condition{std::move(condition)}, label{label}, body{std::move(body)},
     elseClause{std::move(elseClause)} {}
 
 ForStmt::ForStmt(AST::LoopHeader& header, const Token& label, StmtUP& body,
     StmtUP& elseClause) :
-    Stmt{S_FOR_STMT},
+    Stmt{StmtType::ForStmt},
     header{std::move(header)}, label{label}, body{std::move(body)},
     elseClause{std::move(elseClause)} {}
 
@@ -76,34 +76,34 @@ MatchStmt::MatchCase::MatchCase(ExprUP& value, StmtUP& body, bool fall) :
     fallthrough{fall} {}
 
 MatchStmt::MatchStmt(ExprUP& matchValue, std::vector<MatchCase>& cases) :
-    Stmt{S_MATCH_STMT},
+    Stmt{StmtType::MatchStmt},
     matchValue{std::move(matchValue)}, cases{std::move(cases)} {}
 
 RepeatStmt::RepeatStmt(ExprUP& condition, const Token& label, StmtUP& body) :
-    Stmt{S_REPEAT_STMT},
+    Stmt{StmtType::RepeatStmt},
     condition{std::move(condition)}, label{label}, body{std::move(body)} {}
 
 ReturnStmt::ReturnStmt(const Token& keyword, ExprUP& expr) :
-    Stmt{S_RETURN_STMT},
+    Stmt{StmtType::ReturnStmt},
     keyword{keyword}, expr{std::move(expr)} {}
 
 BreakStmt::BreakStmt(const Token& label) :
-    Stmt{S_BREAK_STMT},
+    Stmt{StmtType::BreakStmt},
     label{label} {}
 
 ContinueStmt::ContinueStmt(const Token& label) :
-    Stmt{S_CONT_STMT},
+    Stmt{StmtType::ContinueStmt},
     label{label} {}
 
 EndStmt::EndStmt() :
-    Stmt{S_END_STMT} {}
+    Stmt{StmtType::EndStmt} {}
 
 ExprStmt::ExprStmt(ExprUP& expr) :
-    Stmt{S_EXPR_STMT},
+    Stmt{StmtType::ExprStmt},
     expr{std::move(expr)} {}
 
 BlockStmt::BlockStmt(StmtVec& block) :
-    Stmt{S_BLOCK_STMT},
+    Stmt{StmtType::BlockStmt},
     block{std::move(block)} {}
 
 // Expression constructors.
@@ -112,103 +112,103 @@ Expr::Expr(ExprType type) :
     type{type} {}
 
 MutExpr::MutExpr(bool mut, ExprUP value) :
-    Expr{E_MUT_EXPR},
+    Expr{ExprType::MutExpr},
     mut{mut}, value{std::move(value)} {}
 
 AssignExpr::AssignExpr(ExprVec& targets, UnpackState unpack,
     const Token& oper, ExprVec& values) :
-    Expr{E_ASSIGN_EXPR},
+    Expr{ExprType::AssignExpr},
     targets{std::move(targets)}, unpack{unpack}, oper{oper}, values{std::move(values)} {}
 
 LogicExpr::LogicExpr(ExprUP& left, TokenType oper, ExprUP right) :
-    Expr{E_LOGIC_EXPR},
+    Expr{ExprType::LogicExpr},
     left{std::move(left)}, oper{oper}, right{std::move(right)} {}
 
 CompareExpr::CompareExpr(ExprUP& left, TokenType oper, ExprUP right) :
-    Expr{E_COMPARE_EXPR},
+    Expr{ExprType::CompareExpr},
     left{std::move(left)}, oper{oper}, right{std::move(right)} {}
 
 BitExpr::BitExpr(ExprUP& left, TokenType oper, ExprUP right) :
-    Expr{E_BIT_EXPR},
+    Expr{ExprType::BitExpr},
     left{std::move(left)}, oper{oper}, right{std::move(right)} {}
 
 ShiftExpr::ShiftExpr(ExprUP& left, TokenType oper, ExprUP right) :
-    Expr{E_SHIFT_EXPR},
+    Expr{ExprType::ShiftExpr},
     left{std::move(left)}, oper{oper}, right{std::move(right)} {}
 
 BinaryExpr::BinaryExpr(ExprUP& left, TokenType oper, ExprUP right) :
-    Expr{E_BINARY_EXPR},
+    Expr{ExprType::BinaryExpr},
     left{std::move(left)}, oper{oper}, right{std::move(right)} {}
 
 UnaryExpr::UnaryExpr(const Token& oper, ExprUP expr, bool prev) :
-    Expr{E_UNARY_EXPR},
+    Expr{ExprType::UnaryExpr},
     oper{oper}, expr{std::move(expr)}, prev{prev} {}
 
 IndexExpr::IndexExpr(ExprUP& obj, ExprUP& index) :
-    Expr{E_INDEX_EXPR},
+    Expr{ExprType::IndexExpr},
     obj{std::move(obj)}, index{std::move(index)} {}
 
 CallExpr::CallExpr(ExprUP& callee, ExprVec& args, bool builtin) :
-    Expr{E_CALL_EXPR},
+    Expr{ExprType::CallExpr},
     callee{std::move(callee)}, args{std::move(args)}, builtin{builtin} {}
 
 FieldExpr::FieldExpr(ExprUP& obj, const Token& field) :
-    Expr{E_FIELD_EXPR},
+    Expr{ExprType::FieldExpr},
     obj{std::move(obj)}, field{field} {}
 
 ScopeExpr::ScopeExpr(ExprUP& module, const Token& entry) :
-    Expr{E_SCOPE_EXPR},
+    Expr{ExprType::ScopeExpr},
     module{std::move(module)}, entry{entry} {}
 
 IfExpr::IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr) :
-    Expr{E_IF_EXPR},
+    Expr{ExprType::IfExpr},
     condition{std::move(condition)}, trueExpr{std::move(trueExpr)},
     falseExpr{std::move(falseExpr)} {}
 
 LambdaExpr::LambdaExpr(std::vector<Param>& params, StmtUP& body) :
-    Expr{E_LAMBDA_EXPR},
+    Expr{ExprType::LambdaExpr},
     params{std::move(params)}, body{std::move(body)} {}
 
 ListExpr::ListExpr(ExprVec& entries) :
-    Expr{E_LIST_EXPR},
+    Expr{ExprType::ListExpr},
     entries{std::move(entries)} {}
 
 TableExpr::TableExpr(std::vector<TablePair>& pairs) :
-    Expr{E_TABLE_EXPR},
+    Expr{ExprType::TableExpr},
     pairs{std::move(pairs)} {}
 
 InstanceExpr::Field::Field(const Token& name, ExprUP init) :
     name{name}, init{std::move(init)} {}
 
 InstanceExpr::InstanceExpr(ExprUP& typeName, std::vector<Field>& fields) :
-    Expr{E_INSTANCE_EXPR},
+    Expr{ExprType::InstanceExpr},
     typeName{std::move(typeName)}, fields{std::move(fields)} {}
 
 ListCompExpr::ListCompExpr(AST::LoopHeader& header, ExprUP& expr) :
-    Expr{E_LIST_COMP_EXPR},
+    Expr{ExprType::ListCompExpr},
     header{std::move(header)}, expr{std::move(expr)} {}
 
 TableCompExpr::TableCompExpr(AST::LoopHeader& header, ExprUP& key,
     ExprUP& value) :
-    Expr{E_TABLE_COMP_EXPR},
+    Expr{ExprType::TableCompExpr},
     header{std::move(header)}, key{std::move(key)}, value{std::move(value)} {}
 
-ReferenceExpr::ReferenceExpr(ExprUP& obj) :
-    Expr{E_REF_EXPR},
+RefExpr::RefExpr(ExprUP& obj) :
+    Expr{ExprType::RefExpr},
     obj{std::move(obj)} {}
 
 VarExpr::VarExpr(const Token& name) :
-    Expr{E_VAR_EXPR},
+    Expr{ExprType::VarExpr},
     name{name} {}
 
 StringPartExpr::StringPartExpr(const Token& part) :
-    Expr{E_STR_PART_EXPR},
+    Expr{ExprType::StringPartExpr},
     part{part} {}
 
 FormatExpr::FormatExpr(ExprVec& parts) :
-    Expr{E_FORMAT_EXPR},
+    Expr{ExprType::FormatExpr},
     parts{std::move(parts)} {}
 
 LiteralExpr::LiteralExpr(const Token& value) :
-    Expr{E_LITERAL_EXPR},
+    Expr{ExprType::LiteralExpr},
     value{value} {}

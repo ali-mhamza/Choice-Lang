@@ -198,23 +198,23 @@ bool Lexer::checkNumericLiteral(char start)
 
 	if (consumeChar('b'))
 	{
-		base = BIN;
+		base = NumBase::Bin;
 		numericToken(isBinary);
-		base = DEC;
+		base = NumBase::Dec;
 		return true;
 	}
 	else if (consumeChar('o'))
 	{
-		base = OCT;
+		base = NumBase::Oct;
 		numericToken(isOctal);
-		base = DEC;
+		base = NumBase::Dec;
 		return true;
 	}
 	else if (consumeChar('x'))
 	{
-		base = HEX;
+		base = NumBase::Hex;
 		numericToken(isHex);
-		base = DEC;
+		base = NumBase::Dec;
 		return true;
 	}
 
@@ -225,7 +225,7 @@ void Lexer::reportError(DiagCode code, u64 offset, std::string_view message)
 {
     if (inError) return;
 
-	diagEngine.source = ErrorSource::LEXER;
+	diagEngine.source = ErrorSource::Lexer;
 	hitError = inError = true;
 	// We did not find the expected character since we hit the end
 	// prematurely.
@@ -279,10 +279,10 @@ i64 Lexer::intValue(std::string_view text)
 
 	switch (base)
 	{
-		case DEC:	baseValue = 10;	break;
-		case BIN:	baseValue = 2;	break;
-		case OCT:	baseValue = 8;	break;
-		case HEX:	baseValue = 16;	break;
+		case NumBase::Dec:	baseValue = 10;	break;
+		case NumBase::Bin:	baseValue = 2;	break;
+		case NumBase::Oct:	baseValue = 8;	break;
+		case NumBase::Hex:	baseValue = 16;	break;
 	}
 
 	const std::string& formatted{formatNumber(text, false)};
@@ -384,13 +384,13 @@ void Lexer::numericToken(bool (*check)(char))
 		std::string_view sv{};
 		switch (base)
 		{
-			case BIN:
+			case NumBase::Bin:
 				sv = "expect binary digit after '0b' prefix";
 				break;
-			case OCT:
+			case NumBase::Oct:
 				sv = "expect octal digit after '0o' prefix";
 				break;
-			case HEX:
+			case NumBase::Hex:
 				sv = "expect hexadecimal digit after '0x' prefix";
 				break;
 			default:

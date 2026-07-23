@@ -8,7 +8,7 @@
 class Lexer
 {
     private:
-        enum NumBase : u8 { DEC, BIN, OCT, HEX };
+        enum class NumBase : u8 { Dec, Bin, Oct, Hex };
 
         FileID id{};
         const char* start{};
@@ -17,7 +17,7 @@ class Lexer
 
         vT stream{};
         u64 offset{0};
-        NumBase base{DEC};
+        NumBase base{NumBase::Dec};
         // `hitError`: Across entire input.
         // `inError`: In current token being constructed/scanned.
         bool hitError{false}, inError{false};
