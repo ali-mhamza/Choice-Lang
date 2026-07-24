@@ -163,6 +163,8 @@ enum DiagCode : u8
 
     /* Function errors. */
 
+    // Closed function cannot capture outside data.
+    CLOSED_FUNC_CAPTURING,
     // 'Drop' special method does not accept parameters.
     DROP_HAS_PARAMS,
 
@@ -317,6 +319,8 @@ enum DiagCode : u8
 
     // Invalid attribute title.
     INVALID_ATTR,
+    // 'closed' attribute used on non-function.
+    CLOSED_NON_FUNCTION,
 
 
     /* Unused variable/object warnings. */

@@ -1,5 +1,6 @@
 #pragma once
 #include "astnodes.h"
+#include "attributes.h"
 #include "bytecode.h"
 #include "config.h"
 #include "debug.h"
@@ -21,7 +22,17 @@ class Compiler
         void compile##type(const AST::Expression::type* node)
 
     private:
-        enum class VarType : u8 { Global, Cell, Local };
+        enum class DeclType : u8 { Var, Func, Type };
+        // Dummy: To break out of the variable resolving loop
+        // when hoisting upon error.
+        enum class VarType : u8 { Global, Cell, Local, Dummy };
+
+        struct DeclInfo
+        {
+            DeclType type{};
+            VarAttr attr{};
+        };
+
         struct VarInfo
         {
             // Whether or not the variable was found.
@@ -29,6 +40,8 @@ class Compiler
             // The slot/cell index of the variable.
             u8 slot{0};
 
+            // Info on variable declaration.
+            DeclInfo declInfo{};
             // Variable location type.
             VarType type{};
             // Whether or not variable is mutable.
@@ -47,7 +60,7 @@ class Compiler
             VarType type{};
         };
 
-        struct DeclarationPair
+        struct DeclPair
         {
             std::string name{};
             u8 reg{};
@@ -59,23 +72,26 @@ class Compiler
         DebugMetadata metadata{};
 
         u8 nextReg{0};
-        u8 scope{0};       // Our current block scope depth.
-        u8 scopeStart{0};  // To mark the initial register for a new scope (to pop to on exit).
-        const u8 depth{};  // Our current function scope depth.
+        u8 scope{0};            // Our current block scope depth.
+        u8 scopeStart{0};       // To mark the initial register for a new scope (to pop to on exit).
+        const u8 depth{};       // Our current function scope depth.
+        VarAttr currentAttr{};  // Attribute for current declaration being compiled.
 
         using VarTable = HashTable<VarEntry, u8, VarHasher>;
+        using DeclTable = HashTable<u8, DeclInfo>;
         using AccessTable = HashTable<u8, bool>;
         using LabelTable = HashTable<std::string_view, std::vector<u64>>;
 
         std::stack<std::vector<std::string>> varScopes{};
         const std::unique_ptr<VarTable> varLocations{new VarTable};
+        const std::unique_ptr<DeclTable> declData{new DeclTable};
         const std::unique_ptr<AccessTable> varAccess{new AccessTable};
         const std::unique_ptr<LabelTable> breakLabels{new LabelTable};
         const std::unique_ptr<LabelTable> continueLabels{new LabelTable};
 
         std::vector<CellInfo> captures{};
         HashTable<std::string, u8> captureNames{};
-        std::vector<DeclarationPair> declaredVars{};
+        std::vector<DeclPair> declaredVars{};
 
         std::vector<u64>* endJumps{};
         std::vector<u64>* breakJumps{};
@@ -92,7 +108,13 @@ class Compiler
 
         // Define a variable with a register location and mutability
         // state.
-        void defVar(const std::string& name, u8 reg, bool access);
+        void defVar(
+            const std::string& name,
+            u8 reg,
+            bool access,
+            DeclType type = DeclType::Var,
+            VarAttr attr = VarAttr{}
+        );
 
         // Undefine a variable originally declared in the current scope.
         // Used as a primitive "rollback" if we hit an error during a
@@ -102,6 +124,9 @@ class Compiler
 
         // To clear declaredVars upon a compile-time or runtime error.
         void clearDeclarations();
+
+        // Get original declaration type for variable.
+        [[nodiscard]] DeclInfo getDeclInfo(u8 reg) const;
 
         // Check if variable at register `reg` is mutable.
         [[nodiscard]] bool getAccess(u8 reg) const;
@@ -121,12 +146,21 @@ class Compiler
         [[nodiscard]]
         u8 captureVariable(const Token& token, const VarInfo& info);
 
+        /* Functions. */
+
+        void hoistClosedFunctions(const StmtVec& program);
+
         /* Variable scoping. */
 
         void pushScope();
         void popScope();
 
         /* Variable declarations. */
+
+        void checkVarAttribute();
+        void checkFuncAttribute();
+        void checkTypeAttribute();
+        void checkAttribute(const StmtUP& node);
 
         void startDeclaration();
         void endDeclaration();

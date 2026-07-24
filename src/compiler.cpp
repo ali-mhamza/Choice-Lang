@@ -54,6 +54,7 @@ constexpr bool setVar{false};
 Compiler::Compiler(Compiler* comp) :
     scopeCompiler{comp},
     depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)},
+    currentAttr{(comp == nullptr) ? VarAttr{} : comp->currentAttr},
     inModule{(comp == nullptr) ? false : comp->inModule}
 {
     if (depth == 0) // Global scope compiler.
@@ -70,10 +71,12 @@ u8 Compiler::clearIndex{0};
 void Compiler::defineBuiltinGlobals()
 {
     defVar("_file_", nextReg++, accessFix);
+
+    // For now.
     for (const auto* func : Constructors::ctorNames)
-        defVar(func, nextReg++, accessFix); // For now.
+        defVar(func, nextReg++, accessFix, DeclType::Func, ATTR_CLOSED);
     for (const auto* func : Natives::funcNames)
-        defVar(func, nextReg++, accessVar);
+        defVar(func, nextReg++, accessVar, DeclType::Func, ATTR_CLOSED);
 }
 
 void Compiler::defineBuiltinLocals(const std::string& funcName)
@@ -122,10 +125,17 @@ void Compiler::emitUnpackState(const AST::UnpackState& unpack)
 // likely be destroyed soon after (if using the REPL),
 // and thus we must take ownership of the string first
 // to avoid invalidating the view.
-void Compiler::defVar(const std::string& name, u8 reg, bool access)
+void Compiler::defVar(
+    const std::string& name,
+    u8 reg,
+    bool access,
+    DeclType type,
+    VarAttr attr
+)
 {
     (*varLocations)[{ name, scope }] = reg;
     (*varAccess)[reg] = access;
+    (*declData)[reg] = { type, attr };
 
     if (scope != 0)
         varScopes.top().push_back(name);
@@ -137,8 +147,10 @@ void Compiler::removeVar(const std::string& name)
 {
     VarEntry entry{name, scope};
     u8 reg{(*varLocations)[entry]};
+
     varLocations->remove(entry);
     varAccess->remove(reg);
+    declData->remove(reg);
 
     if (scope != 0)
         varScopes.top().pop_back();
@@ -165,6 +177,14 @@ void Compiler::clearDeclarations()
     declaredVars.clear();
     clearDeclaredVars = false;
     clearIndex = 0;
+}
+
+Compiler::DeclInfo Compiler::getDeclInfo(u8 reg) const
+{
+    DeclInfo* ret{declData->get(reg)};
+    CH_ASSERT(ret != nullptr,
+        "Variable registered with no declaration info.");
+    return *ret;
 }
 
 bool Compiler::getAccess(u8 reg) const
@@ -197,7 +217,7 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
             VarType type{VarType::Local};
             if ((depth == 0) && (entry.scope == 0))
                 type = VarType::Global;
-            return { true, *slot, type, getAccess(*slot) };
+            return { true, *slot, getDeclInfo(*slot), type, getAccess(*slot) };
         }
     }
 
@@ -207,12 +227,28 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
         VarInfo info{scopeCompiler->resolveVariable(token)};
         if (info.found)
         {
+            // To suppress any capturing or further error-reporting.
+            if (info.type == VarType::Dummy) return info;
+
+            bool capturingClosedFunction{
+                (info.declInfo.type == DeclType::Func)
+                && isClosed(info.declInfo.attr)
+            };
+
+            if (isClosed(currentAttr) && !capturingClosedFunction)
+            {
+                reportError(CLOSED_FUNC_CAPTURING, token);
+                info.type = VarType::Dummy;
+                return info;
+            }
+
             info.slot = captureVariable(token, info);
             // Local variables in enclosing scopes become cells in
             // the current scope.
             // Likewise with globals in modules.
             if (inModule || (info.type == VarType::Local))
                 info.type = VarType::Cell;
+
             return info;
         }
     }
@@ -236,6 +272,40 @@ u8 Compiler::captureVariable(const Token& token, const VarInfo& info)
     return cellIndex;
 }
 
+void Compiler::hoistClosedFunctions(const StmtVec& program)
+{
+    for (const auto& node : program)
+    {
+        if (node->type == StmtType::FuncDecl)
+        {
+            const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
+            if (isClosed(decl->attr))
+            {
+                defVar(
+                    std::string{decl->name.text}, nextReg++, accessVar,
+                    DeclType::Func, decl->attr
+                );
+            }
+        }
+    }
+
+    for (const auto& node : program)
+    {
+        if (node->type == StmtType::FuncDecl)
+        {
+            const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
+            if (isClosed(decl->attr))
+            {
+                // compileStmt does additional preparation that the
+                // direct compileFuncDecl function does not do.
+                compileStmt(node);
+                auto& temp{const_cast<StmtUP&>(node)};
+                temp.reset();
+            }
+        }
+    }
+}
+
 void Compiler::pushScope()
 {
     scope++;
@@ -254,6 +324,59 @@ void Compiler::popScope()
     scope--;
     nextReg = scopeStart;
     code.addOp(OP_EXIT_SCOPE);
+}
+
+void Compiler::checkVarAttribute()
+{
+    if (isClosed(currentAttr))
+    {
+        // Report error.
+    }
+}
+
+void Compiler::checkFuncAttribute()
+{
+
+}
+
+void Compiler::checkTypeAttribute()
+{
+    if (isClosed(currentAttr))
+    {
+        // Report error.
+    }
+}
+
+void Compiler::checkAttribute(const StmtUP& node)
+{
+    switch (node->type)
+    {
+        case StmtType::VarDecl:
+        {
+            const VarDecl* decl{static_cast<const VarDecl*>(node.get())};
+            currentAttr = decl->attr;
+            checkVarAttribute();
+            return;
+        }
+        case StmtType::FuncDecl:
+        {
+            const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
+            currentAttr = decl->attr;
+            checkFuncAttribute();
+            return;
+        }
+        case StmtType::TypeDecl:
+        {
+            const TypeDecl* decl{static_cast<const TypeDecl*>(node.get())};
+            currentAttr = decl->attr;
+            checkTypeAttribute();
+            return;
+        }
+        default:
+        {
+            return;
+        }
+    }
 }
 
 void Compiler::startDeclaration()
@@ -428,7 +551,10 @@ void Compiler::compileSingleVarDecl(
 
     std::string varName{name.text};
     u8 varSlot{valueReg};
-    defVar(varName, varSlot, (fix ? accessFix : accessVar));
+    defVar(
+        varName, varSlot, (fix ? accessFix : accessVar),
+        DeclType::Var, currentAttr
+    );
 
     if (!init) code.loadReg(varSlot, OP_NULL);
 }
@@ -592,6 +718,7 @@ void Compiler::funcBodyHelper(
             case VarType::Global:   code.addOp(OP_CAPTURE_GLOBAL);  break;
             case VarType::Local:    code.addOp(OP_CAPTURE_LOCAL);   break;
             case VarType::Cell:     code.addOp(OP_CAPTURE_CELL);    break;
+            default: break;
         }
         code.addBytes(funcReg, info.slot);
     }
@@ -599,31 +726,34 @@ void Compiler::funcBodyHelper(
 
 DEF(FuncDecl)
 {
-    startDeclaration();
     if (node->name.text.size() > CODE_MAX)
     {
         REPORT_ERROR(FUNC_NAME_TOO_LONG, node->name,
             "maximum length is 255 characters");
     }
 
+    if (node->params.size() > PARAMETER_MAX)
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
+
     LocalInfo localInfo{getScopeLocal(node->name)};
     bool redefined{false};
     if (localInfo.found)
     {
-        if (inRepl && (depth == 0) && (scope == 0))
+        bool hoisting{isClosed(node->attr)};
+        bool globalInRepl{inRepl && (depth == 0) && (scope == 0)};
+
+        if (hoisting || globalInRepl)
             redefined = true;
         else
             REPORT_ERROR(FUNC_ALREADY_DEFINED, node->name);
     }
 
-    if (node->params.size() > PARAMETER_MAX)
-        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
-
+    startDeclaration();
     u8 varSlot{redefined ? localInfo.slot : nextReg};
     std::string name{node->name.text};
     if (!redefined)
     {
-        defVar(name, varSlot, accessVar);
+        defVar(name, varSlot, accessVar, DeclType::Func, currentAttr);
         reserveReg();
     }
 
@@ -725,7 +855,7 @@ DEF(TypeDecl)
 
     u8 typeReg{nextReg};
     std::string name{node->name.text};
-    defVar(name, typeReg, accessVar);
+    defVar(name, typeReg, accessVar, DeclType::Type, currentAttr);
     reserveReg();
 
     std::vector<Type::FieldPair> fields{};
@@ -1186,6 +1316,7 @@ DEF(ExprStmt)
 DEF(BlockStmt)
 {
     pushScope();
+    hoistClosedFunctions(node->block);
     for (const StmtUP& stmt : node->block)
         compileStmt(stmt);
     popScope();
@@ -2134,6 +2265,8 @@ void Compiler::compileStmt(const StmtUP& node)
     #define CASE(type) case StmtType::type
 
     if (node == nullptr) return;
+    VarAttr attr{currentAttr};
+    checkAttribute(node);
 
     u64 lastIndex{metadata.size()};
     metadata.push_back(DebugRange{
@@ -2160,6 +2293,7 @@ void Compiler::compileStmt(const StmtUP& node)
     }
 
     metadata[lastIndex].byteEnd = code.codeSize();
+    currentAttr = attr;
 
     #undef CASE
 }
@@ -2179,6 +2313,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     // Inherit hitError from parser.
 
     code.addOp(OP_ENTER_SCOPE, scopeStart);
+    hoistClosedFunctions(program);
     for (const StmtUP& node : program)
         compileStmt(node);
     code.addOp(OP_EXIT_SCOPE);

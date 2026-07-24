@@ -343,11 +343,11 @@ VarAttr Parser::consumeAttributes()
             nextTok();
             switch (previousTok.type)
             {
-                case TOK_PRIVATE:   markAttribute(attr, DeclAttr::Private);     break;
-                case TOK_STATIC:    markAttribute(attr, DeclAttr::Static);      break;
-                case TOK_COMPUTED:  markAttribute(attr, DeclAttr::Computed);    break;
-                case TOK_CLOSED:    markAttribute(attr, DeclAttr::Closed);      break;
-                case TOK_TEST:      markAttribute(attr, DeclAttr::Test);        break;
+                case TOK_PRIVATE:   markAttribute(attr, ATTR_PRIVATE);  break;
+                case TOK_STATIC:    markAttribute(attr, ATTR_STATIC);   break;
+                case TOK_COMPUTED:  markAttribute(attr, ATTR_COMPUTED); break;
+                case TOK_CLOSED:    markAttribute(attr, ATTR_CLOSED);   break;
+                case TOK_TEST:      markAttribute(attr, ATTR_TEST);     break;
                 default:
                     reportSemantic(INVALID_ATTR, previousTok);
                     break;

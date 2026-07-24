@@ -28,7 +28,8 @@ static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     REF_NOT_ASSIGN, FIELD_UNINIT_READ, DROP_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
-    RETURN_IN_CTOR, INVALID_ATTR, UNREACHABLE_CODE, MUT_TO_IMMUT
+    RETURN_IN_CTOR, CLOSED_NON_FUNCTION, UNREACHABLE_CODE,
+    MUT_TO_IMMUT
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
@@ -78,6 +79,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     // Function errors.
 
+    "Closed function cannot use objects declared outside its scope.",
     "'" CH_DESTRUCTOR "' method must have zero parameters.",
 
     // Type errors.
@@ -147,6 +149,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     // Attribute errors.
 
     "Invalid compiler attribute.",
+    "'closed' attribute can only be used with function declarations.",
 
     // Unused warnings.
 
