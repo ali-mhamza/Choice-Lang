@@ -92,6 +92,17 @@ This option will load the cached bytecode from the given ".chbc" file, reconstru
 
 <hr>
 
+### Check Program
+- Flags: `-k`, `-check`
+- Applies to:
+  1. REPL - No
+  2. Source files - Yes
+  3. Bytecode files - No
+
+This option can be used to check if a particular source file will compile without executing it. If it compiles, a compilation success message will be shown to confirm this. If any errors are found in the source file, they are reported by the interpreter.
+
+<hr>
+
 ### Inspect Bytecode
 - Flags: `-i`, `-inspect`
 - Applies to:
