@@ -1706,6 +1706,11 @@ void Compiler::_crementVar(
     const auto [mut, info] = checkMutability(node, node->expr);
     if (!mut)
     {
+        // Assignment automatically reserves a register since
+        // we compile the value first. Incrementing doesn't
+        // get compiled the same way, so we have to reserve an
+        // unused register (which gets free'd later) to not break
+        // our register tracking.
         reserveReg();
         return;
     }
