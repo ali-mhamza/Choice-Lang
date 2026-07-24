@@ -475,22 +475,25 @@ bool Parser::parseParams(std::vector<AST::Param>& params)
             if (!matchError(TOK_IDENTIFIER, "expect parameter name")) return false;
             Token param{previousTok};
 
+            if (consumeTok(TOK_ELLIPSIS)) variadic = true;
+            CONSUME_VAR_TYPE();
+
             ExprUP defaultVal{};
-            if (consumeTok(TOK_EQUAL))
+            if (!variadic)
             {
-                defaultVal = expression();
-                startedDefaultArgs = true;
-            }
-            else if (consumeTok(TOK_ELLIPSIS))
-                variadic = true;
-            else if (startedDefaultArgs)
-            {
-                reportSyntax(EXPECT_DEFAULT_PARAM, param);
-                return false;
+                if (consumeTok(TOK_EQUAL))
+                {
+                    defaultVal = expression();
+                    startedDefaultArgs = true;
+                }
+                else if (startedDefaultArgs)
+                {
+                    reportSyntax(EXPECT_DEFAULT_PARAM, param);
+                    return false;
+                }
             }
 
             params.emplace_back(fix, variadic, param, defaultVal);
-            CONSUME_VAR_TYPE();
         } while (consumeTok(TOK_COMMA));
     }
 
