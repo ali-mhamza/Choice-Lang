@@ -357,7 +357,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_CLOSURE:	    case OP_NEG:		    case OP_NOT:		    case OP_INCR:
 		case OP_DECR:		    case OP_COMP:		    case OP_RETURN:		    case OP_VOID:
 		case OP_IMMUT:		    case OP_MUT:            case OP_INSTANCE:       case OP_FINISH_FIELDS:
-		case OP_ENTER_SCOPE:    case OP_VAR_ARGS:
+		case OP_ENTER_SCOPE:    case OP_VAR_ARGS:		case OP_COMPUTE:
 		case OP_PRINT_VALID:
 			singleOper(byte);
 			break;

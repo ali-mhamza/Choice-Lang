@@ -165,9 +165,9 @@ IfExpr::IfExpr(ExprUP& condition, ExprUP& trueExpr, ExprUP& falseExpr) :
     condition{std::move(condition)}, trueExpr{std::move(trueExpr)},
     falseExpr{std::move(falseExpr)} {}
 
-LambdaExpr::LambdaExpr(std::vector<Param>& params, StmtUP& body) :
+LambdaExpr::LambdaExpr(std::vector<Param>& params, StmtUP& body, bool iife) :
     Expr{ExprType::LambdaExpr},
-    params{std::move(params)}, body{std::move(body)} {}
+    params{std::move(params)}, body{std::move(body)}, iife{iife} {}
 
 ListExpr::ListExpr(ExprVec& entries) :
     Expr{ExprType::ListExpr},

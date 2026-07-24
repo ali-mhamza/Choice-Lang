@@ -517,10 +517,14 @@ namespace AST
         {
             std::vector<Param> params{};
             StmtUP body{};
+            // Whether or not the lambda is an IIFE (Immediately
+            // Invoked Function Expression).
+            const bool iife{};
 
             LambdaExpr(
                 std::vector<Param>& params,
-                StmtUP& body
+                StmtUP& body,
+                bool iife = false
             );
         };
 

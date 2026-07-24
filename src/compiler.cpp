@@ -326,50 +326,107 @@ void Compiler::popScope()
     code.addOp(OP_EXIT_SCOPE);
 }
 
-void Compiler::checkVarAttribute()
+void Compiler::handleVarAttribute(VarDecl* decl)
 {
+    if (isPrivate(currentAttr)) {}
+    if (isStatic(currentAttr)) {}
+
+    if (isComputed(currentAttr))
+    {
+        for (auto& value : decl->values)
+        {
+            // We turn each value into an IIFE that evaluates it.
+
+            StmtVec block{};
+            block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
+            StmtUP body{std::make_unique<BlockStmt>(block)};
+
+            std::vector<AST::Param> params{};
+            value = std::make_unique<LambdaExpr>(params, body, true);
+        }
+    }
+
     if (isClosed(currentAttr))
+    {
+        // Report error.
+    }
+
+    if (isTest(currentAttr))
     {
         // Report error.
     }
 }
 
-void Compiler::checkFuncAttribute()
+void Compiler::handleFuncAttribute(FuncDecl* decl)
 {
+    (void) decl;
 
+    if (isPrivate(currentAttr)) {}
+
+    if (isStatic(currentAttr))
+    {
+        // Report error.
+    }
+
+    if (isComputed(currentAttr))
+    {
+        // Report error.
+    }
+
+    if (isClosed(currentAttr)) {}
+    if (isTest(currentAttr)) {}
 }
 
-void Compiler::checkTypeAttribute()
+void Compiler::handleTypeAttribute(TypeDecl* decl)
 {
+    (void) decl;
+
+    if (isPrivate(currentAttr)) {}
+
+    if (isStatic(currentAttr))
+    {
+        // Report error.
+    }
+
     if (isClosed(currentAttr))
+    {
+        // Report error.
+    }
+
+    if (isClosed(currentAttr))
+    {
+        // Report error.
+    }
+
+    if (isTest(currentAttr))
     {
         // Report error.
     }
 }
 
-void Compiler::checkAttribute(const StmtUP& node)
+void Compiler::handleAttribute(const StmtUP& node)
 {
     switch (node->type)
     {
         case StmtType::VarDecl:
         {
-            const VarDecl* decl{static_cast<const VarDecl*>(node.get())};
+            VarDecl* decl{static_cast<VarDecl*>(node.get())};
             currentAttr = decl->attr;
-            checkVarAttribute();
+            handleVarAttribute(decl);
             return;
         }
         case StmtType::FuncDecl:
         {
-            const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
+            FuncDecl* decl{static_cast<FuncDecl*>(node.get())};
             currentAttr = decl->attr;
-            checkFuncAttribute();
+            handleFuncAttribute(decl);
             return;
         }
         case StmtType::TypeDecl:
         {
-            const TypeDecl* decl{static_cast<const TypeDecl*>(node.get())};
+            TypeDecl* decl{static_cast<TypeDecl*>(node.get())};
             currentAttr = decl->attr;
-            checkTypeAttribute();
+            handleTypeAttribute(decl);
             return;
         }
         default:
@@ -694,15 +751,17 @@ Object Compiler::makeFuncObj(
     return func;
 }
 
+template<typename NodeT>
 void Compiler::funcBodyHelper(
     Compiler& miniCompiler,
-    const std::vector<AST::Param>& params,
-    const StmtUP& body,
+    const NodeT* node,
     const u8 funcReg,
-    const std::string& name
+    const std::string& name,
+    bool iife
 )
 {
-    Object func{makeFuncObj(miniCompiler, params, body, name)};
+    Object func{makeFuncObj(miniCompiler, node->params, node->body, name)};
+    if (iife) AS_USER_FUNC(func)->iife = true;
 
     // We only declare in the current function scope.
     code.loadRegConst(func, funcReg);
@@ -759,7 +818,7 @@ DEF(FuncDecl)
 
     bool inError{hitError};
     Compiler miniCompiler{this};
-    funcBodyHelper(miniCompiler, node->params, node->body, varSlot, name);
+    funcBodyHelper(miniCompiler, node, varSlot, name);
     if (!inError && hitError) removeVar(name);
     endDeclaration();
 }
@@ -898,7 +957,7 @@ DEF(TypeDecl)
 
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
-        funcBodyHelper(miniCompiler, decl->params, decl->body, funcReg, name);
+        funcBodyHelper(miniCompiler, decl, funcReg, name);
         reserveReg();
     }
 
@@ -1906,8 +1965,7 @@ DEF(LambdaExpr)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
 
     Compiler miniCompiler{this};
-    funcBodyHelper(miniCompiler, node->params, node->body, nextReg,
-        std::string{});
+    funcBodyHelper(miniCompiler, node, nextReg, std::string{}, true);
     reserveReg();
 }
 
@@ -2117,6 +2175,8 @@ DEF(VarExpr)
         REPORT_ERROR(VAR_NOT_DEFINED, node->name);
 
     emitVariableOp(getVar, info, nextReg, info.slot);
+    if (isComputed(info.declInfo.attr))
+        code.addOp(OP_COMPUTE, nextReg);
     reserveReg();
 }
 
@@ -2279,7 +2339,7 @@ void Compiler::compileStmt(const StmtUP& node)
 
     if (node == nullptr) return;
     VarAttr attr{currentAttr};
-    checkAttribute(node);
+    handleAttribute(node);
 
     u64 lastIndex{metadata.size()};
     metadata.push_back(DebugRange{

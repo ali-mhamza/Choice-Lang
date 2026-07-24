@@ -499,7 +499,11 @@ struct Function : public HeapObj
     const ByteCode code{};
     const ByteCode* defaultArgs{nullptr};
     const u8 arityMin{}, arityMax{};
-    bool variadic{false}; // Non-const to allow assignment.
+    // Non-const to allow assignment.
+    bool variadic{false};
+    // Object is an IIFE (Immediately Invoked Function
+    // Expression) lambda.
+    bool iife{false};
 
     Function(
         const ByteCode& code,

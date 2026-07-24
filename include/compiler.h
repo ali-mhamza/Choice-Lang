@@ -157,10 +157,16 @@ class Compiler
 
         /* Variable declarations. */
 
-        void checkVarAttribute();
-        void checkFuncAttribute();
-        void checkTypeAttribute();
-        void checkAttribute(const StmtUP& node);
+        void handleVarAttribute(
+            AST::Statement::VarDecl* decl
+        );
+        void handleFuncAttribute(
+            AST::Statement::FuncDecl* decl
+        );
+        void handleTypeAttribute(
+            AST::Statement::TypeDecl* decl
+        );
+        void handleAttribute(const StmtUP& node);
 
         void startDeclaration();
         void endDeclaration();
@@ -233,12 +239,13 @@ class Compiler
             const StmtUP& body,
             const std::string& name
         );
+        template<typename NodeT>
         void funcBodyHelper(
             Compiler& miniCompiler,
-            const std::vector<AST::Param>& params,
-            const StmtUP& body,
+            const NodeT* node,
             const u8 funcReg,
-            const std::string& name
+            const std::string& name,
+            bool iife = false
         );
         DECL_STMT(FuncDecl);
 

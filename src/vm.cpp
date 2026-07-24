@@ -1602,6 +1602,16 @@ void VM::executeOp(Opcode op)
             DISPATCH();
         }
 
+        CASE(OP_COMPUTE):
+        {
+            u8 reg{readByte()};
+            const Object& obj{registers[reg]};
+            if (IS_LAMBDA(obj) && AS_LAMBDA(obj)->iife)
+                callObj(obj, reg + 1, 0);
+
+            DISPATCH();
+        }
+
         CASE(OP_UNPACK):
         {
             u8 reg{readByte()};
