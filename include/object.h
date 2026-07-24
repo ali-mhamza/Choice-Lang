@@ -14,6 +14,9 @@
 #include <variant>
 
 using Natives::FuncType;
+class Object;
+struct ObjectHasher;
+using ObjectTable = HashTable<Object, Object, ObjectHasher>;
 
 /* Constants. */
 
@@ -622,7 +625,7 @@ struct ObjectHasher
 
 struct Table : public HeapObj
 {
-    HashTable<Object, Object, ObjectHasher> table{};
+    ObjectTable table{};
 
     Table() noexcept = default;
 
@@ -731,7 +734,7 @@ struct ListIter
 struct TableIter
 {
     Table* obj{};
-    HashTable<Object, Object, ObjectHasher>::iterator it{};
+    ObjectTable::iterator it{};
     const u8 flags{};
 
     TableIter() noexcept = default;
