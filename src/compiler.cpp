@@ -1011,8 +1011,7 @@ DEF(IfStmt)
     {
         u64 trueJump{code.addJump(OP_JUMP)};
         code.patchJump(falseJump);
-        if (node->falseBranch != nullptr)
-            compileStmt(node->falseBranch);
+        compileStmt(node->falseBranch);
         code.patchJump(trueJump);
     }
     else
@@ -2150,8 +2149,7 @@ DEF(FormatExpr)
     for (const ExprUP& part : node->parts)
         compileExpr(part);
 
-    code.addOp(OP_FORMAT_STR, partsBegin,
-        static_cast<u8>(node->parts.size()));
+    code.addOp(OP_FORMAT_STR, partsBegin, static_cast<u8>(node->parts.size()));
 
     // Free all registers except first one (containing the
     // final string).
