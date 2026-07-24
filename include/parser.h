@@ -4,6 +4,7 @@
 #include "common.h"
 #include "diagnostic.h"
 #include <string_view>
+#include <utility>
 
 class Parser
 {
@@ -72,7 +73,7 @@ class Parser
 
         // Declarations.
 
-        [[nodiscard]] VarAttr consumeAttributes();
+        [[nodiscard]] std::pair<VarAttr, vT> consumeAttributes();
         void parseVariableList(
             vT& vars,
             AST::UnpackState& unpack,

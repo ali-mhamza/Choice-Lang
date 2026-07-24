@@ -148,8 +148,12 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     // Attribute errors.
 
-    "Invalid compiler attribute.",
-    "'closed' attribute can only be used with function declarations.",
+    "Invalid compiler attribute.", "Compiler attribute is repeated.",
+    "'private' attribute is only valid for global-scope declarations.",
+    "'static' attribute is only valid for local variables in functions.",
+    "'computed' attribute is only valid for variables.",
+    "'closed' attribute is only valid for functions.",
+    "'test' attribute is only valid for global-scope functions.",
 
     // Unused warnings.
 

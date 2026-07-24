@@ -23,6 +23,7 @@ namespace AST
     struct Decl
     {
         VarAttr attr{};
+        vT attrTokens{};
     };
 
     struct Param

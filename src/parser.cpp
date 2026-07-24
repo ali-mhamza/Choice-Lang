@@ -330,9 +330,10 @@ void Parser::setExprLocation(ExprUP& expr, u64 start)
     }
 }
 
-VarAttr Parser::consumeAttributes()
+std::pair<VarAttr, vT> Parser::consumeAttributes()
 {
     VarAttr attr{};
+    vT attrTokens(NUM_ATTRS, Token{});
 
     while (consumeTok(TOK_AT))
     {
@@ -341,24 +342,32 @@ VarAttr Parser::consumeAttributes()
 
         do {
             nextTok();
+            DeclAttr declAttr{};
             switch (previousTok.type)
             {
-                case TOK_PRIVATE:   markAttribute(attr, ATTR_PRIVATE);  break;
-                case TOK_STATIC:    markAttribute(attr, ATTR_STATIC);   break;
-                case TOK_COMPUTED:  markAttribute(attr, ATTR_COMPUTED); break;
-                case TOK_CLOSED:    markAttribute(attr, ATTR_CLOSED);   break;
-                case TOK_TEST:      markAttribute(attr, ATTR_TEST);     break;
+                case TOK_PRIVATE:   markPrivate(attr);  declAttr = ATTR_PRIVATE;    break;
+                case TOK_STATIC:    markStatic(attr);   declAttr = ATTR_STATIC;     break;
+                case TOK_COMPUTED:  markComputed(attr); declAttr = ATTR_COMPUTED;   break;
+                case TOK_CLOSED:    markClosed(attr);   declAttr = ATTR_CLOSED;     break;
+                case TOK_TEST:      markTest(attr);     declAttr = ATTR_TEST;       break;
                 default:
                     reportSemantic(INVALID_ATTR, previousTok);
                     break;
             }
+
+            if (attrTokens[declAttr])
+            {
+                reportSemantic(REPEATED_ATTR, previousTok);
+                break;
+            }
+            attrTokens[declAttr] = previousTok;
         } while (consumeTok(TOK_COMMA));
 
         if (!matchError(TOK_RIGHT_PAREN, "expect ')' after attribute(s)"))
             break;
     }
 
-    return attr;
+    return std::make_pair(attr, attrTokens);
 }
 
 void Parser::parseVariableList(
@@ -393,7 +402,17 @@ void Parser::parseVariableList(
 
 StmtUP Parser::declaration()
 {
-    VarAttr attr{consumeAttributes()};
+    #define SET_DECL_INFO(type) \
+        do {                                                \
+            if (ret != nullptr)                             \
+            {                                               \
+                auto* ptr{static_cast<type*>(ret.get())};   \
+                ptr->attr = attr;                           \
+                ptr->attrTokens = attrTokens;               \
+            }                                               \
+        } while (false)
+
+    auto [attr, attrTokens] = consumeAttributes();
     StmtUP ret{nullptr};
     u64 start{currentTok.byteOffset};
 
@@ -402,17 +421,17 @@ StmtUP Parser::declaration()
     else if (consumeToks(TOK_MAKE, TOK_FIX))
     {
         ret = varDecl();
-        if (ret != nullptr) static_cast<VarDecl*>(ret.get())->attr = attr;
+        SET_DECL_INFO(VarDecl);
     }
     else if (consumeTok(TOK_FUNC))
     {
         ret = funcDecl();
-        if (ret != nullptr) static_cast<FuncDecl*>(ret.get())->attr = attr;
+        SET_DECL_INFO(FuncDecl);
     }
     else if (consumeTok(TOK_TYPE))
     {
         ret = typeDecl();
-        if (ret != nullptr) static_cast<TypeDecl*>(ret.get())->attr = attr;
+        SET_DECL_INFO(TypeDecl);
     }
     else
         ret = statement();
@@ -425,6 +444,8 @@ StmtUP Parser::declaration()
 
     setStmtLocation(ret, start);
     return ret;
+
+    #undef SET_DECL_INFO
 }
 
 StmtUP Parser::varDecl()
@@ -542,7 +563,7 @@ StmtUP Parser::typeDecl()
         if (!checkTok(TOK_FUNC) && !checkTok(TOK_RIGHT_BRACE))
         {
             do {
-                VarAttr attr{consumeAttributes()};
+                auto [attr, _] = consumeAttributes();
                 bool fix{consumeTok(TOK_FIX)};
                 MATCH_TOK(TOK_IDENTIFIER, "expect field name");
                 Token name{previousTok};

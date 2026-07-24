@@ -319,8 +319,19 @@ enum DiagCode : u8
 
     // Invalid attribute title.
     INVALID_ATTR,
+    // Repeated attribute.
+    REPEATED_ATTR,
+    // 'private' attribute used on non-global (for now).
+    PRIVATE_NON_GLOBAL,
+    // 'static' attribute used on other than a function
+    // local variable (for now).
+    STATIC_NOT_FUNC_VAR,
+    // 'computed' attribute used on non-variable.
+    COMPUTED_NON_VAR,
     // 'closed' attribute used on non-function.
     CLOSED_NON_FUNCTION,
+    // 'test' attribute used on other than a global function.
+    TEST_NOT_GLOBAL_FUNC,
 
 
     /* Unused variable/object warnings. */

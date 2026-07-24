@@ -73,10 +73,12 @@ void Compiler::defineBuiltinGlobals()
     defVar("_file_", nextReg++, accessFix);
 
     // For now.
+    VarAttr attr{};
+    markClosed(attr);
     for (const auto* func : Constructors::ctorNames)
-        defVar(func, nextReg++, accessFix, DeclType::Func, ATTR_CLOSED);
+        defVar(func, nextReg++, accessFix, DeclType::Func, attr);
     for (const auto* func : Natives::funcNames)
-        defVar(func, nextReg++, accessVar, DeclType::Func, ATTR_CLOSED);
+        defVar(func, nextReg++, accessVar, DeclType::Func, attr);
 }
 
 void Compiler::defineBuiltinLocals(const std::string& funcName)
@@ -328,8 +330,19 @@ void Compiler::popScope()
 
 void Compiler::handleVarAttribute(VarDecl* decl)
 {
-    if (isPrivate(currentAttr)) {}
-    if (isStatic(currentAttr)) {}
+    const vT& toks{decl->attrTokens};
+
+    if (isPrivate(currentAttr))
+    {
+        if ((depth != 0) || (scope != 0))
+            reportError(PRIVATE_NON_GLOBAL, toks[ATTR_PRIVATE]);
+    }
+
+    if (isStatic(currentAttr))
+    {
+        if (depth == 0)
+            reportError(STATIC_NOT_FUNC_VAR, toks[ATTR_STATIC]);
+    }
 
     if (isComputed(currentAttr))
     {
@@ -347,61 +360,56 @@ void Compiler::handleVarAttribute(VarDecl* decl)
     }
 
     if (isClosed(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(CLOSED_NON_FUNCTION, toks[ATTR_CLOSED]);
 
     if (isTest(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(TEST_NOT_GLOBAL_FUNC, toks[ATTR_TEST]);
 }
 
 void Compiler::handleFuncAttribute(FuncDecl* decl)
 {
-    (void) decl;
+    const vT& toks{decl->attrTokens};
 
-    if (isPrivate(currentAttr)) {}
+    if (isPrivate(currentAttr))
+    {
+        if ((depth != 0) || (scope != 0))
+            reportError(PRIVATE_NON_GLOBAL, toks[ATTR_PRIVATE]);
+    }
 
     if (isStatic(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(STATIC_NOT_FUNC_VAR, toks[ATTR_STATIC]);
 
     if (isComputed(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(COMPUTED_NON_VAR, toks[ATTR_COMPUTED]);
 
-    if (isClosed(currentAttr)) {}
-    if (isTest(currentAttr)) {}
+    if (isTest(currentAttr))
+    {
+        if ((depth != 0) || (scope != 0))
+            reportError(TEST_NOT_GLOBAL_FUNC, toks[ATTR_TEST]);
+    }
 }
 
 void Compiler::handleTypeAttribute(TypeDecl* decl)
 {
-    (void) decl;
+    const vT& toks{decl->attrTokens};
 
-    if (isPrivate(currentAttr)) {}
+    if (isPrivate(currentAttr))
+    {
+        if ((depth != 0) || (scope != 0))
+            reportError(PRIVATE_NON_GLOBAL, toks[ATTR_PRIVATE]);
+    }
 
     if (isStatic(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(STATIC_NOT_FUNC_VAR, toks[ATTR_STATIC]);
+
+    if (isComputed(currentAttr))
+        reportError(COMPUTED_NON_VAR, toks[ATTR_COMPUTED]);
 
     if (isClosed(currentAttr))
-    {
-        // Report error.
-    }
-
-    if (isClosed(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(CLOSED_NON_FUNCTION, toks[ATTR_CLOSED]);
 
     if (isTest(currentAttr))
-    {
-        // Report error.
-    }
+        reportError(TEST_NOT_GLOBAL_FUNC, toks[ATTR_TEST]);
 }
 
 void Compiler::handleAttribute(const StmtUP& node)
