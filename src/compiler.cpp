@@ -276,7 +276,7 @@ void Compiler::hoistClosedFunctions(const StmtVec& program)
 {
     for (const auto& node : program)
     {
-        if (node->type == StmtType::FuncDecl)
+        if ((node != nullptr) && (node->type == StmtType::FuncDecl))
         {
             const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
             if (isClosed(decl->attr))
@@ -291,7 +291,7 @@ void Compiler::hoistClosedFunctions(const StmtVec& program)
 
     for (const auto& node : program)
     {
-        if (node->type == StmtType::FuncDecl)
+        if ((node != nullptr) && (node->type == StmtType::FuncDecl))
         {
             const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
             if (isClosed(decl->attr))
@@ -804,6 +804,8 @@ bool Compiler::checkMethodCollisions(
             if (i == j) continue;
 
             const FuncDecl* secondDecl{static_cast<FuncDecl*>(methods[j].get())};
+            if ((firstDecl == nullptr) || (secondDecl == nullptr)) continue;
+
             if (firstDecl->name.text == secondDecl->name.text)
             {
                 reportError(METHOD_ALREADY_DEFINED, secondDecl->name);
@@ -830,6 +832,8 @@ bool Compiler::checkMixedCollisions(
         for (u64 j{0}; j < methodCount; j++)
         {
             const FuncDecl* decl{static_cast<FuncDecl*>(methods[j].get())};
+            if (decl == nullptr) continue;
+
             if (fields[i].name.text == decl->name.text)
             {
                 reportError(METHOD_FIELD_COLLIDE, decl->name);
@@ -882,6 +886,8 @@ DEF(TypeDecl)
     for (const auto& method : node->methods)
     {
         FuncDecl* decl{static_cast<FuncDecl*>(method.get())};
+        if (decl == nullptr) continue;
+
         if ((decl->name.text == CH_DESTRUCTOR) && (decl->params.size() != 0))
             REPORT_ERROR(DROP_HAS_PARAMS, decl->params[0].param);
 
@@ -1499,7 +1505,7 @@ void Compiler::compoundAssignToField(
 
 DEF(MutExpr)
 {
-    if (node->value->type == ExprType::MutExpr)
+    if ((node->value != nullptr) && (node->value->type == ExprType::MutExpr))
     {
         const MutExpr* temp{static_cast<const MutExpr*>(node->value.get())};
         std::string_view nodeType{node->mut ? "mut" : "immut"};
@@ -1555,6 +1561,8 @@ DEF(AssignExpr)
     for (u64 i{0}; i < node->targets.size(); i++)
     {
         const auto& target{node->targets[i]};
+        if (target == nullptr) continue;
+
         switch (target->type)
         {
             case ExprType::VarExpr:     assignToVar(node, target, valueStart + i);      break;
@@ -2087,6 +2095,8 @@ void Compiler::fieldReference(const RefExpr* node)
 
 DEF(RefExpr)
 {
+    if (node->obj == nullptr) return;
+
     switch (node->obj->type)
     {
         case ExprType::VarExpr:     varReference(node);     break;

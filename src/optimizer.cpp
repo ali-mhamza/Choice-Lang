@@ -570,6 +570,8 @@ static bool isDirectLoop(const RepeatStmt* repeat)
     const BlockStmt* body{static_cast<const BlockStmt*>(repeat->body.get())};
     for (const auto& stmt : body->block)
     {
+        if (stmt == nullptr) continue;
+
         switch (stmt->type)
         {
             case StmtType::BreakStmt:
