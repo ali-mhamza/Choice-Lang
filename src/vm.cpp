@@ -57,6 +57,12 @@
     #define SET_REGSLOT_MAX(a, b)
 #endif
 
+#define COMPUTE_OBJ(reg)                                                    \
+    do {                                                                    \
+        if (IS_LAMBDA(registers[reg]) && AS_LAMBDA(registers[reg])->iife)   \
+            callObj(registers[reg], reg + 1, 0);                            \
+    } while (false)
+
 VM::VM()
 {
     defineBuiltinGlobals();
@@ -1338,6 +1344,7 @@ void VM::executeOp(Opcode op)
             const std::string& field{AS_STRING(registers[fieldReg])->str};
             // Replace the instance.
             registers[destReg] = obj->getField(field, currentMethodType);
+            COMPUTE_OBJ(destReg);
             DISPATCH();
         }
         CASE(OP_SET_FIELD):
@@ -1615,10 +1622,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_COMPUTE):
         {
             u8 reg{readByte()};
-            const Object& obj{registers[reg]};
-            if (IS_LAMBDA(obj) && AS_LAMBDA(obj)->iife)
-                callObj(obj, reg + 1, 0);
-
+            COMPUTE_OBJ(reg);
             DISPATCH();
         }
 

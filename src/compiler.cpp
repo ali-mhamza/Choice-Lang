@@ -332,6 +332,16 @@ template<typename DeclNodeType>
 void Compiler::handleVarAttribute(DeclNodeType* decl)
 {
     const vT& toks{decl->attrTokens};
+    auto makeComputed = [](ExprUP& value) {
+        if (value == nullptr) return;
+
+        StmtVec block{};
+        block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
+        StmtUP body{std::make_unique<BlockStmt>(block)};
+
+        std::vector<AST::Param> params{};
+        value = std::make_unique<LambdaExpr>(params, body, true);
+    };
 
     if (isPrivate(currentAttr))
     {
@@ -347,22 +357,14 @@ void Compiler::handleVarAttribute(DeclNodeType* decl)
 
     if (isComputed(currentAttr))
     {
-        if constexpr (std::is_same_v<DeclType, VarDecl>)
+        if constexpr (std::is_same_v<DeclNodeType, VarDecl>)
         {
+            // We turn each value into an IIFE that evaluates it.
             for (auto& value : decl->values)
-            {
-                // We turn each value into an IIFE that evaluates it.
-
-                StmtVec block{};
-                block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
-                StmtUP body{std::make_unique<BlockStmt>(block)};
-
-                std::vector<AST::Param> params{};
-                value = std::make_unique<LambdaExpr>(params, body, true);
-            }
+                makeComputed(value);
         }
-        else
-            reportError(COMPUTED_NON_VAR, toks[ATTR_COMPUTED]); // For now.
+        else if constexpr (std::is_same_v<DeclNodeType, TypeDecl::Field>)
+            makeComputed(decl->init);
     }
 
     if (isClosed(currentAttr))
@@ -941,9 +943,8 @@ DEF(TypeDecl)
 
     for (const auto& field : node->fields)
     {
-        const auto* decl{static_cast<const AST::Decl*>(&field)};
-        currentAttr = decl->attr;
-        handleVarAttribute(decl);
+        currentAttr = field.attr;
+        handleVarAttribute(const_cast<TypeDecl::Field*>(&field));
         fields.push_back({
             std::string{field.name.text},
             field.fix,
