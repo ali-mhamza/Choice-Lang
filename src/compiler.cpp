@@ -2434,9 +2434,10 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     return CH_ALLOC(Function, getCode());
 }
 
-const Compiler::VarTable& Compiler::getSymbolTable() const
+std::pair<const Compiler::VarTable&, const Compiler::DeclTable&>
+Compiler::getSymbolTable() const
 {
-    return *(varLocations.get());
+    return { *varLocations, *declData };
 }
 
 #undef DEF
