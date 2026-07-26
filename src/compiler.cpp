@@ -328,7 +328,8 @@ void Compiler::popScope()
     code.addOp(OP_EXIT_SCOPE);
 }
 
-void Compiler::handleVarAttribute(VarDecl* decl)
+template<typename DeclNodeType>
+void Compiler::handleVarAttribute(DeclNodeType* decl)
 {
     const vT& toks{decl->attrTokens};
 
@@ -346,17 +347,22 @@ void Compiler::handleVarAttribute(VarDecl* decl)
 
     if (isComputed(currentAttr))
     {
-        for (auto& value : decl->values)
+        if constexpr (std::is_same_v<DeclType, VarDecl>)
         {
-            // We turn each value into an IIFE that evaluates it.
+            for (auto& value : decl->values)
+            {
+                // We turn each value into an IIFE that evaluates it.
 
-            StmtVec block{};
-            block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
-            StmtUP body{std::make_unique<BlockStmt>(block)};
+                StmtVec block{};
+                block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
+                StmtUP body{std::make_unique<BlockStmt>(block)};
 
-            std::vector<AST::Param> params{};
-            value = std::make_unique<LambdaExpr>(params, body, true);
+                std::vector<AST::Param> params{};
+                value = std::make_unique<LambdaExpr>(params, body, true);
+            }
         }
+        else
+            reportError(COMPUTED_NON_VAR, toks[ATTR_COMPUTED]); // For now.
     }
 
     if (isClosed(currentAttr))
@@ -929,13 +935,20 @@ DEF(TypeDecl)
     defVar(name, typeReg, accessVar, DeclType::Type, currentAttr);
     reserveReg();
 
-    std::vector<Type::FieldPair> fields{};
+    std::vector<Type::Field> fields{};
     ByteCode* fieldInits{new ByteCode[node->fields.size()]};
     ByteCode* temp{fieldInits};
 
     for (const auto& field : node->fields)
     {
-        fields.emplace_back(std::string{field.name.text}, field.fix);
+        const auto* decl{static_cast<const AST::Decl*>(&field)};
+        currentAttr = decl->attr;
+        handleVarAttribute(decl);
+        fields.push_back({
+            std::string{field.name.text},
+            field.fix,
+            !isPrivate(field.attr)
+        });
         if (field.init != nullptr)
         {
             Compiler initCompiler{this};
@@ -950,6 +963,7 @@ DEF(TypeDecl)
     }
 
     u8 methodStart{nextReg};
+    std::vector<u8> methodAccess{};
     for (const auto& method : node->methods)
     {
         FuncDecl* decl{static_cast<FuncDecl*>(method.get())};
@@ -965,6 +979,7 @@ DEF(TypeDecl)
 
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
+        methodAccess.emplace_back(static_cast<u8>(!isPrivate(decl->attr)));
         funcBodyHelper(miniCompiler, decl, funcReg, name);
         reserveReg();
     }
@@ -972,8 +987,14 @@ DEF(TypeDecl)
     Object typeObj{CH_ALLOC(Type, name, fields, fieldInits)};
     code.loadRegConst(typeObj, typeReg);
 
+    // TODO: Extend this if optimizer eliminates unused methods.
+    if (node->methods.size() != methodAccess.size()) return;
+
     for (u64 i{0}; i < node->methods.size(); i++)
-        code.addOp(OP_METHOD, typeReg, static_cast<u8>(methodStart + i));
+    {
+        code.addOp(OP_METHOD, typeReg, static_cast<u8>(methodStart + i),
+            methodAccess[i]);
+    }
     nextReg = typeReg + 1; // Methods shouldn't continue to live in registers.
 }
 

@@ -246,7 +246,13 @@ void Disassembler::typeOp(u8 byte)
 {
     printOpcode(opNames[byte]);
     u8 first{readByte()}, second{readByte()}, third{readByte()};
-    CH_PRINT("R[{}] R[{}] R[{}]\n", first, second, third);
+	if (static_cast<Opcode>(byte) == OP_METHOD)
+	{
+		CH_PRINT("R[{}] R[{}] ", first, second);
+		CH_PRINT("({})\n", ((third == 1) ? "public" : "private"));
+	}
+	else
+    	CH_PRINT("R[{}] R[{}] R[{}]\n", first, second, third);
 }
 
 void Disassembler::moduleOp(u8 byte)
@@ -339,7 +345,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
 		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_REG:
-		case OP_RANGE:      case OP_METHOD:     case OP_MODULE:
+		case OP_RANGE:     	case OP_MODULE:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
@@ -367,7 +373,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_LIST:		case OP_EXT_LIST:	case OP_TABLE:		case OP_EXT_TABLE:
 			collectionOp(byte);
 			break;
-		case OP_INIT_FIELD:     case OP_GET_FIELD:  case OP_SET_FIELD:
+		case OP_INIT_FIELD:     case OP_GET_FIELD: 		case OP_SET_FIELD:		case OP_METHOD:
             typeOp(byte);
             break;
         case OP_GET_ENTRY:

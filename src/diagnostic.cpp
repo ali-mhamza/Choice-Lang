@@ -25,7 +25,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    REF_NOT_ASSIGN, FIELD_UNINIT_READ, DROP_HAS_PARAMS,
+    REF_NOT_ASSIGN, METHOD_PRIVATE, DROP_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
     RETURN_IN_CTOR, CLOSED_NON_FUNCTION, UNREACHABLE_CODE,
@@ -71,11 +71,12 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Variable already defined in current scope.",
     "Function already defined in current scope.",
     "Parameter with the same name already defined.",
-    "Named field not defined for instance type.",
+    "Named field or method not defined for instance type.",
     "Field with the same name already defined.",
     "Method with the same name already defined.",
     "Method name collides with a field declared before it.",
     "Cannot get the value of a field before it has been initialized.",
+    "Field is private.", "Method is private.",
 
     // Function errors.
 

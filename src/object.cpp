@@ -596,7 +596,7 @@ u64 Module::byteSize() const
 
 Type::Type(
     const std::string& name,
-    std::vector<FieldPair>& fields,
+    std::vector<Field>& fields,
     const ByteCode* inits
 ) noexcept:
     name{choiceStrdup(name.c_str())}, fieldCode{inits}
@@ -604,8 +604,8 @@ Type::Type(
     u8 count{0};
     for (const auto& field : fields)
     {
-        this->fields.emplace_back(field.first, field.second);
-        this->fieldTable.add(field.first, count++);
+        this->fields.emplace_back(field);
+        this->fieldTable.add(field.name, count++);
     }
 }
 
@@ -615,19 +615,33 @@ Type::~Type() noexcept
     delete[] fieldCode;
 }
 
-void Type::addMethod(const Object& method)
+void Type::addMethod(const Object& method, bool pub)
 {
     const char* name{};
     if (IS_USER_FUNC(method))
         name = AS_USER_FUNC(method)->name;
     else if (IS_CLOSURE(method))
         name = AS_CLOSURE(method)->function->name;
-    methods.add(name, Object{CH_ALLOC(Method, method)});
+    methods.add(name, Object{CH_ALLOC(Method, method, pub)});
 }
 
 bool Type::defines(const std::string& method) const
 {
     return methods.contains(method);
+}
+
+bool Type::isPublicField(const std::string& field) const
+{
+    const u8* slot{fieldTable.get(field)};
+    CH_ASSERT(slot != nullptr, "Checking access for non-existent field.");
+    return fields[*slot].pub;
+}
+
+bool Type::isPublicMethod(const std::string& method) const
+{
+    const Object* obj{methods.get(method)};
+    CH_ASSERT(obj != nullptr, "Checking access for non-existent method");
+    return AS_METHOD(*obj)->pub;
 }
 
 void Type::emit(std::ofstream& os) const
@@ -643,8 +657,9 @@ void Type::emit(std::ofstream& os) const
     os.put(static_cast<char>(fieldCount));
     for (const auto& field : fields)
     {
-        emitName(field.first);
-        os.put(static_cast<char>(field.second));
+        emitName(field.name);
+        os.put(static_cast<char>(field.fixed));
+        os.put(static_cast<char>(field.pub));
     }
 
     for (u8 i{0}; i < fieldCount; i++)
@@ -677,9 +692,10 @@ u64 Type::byteSize() const
     size += sizeof(fieldCount);
     for (const auto& field : fields)
     {
-        countName(field.first);
-        // Added Boolean mutability byte (1).
-        size += sizeof(field.second);
+        countName(field.name);
+        // Added Boolean mutability byte (1) and access
+        // byte (1).
+        size += sizeof(field.fixed) + sizeof(field.pub);
     }
 
     for (u8 i{0}; i < fieldCount; i++)
@@ -696,7 +712,7 @@ Instance::Instance(const Type* type) noexcept:
     type{type}
 {
     for (const auto& field : type->fields)
-        this->fields.add(field.first, Object{});
+        this->fields.add(field.name, Object{});
 }
 
 bool Instance::operator==(const Instance& other) const
@@ -717,7 +733,7 @@ Object* Instance::findField(const std::string& name)
         );
     }
 
-   return location;
+    return location;
 }
 
 const Object* Instance::findField(const std::string& name) const
@@ -741,18 +757,49 @@ const Object* Instance::findField(const std::string& name) const
 
 Object Instance::getField(const std::string& name) const
 {
+    return getField(name, type);
+}
+
+Object Instance::getField(
+    const std::string& name,
+    const Type* check
+) const
+{
     const Object* location{findField(name)};
     if (!IS_VALID(*location))
         throw RuntimeError(FIELD_UNINIT_READ);
+    else if (check != type)
+    {
+        if (IS_METHOD(*location))
+        {
+            if (!type->isPublicMethod(name))
+                throw RuntimeError(METHOD_PRIVATE);
+        }
+        else if (!type->isPublicField(name))
+            throw RuntimeError(FIELD_PRIVATE);
+    }
+
     return *location;
 }
 
 void Instance::setField(const std::string& name, const Object& value)
 {
+    return setField(name, value, type);
+}
+
+void Instance::setField(
+    const std::string& name,
+    const Object& value,
+    const Type* check
+)
+{
     Object* location{findField(name)};
     // Field is fixed, but the flag is placed on the value itself.
     if (IS_FIXED(*location))
         throw RuntimeError(MOD_FIXED_FIELD);
+    else if ((check != type) && !type->isPublicField(name))
+        throw RuntimeError(FIELD_PRIVATE);
+
     *location = value;
 }
 
@@ -763,7 +810,7 @@ void Instance::initField(const std::string& name, const Object& value)
 
     // Field must exist if we have reached this point.
     u8 position{*(type->fieldTable.get(name))};
-    bool fix{type->fields[position].second};
+    bool fix{type->fields[position].fixed};
 
     if (fix)
     {
@@ -789,8 +836,8 @@ std::string Instance::printVal() const
     ret += " {\n";
     for (const auto& field : type->fields)
     {
-        const Object& value{*(fields.get(field.first))};
-        ret += "  " + field.first + ": " + value.printVal() + ",\n";
+        const Object& value{*(fields.get(field.name))};
+        ret += "  " + field.name + ": " + value.printVal() + ",\n";
     }
 
     ret.pop_back(); ret.pop_back();
@@ -911,8 +958,8 @@ void Closure::addCell(Cell* cell)
     cells.push(cell);
 }
 
-Method::Method(const Object& funcObj) noexcept:
-    funcObj{funcObj} {}
+Method::Method(const Object& funcObj, bool pub) noexcept:
+    funcObj{funcObj}, pub{pub} {}
 
 bool Method::operator==(const Method& other) const
 {

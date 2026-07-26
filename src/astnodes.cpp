@@ -37,9 +37,10 @@ FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     Stmt{StmtType::FuncDecl},
     name{name}, params{std::move(params)}, body{std::move(body)} {}
 
-TypeDecl::Field::Field(VarAttr attr, bool fix, const Token& name,
-    ExprUP& init) :
-    attr{attr}, fix{fix}, name{name}, init{std::move(init)} {}
+TypeDecl::Field::Field(bool fix, const Token& name, ExprUP& init,
+    VarAttr attr, vT& attrTokens) :
+    Decl{attr, std::move(attrTokens)},
+    fix{fix}, name{name}, init{std::move(init)} {}
 
 TypeDecl::TypeDecl(
     const Token& name,

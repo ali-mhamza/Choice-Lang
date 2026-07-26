@@ -159,6 +159,10 @@ enum DiagCode : u8
     METHOD_FIELD_COLLIDE,
     // Field being read has not been initialized.
     FIELD_UNINIT_READ,
+    // Field is private.
+    FIELD_PRIVATE,
+    // Method is private.
+    METHOD_PRIVATE,
 
 
     /* Function errors. */

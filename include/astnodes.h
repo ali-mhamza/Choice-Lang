@@ -137,18 +137,18 @@ namespace AST
 
         struct TypeDecl : public Stmt, public Decl
         {
-            struct Field
+            struct Field : public Decl
             {
-                VarAttr attr{};
                 const bool fix{};
                 const Token name{};
                 ExprUP init{};
 
                 Field(
-                    VarAttr attr,
                     bool fix,
                     const Token& name,
-                    ExprUP& init
+                    ExprUP& init,
+                    VarAttr attr,
+                    vT& attrTokens
                 );
             };
 

@@ -138,15 +138,16 @@ Object CodeReader::reconstructType()
     readBytes(name.data(), nameLen);
 
     u8 fieldCount{readValue<u8>()};
-    std::vector<Type::FieldPair> fields(fieldCount);
+    std::vector<Type::Field> fields(fieldCount);
 
     for (u8 i{0}; i < fieldCount; i++)
     {
         nameLen = readValue<u8>();
-        fields[i].first.resize(nameLen);
-        readBytes(fields[i].first.data(), nameLen);
+        fields[i].name.resize(nameLen);
+        readBytes(fields[i].name.data(), nameLen);
 
-        fields[i].second = readValue<bool>();
+        fields[i].fixed = readValue<bool>();
+		fields[i].pub = readValue<bool>();
     }
 
     ByteCode* fieldInits{new ByteCode[fieldCount]};
@@ -792,7 +793,7 @@ void BinaryInspector::inspectBriefType(u64 start)
 
 	u8 fieldCount{readValue<u8>()};
 	for (u8 i{0}; i < fieldCount; i++)
-        it += readValue<u8>() + sizeof(bool);
+        it += readValue<u8>() + sizeof(bool) * 2;
 
 	for (u8 i{0}; i < fieldCount; i++)
         skipByteCode();
@@ -968,7 +969,7 @@ void BinaryInspector::inspectDetailTypeFields()
 	{
        	start = getCurrentPosition();
        	for (u8 i{0}; i < fieldCount; i++)
-            it += readValue<u8>() + sizeof(bool);
+            it += readValue<u8>() + sizeof(bool) * 2;
        	PRINT_ENTRY_RANGE();
        	CH_PRINT("Field names: [...]\n");
 

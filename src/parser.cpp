@@ -400,18 +400,18 @@ void Parser::parseVariableList(
 
 /* Main parsing functions. */
 
+#define SET_DECL_INFO(node, type)                           \
+    do {                                                    \
+        if ((node) != nullptr)                              \
+        {                                                   \
+            auto* ptr{static_cast<type*>((node).get())};    \
+            ptr->attr = attr;                               \
+            ptr->attrTokens = std::move(attrTokens);        \
+        }                                                   \
+    } while (false)
+
 StmtUP Parser::declaration()
 {
-    #define SET_DECL_INFO(type) \
-        do {                                                \
-            if (ret != nullptr)                             \
-            {                                               \
-                auto* ptr{static_cast<type*>(ret.get())};   \
-                ptr->attr = attr;                           \
-                ptr->attrTokens = attrTokens;               \
-            }                                               \
-        } while (false)
-
     auto [attr, attrTokens] = consumeAttributes();
     StmtUP ret{nullptr};
     u64 start{currentTok.byteOffset};
@@ -421,17 +421,17 @@ StmtUP Parser::declaration()
     else if (consumeToks(TOK_MAKE, TOK_FIX))
     {
         ret = varDecl();
-        SET_DECL_INFO(VarDecl);
+        SET_DECL_INFO(ret, VarDecl);
     }
     else if (consumeTok(TOK_FUNC))
     {
         ret = funcDecl();
-        SET_DECL_INFO(FuncDecl);
+        SET_DECL_INFO(ret, FuncDecl);
     }
     else if (consumeTok(TOK_TYPE))
     {
         ret = typeDecl();
-        SET_DECL_INFO(TypeDecl);
+        SET_DECL_INFO(ret, TypeDecl);
     }
     else
         ret = statement();
@@ -444,8 +444,6 @@ StmtUP Parser::declaration()
 
     setStmtLocation(ret, start);
     return ret;
-
-    #undef SET_DECL_INFO
 }
 
 StmtUP Parser::varDecl()
@@ -550,6 +548,44 @@ StmtUP Parser::funcDecl()
     return std::make_unique<FuncDecl>(name, params, body);
 }
 
+bool Parser::parseField(
+    std::vector<TypeDecl::Field>& fields,
+    VarAttr attr,
+    vT& attrTokens
+)
+{
+    bool fix{consumeTok(TOK_FIX)};
+    if (!matchError(TOK_IDENTIFIER, "expect field name")) return false;
+    Token name{previousTok};
+    CONSUME_VAR_TYPE();
+
+    ExprUP init{nullptr};
+    if (consumeTok(TOK_EQUAL))
+        init = expression();
+    else if (fix)
+    {
+        reportSemantic(MISSING_INITIALIZER, currentTok);
+        return false;
+    }
+
+    fields.emplace_back(fix, name, init, attr, attrTokens);
+    return true;
+}
+
+void Parser::parseMethod(
+    StmtVec& methods,
+    VarAttr attr,
+    vT& attrTokens
+)
+{
+    bool constructor{inConstructor};
+    if (currentTok.text == CH_CONSTRUCTOR)
+        inConstructor = true;
+    methods.push_back(funcDecl());
+    SET_DECL_INFO(methods.back(), FuncDecl);
+    inConstructor = constructor;
+}
+
 StmtUP Parser::typeDecl()
 {
     MATCH_TOK(TOK_IDENTIFIER, "expect type name");
@@ -557,40 +593,39 @@ StmtUP Parser::typeDecl()
 
     std::vector<TypeDecl::Field> fields{};
     StmtVec methods{};
+
     if (!consumeTok(TOK_SEMICOLON))
     {
         MATCH_TOK(TOK_LEFT_BRACE, "expect '{' or ';' after type name");
-        if (!checkTok(TOK_FUNC) && !checkTok(TOK_RIGHT_BRACE))
+        if (!checkTok(TOK_RIGHT_BRACE))
         {
-            do {
-                auto [attr, _] = consumeAttributes();
-                bool fix{consumeTok(TOK_FIX)};
-                MATCH_TOK(TOK_IDENTIFIER, "expect field name");
-                Token name{previousTok};
-                CONSUME_VAR_TYPE();
-
-                ExprUP init{nullptr};
-                if (consumeTok(TOK_EQUAL))
-                    init = expression();
-                else if (fix)
-                    REPORT_SEMANTIC(MISSING_INITIALIZER, currentTok);
-                fields.emplace_back(attr, fix, name, init);
-            } while (consumeTok(TOK_COMMA));
+            auto [attr, attrTokens] = consumeAttributes();
+            if (consumeTok(TOK_FUNC))
+                parseMethod(methods, attr, attrTokens);
+            else
+            {
+                if (!parseField(fields, attr, attrTokens)) return nullptr;
+                while (consumeTok(TOK_COMMA))
+                {
+                    auto [attr, attrTokens] = consumeAttributes();
+                    if (!parseField(fields, attr, attrTokens)) return nullptr;
+                }
+            }
         }
 
-        while (consumeTok(TOK_FUNC))
+        while (checkTok(TOK_FUNC) || checkTok(TOK_AT))
         {
-            bool constructor{inConstructor};
-            if (currentTok.text == CH_CONSTRUCTOR)
-                inConstructor = true;
-            methods.push_back(funcDecl());
-            inConstructor = constructor;
+            auto [attr, attrTokens] = consumeAttributes();
+            MATCH_TOK(TOK_FUNC, "expect 'func' keyword to declare method");
+            parseMethod(methods, attr, attrTokens);
         }
         MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude type declaration");
     }
 
     return std::make_unique<TypeDecl>(name, fields, methods);
 }
+
+#undef SET_DECL_INFO
 
 StmtUP Parser::statement()
 {

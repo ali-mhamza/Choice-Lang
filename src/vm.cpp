@@ -457,7 +457,7 @@ void VM::setIndex(u8 objReg, u8 indexReg, u8 valueReg)
 void VM::pushCurrentStackFrame()
 {
     frames.emplace_back(CallFrame::Args{
-        currentCode, currentClosure, registers, ip
+        currentCode, currentMethodType, currentClosure, registers, ip
         #if WATCH_EXEC
         , this->dis
         #endif
@@ -521,8 +521,9 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
 void VM::restoreData()
 {
     CallFrame& frame{frames.back()};
-    currentClosure = frame.closure;
     currentCode = frame.code;
+    currentMethodType = frame.methodType;
+    currentClosure = frame.closure;
     registers = frame.regStart;
     ip = frame.ip;
     pool = currentCode->pool.data();
@@ -534,7 +535,12 @@ void VM::restoreData()
     frames.pop_back();
 }
 
-void VM::callFunc(const Object& callee, u8 start, u8 argCount)
+void VM::callFunc(
+    const Object& callee,
+    u8 start,
+    u8 argCount,
+    const Type* methodType
+)
 {
     if CH_UNLIKELY(frames.size() == MAX_CALL_DEPTH)
     {
@@ -557,6 +563,7 @@ void VM::callFunc(const Object& callee, u8 start, u8 argCount)
     checkFuncArgs(func, argCount);
     pushCurrentStackFrame();
 
+    currentMethodType = methodType;
     currentClosure = closure;
     registers += start;
     prepFuncArgs(func, argCount);
@@ -632,7 +639,7 @@ void VM::callType(const Object& callee, u8 start, u8 argCount)
         // Does nothing if argCount == 0.
         for (u8 i{0}; i < argCount; i++)
         {
-            const std::string& field{type->fields[i].first};
+            const std::string& field{type->fields[i].name};
             instance->initField(field, registers[start + i]);
         }
     }
@@ -651,7 +658,7 @@ void VM::callMethod(const Object& callee, u8 start, u8 argCount)
     const Method* method{AS_METHOD(callee)};
     registers[start - 1] = method->funcObj;
     registers[start] = method->boundInstance;
-    callFunc(method->funcObj, start, argCount);
+    callFunc(method->funcObj, start, argCount, method->boundInstance->type);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
@@ -1329,7 +1336,7 @@ void VM::executeOp(Opcode op)
             Instance* obj{AS_INSTANCE(registers[instanceReg])};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
             // Replace the instance.
-            registers[destReg] = obj->getField(field);
+            registers[destReg] = obj->getField(field, currentMethodType);
             DISPATCH();
         }
         CASE(OP_SET_FIELD):
@@ -1346,7 +1353,7 @@ void VM::executeOp(Opcode op)
 
             Instance* obj{AS_INSTANCE(registers[instanceReg])};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
-            obj->setField(field, registers[valueReg]);
+            obj->setField(field, registers[valueReg], currentMethodType);
             DISPATCH();
         }
 
@@ -1516,8 +1523,9 @@ void VM::executeOp(Opcode op)
         {
             u8 typeReg{readByte()};
             u8 funcReg{readByte()};
+            bool pub{static_cast<bool>(readByte())};
 
-            AS_USER_TYPE(registers[typeReg])->addMethod(registers[funcReg]);
+            AS_USER_TYPE(registers[typeReg])->addMethod(registers[funcReg], pub);
             DISPATCH();
         }
 
@@ -1788,6 +1796,7 @@ void VM::execute(Function* script)
 
 CallFrame::CallFrame(const Args& args) :
     code{args.code},
+    methodType{args.methodType},
     closure{args.closure},
     regStart{args.regStart},
     ip{args.ip}

@@ -24,6 +24,7 @@ struct CallFrame
     struct Args
     {
         const ByteCode* code{};
+        const Type* methodType{};
         Closure* closure{};
         Object* regStart{};
         const u8* ip{};
@@ -34,6 +35,7 @@ struct CallFrame
     };
 
     const ByteCode* code{};
+    const Type* methodType{};
     Closure* closure{};
     Object* regStart{};
     const u8* ip{};
@@ -50,6 +52,8 @@ class VM
 {
     private:
         const ByteCode* currentCode{};
+        // Type defining the method currently being called (if any).
+        const Type* currentMethodType{};
         Closure* currentClosure{};
         const u8* ip{};
 
@@ -125,7 +129,12 @@ class VM
         void prepFuncArgs(const Function* func, u8 argCount);
         void restoreData();
 
-        void callFunc(const Object& callee, u8 start, u8 argCount);
+        void callFunc(
+            const Object& callee,
+            u8 start,
+            u8 argCount,
+            const Type* methodType = nullptr
+        );
         void callNative(const Object& callee, u8 start, u8 argCount);
         void callCtor(const Object& callee, u8 start, u8 argCount);
         void callType(const Object& callee, u8 start, u8 argCount);

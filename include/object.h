@@ -446,10 +446,15 @@ struct Module : public HeapObj
 
 struct Type : public HeapObj
 {
-    using FieldPair = std::pair<std::string, bool>;
+    struct Field
+    {
+        std::string name{};
+        bool fixed{};
+        bool pub{};
+    };
 
     const char* name{};
-    std::vector<FieldPair> fields{};
+    std::vector<Field> fields{};
     // Field default initializers. Each field has one.
     const ByteCode* fieldCode{nullptr};
     // Field-position table.
@@ -459,13 +464,15 @@ struct Type : public HeapObj
 
     Type(
         const std::string& name,
-        std::vector<FieldPair>& fields,
+        std::vector<Field>& fields,
         const ByteCode* inits
     ) noexcept;
     ~Type() noexcept;
 
-    void addMethod(const Object& method);
+    void addMethod(const Object& method, bool pub);
     bool defines(const std::string& method) const;
+    bool isPublicField(const std::string& field) const;
+    bool isPublicMethod(const std::string& method) const;
 
     void emit(std::ofstream& os) const;
     // Emits only metadata components.
@@ -485,7 +492,16 @@ struct Instance : public HeapObj
     [[nodiscard]] const Object* findField(const std::string& name) const;
 
     [[nodiscard]] Object getField(const std::string& name) const;
+    [[nodiscard]] Object getField(
+        const std::string& name,
+        const Type* check
+    ) const;
     void setField(const std::string& name, const Object& value);
+    void setField(
+        const std::string& name,
+        const Object& value,
+        const Type* check
+    );
     // Will not perform immutability checks on the field.
     void initField(const std::string& name, const Object& value);
 
@@ -539,8 +555,9 @@ struct Method : public HeapObj
 {
     const Object funcObj{}; // Function or closure.
     const Instance* boundInstance{};
+    const bool pub{};
 
-    Method(const Object& funcObj) noexcept;
+    Method(const Object& funcObj, bool pub) noexcept;
     bool operator==(const Method& other) const;
 
     [[nodiscard]] Hash hash() const;
