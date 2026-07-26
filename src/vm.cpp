@@ -812,6 +812,7 @@ void VM::dropInstances(Object* limit)
         Object* addr{activeInstances.back()};
         if (addr < limit) break;
 
+        CH_ASSERT(IS_INSTANCE(*addr), "Attempt to drop non-instance object.");
         Instance* instance{AS_INSTANCE(*addr)};
         if (instance->type->defines(CH_DESTRUCTOR))
         {
@@ -1486,6 +1487,7 @@ void VM::executeOp(Opcode op)
             // Correct regSlot after return.
             restoreData();
             closeCells(registers);
+            dropInstances(registers);
             if (encapsulateCall) return;
 
             DISPATCH();
