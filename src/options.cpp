@@ -17,6 +17,7 @@
 #include "../include/object.h"
 #include "../include/optimizer.h"
 #include "../include/parser.h"
+#include "../include/silencer.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 #include <cstdio>
@@ -26,6 +27,12 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#define REPORT_ERRORS()					\
+	do {								\
+		if (diagEngine.hasReports())	\
+			diagEngine.emitReports();	\
+	} while (false)
 
 [[nodiscard]]
 static inline vT& runLexer(FileID id, const std::string_view source)
@@ -64,10 +71,7 @@ void optionExecute(FileID id, std::string_view input)
 {
 	vT& tokens{runLexer(id, input)};
 	Function* script{runCompiler(id, tokens)};
-
-	if (diagEngine.hasReports())
-		diagEngine.emitReports();
-
+	REPORT_ERRORS();
 	runVM(script);
 	CH_DEALLOC(script);
 }
@@ -75,10 +79,7 @@ void optionExecute(FileID id, std::string_view input)
 void optionEmitTokens(FileID id, std::string_view input)
 {
     vT& tokens{runLexer(id, input)};
-
-    if (diagEngine.hasReports())
-        diagEngine.emitReports();
-
+    REPORT_ERRORS();
     TokenPrinter{id, tokens}.printTokens();
 }
 
@@ -86,10 +87,7 @@ void optionEmitBytecode(FileID id, std::string_view input)
 {
     vT& tokens{runLexer(id, input)};
     Function* script{runCompiler(id, tokens)};
-
-    if (diagEngine.hasReports())
-        diagEngine.emitReports();
-
+    REPORT_ERRORS();
     Disassembler{script}.disassembleCode();
     CH_DEALLOC(script);
 }
@@ -102,8 +100,7 @@ void optionCacheBytecode(FileID id, std::string_view input)
     if (script->code.codeSize() == 0)
 	{
 		auto stream{diagEngine.hasReports() ? stdout : stderr};
-		if (diagEngine.hasReports())
-			diagEngine.emitReports();
+		REPORT_ERRORS();
 		CH_PRINT(stream, "No code generated -> no cache file generated.\n");
 	}
 	else
@@ -236,14 +233,6 @@ void optionLoadProgram(FileID id, std::string_view input)
 	CH_DEALLOC(script);
 }
 
-void optionInspectBytecode(FileID id, std::string_view input)
-{
-	(void) id;
-
-	std::ifstream cacheFile{openFile(input, true)};
-	Bytes::BinaryInspector{cacheFile}.inspect();
-}
-
 void optionCheckProgram(FileID id, std::string_view input)
 {
 	vT& tokens{runLexer(id, input)};
@@ -261,6 +250,108 @@ void optionCheckProgram(FileID id, std::string_view input)
 	}
 
 	CH_DEALLOC(script);
+}
+
+void optionInspectBytecode(FileID id, std::string_view input)
+{
+	(void) id;
+
+	std::ifstream cacheFile{openFile(input, true)};
+	Bytes::BinaryInspector{cacheFile}.inspect();
+}
+
+static StmtUP generateFakeCall(const Token& func)
+{
+	using namespace AST::Statement;
+	using namespace AST::Expression;
+
+	ExprUP var{std::make_unique<VarExpr>(func)};
+	ExprVec args{};
+	ExprUP call{std::make_unique<CallExpr>(var, args, false)};
+	return std::make_unique<ExprStmt>(call);
+}
+
+static void compileTests(
+	FileID id,
+	StmtVec& program,
+	std::vector<std::pair<std::string_view, Function*>>& tests
+)
+{
+	using namespace AST::Statement;
+
+	for (auto& node : program)
+	{
+		if (node == nullptr) continue;
+		if (node->type == StmtType::FuncDecl)
+		{
+			FuncDecl* decl{static_cast<FuncDecl*>(node.get())};
+			if (!isTest(decl->attr)) continue;
+			if (decl->params.size() != 0)
+			{
+				diagEngine.recordError(id, TEST_FUNC_HAS_PARAMS,
+					decl->params[0].param, "");
+				break;
+			}
+
+			Compiler compiler{};
+			StmtVec temp{};
+			temp.push_back(std::move(node));
+			temp.push_back(generateFakeCall(decl->name));
+			tests.push_back({ decl->name.text, compiler.compile(id, temp) });
+		}
+	}
+}
+
+static void runTests(
+	FileID id,
+	std::vector<std::pair<std::string_view, Function*>>& tests
+)
+{
+	std::filesystem::path filePath{sourceManager.getFile(id)};
+	std::string fileName{filePath.stem().string()};
+
+	if (diagEngine.hasReports())
+		diagEngine.emitReports();
+	else
+	{
+		for (auto [name, test] : tests)
+		{
+			VM vm{};
+			Silencer silencer{};
+			silencer.silence();
+			vm.execute(test);
+			silencer.restore();
+
+			CH_PRINT("test: {}::{} - ", fileName, name);
+			if (diagEngine.hasReports())
+				CH_PRINT("{}FAIL{}\n", RED, NORMAL);
+			else
+				CH_PRINT("{}PASS{}\n", GREEN, NORMAL);
+			fflush(stdout);
+			diagEngine.clearReports();
+		}
+	}
+}
+
+void optionRunTests(FileID id, std::string_view input)
+{
+	vT& tokens{runLexer(id, input)};
+	Parser parser{};
+	StmtVec& program{parser.parseToAST(id, tokens)};
+
+	std::vector<std::pair<std::string_view, Function*>> tests{};
+	compileTests(id, program, tests);
+
+	if (diagEngine.hasReports())
+		diagEngine.emitReports();
+	else
+		runTests(id, tests);
+
+	for (auto [_, test] : tests)
+	{
+		(void) test;
+		CH_DEALLOC(test);
+	}
 }
 
 void optionExplainError(FileID id, std::string_view input)

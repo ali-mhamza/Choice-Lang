@@ -38,6 +38,9 @@ namespace Args
         // Inspect the sections and info in a bytecode file.
         InspectBytecode,
 
+        // Execute testing functions.
+        RunTests,
+
         // Explain a particular error/warning code.
         ExplainError,
 

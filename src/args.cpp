@@ -26,7 +26,8 @@ namespace Args
         {"-load", Option::LoadProgram},		    {"-l", Option::LoadProgram},
         {"-check", Option::CheckProgram},       {"-k", Option::CheckProgram},
         {"-inspect", Option::InspectBytecode},  {"-i", Option::InspectBytecode},
-        {"-explain", Option::ExplainError},     {"-e", Option::ExplainError}
+        {"-explain", Option::ExplainError},     {"-e", Option::ExplainError},
+        {"-test", Option::RunTests}             // No short version for now.
     };
 
     const std::unordered_map<Option, Handler> optionHandlers{
@@ -37,6 +38,7 @@ namespace Args
         {Option::LoadProgram, optionLoadProgram},
         {Option::CheckProgram, optionCheckProgram},
         {Option::InspectBytecode, optionInspectBytecode},
+        {Option::RunTests, optionRunTests},
         {Option::ExplainError, optionExplainError}
     };
 
@@ -48,13 +50,13 @@ namespace Args
 
     const std::array fileOnlyOptions{
         Option::CacheBytecode, Option::DisProgram, Option::LoadProgram,
-        Option::CheckProgram, Option::InspectBytecode
+        Option::CheckProgram, Option::InspectBytecode, Option::RunTests
     };
 
     // Options that potentially handle source files.
     const std::array optionsUsingSourceFiles{
         Option::Execute, Option::EmitTokens, Option::EmitBytecode,
-        Option::CacheBytecode, Option::CheckProgram
+        Option::CacheBytecode, Option::CheckProgram, Option::RunTests
     };
 
     void Config::run()

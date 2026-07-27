@@ -171,6 +171,8 @@ enum DiagCode : u8
     CLOSED_FUNC_CAPTURING,
     // 'Drop' special method does not accept parameters.
     DROP_HAS_PARAMS,
+    // Test function does not accept parameters.
+    TEST_FUNC_HAS_PARAMS,
 
 
     /* Type errors. */
@@ -433,6 +435,7 @@ class DiagnosticEngine
 
         DiagnosticEngine() = default;
         [[nodiscard]] bool hasReports() const { return !reports.empty(); }
+        void clearReports() { reports.clear(); }
         void explain(sv code);
 
         // Primitive error-reporting helper.

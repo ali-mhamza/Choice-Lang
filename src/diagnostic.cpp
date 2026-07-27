@@ -8,6 +8,7 @@
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/object.h"
+#include "../include/silencer.h"
 #include "../include/token.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
@@ -25,7 +26,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    REF_NOT_ASSIGN, METHOD_PRIVATE, DROP_HAS_PARAMS,
+    REF_NOT_ASSIGN, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
     RETURN_IN_CTOR, CLOSED_NON_FUNCTION, UNREACHABLE_CODE,
@@ -82,6 +83,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
 
     "Closed function cannot use objects declared outside its scope.",
     "'" CH_DESTRUCTOR "' method must have zero parameters.",
+    "Test function must have zero parameters.",
 
     // Type errors.
 
@@ -642,6 +644,8 @@ void DiagnosticEngine::recordWarning(
 
 void DiagnosticEngine::emitReports()
 {
+    if (Silencer::silenced) return;
+
     for (u64 i{0}; i < reports.size(); i++)
     {
         if ((source != ErrorSource::VM) && (i == COMPILE_ERROR_MAX))
@@ -714,6 +718,8 @@ void DiagnosticEngine::displayErrorLine(
 void
 DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
 {
+    if (Silencer::silenced) return;
+
     const auto& diag{reports.back()}; // Is invalidated after calling emitReports.
     const auto id{diag.id};
     emitReports(); // Emits the only runtime error (since they don't aggregate).
@@ -769,6 +775,8 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
 void
 DiagnosticEngine::emitMiniStackTrace(const std::vector<CallFrame>& frames)
 {
+    if (Silencer::silenced) return;
+
     const auto& fileName{sourceManager.getFile(reports.back().id)};
     reports.back().displayReportTitle();
     CH_PRINT(stderr, "  --> {}\n\n", fileName);
