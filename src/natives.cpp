@@ -76,7 +76,11 @@ void Natives::print(iter it, u8 args)
 void Natives::println(iter it, u8 args)
 {
     print(it, args);
-    if (!inRepl) CH_PRINT("\n");
+    if (!inRepl)
+    {
+        CH_PRINT("\n");
+        fflush(stdout);
+    }
 }
 
 #if !defined(CH_USE_FMT_LIB)
