@@ -284,20 +284,20 @@ static void compileTests(
 		if (node == nullptr) continue;
 		if (node->type == StmtType::FuncDecl)
 		{
-			FuncDecl* decl{static_cast<FuncDecl*>(node.get())};
-			if (!isTest(decl->attr)) continue;
-			if (decl->params.size() != 0)
+			FuncDecl* func{static_cast<FuncDecl*>(node.get())};
+			if (!isTest(func->decl.attr)) continue;
+			if (func->params.size() != 0)
 			{
 				diagEngine.recordError(id, TEST_FUNC_HAS_PARAMS,
-					decl->params[0].param, "");
+					func->params[0].param.var, "");
 				break;
 			}
 
 			Compiler compiler{};
 			StmtVec temp{};
 			temp.push_back(std::move(node));
-			temp.push_back(generateFakeCall(decl->name));
-			tests.push_back({ decl->name.text, compiler.compile(id, temp) });
+			temp.push_back(generateFakeCall(func->name));
+			tests.push_back({ func->name.text, compiler.compile(id, temp) });
 		}
 	}
 }

@@ -159,13 +159,13 @@ class Compiler
 
         template<typename DeclNodeType>
         void handleVarAttribute(
-            DeclNodeType* decl
+            DeclNodeType* node
         );
         void handleFuncAttribute(
-            AST::Statement::FuncDecl* decl
+            AST::Statement::FuncDecl* func
         );
         void handleTypeAttribute(
-            AST::Statement::TypeDecl* decl
+            AST::Statement::TypeDecl* type
         );
         void handleAttribute(const StmtUP& node);
 

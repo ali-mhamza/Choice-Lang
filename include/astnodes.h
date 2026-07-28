@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace AST
@@ -20,23 +22,81 @@ using ExprVec   = std::vector<ExprUP>;
 
 namespace AST
 {
+    namespace Types
+    {
+        enum class HintType
+        {
+            Name,       // Basic typename.
+            Signature,  // Function signature.
+            Option,     // Mutually-exclusive set of types.
+            Group,      // Group (list) of types.
+            Collection, // Collection type holding elements of another type.
+            Reference,  // Reference to another type.
+            Nullable    // Type with possible 'null' value.
+        };
+
+        struct TypeHint;
+        using TypeUP = std::unique_ptr<TypeHint>;
+        using TypeVec = std::vector<TypeUP>;
+
+        struct Signature
+        {
+            TypeVec paramTypes{};
+            TypeUP returnType{};
+        };
+
+        struct Collection
+        {
+            TypeUP baseType{};
+            TypeUP elemType{};
+        };
+
+        using HintVariant = std::variant<
+            std::monostate, Token, Signature, TypeVec, Collection, TypeUP
+        >;
+
+        struct TypeHint
+        {
+            HintType tag{};
+            HintVariant hint{};
+
+            TypeHint() = default;
+            template<typename T>
+            TypeHint(HintType tag, T&& hint) :
+                tag{tag}, hint{std::forward<T>(hint)} {}
+
+            TypeHint(TypeHint&& other) = default;
+            TypeHint& operator=(TypeHint&& other) = default;
+        };
+
+        struct Typed
+        {
+            TypeHint typeHint{};
+        };
+    };
+
     struct Decl
     {
         VarAttr attr{};
         vT attrTokens{};
     };
 
+    struct Var : public Types::Typed
+    {
+        const Token var{};
+    };
+
     struct Param
     {
         const bool fix{};
         const bool variadic{};
-        const Token param{};
+        Var param{};
         ExprUP defaultVal{};
 
         Param(
             bool fix,
             bool variadic,
-            const Token& param,
+            Var& param,
             ExprUP& defaultVal
         );
     };
@@ -57,16 +117,16 @@ namespace AST
 
     struct LoopHeader
     {
-        const bool fix{};
-        const vT vars{};
-        const UnpackState unpack{};
+        bool fix{};
+        std::vector<Var> vars{};
+        UnpackState unpack{};
         ExprUP iter{};
         ExprUP where{};
 
         LoopHeader() = default;
         LoopHeader(
             bool fix,
-            const vT& vars,
+            std::vector<Var>& vars,
             UnpackState unpack,
             ExprUP& iter,
             ExprUP& where
@@ -105,25 +165,30 @@ namespace AST
             virtual ~Stmt() = default;
         };
 
-        struct VarDecl : public Stmt, public Decl
+        struct VarDecl : public Stmt
         {
+            Decl decl{};
+
             const bool fix{};
-            const vT names{};
+            const std::vector<Var> names{};
             UnpackState unpack{};
             const Token oper{};
             ExprVec values{};
 
             VarDecl(
                 bool fix,
-                const vT& names,
+                std::vector<Var>& names,
                 UnpackState unpack,
                 const Token& oper,
                 ExprVec& values
             );
         };
 
-        struct FuncDecl : public Stmt, public Decl
+        // Typed by return type, independent from parameter types.
+        struct FuncDecl : public Stmt, public Types::Typed
         {
+            Decl decl{};
+
             const Token name{};
             std::vector<Param> params{};
             StmtUP body{};
@@ -135,22 +200,25 @@ namespace AST
             );
         };
 
-        struct TypeDecl : public Stmt, public Decl
+        struct TypeDecl : public Stmt
         {
-            struct Field : public Decl
+            struct Field
             {
-                const bool fix{};
-                const Token name{};
+                Decl decl{};
+
+                bool fix{};
+                Var name{};
                 ExprUP init{};
 
                 Field(
+                    Decl& decl,
                     bool fix,
-                    const Token& name,
-                    ExprUP& init,
-                    VarAttr attr,
-                    vT& attrTokens
+                    Var& name,
+                    ExprUP& init
                 );
             };
+
+            Decl decl{};
 
             const Token name{};
             std::vector<Field> fields{};
@@ -514,7 +582,7 @@ namespace AST
             );
         };
 
-        struct LambdaExpr : public Expr
+        struct LambdaExpr : public Expr, Types::Typed
         {
             std::vector<Param> params{};
             StmtUP body{};
