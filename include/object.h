@@ -565,18 +565,24 @@ struct Method : public HeapObj
 
 struct Text : public HeapObj
 {
-    const char* str{};
+    static inline constexpr u64 INLINE_SIZE{sizeof(const char*)};
+    union {
+        char* str{};
+        char buf[INLINE_SIZE];
+    };
     u64 len{};
 
     Text(const std::string_view& view) noexcept;
     Text(const char* str, size_t len) noexcept;
     ~Text();
 
+    const char* getString() const;
+
     [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);
 
     void reset(const std::string_view& view);
-    operator std::string_view();
+    operator std::string_view() const;
 
     // Parameter is not used, but it keeps our iterators
     // consistent.

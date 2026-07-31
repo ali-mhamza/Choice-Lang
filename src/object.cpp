@@ -372,7 +372,11 @@ Hash Object::hash() const
         case ObjType::Lambda:   return hashPointer(AS_USER_FUNC(*this));
         case ObjType::Closure:  return hashPointer(AS_CLOSURE(*this));
         case ObjType::Method:   return AS_METHOD(*this)->hash();
-        case ObjType::Text:     return hashKey(AS_TEXT(*this)->str, AS_TEXT(*this)->len);
+        case ObjType::Text:
+        {
+            const Text* text{AS_TEXT(*this)};
+            return hashKey(text->getString(), text->len);
+        }
         case ObjType::String:   return hashKey(AS_STRING(*this)->str);
         case ObjType::Range:
         {
@@ -975,14 +979,35 @@ Hash Method::hash() const
 }
 
 Text::Text(const std::string_view& view) noexcept:
-    str{choiceStrdup(view.data())}, len{view.length()} {}
+    len{view.length()}
+{
+    if (len <= INLINE_SIZE)
+        memcpy(&buf[0], view.data(), len);
+    else
+        str = choiceStrdup(view.data());
+}
 
 Text::Text(const char* str, size_t len) noexcept :
-    str{choiceStrdup(str)}, len{len} {}
+    len{len}
+{
+    if (len <= INLINE_SIZE)
+        memcpy(&buf[0], str, len);
+    else
+        this->str = choiceStrdup(str);
+}
 
 Text::~Text()
 {
-    delete[] str;
+    if (len > INLINE_SIZE)
+        delete[] str;
+}
+
+const char* Text::getString() const
+{
+    if (len > INLINE_SIZE)
+        return str;
+    else
+        return &buf[0];
 }
 
 Object Text::getIndex(const Object& index) const
@@ -1002,7 +1027,7 @@ Object Text::getIndex(const Object& index) const
         );
     }
 
-    return CH_ALLOC(Text, str + AS_INT(index), 1);
+    return CH_ALLOC(Text, getString() + AS_INT(index), 1);
 }
 
 void Text::setIndex(const Object& index, const Object& value)
@@ -1013,26 +1038,25 @@ void Text::setIndex(const Object& index, const Object& value)
 
 void Text::reset(const std::string_view& view)
 {
-    delete[] str;
-    str = choiceStrdup(view.data());
-    len = view.length();
+    this->~Text();
+    new (this) Text{view};
 }
 
-Text::operator std::string_view()
+Text::operator std::string_view() const
 {
-    return std::string_view{str, len};
+    return std::string_view{getString(), len};
 }
 
 std::string Text::printVal(bool nested) const
 {
     (void) nested;
-    return std::string{str, len};
+    return std::string{getString(), len};
 }
 
 void Text::emit(std::ofstream& os) const
 {
     Bytes::encodeValue(os, len);
-    os.write(str, len);
+    os.write(getString(), len);
 }
 
 u64 Text::byteSize() const
@@ -1419,7 +1443,7 @@ bool TextIter::start(Object& var)
 {
     if (obj->len == 0) return false;
 
-    var = Object{CH_ALLOC(Text, obj->str + pos, 1)};
+    var = Object{CH_ALLOC(Text, obj->getString() + pos, 1)};
     return true;
 }
 
@@ -1427,7 +1451,7 @@ bool TextIter::next(Object& var)
 {
     if (++pos == obj->len) return false;
 
-    var = Object{CH_ALLOC(Text, obj->str + pos, 1)};
+    var = Object{CH_ALLOC(Text, obj->getString() + pos, 1)};
     return true;
 }
 
