@@ -26,7 +26,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    REF_NOT_ASSIGN, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
+    SCOPE_NOT_IDENT, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
     RETURN_IN_CTOR, CLOSED_NON_FUNCTION, UNREACHABLE_CODE,
@@ -65,6 +65,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Function name too long.", "Too few values to unpack into left-hand side.",
     "Too many values to unpack into left-hand side.",
     "Value being referenced is not assignable.",
+    "The scope operator :: can only be used on a module name.",
 
     // Variable errors.
 

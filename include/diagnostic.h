@@ -134,6 +134,8 @@ enum DiagCode : u8
     UNPACK_TOO_MANY,
     // Value being referenced is not assignable.
     REF_NOT_ASSIGN,
+    // Scope operator used on non-identifier expression.
+    SCOPE_NOT_IDENT,
 
 
     /* Variable errors. */

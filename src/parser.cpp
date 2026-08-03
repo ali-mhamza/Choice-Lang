@@ -1488,6 +1488,8 @@ ExprUP Parser::post()
         else if (consumeTok(TOK_SCOPE))
         {
             CHECK_DEPTH(previousTok);
+            if ((expr == nullptr) || (expr->type != ExprType::VarExpr))
+                REPORT_SEMANTIC(SCOPE_NOT_IDENT, previousTok);
             MATCH_TOK(TOK_IDENTIFIER, "expect name of module entry");
             expr = std::make_unique<ScopeExpr>(expr, previousTok);
         }
