@@ -201,7 +201,7 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 			lineMarkers = debugReader.readLineMarkers();
 			metadataBlocks = debugReader.readMetadata();
 		}
-		else /* if (infoState == DEBUG_COMBINED) */
+		else /* if (debugInfoState == DebugInfoState::Combined) */
 			lineMarkers = codeReader.readLineMarkers();
 
 		// Failed to use existing source file (or its data).
