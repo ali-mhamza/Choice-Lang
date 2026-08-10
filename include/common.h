@@ -84,13 +84,21 @@
 	>;
 #endif
 
-// Optimization feature flag.
+// Optimization and type-checking feature flags.
 
 #if !defined(CH_OPTIMIZATIONS_ON)
 	#if defined(DEBUG)
 		#define CH_OPTIMIZATIONS_ON 1
 	#else
 		#define CH_OPTIMIZATIONS_ON 0
+	#endif
+#endif
+
+#if !defined(CH_TYPE_CHECKING_ON)
+	#if defined(DEBUG)
+		#define CH_TYPE_CHECKING_ON 1
+	#else
+		#define CH_TYPE_CHECKING_ON 0
 	#endif
 #endif
 

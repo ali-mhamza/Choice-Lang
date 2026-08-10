@@ -73,7 +73,7 @@ class Parser
         AST::Types::TypeHint consumeNullableType();
         AST::Types::TypeHint consumeOptionType();
         AST::Types::TypeHint consumeGroupType();
-        AST::Types::TypeHint consumeCollectionType();
+        AST::Types::TypeHint consumeGenericType();
         AST::Types::TypeHint consumeSignatureType();
         AST::Types::TypeHint consumeSimpleType();
         AST::Types::TypeHint consumeType();
@@ -83,7 +83,7 @@ class Parser
         // Declarations.
 
         [[nodiscard]] AST::Decl consumeAttributes();
-        void parseVariableList(
+        [[nodiscard]] bool parseVariableList(
             std::vector<AST::Var>& vars,
             AST::UnpackState& unpack,
             std::string_view errorMsg

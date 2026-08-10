@@ -34,17 +34,24 @@ using namespace AST::Expression;
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
 
-#define CONSUME_VAR_TYPE(var)               \
+#define CONSUME_VAR_TYPE(var, ret)          \
     do {                                    \
         if (consumeTok(TOK_COLON))          \
             (var).typeHint = consumeType(); \
+        if (!((var).typeHint))              \
+            return ret;                     \
     } while (false)
 
-#define CONSUME_RETURN_TYPE(var)            \
-    do {                                    \
-        if (consumeTok(TOK_RARROW))         \
-            (var).typeHint = consumeType(); \
+#define CONSUME_RETURN_TYPE(hint, ret)  \
+    do {                                \
+        if (consumeTok(TOK_RARROW))     \
+            hint = consumeType();       \
+        if (!(hint))                    \
+            return ret;                 \
     } while (false)
+
+#define DUMMY_TYPE  AST::Types::TypeHint{AST::Types::HintType::Dummy}
+#define ANY_TYPE    AST::Types::TypeHint{AST::Types::HintType::Any}
 
 #define CAN_ASSIGN(node)                                                            \
     (((node)->type == ExprType::VarExpr) || ((node)->type == ExprType::IndexExpr)   \
@@ -212,9 +219,7 @@ void Parser::reset()
             case TOK_MATCH:     case TOK_IS:        case TOK_FALL:
             case TOK_END:       case TOK_MAKE:      case TOK_FIX:
             case TOK_FUNC:      case TOK_TYPE:      case TOK_USE:
-            case TOK_RETURN:    case TOK_AT:
-            case TOK_IDENTIFIER:
-            case TOK_LEFT_BRACE:
+            case TOK_RETURN:    case TOK_AT:        case TOK_LEFT_BRACE:
                 return;
             default:
                 nextTok();
@@ -290,10 +295,10 @@ AST::Types::TypeHint Parser::consumeRefType()
     if (consumeTok(TOK_STAR))
     {
         typeHint = consumeRefType();
-        typeHint = AST::Types::TypeHint(
+        typeHint = AST::Types::TypeHint{
             AST::Types::HintType::Reference,
             std::make_unique<AST::Types::TypeHint>(std::move(typeHint))
-        );
+        };
     }
     else
         typeHint = consumeNullableType();
@@ -308,10 +313,10 @@ AST::Types::TypeHint Parser::consumeNullableType()
     // We only permit it once.
     if (consumeTok(TOK_QMARK))
     {
-        return AST::Types::TypeHint(
+        return AST::Types::TypeHint{
             AST::Types::HintType::Nullable,
             std::make_unique<AST::Types::TypeHint>(std::move(typeHint))
-        );
+        };
     }
 
     return typeHint;
@@ -329,12 +334,12 @@ AST::Types::TypeHint Parser::consumeOptionType()
         } while (consumeTok(TOK_BAR));
 
         if (!matchError(TOK_GT, "expect closing '>' after types"))
-            return AST::Types::TypeHint{};
+            return DUMMY_TYPE;
 
-        return AST::Types::TypeHint(
+        return AST::Types::TypeHint{
             AST::Types::HintType::Option,
             std::move(vec)
-        );
+        };
     }
     else
         return consumeGroupType();
@@ -352,34 +357,39 @@ AST::Types::TypeHint Parser::consumeGroupType()
         } while (consumeTok(TOK_COMMA));
 
         if (!matchError(TOK_RIGHT_PAREN, "expect closing ')' after type group"))
-            return AST::Types::TypeHint{};
+            return DUMMY_TYPE;
 
-        return AST::Types::TypeHint(
+        return AST::Types::TypeHint{
             AST::Types::HintType::Group,
             std::move(vec)
-        );
+        };
     }
     else
-        return consumeCollectionType();
+        return consumeGenericType();
 }
 
-AST::Types::TypeHint Parser::consumeCollectionType()
+AST::Types::TypeHint Parser::consumeGenericType()
 {
     AST::Types::TypeHint typeHint{consumeSimpleType()};
 
     if (consumeTok(TOK_LEFT_BRACKET))
     {
-        AST::Types::TypeHint elemType{consumeType()};
+        AST::Types::TypeVec elemTypes{};
+        do {
+            elemTypes.push_back(std::make_unique<AST::Types::TypeHint>(
+                consumeType()
+            ));
+        } while (consumeTok(TOK_COMMA));
         if (!matchError(TOK_RIGHT_BRACKET, "expect closing ']'"))
-            return AST::Types::TypeHint{};
+            return DUMMY_TYPE;
 
-        return AST::Types::TypeHint(
-            AST::Types::HintType::Collection,
-            AST::Types::Collection{
+        return AST::Types::TypeHint{
+            AST::Types::HintType::Generic,
+            AST::Types::Generic{
                 std::make_unique<AST::Types::TypeHint>(std::move(typeHint)),
-                std::make_unique<AST::Types::TypeHint>(std::move(elemType))
+                std::move(elemTypes)
             }
-        );
+        };
     }
     else
         return typeHint;
@@ -388,11 +398,14 @@ AST::Types::TypeHint Parser::consumeCollectionType()
 AST::Types::TypeHint Parser::consumeSignatureType()
 {
     AST::Types::TypeVec paramTypes{};
-    do {
-        paramTypes.emplace_back(
-            std::make_unique<AST::Types::TypeHint>(consumeType())
-        );
-    } while (consumeTok(TOK_COMMA));
+    if (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
+    {
+        do {
+            paramTypes.emplace_back(
+                std::make_unique<AST::Types::TypeHint>(consumeType())
+            );
+        } while (consumeTok(TOK_COMMA));
+    }
 
     if (!matchError(TOK_RIGHT_PAREN, "expect ')' after parameter types"))
         return {};
@@ -400,37 +413,41 @@ AST::Types::TypeHint Parser::consumeSignatureType()
         return {};
 
     AST::Types::TypeHint returnType{consumeType()};
-    return AST::Types::TypeHint(
+    return AST::Types::TypeHint{
         AST::Types::HintType::Signature,
         AST::Types::Signature{
             std::move(paramTypes),
             std::make_unique<AST::Types::TypeHint>(std::move(returnType))
         }
-    );
+    };
 }
 
 AST::Types::TypeHint Parser::consumeSimpleType()
 {
     if (!matchError(TOK_IDENTIFIER, "expect type name"))
-        return AST::Types::TypeHint{};
+        return DUMMY_TYPE;
 
-    if (consumeTok(TOK_LEFT_PAREN))
+    if (checkTok(TOK_LEFT_PAREN))
+    {
+        if (previousTok.text != "Callable")
+        {
+            reportSyntax(INVALID_CALLABLE_TYPE, previousTok);
+            return DUMMY_TYPE;
+        }
+
+        nextTok();
         return consumeSignatureType();
+    }
 
-    return AST::Types::TypeHint(
+    return AST::Types::TypeHint{
         AST::Types::HintType::Name,
         previousTok
-    );
+    };
 }
 
 AST::Types::TypeHint Parser::consumeType()
 {
     return consumeRefType();
-
-    // // For function types with specified return types, e.g.,
-    // // Func(Int, Boolean) -> String.
-    // if (consumeTok(TOK_RARROW))
-    //     consumeType();
 }
 
 AST::Decl Parser::consumeAttributes()
@@ -473,7 +490,7 @@ AST::Decl Parser::consumeAttributes()
     return { attr, attrTokens };
 }
 
-void Parser::parseVariableList(
+bool Parser::parseVariableList(
     std::vector<AST::Var>& vars,
     AST::UnpackState& unpack,
     std::string_view errorMsg
@@ -488,8 +505,8 @@ void Parser::parseVariableList(
             break;
         }
 
-        if (!matchError(TOK_IDENTIFIER, errorMsg)) return;
-        vars.push_back({ AST::Types::Typed{}, previousTok });
+        if (!matchError(TOK_IDENTIFIER, errorMsg)) return false;
+        vars.push_back({ ANY_TYPE, previousTok });
 
         if (consumeTok(TOK_ELLIPSIS))
         {
@@ -497,9 +514,10 @@ void Parser::parseVariableList(
             done = true;
         }
 
-        if (consumeTok(TOK_COLON))
-            vars.back().typeHint = consumeType();
+        CONSUME_VAR_TYPE(vars.back(), false);
     } while (!done && consumeTok(TOK_COMMA));
+
+    return true;
 }
 
 /* Main parsing functions. */
@@ -554,7 +572,8 @@ StmtUP Parser::varDecl()
     TokenType declType{previousTok.type};
     std::vector<AST::Var> names{};
     AST::UnpackState unpack{};
-    parseVariableList(names, unpack, "expect variable name");
+    if (!parseVariableList(names, unpack, "expect variable name"))
+        return nullptr;
 
     Token oper{};
     ExprVec values{};
@@ -595,10 +614,10 @@ bool Parser::parseParams(std::vector<AST::Param>& params)
 
             bool fix{consumeTok(TOK_FIX)};
             if (!matchError(TOK_IDENTIFIER, "expect parameter name")) return false;
-            AST::Var param{AST::Types::TypeHint{}, previousTok};
+            AST::Var param{ ANY_TYPE, previousTok };
 
             if (consumeTok(TOK_ELLIPSIS)) variadic = true;
-            if (consumeTok(TOK_COLON)) param.typeHint = consumeType();
+            CONSUME_VAR_TYPE(param, false);
 
             ExprUP defaultVal{};
             if (!variadic)
@@ -634,8 +653,8 @@ std::pair<StmtUP, AST::Types::TypeHint> Parser::funcBodyHelper(
     if (!matchError(TOK_RIGHT_PAREN, "expect ')' to close function signature"))
         return {};
 
-    AST::Types::TypeHint typeHint{};
-    if (consumeTok(TOK_RARROW)) typeHint = consumeType();
+    auto typeHint{ANY_TYPE};
+    CONSUME_RETURN_TYPE(typeHint, {});
 
     if (!matchError(TOK_LEFT_BRACE, "expect '{' before function body"))
         return {};
@@ -669,8 +688,8 @@ bool Parser::parseField(
     bool fix{consumeTok(TOK_FIX)};
 
     if (!matchError(TOK_IDENTIFIER, "expect field name")) return false;
-    AST::Var name{AST::Types::TypeHint{}, previousTok};
-    if (consumeTok(TOK_COLON)) name.typeHint = consumeType();
+    AST::Var name{ ANY_TYPE, previousTok };
+    CONSUME_VAR_TYPE(name, false);
 
     ExprUP init{nullptr};
     if (consumeTok(TOK_EQUAL))
@@ -896,7 +915,8 @@ AST::LoopHeader Parser::parseLoopHeader()
 
     std::vector<AST::Var> vars{};
     AST::UnpackState unpack{};
-    parseVariableList(vars, unpack, "expect loop variable identifier");
+    if (!parseVariableList(vars, unpack, "expect loop variable identifier"))
+        return {};
 
     if (!matchError(TOK_IN, "expect 'in' keyword after loop variable"))
         return {};
@@ -1546,7 +1566,7 @@ std::pair<StmtUP, AST::Types::TypeHint> Parser::lambdaBodyHelper(
     }
 
     StmtUP body{};
-    AST::Types::TypeHint typeHint{};
+    auto typeHint{ANY_TYPE};
     u64 start{currentTok.byteOffset};
     if (consumeTok(TOK_THICK_ARROW))
     {
@@ -1558,7 +1578,7 @@ std::pair<StmtUP, AST::Types::TypeHint> Parser::lambdaBodyHelper(
     }
     else
     {
-        if (consumeTok(TOK_RARROW)) typeHint = consumeType();
+        CONSUME_RETURN_TYPE(typeHint, {});
         if (!matchError(TOK_LEFT_BRACE, "expect '{' before lambda body"))
             return {};
 
@@ -1808,6 +1828,8 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
 #undef MATCH_TOK
 #undef CONSUME_VAR_TYPE
 #undef CONSUME_RETURN_TYPE
+#undef DUMMY_TYPE
+#undef ANY_TYPE
 #undef CAN_ASSIGN
 #undef FIELD_OPER_TOK
 #undef CHECK_DEPTH

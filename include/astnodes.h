@@ -26,11 +26,13 @@ namespace AST
     {
         enum class HintType
         {
+            Dummy,      // Default type tag.
+            Any,        // No type annotation.
             Name,       // Basic typename.
             Signature,  // Function signature.
             Option,     // Mutually-exclusive set of types.
             Group,      // Group (list) of types.
-            Collection, // Collection type holding elements of another type.
+            Generic,    // Generic type with specialization type(s).
             Reference,  // Reference to another type.
             Nullable    // Type with possible 'null' value.
         };
@@ -45,14 +47,15 @@ namespace AST
             TypeUP returnType{};
         };
 
-        struct Collection
+        struct Generic
         {
             TypeUP baseType{};
-            TypeUP elemType{};
+            // Specialization type(s).
+            TypeVec specTypes{};
         };
 
         using HintVariant = std::variant<
-            std::monostate, Token, Signature, TypeVec, Collection, TypeUP
+            std::monostate, Token, Signature, TypeVec, Generic, TypeUP
         >;
 
         struct TypeHint
@@ -61,12 +64,15 @@ namespace AST
             HintVariant hint{};
 
             TypeHint() = default;
+            TypeHint(HintType tag) : tag{tag}, hint{} {}
             template<typename T>
             TypeHint(HintType tag, T&& hint) :
                 tag{tag}, hint{std::forward<T>(hint)} {}
 
             TypeHint(TypeHint&& other) = default;
             TypeHint& operator=(TypeHint&& other) = default;
+
+            operator bool() const { return tag != HintType::Dummy; }
         };
 
         struct Typed
