@@ -57,7 +57,7 @@ void Natives::print(iter it, u8 args)
             case ObjType::Bool:     CH_PRINT("{}", AS_BOOL(it[i]));         break;
             case ObjType::Null:     CH_PRINT("null");                       break;
             case ObjType::Text:
-            case ObjType::String:   CH_PRINT("{}", it->getObjectText());    break;
+            case ObjType::String:   CH_PRINT("{}", it[i].getObjectText());  break;
             // Slower alternative.
             default: CH_PRINT("{}", it[i].printVal());
         }
