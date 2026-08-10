@@ -12,7 +12,7 @@ func f2(x: Int) -> String {}
 func f3(x: Int) -> <(Int, String) | String> {}
 func f4(x: Int) -> (<Int | String>, String) {}
 
-make h: Func(Int, Boolean) -> String = null;
+make h: Callable(Int, Boolean) -> String = null;
 make i = |x: <Int | String>| {};
 
 for (i: <Int | String> in [1, 2, 3]) {}
