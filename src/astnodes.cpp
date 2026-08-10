@@ -11,14 +11,13 @@
 using namespace AST::Statement;
 using namespace AST::Expression;
 
-AST::Param::Param(bool fix, bool variadic, const Token& param,
-    ExprUP& defaultVal) :
-    fix{fix}, variadic{variadic}, param{param},
+AST::Param::Param(bool fix, bool variadic, Var& param, ExprUP& defaultVal) :
+    fix{fix}, variadic{variadic}, param{std::move(param)},
     defaultVal{std::move(defaultVal)} {}
 
-AST::LoopHeader::LoopHeader(bool fix, const vT& vars, UnpackState unpack,
-    ExprUP& iter, ExprUP& where) :
-    fix{fix}, vars{vars}, unpack{unpack}, iter{std::move(iter)},
+AST::LoopHeader::LoopHeader(bool fix, std::vector<Var>& vars,
+    UnpackState unpack, ExprUP& iter, ExprUP& where) :
+    fix{fix}, vars{std::move(vars)}, unpack{unpack}, iter{std::move(iter)},
     where{std::move(where)} {}
 
 // Statement constructors.
@@ -26,10 +25,10 @@ AST::LoopHeader::LoopHeader(bool fix, const vT& vars, UnpackState unpack,
 Stmt::Stmt(StmtType type) :
     type{type} {}
 
-VarDecl::VarDecl(bool fix, const vT& names, UnpackState unpack,
-    const Token& oper, ExprVec& values) :
+VarDecl::VarDecl(bool fix, std::vector<Var>& names,
+    UnpackState unpack, const Token& oper, ExprVec& values) :
     Stmt{StmtType::VarDecl},
-    fix{fix}, names{names}, unpack{unpack}, oper{oper},
+    fix{fix}, names{std::move(names)}, unpack{unpack}, oper{oper},
     values{std::move(values)} {}
 
 FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
@@ -37,10 +36,9 @@ FuncDecl::FuncDecl(const Token& name, std::vector<Param>& params,
     Stmt{StmtType::FuncDecl},
     name{name}, params{std::move(params)}, body{std::move(body)} {}
 
-TypeDecl::Field::Field(bool fix, const Token& name, ExprUP& init,
-    VarAttr attr, vT& attrTokens) :
-    Decl{attr, std::move(attrTokens)},
-    fix{fix}, name{name}, init{std::move(init)} {}
+TypeDecl::Field::Field(Decl& decl, bool fix, Var& name, ExprUP& init) :
+    decl{std::move(decl)}, fix{fix}, name{std::move(name)},
+    init{std::move(init)} {}
 
 TypeDecl::TypeDecl(
     const Token& name,

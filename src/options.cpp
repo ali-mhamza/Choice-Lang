@@ -18,6 +18,7 @@
 #include "../include/optimizer.h"
 #include "../include/parser.h"
 #include "../include/silencer.h"
+#include "../include/type_checker.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 #include <cstdio>
@@ -45,17 +46,18 @@ static inline vT& runLexer(FileID id, const std::string_view source)
 static Function* runCompiler(FileID id, const vT& tokens)
 {
 	static Parser parser{};
-	static Compiler compiler{};
 	StmtVec& program{parser.parseToAST(id, tokens)};
 
-	#ifdef TYPE
-		// Perform type-checking here.
+	#if CH_TYPE_CHECKING_ON
+		static TypeChecker checker{};
+		checker.check(program);
 	#endif
 
 	#if CH_OPTIMIZATIONS_ON
 		Optimizer::optimize(program);
 	#endif
 
+	static Compiler compiler{};
 	// To stop after compilation if either hit an error.
 	compiler.hitError = parser.hitError;
 	return compiler.compile(id, program);
@@ -201,7 +203,7 @@ static ByteCode readByteCode(const std::filesystem::path& file)
 			lineMarkers = debugReader.readLineMarkers();
 			metadataBlocks = debugReader.readMetadata();
 		}
-		else /* if (infoState == DEBUG_COMBINED) */
+		else /* if (debugInfoState == DebugInfoState::Combined) */
 			lineMarkers = codeReader.readLineMarkers();
 
 		// Failed to use existing source file (or its data).
@@ -284,20 +286,20 @@ static void compileTests(
 		if (node == nullptr) continue;
 		if (node->type == StmtType::FuncDecl)
 		{
-			FuncDecl* decl{static_cast<FuncDecl*>(node.get())};
-			if (!isTest(decl->attr)) continue;
-			if (decl->params.size() != 0)
+			FuncDecl* func{static_cast<FuncDecl*>(node.get())};
+			if (!isTest(func->decl.attr)) continue;
+			if (func->params.size() != 0)
 			{
 				diagEngine.recordError(id, TEST_FUNC_HAS_PARAMS,
-					decl->params[0].param, "");
+					func->params[0].param.var, "");
 				break;
 			}
 
 			Compiler compiler{};
 			StmtVec temp{};
 			temp.push_back(std::move(node));
-			temp.push_back(generateFakeCall(decl->name));
-			tests.push_back({ decl->name.text, compiler.compile(id, temp) });
+			temp.push_back(generateFakeCall(func->name));
+			tests.push_back({ func->name.text, compiler.compile(id, temp) });
 		}
 	}
 }

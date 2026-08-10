@@ -26,19 +26,19 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    REF_NOT_ASSIGN, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
+    SCOPE_NOT_IDENT, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
-    RETURN_IN_CTOR, CLOSED_NON_FUNCTION, UNREACHABLE_CODE,
-    MUT_TO_IMMUT
+    RETURN_IN_CTOR, CLOSED_NON_FUNCTION, INVALID_CALLABLE_TYPE,
+    UNREACHABLE_CODE, MUT_TO_IMMUT
 };
 
 static constexpr std::array<sv, NUM_FAMILIES> familyTitles{
     "Syntax Error", "Variable Error", "Function Error",
     "Type Error", "Value Error", "Function-Call Error",
     "Assignment Error", "Module Error", "Mutation Error",
-    "Control-Flow Error", "Attribute Error", "Unused Warning",
-    "Mutability Warning"
+    "Control-Flow Error", "Attribute Error", "Type-Hint Error",
+    "Unused Warning", "Mutability Warning"
 };
 
 // Temporarily.
@@ -65,6 +65,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Function name too long.", "Too few values to unpack into left-hand side.",
     "Too many values to unpack into left-hand side.",
     "Value being referenced is not assignable.",
+    "The scope operator :: can only be used on a module name.",
 
     // Variable errors.
 
@@ -157,6 +158,10 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "'computed' attribute is only valid for variables.",
     "'closed' attribute is only valid for functions.",
     "'test' attribute is only valid for global-scope functions.",
+
+    // Type-hint errors.
+
+    "Callable objects must be indicated with keyword 'Callable'.",
 
     // Unused warnings.
 

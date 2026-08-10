@@ -280,12 +280,12 @@ void Compiler::hoistClosedFunctions(const StmtVec& program)
     {
         if ((node != nullptr) && (node->type == StmtType::FuncDecl))
         {
-            const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
-            if (isClosed(decl->attr))
+            const FuncDecl* func{static_cast<const FuncDecl*>(node.get())};
+            if (isClosed(func->decl.attr))
             {
                 defVar(
-                    std::string{decl->name.text}, nextReg++, accessVar,
-                    DeclType::Func, decl->attr
+                    std::string{func->name.text}, nextReg++, accessVar,
+                    DeclType::Func, func->decl.attr
                 );
             }
         }
@@ -295,8 +295,8 @@ void Compiler::hoistClosedFunctions(const StmtVec& program)
     {
         if ((node != nullptr) && (node->type == StmtType::FuncDecl))
         {
-            const FuncDecl* decl{static_cast<const FuncDecl*>(node.get())};
-            if (isClosed(decl->attr))
+            const FuncDecl* func{static_cast<const FuncDecl*>(node.get())};
+            if (isClosed(func->decl.attr))
             {
                 // compileStmt does additional preparation that the
                 // direct compileFuncDecl function does not do.
@@ -329,9 +329,9 @@ void Compiler::popScope()
 }
 
 template<typename DeclNodeType>
-void Compiler::handleVarAttribute(DeclNodeType* decl)
+void Compiler::handleVarAttribute(DeclNodeType* node)
 {
-    const vT& toks{decl->attrTokens};
+    const vT& toks{node->decl.attrTokens};
     auto makeComputed = [](ExprUP& value) {
         if (value == nullptr) return;
 
@@ -360,11 +360,11 @@ void Compiler::handleVarAttribute(DeclNodeType* decl)
         if constexpr (std::is_same_v<DeclNodeType, VarDecl>)
         {
             // We turn each value into an IIFE that evaluates it.
-            for (auto& value : decl->values)
+            for (auto& value : node->values)
                 makeComputed(value);
         }
         else if constexpr (std::is_same_v<DeclNodeType, TypeDecl::Field>)
-            makeComputed(decl->init);
+            makeComputed(node->init);
     }
 
     if (isClosed(currentAttr))
@@ -374,9 +374,9 @@ void Compiler::handleVarAttribute(DeclNodeType* decl)
         reportError(TEST_NOT_GLOBAL_FUNC, toks[ATTR_TEST]);
 }
 
-void Compiler::handleFuncAttribute(FuncDecl* decl)
+void Compiler::handleFuncAttribute(FuncDecl* func)
 {
-    const vT& toks{decl->attrTokens};
+    const vT& toks{func->decl.attrTokens};
 
     if (isPrivate(currentAttr))
     {
@@ -397,9 +397,9 @@ void Compiler::handleFuncAttribute(FuncDecl* decl)
     }
 }
 
-void Compiler::handleTypeAttribute(TypeDecl* decl)
+void Compiler::handleTypeAttribute(TypeDecl* type)
 {
-    const vT& toks{decl->attrTokens};
+    const vT& toks{type->decl.attrTokens};
 
     if (isPrivate(currentAttr))
     {
@@ -426,23 +426,23 @@ void Compiler::handleAttribute(const StmtUP& node)
     {
         case StmtType::VarDecl:
         {
-            VarDecl* decl{static_cast<VarDecl*>(node.get())};
-            currentAttr = decl->attr;
-            handleVarAttribute(decl);
+            VarDecl* var{static_cast<VarDecl*>(node.get())};
+            currentAttr = var->decl.attr;
+            handleVarAttribute(var);
             return;
         }
         case StmtType::FuncDecl:
         {
-            FuncDecl* decl{static_cast<FuncDecl*>(node.get())};
-            currentAttr = decl->attr;
-            handleFuncAttribute(decl);
+            FuncDecl* func{static_cast<FuncDecl*>(node.get())};
+            currentAttr = func->decl.attr;
+            handleFuncAttribute(func);
             return;
         }
         case StmtType::TypeDecl:
         {
-            TypeDecl* decl{static_cast<TypeDecl*>(node.get())};
-            currentAttr = decl->attr;
-            handleTypeAttribute(decl);
+            TypeDecl* type{static_cast<TypeDecl*>(node.get())};
+            currentAttr = type->decl.attr;
+            handleTypeAttribute(type);
             return;
         }
         default:
@@ -670,7 +670,7 @@ DEF(VarDecl)
 
     for (u64 i{0}; i < nameCount; i++)
     {
-        compileSingleVarDecl(node->names[i], node->fix, (valueCount != 0),
+        compileSingleVarDecl(node->names[i].var, node->fix, (valueCount != 0),
             valueStart + i);
     }
 
@@ -695,7 +695,7 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
 
     for (auto it{params.begin()}; it != params.end(); it++)
     {
-        const Token& param{it->param};
+        const Token& param{it->param.var};
         u8 reg{miniCompiler.nextReg};
         LocalInfo info{miniCompiler.getScopeLocal(param)};
         if (info.found)
@@ -808,13 +808,13 @@ DEF(FuncDecl)
     }
 
     if (node->params.size() > PARAMETER_MAX)
-        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param.var);
 
     LocalInfo localInfo{getScopeLocal(node->name)};
     bool redefined{false};
     if (localInfo.found)
     {
-        bool hoisting{isClosed(node->attr)};
+        bool hoisting{isClosed(node->decl.attr)};
         bool globalInRepl{inRepl && (depth == 0) && (scope == 0)};
 
         if (hoisting || globalInRepl)
@@ -853,9 +853,9 @@ bool Compiler::checkFieldCollisions(
         {
             if (i == j) continue;
 
-            if (fields[i].name.text == fields[j].name.text)
+            if (fields[i].name.var.text == fields[j].name.var.text)
             {
-                reportError(FIELD_ALREADY_DEFINED, fields[std::max(i, j)].name);
+                reportError(FIELD_ALREADY_DEFINED, fields[std::max(i, j)].name.var);
                 return false;
             }
         }
@@ -909,7 +909,7 @@ bool Compiler::checkMixedCollisions(
             const FuncDecl* decl{static_cast<FuncDecl*>(methods[j].get())};
             if (decl == nullptr) continue;
 
-            if (fields[i].name.text == decl->name.text)
+            if (fields[i].name.var.text == decl->name.text)
             {
                 reportError(METHOD_FIELD_COLLIDE, decl->name);
                 return false;
@@ -943,12 +943,12 @@ DEF(TypeDecl)
 
     for (const auto& field : node->fields)
     {
-        currentAttr = field.attr;
+        currentAttr = field.decl.attr;
         handleVarAttribute(const_cast<TypeDecl::Field*>(&field));
         fields.push_back({
-            std::string{field.name.text},
+            std::string{field.name.var.text},
             field.fix,
-            !isPrivate(field.attr)
+            !isPrivate(field.decl.attr)
         });
         if (field.init != nullptr)
         {
@@ -967,21 +967,21 @@ DEF(TypeDecl)
     std::vector<u8> methodAccess{};
     for (const auto& method : node->methods)
     {
-        FuncDecl* decl{static_cast<FuncDecl*>(method.get())};
-        if (decl == nullptr) continue;
+        FuncDecl* func{static_cast<FuncDecl*>(method.get())};
+        if (func == nullptr) continue;
 
-        if ((decl->name.text == CH_DESTRUCTOR) && (decl->params.size() != 0))
-            REPORT_ERROR(DROP_HAS_PARAMS, decl->params[0].param);
+        if ((func->name.text == CH_DESTRUCTOR) && (func->params.size() != 0))
+            REPORT_ERROR(DROP_HAS_PARAMS, func->params[0].param.var);
 
-        std::string name{decl->name.text};
+        std::string name{func->name.text};
 
         Compiler miniCompiler{this};
         u8 funcReg{nextReg};
 
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
-        methodAccess.emplace_back(static_cast<u8>(!isPrivate(decl->attr)));
-        funcBodyHelper(miniCompiler, decl, funcReg, name);
+        methodAccess.emplace_back(static_cast<u8>(!isPrivate(func->decl.attr)));
+        funcBodyHelper(miniCompiler, func, funcReg, name);
         reserveReg();
     }
 
@@ -1226,9 +1226,9 @@ DEF(ForStmt)
 
     u8 varReg{nextReg};
     bool fix{node->header.fix ? accessFix : accessVar};
-    for (const auto& var : node->header.vars)
+    for (const auto& loopVar : node->header.vars)
     {
-        defVar(std::string{var.text}, nextReg, fix);
+        defVar(std::string{loopVar.var.text}, nextReg, fix);
         reserveReg();
     }
 
@@ -1992,7 +1992,7 @@ DEF(IfExpr)
 DEF(LambdaExpr)
 {
     if (node->params.size() > PARAMETER_MAX)
-        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param);
+        REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param.var);
 
     Compiler miniCompiler{this};
     funcBodyHelper(miniCompiler, node, nextReg, std::string{}, true);
@@ -2077,9 +2077,9 @@ void Compiler::comprehension(
     pushScope();
     u8 varReg{nextReg};
     bool fix{node->header.fix ? accessFix : accessVar};
-    for (const auto& var : node->header.vars)
+    for (const auto& loopVar : node->header.vars)
     {
-        defVar(std::string{var.text}, nextReg, fix);
+        defVar(std::string{loopVar.var.text}, nextReg, fix);
         reserveReg();
     }
 

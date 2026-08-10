@@ -48,8 +48,6 @@ class Parser
         template<typename... Type>
         [[nodiscard]] bool consumeToks(Type... toks);
         [[nodiscard]] bool matchError(TokenType type, std::string_view message);
-        bool consumeTypename();
-        void consumeType();
         // To skip erroneous 'elif' or 'else' blocks.
         void skipOrphanedConditionalBranch();
 
@@ -69,13 +67,24 @@ class Parser
         void setStmtLocation(StmtUP& stmt, u64 start);
         void setExprLocation(ExprUP& expr, u64 start);
 
-        // Recursive descent parsing functions.
+        // Type parsing.
+
+        AST::Types::TypeHint consumeRefType();
+        AST::Types::TypeHint consumeNullableType();
+        AST::Types::TypeHint consumeOptionType();
+        AST::Types::TypeHint consumeGroupType();
+        AST::Types::TypeHint consumeGenericType();
+        AST::Types::TypeHint consumeSignatureType();
+        AST::Types::TypeHint consumeSimpleType();
+        AST::Types::TypeHint consumeType();
+
+        /* Recursive descent parsing functions. */
 
         // Declarations.
 
-        [[nodiscard]] std::pair<VarAttr, vT> consumeAttributes();
-        void parseVariableList(
-            vT& vars,
+        [[nodiscard]] AST::Decl consumeAttributes();
+        [[nodiscard]] bool parseVariableList(
+            std::vector<AST::Var>& vars,
             AST::UnpackState& unpack,
             std::string_view errorMsg
         );
@@ -83,17 +92,17 @@ class Parser
         [[nodiscard]] StmtUP declaration();
         [[nodiscard]] StmtUP varDecl();
         [[nodiscard]] bool parseParams(std::vector<AST::Param>& params);
-        [[nodiscard]] StmtUP funcBodyHelper(std::vector<AST::Param>& params);
+        [[nodiscard]] std::pair<StmtUP, AST::Types::TypeHint> funcBodyHelper(
+            std::vector<AST::Param>& params
+        );
         [[nodiscard]] StmtUP funcDecl();
         [[nodiscard]] bool parseField(
             std::vector<AST::Statement::TypeDecl::Field>& fields,
-            VarAttr attr,
-            vT& attrTokens
+            AST::Decl& decl
         );
         void parseMethod(
             StmtVec& methods,
-            VarAttr attr,
-            vT& attrTokens
+            AST::Decl& decl
         );
         [[nodiscard]] StmtUP typeDecl();
 
@@ -138,7 +147,7 @@ class Parser
         [[nodiscard]] ExprUP call(ExprUP&& expr, u64 start);
         [[nodiscard]] ExprUP post(); // All post-fix operators.
         [[nodiscard]] ExprUP ifExpr();
-        [[nodiscard]] StmtUP lambdaBodyHelper(
+        [[nodiscard]] std::pair<StmtUP, AST::Types::TypeHint> lambdaBodyHelper(
             std::vector<AST::Param>& params,
             bool skipParams = false
         );

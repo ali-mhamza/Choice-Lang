@@ -68,6 +68,7 @@ enum DiagFamily : u8
     MUTATION_ERROR,     // Mutation of an immutable variable or value.
     CONTROL_FLOW_ERROR, // Invalid use of control-flow keyword or structure.
     ATTRIBUTE_ERROR,    // Invalid use of compiler attributes.
+    TYPE_HINT_ERROR,    // Invalid type-hint syntax used.
 
     // Warnings.
 
@@ -134,6 +135,8 @@ enum DiagCode : u8
     UNPACK_TOO_MANY,
     // Value being referenced is not assignable.
     REF_NOT_ASSIGN,
+    // Scope operator used on non-identifier expression.
+    SCOPE_NOT_IDENT,
 
 
     /* Variable errors. */
@@ -340,6 +343,10 @@ enum DiagCode : u8
     TEST_NOT_GLOBAL_FUNC,
 
 
+    /* Type-hint errors. */
+    INVALID_CALLABLE_TYPE,
+
+
     /* Unused variable/object warnings. */
 
     // Variable is declared in current (local) scope, but never used.
@@ -349,6 +356,7 @@ enum DiagCode : u8
     UNUSED_EXPRESSION,
     // Code segment is not logically reachable.
     UNREACHABLE_CODE,
+
 
     /* Mutability warnings. */
 
