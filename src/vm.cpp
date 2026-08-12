@@ -652,7 +652,14 @@ void VM::callType(const Object& callee, u8 start, u8 argCount)
 
     finishFields(*instance, start);
     registers[start - 1] = instance;
-    activeInstances.emplace_back(registers + start - 1);
+
+    if (type->defines(CH_DESTRUCTOR))
+    {
+        activeInstances.push_back({
+            registers + start - 1,
+            registers[start - 1]
+        });
+    }
 }
 
 void VM::callMethod(const Object& callee, u8 start, u8 argCount)
@@ -815,28 +822,29 @@ void VM::dropInstances(Object* limit)
 {
     while (!activeInstances.empty())
     {
-        Object* addr{activeInstances.back()};
+        Object* addr{activeInstances.back().first};
         if (addr < limit) break;
 
-        CH_ASSERT(IS_INSTANCE(*addr), "Attempt to drop non-instance object.");
-        Instance* instance{AS_INSTANCE(*addr)};
-        if (instance->type->defines(CH_DESTRUCTOR))
-        {
-            Object ctor{instance->getField(CH_DESTRUCTOR)};
+        Object& obj{activeInstances.back().second};
+        CH_ASSERT(IS_INSTANCE(obj), "Attempt to drop non-instance object.");
+        Instance* instance{AS_INSTANCE(obj)};
 
-            // Calls to Drop() replace the object before the instance
-            // with their return value, so we make a copy before calling
-            // Drop() to restore that object after calling it.
+        // We only add instances that have a custom Drop() method
+        // to the array, so no existence check needed here.
+        Object ctor{instance->getField(CH_DESTRUCTOR)};
 
-            Object temp{addr[-1]};
-            bool encapsulate{encapsulateCall};
-            encapsulateCall = true;
+        // Calls to Drop() replace the object before the instance
+        // with their return value, so we make a copy before calling
+        // Drop() to restore that object after calling it.
 
-            callMethod(ctor, static_cast<u8>(addr - registers), 0);
+        Object temp{addr[-1]};
+        bool encapsulate{encapsulateCall};
+        encapsulateCall = true;
 
-            encapsulateCall = encapsulate;
-            addr[-1] = temp;
-        }
+        callMethod(ctor, static_cast<u8>(addr - registers), 0);
+
+        encapsulateCall = encapsulate;
+        addr[-1] = temp;
 
         activeInstances.pop_back();
     }
@@ -1305,7 +1313,14 @@ void VM::executeOp(Opcode op)
             Type* type{AS_USER_TYPE(registers[typeReg])};
             // Replace the class.
             registers[typeReg] = CH_ALLOC(Instance, type);
-            activeInstances.emplace_back(registers + typeReg);
+
+            if (type->defines(CH_DESTRUCTOR))
+            {
+                activeInstances.push_back({
+                    registers + typeReg,
+                    registers[typeReg]
+                });
+            }
             DISPATCH();
         }
         CASE(OP_FINISH_FIELDS):

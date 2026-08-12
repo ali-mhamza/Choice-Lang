@@ -6,6 +6,7 @@
 #include "opcodes.h"
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #if defined(DEBUG)
@@ -64,10 +65,14 @@ class VM
         std::vector<Object*> scopeStarts{};
         std::vector<CallFrame> frames{};
         std::vector<Cell*> activeCells{};
-        // We keep Object* pointers instead of Instance* pointers
-        // so we can find the locations of these instance in our
-        // registers.
-        std::vector<Object*> activeInstances{};
+
+        // We keep both a pointer to and a copy of the instance object.
+        // The pointer lets us know if the object is going out of scope
+        // (and thus should be dropped).
+        // The copy allows us to keep a reference to the object in case
+        // it goes out of scope or is an immediately-destroyed temporary
+        // value (otherwise we may accidentally drop non-instance objects).
+        std::vector<std::pair<Object*, Object>> activeInstances{};
 
         // Set to 'true' if each function call in 'callFunc'
         // should run until termination.
