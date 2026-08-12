@@ -76,6 +76,10 @@ VM::~VM()
 // To give all of them internal linkage.
 namespace
 {
+    // The default == operator for std::filesystem::path
+    // compares them lexicographically (i.e., by string or name).
+    // This alternative comparator compares them by file identity
+    // (i.e., whether or not they refer to the same file on disk).
     struct FileCompare
     {
         bool operator()(
