@@ -1,3 +1,4 @@
+#pragma once
 #include "common.h"
 #include <cstdio>
 #include <cstring>
@@ -5,6 +6,7 @@
 #include <fstream>
 #include <string_view>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 /* File extensions. */
@@ -36,6 +38,18 @@ constexpr std::string_view NORMAL{"\033[0m"};
 #define CH_PRINT_ERROR(msg) CH_PRINT(stderr, "{}" msg "{}", RED, NORMAL)
 #define CH_PRINT_ERROR_ARGS(msg, ...)                              \
     CH_PRINT(stderr, "{}" msg "{}", RED, __VA_ARGS__, NORMAL)
+
+/* Enum helpers. */
+
+// For use in for-loops.
+// Example:
+// `for EACH_ENUM_VAL(MyEnum, kind) print(kind);`
+#define EACH_ENUM_VAL(type, var)                                                    \
+    (                                                                               \
+        type var{static_cast<type>(0)};                                             \
+        var != type::Count;                                                         \
+        var = static_cast<type>(static_cast<std::underlying_type_t<type>>(var) + 1) \
+    )
 
 /* General helpers. */
 
