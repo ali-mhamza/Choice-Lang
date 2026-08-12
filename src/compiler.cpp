@@ -2086,7 +2086,6 @@ void Compiler::comprehension(
     u8 iterReg{compileExpr(node->header.iter)};
     code.addOp(OP_MAKE_ITER, varReg, iterReg);
     u64 failJump{code.addJump(OP_JUMP)}; // If we fail to construct an iterator.
-
     u64 loopStart{code.getLoopStart()};
 
     u64 whereJump{0};
