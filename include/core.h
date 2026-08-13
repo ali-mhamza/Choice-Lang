@@ -65,9 +65,9 @@ namespace Core
                     && (this->callable == other.callable));
         }
 
-        Object call(iter it, u8 argCount)
+        Object call(iter it, u8 args)
         {
-            return callable(instance, it, argCount);
+            return callable(instance, it, args);
         }
     };
 
