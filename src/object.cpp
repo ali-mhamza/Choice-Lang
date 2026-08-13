@@ -7,11 +7,11 @@
 #include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
+#include "../include/core.h"
 #include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
-#include "../include/natives.h"
 #include <personal/hash_functions.h>
 #include <array>
 #include <cstddef>
@@ -27,7 +27,7 @@
 #include <variant>
 #include <vector>
 
-using Natives::funcNames;
+using Core::Functions::names;
 
 /* Object. */
 
@@ -120,19 +120,20 @@ HeapObj* Object::heapPointer() const
 {
     switch (type())
     {
-        case ObjType::Module:   return static_cast<HeapObj*>(as.moduleVal);
-        case ObjType::UserType: return static_cast<HeapObj*>(as.userTypeVal);
-        case ObjType::Instance: return static_cast<HeapObj*>(as.instanceVal);
+        case ObjType::CoreMethod:   return static_cast<HeapObj*>(as.coreMethodVal);
+        case ObjType::Module:       return static_cast<HeapObj*>(as.moduleVal);
+        case ObjType::UserType:     return static_cast<HeapObj*>(as.userTypeVal);
+        case ObjType::Instance:     return static_cast<HeapObj*>(as.instanceVal);
         case ObjType::UserFunc:
-        case ObjType::Lambda:   return static_cast<HeapObj*>(as.userFuncVal);
-        case ObjType::Closure:  return static_cast<HeapObj*>(as.closureVal);
-        case ObjType::Method:   return static_cast<HeapObj*>(as.methodVal);
-        case ObjType::Text:     return static_cast<HeapObj*>(as.textVal);
-        case ObjType::String:   return static_cast<HeapObj*>(as.stringVal);
-        case ObjType::Range:    return static_cast<HeapObj*>(as.rangeVal);
-        case ObjType::List:     return static_cast<HeapObj*>(as.listVal);
-        case ObjType::Table:    return static_cast<HeapObj*>(as.tableVal);
-        case ObjType::Ref:      return static_cast<HeapObj*>(as.refVal);
+        case ObjType::Lambda:       return static_cast<HeapObj*>(as.userFuncVal);
+        case ObjType::Closure:      return static_cast<HeapObj*>(as.closureVal);
+        case ObjType::Method:       return static_cast<HeapObj*>(as.methodVal);
+        case ObjType::Text:         return static_cast<HeapObj*>(as.textVal);
+        case ObjType::String:       return static_cast<HeapObj*>(as.stringVal);
+        case ObjType::Range:        return static_cast<HeapObj*>(as.rangeVal);
+        case ObjType::List:         return static_cast<HeapObj*>(as.listVal);
+        case ObjType::Table:        return static_cast<HeapObj*>(as.tableVal);
+        case ObjType::Ref:          return static_cast<HeapObj*>(as.refVal);
         default: CH_UNREACHABLE();
     }
 }
@@ -147,21 +148,22 @@ bool Object::operator==(const Object& other) const
 
     switch (this->type())
     {
-        case ObjType::Bool:     return AS_BOOL(*this) == AS_BOOL(other);
-        case ObjType::Null:     return true;
-        case ObjType::Module:   return *(AS_MODULE(*this)) == *(AS_MODULE(other));
-        case ObjType::CoreType: return AS_CORE_TYPE(*this) == AS_CORE_TYPE(other);
-        case ObjType::UserType: return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
-        case ObjType::Instance: return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
-        case ObjType::CoreFunc: return AS_CORE_FUNC(*this) == AS_CORE_FUNC(other);
+        case ObjType::Bool:         return AS_BOOL(*this) == AS_BOOL(other);
+        case ObjType::Null:         return true;
+        case ObjType::Module:       return *(AS_MODULE(*this)) == *(AS_MODULE(other));
+        case ObjType::CoreType:     return AS_CORE_TYPE(*this) == AS_CORE_TYPE(other);
+        case ObjType::UserType:     return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
+        case ObjType::Instance:     return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
+        case ObjType::CoreFunc:     return AS_CORE_FUNC(*this) == AS_CORE_FUNC(other);
         case ObjType::UserFunc:
-        case ObjType::Lambda:   return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
-        case ObjType::Closure:  return AS_CLOSURE(*this) == AS_CLOSURE(other);
-        case ObjType::Method:   return *(AS_METHOD(*this)) == *(AS_METHOD(*this));
-        case ObjType::Range:    return *(AS_RANGE(*this)) == *(AS_RANGE(other));
-        case ObjType::List:     return *(AS_LIST(*this)) == *(AS_LIST(other));
-        case ObjType::Table:    return *(AS_TABLE(*this)) == *(AS_TABLE(other));
-        case ObjType::Void:     return true;
+        case ObjType::Lambda:       return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
+        case ObjType::Closure:      return AS_CLOSURE(*this) == AS_CLOSURE(other);
+        case ObjType::CoreMethod:   return *(AS_CORE_METHOD(*this)) == *(AS_CORE_METHOD(other));
+        case ObjType::Method:       return *(AS_USER_METHOD(*this)) == *(AS_USER_METHOD(other));
+        case ObjType::Range:        return *(AS_RANGE(*this)) == *(AS_RANGE(other));
+        case ObjType::List:         return *(AS_LIST(*this)) == *(AS_LIST(other));
+        case ObjType::Table:        return *(AS_TABLE(*this)) == *(AS_TABLE(other));
+        case ObjType::Void:         return true;
         default: CH_UNREACHABLE();
     }
 }
@@ -371,7 +373,12 @@ Hash Object::hash() const
         case ObjType::UserFunc:
         case ObjType::Lambda:   return hashPointer(AS_USER_FUNC(*this));
         case ObjType::Closure:  return hashPointer(AS_CLOSURE(*this));
-        case ObjType::Method:   return AS_METHOD(*this)->hash();
+        case ObjType::CoreMethod:
+        {
+            const auto* method{AS_CORE_METHOD(*this)};
+            return method->instance.hash() + hashPointer(method->callable);
+        }
+        case ObjType::Method:   return AS_USER_METHOD(*this)->hash();
         case ObjType::Text:
         {
             const Text* text{AS_TEXT(*this)};
@@ -447,22 +454,28 @@ std::string Object::printVal() const
         case ObjType::CoreType: ret = objTypes[static_cast<u8>(AS_CORE_TYPE(*this))];           break;
         case ObjType::UserType: ret = CH_STR("<type {}>", AS_USER_TYPE(*this)->name);           break;
         case ObjType::Instance: ret = AS_INSTANCE(*this)->printVal();                           break;
-        case ObjType::CoreFunc: ret = CH_STR("<builtin {}>", funcNames[AS_CORE_FUNC(*this)]);   break;
+        case ObjType::CoreFunc: ret = CH_STR("<builtin {}>", names[AS_CORE_FUNC(*this)]);       break;
         case ObjType::UserFunc: ret = CH_STR("<func {}>", AS_USER_FUNC(*this)->name);           break;
         case ObjType::Lambda:   ret = "<lambda>";                                               break;
         case ObjType::Closure:
         {
-            Closure* closure{AS_CLOSURE(*this)};
+            const Closure* closure{AS_CLOSURE(*this)};
             if (closure->function->name == nullptr)
                 ret = "lambda";
             else
                 ret = CH_STR("<func {}>", closure->function->name);
             break;
         }
+        case ObjType::CoreMethod:
+        {
+            const auto* method{AS_CORE_METHOD(*this)};
+            ret = method->name;
+            break;
+        }
         case ObjType::Method:
         {
-            Method* method{AS_METHOD(*this)};
-            Function* func{};
+            const Method* method{AS_USER_METHOD(*this)};
+            const Function* func{};
             if (IS_USER_FUNC(method->funcObj))
                 func = AS_USER_FUNC(method->funcObj);
             else if (IS_CLOSURE(method->funcObj))
@@ -645,7 +658,7 @@ bool Type::isPublicMethod(const std::string& method) const
 {
     const Object* obj{methods.get(method)};
     CH_ASSERT(obj != nullptr, "Checking access for non-existent method");
-    return AS_METHOD(*obj)->pub;
+    return AS_USER_METHOD(*obj)->pub;
 }
 
 void Type::emit(std::ofstream& os) const
@@ -747,7 +760,7 @@ const Object* Instance::findField(const std::string& name) const
     {
         location = type->methods.get(name);
         if (location != nullptr)
-            AS_METHOD(*location)->boundInstance = this;
+            AS_USER_METHOD(*location)->boundInstance = this;
         else
         {
             throw RuntimeError(FIELD_NOT_DEFINED,
@@ -774,7 +787,7 @@ Object Instance::getField(
         throw RuntimeError(FIELD_UNINIT_READ);
     else if (check != type)
     {
-        if (IS_METHOD(*location))
+        if (IS_USER_METHOD(*location))
         {
             if (!type->isPublicMethod(name))
                 throw RuntimeError(METHOD_PRIVATE);

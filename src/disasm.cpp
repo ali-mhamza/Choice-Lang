@@ -7,8 +7,8 @@
 #include "../include/bytecode.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/core.h"
 #include "../include/diagnostic.h"
-#include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include <string_view>
@@ -185,7 +185,7 @@ void Disassembler::callOp(u8 byte)
 
 	if (byte == OP_CALL_NAT)
 	{
-		std::string_view func{Natives::funcNames[callee]};
+		std::string_view func{Core::Functions::names[callee]};
 		CH_PRINT("'{}' R[{}] ({})\n", func, start, count);
 	}
 	else

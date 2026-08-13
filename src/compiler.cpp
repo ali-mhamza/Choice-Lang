@@ -8,12 +8,11 @@
 #include "../include/astnodes.h"
 #include "../include/common.h"
 #include "../include/config.h"
-#include "../include/constructors.h"
+#include "../include/core.h"
 #include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/escape_seq.h"
 #include "../include/linear_alloc.h"
-#include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include "../include/token.h"
@@ -75,10 +74,10 @@ void Compiler::defineBuiltinGlobals()
     // For now.
     VarAttr attr{};
     markClosed(attr);
-    for (const auto* func : Constructors::ctorNames)
-        defVar(func, nextReg++, accessFix, DeclType::Func, attr);
-    for (const auto* func : Natives::funcNames)
-        defVar(func, nextReg++, accessVar, DeclType::Func, attr);
+    for (auto ctor : Core::Ctors::names)
+        defVar(std::string{ctor}, nextReg++, accessFix, DeclType::Func, attr);
+    for (auto func : Core::Functions::names)
+        defVar(std::string{func}, nextReg++, accessVar, DeclType::Func, attr);
 }
 
 void Compiler::defineBuiltinLocals(const std::string& funcName)
@@ -1928,8 +1927,8 @@ DEF(CallExpr)
     if (node->builtin)
     {
         auto* var{static_cast<VarExpr*>(node->callee.get())};
-        auto find{Natives::builtins.find(var->name.text)};
-        if (find == Natives::builtins.end())
+        auto find{Core::Functions::search.find(var->name.text)};
+        if (find == Core::Functions::search.end())
             REPORT_ERROR(BUILTIN_NOT_FOUND, var->name);
         location = static_cast<u8>(find->second);
         reserveReg(); // Reserve a register in place of the function object.

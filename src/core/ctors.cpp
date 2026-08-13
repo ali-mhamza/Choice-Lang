@@ -1,55 +1,90 @@
-/*
- * Native definitions for built-in object constructors,
- * as well as other necessary data to print them out
- * or resolve them.
- */
-
-#include "../include/constructors.h"
-#include "../include/common.h"
-#include "../include/config.h"
-#include "../include/diagnostic.h"
-#include "../include/error.h"
-#include "../include/linear_alloc.h"
-#include "../include/object.h"
+#include "../../include/core.h"
+#include "../../include/error.h"
 #include <fast_float/fast_float.h>
-#include <array>
-#include <string>
-#include <unordered_map>
 
-const std::array<ObjType,
-Constructors::CtorType::NUM_CTORS> Constructors::types{
-    ObjType::Void, ObjType::Int, ObjType::Dec, ObjType::Bool,
-    ObjType::Text, ObjType::String, ObjType::Range, ObjType::List,
+/* Forward declarations. */
+
+#define CTOR(name) ::Object name(iter it, u8 argCount);
+
+namespace Core
+{
+    namespace Ctors
+    {
+        CTOR(Object);
+        CTOR(Int);
+        CTOR(Dec);
+        CTOR(Bool);
+        CTOR(Text);
+        CTOR(String);
+        CTOR(Range);
+        CTOR(List);
+        CTOR(Table);
+    };
+};
+
+#undef CTOR
+
+
+/* Utility arrays. */
+
+const std::array<Core::sv, to_num(Core::Ctor::Count)>
+Core::Ctors::names{
+    "Obj",
+    "Int",
+    "Dec",
+    "Bool",
+    "Text",
+    "String",
+    "Range",
+    "List",
+    "Table"
+};
+
+const std::array<Core::Callable::Ctor, to_num(Core::Ctor::Count)>
+Core::Ctors::impls{
+    Core::Ctors::Object,
+    Core::Ctors::Int,
+    Core::Ctors::Dec,
+    Core::Ctors::Bool,
+    Core::Ctors::Text,
+    Core::Ctors::String,
+    Core::Ctors::Range,
+    Core::Ctors::List,
+    Core::Ctors::Table
+};
+
+const std::unordered_map<ObjType, Core::Ctor>
+Core::Ctors::search{
+    {ObjType::Void,     Ctor::Object},
+    {ObjType::Int,      Ctor::Int},
+    {ObjType::Dec,      Ctor::Dec},
+    {ObjType::Bool,     Ctor::Bool},
+    {ObjType::Text,     Ctor::Text},
+    {ObjType::String,   Ctor::String},
+    {ObjType::Range,    Ctor::Range},
+    {ObjType::List,     Ctor::List},
+    {ObjType::Table,    Ctor::Table}
+};
+
+const std::array<ObjType, to_num(Core::Ctor::Count)>
+Core::Ctors::types{
+    ObjType::Void,
+    ObjType::Int,
+    ObjType::Dec,
+    ObjType::Bool,
+    ObjType::Text,
+    ObjType::String,
+    ObjType::Range,
+    ObjType::List,
     ObjType::Table
 };
 
-const std::array<Constructors::Ctor,
-Constructors::CtorType::NUM_CTORS> Constructors::ctors{
-    Constructors::Obj, Constructors::Int, Constructors::Dec,
-    Constructors::Bool, Constructors::Text, Constructors::String,
-    Constructors::Range, Constructors::List, Constructors::Table
-};
 
-const std::array<const char*,
-Constructors::CtorType::NUM_CTORS> Constructors::ctorNames{
-    "Object", "Int", "Dec", "Bool", "Text", "String",
-    "Range", "List", "Table"
-};
+/* Implementations. */
 
-const std::unordered_map<ObjType,
-Constructors::CtorType> Constructors::builtins{
-    {ObjType::Void, Constructors::CTOR_OBJ},
-    {ObjType::Int, Constructors::CTOR_INT},
-    {ObjType::Dec, Constructors::CTOR_DEC},
-    {ObjType::Bool, Constructors::CTOR_BOOL},
-    {ObjType::Text, Constructors::CTOR_TEXT},
-    {ObjType::String, Constructors::CTOR_STRING},
-    {ObjType::Range, Constructors::CTOR_RANGE},
-    {ObjType::List, Constructors::CTOR_LIST},
-    {ObjType::Table, Constructors::CTOR_TABLE}
-};
+using Obj = ::Object; // To avoid name collisions.
 
-Object Constructors::Obj(iter it, u8 args)
+Obj Core::Ctors::Object(iter it, u8 args)
 {
     (void) it;
     if (args != 0)
@@ -59,20 +94,20 @@ Object Constructors::Obj(iter it, u8 args)
         );
     }
 
-    return Object{ObjType::Void};
+    return Obj{ObjType::Void};
 }
 
-Object Constructors::Int(iter it, u8 args)
+Obj Core::Ctors::Int(iter it, u8 args)
 {
     if (args == 0)
-        return Object{i64(0)};
+        return Obj{i64(0)};
 
     if (args == 1)
     {
         if (IS_INT(*it))
-            return Object{AS_INT(*it)};
+            return Obj{AS_INT(*it)};
         else if (IS_DEC(*it))
-            return Object{static_cast<i64>(AS_DEC(*it))};
+            return Obj{static_cast<i64>(AS_DEC(*it))};
         else if (IS_STRING_LIKE(*it))
         {
             std::string_view str{it->getObjectText()};
@@ -82,7 +117,7 @@ Object Constructors::Int(iter it, u8 args)
 
             if (!answer)
                 throw RuntimeError(NUMERIC_LIT_PARSE_FAIL);
-            return Object{value};
+            return Obj{value};
         }
         else
             throw RuntimeError(WRONG_ARG_TYPE, "argument must be a number or a string");
@@ -106,7 +141,7 @@ Object Constructors::Int(iter it, u8 args)
 
         if (!answer)
             throw RuntimeError(NUMERIC_LIT_PARSE_FAIL);
-        return Object{value};
+        return Obj{value};
     }
 
     throw RuntimeError(ARITY_MISMATCH,
@@ -114,17 +149,17 @@ Object Constructors::Int(iter it, u8 args)
     );
 }
 
-Object Constructors::Dec(iter it, u8 args)
+Obj Core::Ctors::Dec(iter it, u8 args)
 {
     if (args == 0)
-        return Object{0.0};
+        return Obj{0.0};
 
     if (args == 1)
     {
         if (IS_DEC(*it))
-            return Object{AS_DEC(*it)};
+            return Obj{AS_DEC(*it)};
         else if (IS_INT(*it))
-            return Object{static_cast<double>(AS_INT(*it))};
+            return Obj{static_cast<double>(AS_INT(*it))};
         else if (IS_STRING_LIKE(*it))
         {
             std::string_view str{it->getObjectText()};
@@ -134,7 +169,7 @@ Object Constructors::Dec(iter it, u8 args)
 
             if (!answer)
                 throw RuntimeError(NUMERIC_LIT_PARSE_FAIL);
-            return Object{value};
+            return Obj{value};
         }
         else
             throw RuntimeError(WRONG_ARG_TYPE, "argument must be a number or a string");
@@ -145,7 +180,7 @@ Object Constructors::Dec(iter it, u8 args)
     );
 }
 
-Object Constructors::Bool(iter it, u8 args)
+Obj Core::Ctors::Bool(iter it, u8 args)
 {
     if (args > 1)
     {
@@ -155,11 +190,11 @@ Object Constructors::Bool(iter it, u8 args)
     }
 
     if (args == 0)
-        return Object{false};
-    return Object{it->isTruthy()};
+        return Obj{false};
+    return Obj{it->isTruthy()};
 }
 
-Object Constructors::Text(iter it, u8 args)
+Obj Core::Ctors::Text(iter it, u8 args)
 {
     if (args > 1)
     {
@@ -169,11 +204,11 @@ Object Constructors::Text(iter it, u8 args)
     }
 
     if (args == 0)
-        return Object{CH_ALLOC(::Text, "")};
-    return Object{CH_ALLOC(::Text, it->printVal())};
+        return Obj{CH_ALLOC(::Text, "")};
+    return Obj{CH_ALLOC(::Text, it->printVal())};
 }
 
-Object Constructors::String(iter it, u8 args)
+Obj Core::Ctors::String(iter it, u8 args)
 {
     if (args > 1)
     {
@@ -183,11 +218,11 @@ Object Constructors::String(iter it, u8 args)
     }
 
     if (args == 0)
-        return Object{CH_ALLOC(::String, "")};
-    return Object{CH_ALLOC(::String, it->printVal())};
+        return Obj{CH_ALLOC(::String, "")};
+    return Obj{CH_ALLOC(::String, it->printVal())};
 }
 
-Object Constructors::Range(iter it, u8 args)
+Obj Core::Ctors::Range(iter it, u8 args)
 {
     if ((args != 2) && (args != 3))
     {
@@ -209,10 +244,10 @@ Object Constructors::Range(iter it, u8 args)
     if (args == 3) nums[2] = AS_INT(it[2]);
 
     Range::validateRange(nums); // May throw on error.
-    return Object{CH_ALLOC(::Range, nums)};
+    return Obj{CH_ALLOC(::Range, nums)};
 }
 
-Object Constructors::List(iter it, u8 args)
+Obj Core::Ctors::List(iter it, u8 args)
 {
     if (args > 1)
     {
@@ -227,7 +262,7 @@ Object Constructors::List(iter it, u8 args)
         if (!IS_ITERABLE(*it))
             throw RuntimeError(WRONG_ARG_TYPE, "argument is not iterable");
         ObjIter* iter{it->makeIter()}; // Guaranteed to succeed.
-        Object temp{};
+        Obj temp{};
 
         if (iter->start(temp))
         {
@@ -240,7 +275,7 @@ Object Constructors::List(iter it, u8 args)
     return list;
 }
 
-Object Constructors::Table(iter it, u8 args)
+Obj Core::Ctors::Table(iter it, u8 args)
 {
     if (args > 1)
     {
@@ -250,7 +285,7 @@ Object Constructors::Table(iter it, u8 args)
     }
 
     ::Table* table{CH_ALLOC(::Table)};
-    auto insertEntry = [table](const Object& obj) {
+    auto insertEntry = [table](const Obj& obj) {
         if (!IS_LIST(obj) || (AS_LIST(obj)->array.count() != 2))
         {
             throw RuntimeError(WRONG_ARG_TYPE,
@@ -271,7 +306,7 @@ Object Constructors::Table(iter it, u8 args)
         }
 
         ObjIter* iter{it->makeIter()}; // Guaranteed to succeed.
-        Object temp{};
+        Obj temp{};
 
         if (iter->start(temp))
         {

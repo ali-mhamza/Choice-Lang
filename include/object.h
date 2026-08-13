@@ -2,7 +2,7 @@
 #include "bytecode.h"
 #include "common.h"
 #include "modules.h"
-#include "natives.h"
+#include "utils.h"
 #include <personal/array.h>
 #include <personal/hash_table.h>
 #include <array>
@@ -13,10 +13,15 @@
 #include <utility>
 #include <variant>
 
-using Natives::FuncType;
 class Object;
 struct ObjectHasher;
 using ObjectTable = HashTable<Object, Object, ObjectHasher>;
+
+namespace Core
+{
+    enum class Function : u8;
+    struct Method;
+};
 
 /* Constants. */
 
@@ -36,31 +41,32 @@ inline constexpr u8 TYPE_MASK   = 0x1f;
 #undef NULL
 #undef AS_VOID
 
-#define TYPE_LIST                       \
-    X(INT, Int, intVal)                 \
-    X(DEC, Dec, decVal)                 \
-    X(BOOL, Bool, boolVal)              \
-    X(NULL, Null, heapVal)              \
-    X(VOID, Void, heapVal)              \
-    X(CORE_TYPE, CoreType, coreTypeVal) \
-    X(CORE_FUNC, CoreFunc, coreFuncVal) \
-    X(MODULE, Module, moduleVal)        \
-    X(USER_TYPE, UserType, userTypeVal) \
-    X(INSTANCE, Instance, instanceVal)  \
-    X(USER_FUNC, UserFunc, userFuncVal) \
-    X(LAMBDA, Lambda, userFuncVal)      \
-    X(CLOSURE, Closure, closureVal)     \
-    X(METHOD, Method, methodVal)        \
-    X(BIGINT, BigInt, heapVal)          \
-    X(BIGDEC, BigDec, heapVal)          \
-    X(TEXT, Text, textVal)              \
-    X(STRING, String, stringVal)        \
-    X(RANGE, Range, rangeVal)           \
-    X(LIST, List, listVal)              \
-    X(TABLE, Table, tableVal)           \
-    X(REF, Ref, refVal)                 \
-    /* Used in for-loops. */            \
-    X(ITER, Iter, iterVal)              \
+#define TYPE_LIST                               \
+    X(INT, Int, intVal)                         \
+    X(DEC, Dec, decVal)                         \
+    X(BOOL, Bool, boolVal)                      \
+    X(NULL, Null, heapVal)                      \
+    X(VOID, Void, heapVal)                      \
+    X(CORE_TYPE, CoreType, coreTypeVal)         \
+    X(CORE_FUNC, CoreFunc, coreFuncVal)         \
+    X(CORE_METHOD, CoreMethod, coreMethodVal)   \
+    X(MODULE, Module, moduleVal)                \
+    X(USER_TYPE, UserType, userTypeVal)         \
+    X(INSTANCE, Instance, instanceVal)          \
+    X(USER_FUNC, UserFunc, userFuncVal)         \
+    X(LAMBDA, Lambda, userFuncVal)              \
+    X(CLOSURE, Closure, closureVal)             \
+    X(USER_METHOD, Method, methodVal)           \
+    X(BIGINT, BigInt, heapVal)                  \
+    X(BIGDEC, BigDec, heapVal)                  \
+    X(TEXT, Text, textVal)                      \
+    X(STRING, String, stringVal)                \
+    X(RANGE, Range, rangeVal)                   \
+    X(LIST, List, listVal)                      \
+    X(TABLE, Table, tableVal)                   \
+    X(REF, Ref, refVal)                         \
+    /* Used in for-loops. */                    \
+    X(ITER, Iter, iterVal)                      \
 
 /* Type enum. */
 
@@ -116,7 +122,8 @@ class Object
             double          decVal;
             bool            boolVal;
             ObjType         coreTypeVal;
-            FuncType        coreFuncVal;
+            Core::Function  coreFuncVal;
+            Core::Method*   coreMethodVal;
             Module*         moduleVal;
             Type*           userTypeVal;
             Instance*       instanceVal;
@@ -194,17 +201,18 @@ ObjType getObjectType(T val)
         return ObjType::UserFunc;
     }
 
-    if constexpr (std::is_same_v<U, Module>)    return ObjType::Module;
-    if constexpr (std::is_same_v<U, Type>)      return ObjType::UserType;
-    if constexpr (std::is_same_v<U, Instance>)  return ObjType::Instance;
-    if constexpr (std::is_same_v<U, Closure>)   return ObjType::Closure;
-    if constexpr (std::is_same_v<U, Method>)    return ObjType::Method;
-    if constexpr (std::is_same_v<U, Text>)      return ObjType::Text;
-    if constexpr (std::is_same_v<U, String>)    return ObjType::String;
-    if constexpr (std::is_same_v<U, Range>)     return ObjType::Range;
-    if constexpr (std::is_same_v<U, List>)      return ObjType::List;
-    if constexpr (std::is_same_v<U, Table>)     return ObjType::Table;
-    if constexpr (std::is_same_v<U, Cell>)      return ObjType::Ref;
+    if constexpr (std::is_same_v<U, Core::Method>)  return ObjType::CoreMethod;
+    if constexpr (std::is_same_v<U, Module>)        return ObjType::Module;
+    if constexpr (std::is_same_v<U, Type>)          return ObjType::UserType;
+    if constexpr (std::is_same_v<U, Instance>)      return ObjType::Instance;
+    if constexpr (std::is_same_v<U, Closure>)       return ObjType::Closure;
+    if constexpr (std::is_same_v<U, Method>)        return ObjType::Method;
+    if constexpr (std::is_same_v<U, Text>)          return ObjType::Text;
+    if constexpr (std::is_same_v<U, String>)        return ObjType::String;
+    if constexpr (std::is_same_v<U, Range>)         return ObjType::Range;
+    if constexpr (std::is_same_v<U, List>)          return ObjType::List;
+    if constexpr (std::is_same_v<U, Table>)         return ObjType::Table;
+    if constexpr (std::is_same_v<U, Cell>)          return ObjType::Ref;
 }
 
 template<typename T>
@@ -215,18 +223,19 @@ decltype(auto) Object::getTypePointer()
     // Parentheses around return values to return by reference
     // instead of by value.
 
-    if constexpr (std::is_same_v<U, Module>)    return (as.moduleVal);
-    if constexpr (std::is_same_v<U, Type>)      return (as.userTypeVal);
-    if constexpr (std::is_same_v<U, Instance>)  return (as.instanceVal);
-    if constexpr (std::is_same_v<U, Function>)  return (as.userFuncVal);
-    if constexpr (std::is_same_v<U, Closure>)   return (as.closureVal);
-    if constexpr (std::is_same_v<U, Method>)    return (as.methodVal);
-    if constexpr (std::is_same_v<U, Text>)      return (as.textVal);
-    if constexpr (std::is_same_v<U, String>)    return (as.stringVal);
-    if constexpr (std::is_same_v<U, Range>)     return (as.rangeVal);
-    if constexpr (std::is_same_v<U, List>)      return (as.listVal);
-    if constexpr (std::is_same_v<U, Table>)     return (as.tableVal);
-    if constexpr (std::is_same_v<U, Cell>)      return (as.refVal);
+    if constexpr (std::is_same_v<U, Core::Method>)  return (as.coreMethodVal);
+    if constexpr (std::is_same_v<U, Module>)        return (as.moduleVal);
+    if constexpr (std::is_same_v<U, Type>)          return (as.userTypeVal);
+    if constexpr (std::is_same_v<U, Instance>)      return (as.instanceVal);
+    if constexpr (std::is_same_v<U, Function>)      return (as.userFuncVal);
+    if constexpr (std::is_same_v<U, Closure>)       return (as.closureVal);
+    if constexpr (std::is_same_v<U, Method>)        return (as.methodVal);
+    if constexpr (std::is_same_v<U, Text>)          return (as.textVal);
+    if constexpr (std::is_same_v<U, String>)        return (as.stringVal);
+    if constexpr (std::is_same_v<U, Range>)         return (as.rangeVal);
+    if constexpr (std::is_same_v<U, List>)          return (as.listVal);
+    if constexpr (std::is_same_v<U, Table>)         return (as.tableVal);
+    if constexpr (std::is_same_v<U, Cell>)          return (as.refVal);
 }
 
 template<typename T>
@@ -247,17 +256,12 @@ Object::Object(T val) noexcept
         type_ = static_cast<u8>(ObjType::Bool);
         as.boolVal = val;
     }
-    else if constexpr (std::is_same_v<T, std::nullptr_t>)
-    {
-        type_ = static_cast<u8>(ObjType::Null);
-        as.heapVal = val; // Dummy assignment.
-    }
     else if constexpr (std::is_same_v<T, ObjType>)
     {
         type_ = static_cast<u8>(ObjType::CoreType);
         as.coreTypeVal = val;
     }
-    else if constexpr (std::is_same_v<T, FuncType>)
+    else if constexpr (std::is_same_v<T, Core::Function>)
     {
         type_ = static_cast<u8>(ObjType::CoreFunc);
         as.coreFuncVal = val;
@@ -292,12 +296,12 @@ Object::Object(T val) noexcept
 /* Object type names. */
 
 inline constexpr
-std::array<std::string_view, static_cast<u64>(ObjType::Count)> objTypes{
-    "Int", "Dec", "Bool", "Null", "Void", "Builtin Type",
-    "Builtin Function", "Module", "User Type", "Type Instance",
-    "User Function", "Lambda", "User Function", "Type Method",
-    "BigInt", "BigDec", "Text", "String", "Range", "List",
-    "Table", "", // References take the type of the contained object.
+std::array<std::string_view, to_num(ObjType::Count)> objTypes{
+    "Int", "Dec", "Bool", "Null", "Void", "Builtin-Type",
+    "Builtin-Function", "Builtin-Method", "Module", "User-Type",
+    "Type-Instance", "User-Function", "Lambda", "User-Function",
+    "Type-Method", "Big-Int", "Big-Dec", "Text", "String", "Range",
+    "List", "Table", "", // References take the type of the contained object.
     "Iterable"
 };
 
@@ -309,7 +313,7 @@ std::array<std::string_view, static_cast<u64>(ObjType::Count)> objTypes{
         return (obj.type() == ObjType::name);                       \
     }                                                               \
     [[nodiscard]] static inline auto AS_##TYPE(const Object& obj) { \
-        return obj.as.field;                                        \
+        return enum_or_self(obj.as.field);                          \
     }                                                               \
     [[nodiscard]] static inline auto& AS_##TYPE(Object& obj) {      \
         return obj.as.field;                                        \
@@ -321,11 +325,12 @@ TYPE_LIST
 
 // Object is a function object.
 #define IS_FUNCOBJ(obj) \
-    (IS_USER_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj) || IS_METHOD(obj))
+    (IS_USER_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj) || IS_USER_METHOD(obj))
 
 // Object can be called.
-#define IS_CALLABLE(obj) \
-    (IS_CORE_FUNC(obj) || IS_FUNCOBJ(obj) || IS_CORE_TYPE(obj) || IS_USER_TYPE(obj))
+#define IS_CALLABLE(obj)                                            \
+    (IS_CORE_FUNC(obj) || IS_CORE_TYPE(obj) || IS_CORE_METHOD(obj)  \
+    || IS_FUNCOBJ(obj) || IS_USER_TYPE(obj))
 
 // Object is allocated/involves allocation on the heap.
 #define IS_HEAP_OBJ(obj) \

@@ -41,6 +41,21 @@ constexpr std::string_view NORMAL{"\033[0m"};
 
 /* Enum helpers. */
 
+template<typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
+constexpr auto to_num(T enumVal)
+{
+    return static_cast<std::underlying_type_t<T>>(enumVal);
+}
+
+template<typename T>
+auto enum_or_self(T val)
+{
+    if constexpr (std::is_enum_v<T>)
+        return to_num(val);
+    else
+        return val;
+}
+
 // For use in for-loops.
 // Example:
 // `for EACH_ENUM_VAL(MyEnum, kind) print(kind);`

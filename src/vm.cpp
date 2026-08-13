@@ -10,14 +10,13 @@
 #include "../include/common.h"
 #include "../include/compiler.h"
 #include "../include/config.h"
-#include "../include/constructors.h"
+#include "../include/core.h"
 #include "../include/debug.h"
 #include "../include/diagnostic.h"
 #include "../include/disasm.h"
 #include "../include/error.h"
 #include "../include/linear_alloc.h"
 #include "../include/modules.h"
-#include "../include/natives.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
 #include "../include/utils.h"
@@ -114,17 +113,17 @@ void VM::defineBuiltinGlobals()
     MAKE_IMMUT(temp[FILENAME_LOC]);
     temp++;
 
-    for (u8 i{0}; i < Constructors::CtorType::NUM_CTORS; i++)
+    for EACH_ENUM_VAL(Core::Ctor, i)
     {
         // Use implicit conversion here to avoid overload
         // with an ObjType enum argument.
-        *temp = Constructors::types[i];
+        *temp = Core::Ctors::types[to_num(i)];
         temp++;
     }
 
-    for (u8 i{0}; i < Natives::FuncType::NUM_FUNCS; i++)
+    for EACH_ENUM_VAL(Core::Function, i)
     {
-        *temp = Object{Natives::FuncType{i}};
+        *temp = Object{i};
         temp++;
     }
     SET_REGSLOT(temp - globalRegisters);
@@ -594,15 +593,15 @@ void VM::callFunc(
 
 void VM::callNative(const Object& callee, u8 start, u8 argCount)
 {
-    auto func{Natives::functions[AS_CORE_FUNC(callee)]};
+    auto func{Core::Functions::impls[AS_CORE_FUNC(callee)]};
     func(&registers[start], argCount);
 }
 
 void VM::callCtor(const Object& callee, u8 start, u8 argCount)
 {
     ObjType type{AS_CORE_TYPE(callee)};
-    auto it{Constructors::builtins.find(type)};
-    if (it == Constructors::builtins.end())
+    auto it{Core::Ctors::search.find(type)};
+    if (it == Core::Ctors::search.end())
     {
         throw RuntimeError(NO_TYPE_CTOR,
             CH_STR(
@@ -612,7 +611,7 @@ void VM::callCtor(const Object& callee, u8 start, u8 argCount)
         );
     }
 
-    auto ctor{Constructors::ctors[it->second]};
+    auto ctor{Core::Ctors::impls[to_num(it->second)]};
     registers[start - 1] = ctor(&registers[start], argCount);
 }
 
@@ -672,7 +671,7 @@ void VM::callMethod(const Object& callee, u8 start, u8 argCount)
     // for the instance object.
     std::move_backward(&registers[start], &registers[start + argCount],
         &registers[start + argCount + 1]);
-    const Method* method{AS_METHOD(callee)};
+    const Method* method{AS_USER_METHOD(callee)};
     registers[start - 1] = method->funcObj;
     registers[start] = method->boundInstance;
     callFunc(method->funcObj, start, argCount, method->boundInstance->type);
@@ -698,6 +697,9 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
             break;
         case ObjType::UserType:
             callType(callee, start, argCount);
+            break;
+        case ObjType::CoreMethod:
+            AS_CORE_METHOD(callee)->call(registers + start, argCount);
             break;
         case ObjType::Method:
             callMethod(callee, start, argCount);
@@ -1354,16 +1356,23 @@ void VM::executeOp(Opcode op)
             u8 destReg{readByte()};
             u8 instanceReg{readByte()};
             u8 fieldReg{readByte()};
-
-            // For now; built-in types may also have fields/methods later.
-            if (!IS_INSTANCE(registers[instanceReg]))
-                throw RuntimeError(FIELD_NO_INSTANCE);
-
-            Instance* obj{AS_INSTANCE(registers[instanceReg])};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
-            // Replace the instance.
-            registers[destReg] = obj->getField(field, currentMethodType);
-            COMPUTE_OBJ(destReg);
+
+            if (IS_INSTANCE(registers[instanceReg]))
+            {
+                Instance* obj{AS_INSTANCE(registers[instanceReg])};
+                // Replace the instance.
+                registers[destReg] = obj->getField(field, currentMethodType);
+                COMPUTE_OBJ(destReg);
+            }
+            else
+            {
+                registers[destReg] = Core::Methods::getMember(
+                    registers[instanceReg].type(),
+                    field
+                );
+            }
+
             DISPATCH();
         }
         CASE(OP_SET_FIELD):
@@ -1487,8 +1496,8 @@ void VM::executeOp(Opcode op)
             #endif
             SET_REGSLOT(start);
 
-            const auto& func{Natives::functions[callee]};
-            func(&registers[start], argCount); // Temporarily.
+            const auto& func{Core::Functions::impls[callee]};
+            func(&registers[start], argCount);
 
             SET_REGSLOT(currentSlot);
             DISPATCH();
