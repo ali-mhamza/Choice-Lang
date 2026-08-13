@@ -24,13 +24,15 @@ namespace Core
 
     enum class Function : u8
     {
-        Print,
-        Println,
-        Typeof,
-        Len,
-        Clock,
-        Read,
-        Quit,
+        print,
+        println,
+        typeof,
+        len,
+        clock,
+        read,
+        quit,
+        getattr,
+        setattr,
         Count
     };
 

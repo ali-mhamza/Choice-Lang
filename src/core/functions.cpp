@@ -16,6 +16,8 @@ namespace Core
         FUNCTION(clock);
         FUNCTION(read);
         FUNCTION(quit);
+        FUNCTION(getattr);
+        FUNCTION(setattr);
     };
 };
 
@@ -32,7 +34,9 @@ Core::Functions::names{
     "len",
     "clock",
     "read",
-    "quit"
+    "quit",
+    "getattr",
+    "setattr"
 };
 
 const std::array<Core::Callable::Func, to_num(Core::Function::Count)>
@@ -43,18 +47,22 @@ Core::Functions::impls{
     len,
     clock,
     read,
-    quit
+    quit,
+    getattr,
+    setattr
 };
 
 const std::unordered_map<Core::sv, Core::Function>
 Core::Functions::search{
-    {"print",   Function::Print},
-    {"println", Function::Println},
-    {"typeof",  Function::Typeof},
-    {"len",     Function::Len},
-    {"clock",   Function::Clock},
-    {"read",    Function::Read},
-    {"quit",    Function::Quit}
+    {"print",   Function::print},
+    {"println", Function::println},
+    {"typeof",  Function::typeof},
+    {"len",     Function::len},
+    {"clock",   Function::clock},
+    {"read",    Function::read},
+    {"quit",    Function::quit},
+    {"getattr", Function::getattr},
+    {"setattr", Function::setattr}
 };
 
 
@@ -213,4 +221,41 @@ void Core::Functions::quit(iter it, u8 args)
     u8 exitCode{static_cast<u8>((args == 0) ? 0 : (code & 0xff))};
     exit(exitCode);
     // No return value.
+}
+
+void Core::Functions::getattr(iter it, u8 args)
+{
+    if (args != 2)
+    {
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expect 2 arguments but found {}", args)
+        );
+    }
+
+    if (!IS_INSTANCE(it[0]))
+        throw RuntimeError(WRONG_ARG_TYPE, "first argument must be a type instance");
+    if (!IS_STRING_LIKE(it[1]))
+        throw RuntimeError(WRONG_ARG_TYPE, "second argument must be string-like");
+
+    std::string field{it[1].getObjectText()};
+    it[-1] = AS_INSTANCE(it[0])->getField(field, nullptr);
+}
+
+void Core::Functions::setattr(iter it, u8 args)
+{
+    if (args != 3)
+    {
+        throw RuntimeError(ARITY_MISMATCH,
+            CH_STR("expect 3 arguments but found {}", args)
+        );
+    }
+
+    if (!IS_INSTANCE(it[0]))
+        throw RuntimeError(WRONG_ARG_TYPE, "first argument must be a type instance");
+    if (!IS_STRING_LIKE(it[1]))
+        throw RuntimeError(WRONG_ARG_TYPE, "second argument must be string-like");
+
+    std::string field{it[1].getObjectText()};
+    AS_INSTANCE(it[0])->setField(field, it[2], nullptr);
+    it[-1] = Object{ObjType::Void};
 }
