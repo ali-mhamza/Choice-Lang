@@ -441,7 +441,7 @@ struct Module : public HeapObj
 
     Module(const std::string& name) noexcept;
     ~Module() noexcept;
-    bool operator==(const Module& other);
+    bool operator==(const Module& other) const;
 
     [[nodiscard]] Object getEntry(const std::string& name) const;
 

@@ -581,7 +581,7 @@ Module::~Module() noexcept
     delete[] name;
 }
 
-bool Module::operator==(const Module& other)
+bool Module::operator==(const Module& other) const
 {
     return (strcmp(this->name, other.name) == 0);
 }
