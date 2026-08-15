@@ -230,7 +230,7 @@ ExprUP TreeWalker::evaluate(ExprUP& expr)
         return isConstant(ptr->left) && isConstant(ptr->right); \
     } while (false)
 
-#define OPTIMIZE_OPERANDS(type)     \
+#define OPTIMIZE_OPERANDS()         \
     do {                            \
         optimizeExpr(raw->left);    \
         optimizeExpr(raw->right);   \
