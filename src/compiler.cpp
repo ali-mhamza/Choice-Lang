@@ -973,7 +973,6 @@ DEF(TypeDecl)
             REPORT_ERROR(DROP_HAS_PARAMS, func->params[0].param.var);
 
         std::string name{func->name.text};
-
         Compiler miniCompiler{this};
         u8 funcReg{nextReg};
 
