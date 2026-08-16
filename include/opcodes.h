@@ -73,7 +73,7 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_INDEX_REF,       // Construct a reference to an element within another object.
 	OP_FIELD_REF,       // Construct a reference to an instance field.
 
-	/* Built-in Types. */
+	/* Built-in types. */
 
 	OP_LIST,			// Create a list.
 	OP_EXT_LIST,		// Extend a list with additional elements.
@@ -106,7 +106,7 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_CAPTURE_LOCAL,   // Capture a value from a surrounding local scope into a cell.
 	OP_CAPTURE_CELL,	// Capture a cell from a surrounding scope.
 
-	/* User Types. */
+	/* User types. */
 
 	OP_INSTANCE,        // Create a new instance of a given type.
 	OP_FINISH_FIELDS,   // Finish initializing all fields for an instance.
