@@ -134,16 +134,17 @@ class VM
         void prepFuncArgs(const Function* func, u8 argCount);
         void restoreData();
 
-        void callFunc(
+        void callUserFunc(
             const Object& callee,
             u8 start,
             u8 argCount,
             const Type* methodType = nullptr
         );
-        void callNative(const Object& callee, u8 start, u8 argCount);
-        void callCtor(const Object& callee, u8 start, u8 argCount);
-        void callType(const Object& callee, u8 start, u8 argCount);
-        void callMethod(const Object& callee, u8 start, u8 argCount);
+        void callCoreFunc(const Object& callee, u8 start, u8 argCount);
+        void callUserType(const Object& callee, u8 start, u8 argCount);
+        void callCoreType(const Object& callee, u8 start, u8 argCount);
+        void callUserMethod(const Object& callee, u8 start, u8 argCount);
+        void callCoreMethod(const Object& callee, u8 start, u8 argCount);
         void callObj(const Object& callee, u8 start, u8 argCount);
 
         void getModule(Object& module, const Object& dir);

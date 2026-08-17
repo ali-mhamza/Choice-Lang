@@ -157,9 +157,11 @@ class Compiler
 
         /* Variable declarations. */
 
-        template<typename DeclNodeType>
         void handleVarAttribute(
-            DeclNodeType* node
+            AST::Statement::VarDecl* node
+        );
+        void handleFieldAttribute(
+            AST::Statement::TypeDecl::Field* field
         );
         void handleFuncAttribute(
             AST::Statement::FuncDecl* func

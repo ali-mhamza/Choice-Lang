@@ -327,20 +327,21 @@ void Compiler::popScope()
     code.addOp(OP_EXIT_SCOPE);
 }
 
-template<typename DeclNodeType>
-void Compiler::handleVarAttribute(DeclNodeType* node)
+static void makeComputed(ExprUP& value)
+{
+    if (value == nullptr) return;
+
+    StmtVec block{};
+    block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
+    StmtUP body{std::make_unique<BlockStmt>(block)};
+
+    std::vector<AST::Param> params{};
+    value = std::make_unique<LambdaExpr>(params, body, true);
+}
+
+void Compiler::handleVarAttribute(VarDecl* node)
 {
     const vT& toks{node->decl.attrTokens};
-    auto makeComputed = [](ExprUP& value) {
-        if (value == nullptr) return;
-
-        StmtVec block{};
-        block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
-        StmtUP body{std::make_unique<BlockStmt>(block)};
-
-        std::vector<AST::Param> params{};
-        value = std::make_unique<LambdaExpr>(params, body, true);
-    };
 
     if (isPrivate(currentAttr))
     {
@@ -356,14 +357,32 @@ void Compiler::handleVarAttribute(DeclNodeType* node)
 
     if (isComputed(currentAttr))
     {
-        if constexpr (std::is_same_v<DeclNodeType, VarDecl>)
-        {
-            // We turn each value into an IIFE that evaluates it.
-            for (auto& value : node->values)
-                makeComputed(value);
-        }
-        else if constexpr (std::is_same_v<DeclNodeType, TypeDecl::Field>)
-            makeComputed(node->init);
+        // We turn each value into an IIFE that evaluates it.
+        for (auto& value : node->values)
+            makeComputed(value);
+    }
+
+    if (isClosed(currentAttr))
+        reportError(CLOSED_NON_FUNCTION, toks[ATTR_CLOSED]);
+
+    if (isTest(currentAttr))
+        reportError(TEST_NOT_GLOBAL_FUNC, toks[ATTR_TEST]);
+}
+
+void Compiler::handleFieldAttribute(TypeDecl::Field* field)
+{
+    const vT& toks{field->decl.attrTokens};
+
+    if (isStatic(currentAttr))
+    {
+        if (depth == 0)
+            reportError(STATIC_NOT_FUNC_VAR, toks[ATTR_STATIC]);
+    }
+
+    if (isComputed(currentAttr))
+    {
+        // We turn each value into an IIFE that evaluates it.
+        makeComputed(field->init);
     }
 
     if (isClosed(currentAttr))
@@ -943,7 +962,7 @@ DEF(TypeDecl)
     for (const auto& field : node->fields)
     {
         currentAttr = field.decl.attr;
-        handleVarAttribute(const_cast<TypeDecl::Field*>(&field));
+        handleFieldAttribute(const_cast<TypeDecl::Field*>(&field));
         fields.push_back({
             std::string{field.name.var.text},
             field.fix,
@@ -1993,7 +2012,7 @@ DEF(LambdaExpr)
         REPORT_ERROR(HIT_PARAM_MAX, node->params[PARAMETER_MAX].param.var);
 
     Compiler miniCompiler{this};
-    funcBodyHelper(miniCompiler, node, nextReg, std::string{}, true);
+    funcBodyHelper(miniCompiler, node, nextReg, std::string{}, node->iife);
     reserveReg();
 }
 

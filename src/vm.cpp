@@ -166,7 +166,7 @@ inline u32 VM::readLong()
 
 inline Cell* VM::captureValue(u8 slot, bool local)
 {
-    Object* addr{local ? (registers + slot) : (globalRegisters + slot)};
+    Object* addr{(local ? registers : globalRegisters) + slot};
     for (auto it{activeCells.rbegin()}; it != activeCells.rend(); it++)
     {
         Cell* cell{*it};
@@ -544,7 +544,7 @@ void VM::restoreData()
     frames.pop_back();
 }
 
-void VM::callFunc(
+void VM::callUserFunc(
     const Object& callee,
     u8 start,
     u8 argCount,
@@ -591,31 +591,13 @@ void VM::callFunc(
     }
 }
 
-void VM::callNative(const Object& callee, u8 start, u8 argCount)
+void VM::callCoreFunc(const Object& callee, u8 start, u8 argCount)
 {
     auto func{Core::Functions::impls[AS_CORE_FUNC(callee)]};
     func(&registers[start], argCount);
 }
 
-void VM::callCtor(const Object& callee, u8 start, u8 argCount)
-{
-    ObjType type{AS_CORE_TYPE(callee)};
-    auto it{Core::Ctors::search.find(type)};
-    if (it == Core::Ctors::search.end())
-    {
-        throw RuntimeError(NO_TYPE_CTOR,
-            CH_STR(
-                "type ({}) has no defined constructor",
-                objTypes[static_cast<u8>(type)]
-            )
-        );
-    }
-
-    auto ctor{Core::Ctors::impls[to_num(it->second)]};
-    registers[start - 1] = ctor(&registers[start], argCount);
-}
-
-void VM::callType(const Object& callee, u8 start, u8 argCount)
+void VM::callUserType(const Object& callee, u8 start, u8 argCount)
 {
     const Type* type{AS_USER_TYPE(callee)};
     bool hasCtor{type->defines(CH_CONSTRUCTOR)};
@@ -640,7 +622,7 @@ void VM::callType(const Object& callee, u8 start, u8 argCount)
         Object ctor{instance->getField(CH_CONSTRUCTOR)};
         bool encapsulate{encapsulateCall};
         encapsulateCall = true;
-        callMethod(ctor, start, argCount);
+        callUserMethod(ctor, start, argCount);
         encapsulateCall = encapsulate;
     }
     else
@@ -665,7 +647,25 @@ void VM::callType(const Object& callee, u8 start, u8 argCount)
     }
 }
 
-void VM::callMethod(const Object& callee, u8 start, u8 argCount)
+void VM::callCoreType(const Object& callee, u8 start, u8 argCount)
+{
+    ObjType type{AS_CORE_TYPE(callee)};
+    auto it{Core::Ctors::search.find(type)};
+    if (it == Core::Ctors::search.end())
+    {
+        throw RuntimeError(NO_TYPE_CTOR,
+            CH_STR(
+                "type ({}) has no defined constructor",
+                objTypes[static_cast<u8>(type)]
+            )
+        );
+    }
+
+    auto ctor{Core::Ctors::impls[to_num(it->second)]};
+    registers[start - 1] = ctor(&registers[start], argCount);
+}
+
+void VM::callUserMethod(const Object& callee, u8 start, u8 argCount)
 {
     // Shift all arguments forward by one to clear a slot
     // for the instance object.
@@ -674,7 +674,13 @@ void VM::callMethod(const Object& callee, u8 start, u8 argCount)
     const Method* method{AS_USER_METHOD(callee)};
     registers[start - 1] = method->funcObj;
     registers[start] = method->boundInstance;
-    callFunc(method->funcObj, start, argCount, method->boundInstance->type);
+    callUserFunc(method->funcObj, start, argCount, method->boundInstance->type);
+}
+
+void VM::callCoreMethod(const Object& callee, u8 start, u8 argCount)
+{
+    auto* method{AS_CORE_METHOD(callee)};
+    registers[start - 1] = method->call(registers + start, argCount);
 }
 
 void VM::callObj(const Object& callee, u8 start, u8 argCount)
@@ -685,24 +691,24 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
     switch (callee.type())
     {
         case ObjType::CoreFunc:
-            callNative(callee, start, argCount);
+            callCoreFunc(callee, start, argCount);
             break;
         case ObjType::UserFunc:
         case ObjType::Closure:
         case ObjType::Lambda:
-            callFunc(callee, start, argCount);
+            callUserFunc(callee, start, argCount);
             break;
         case ObjType::CoreType:
-            callCtor(callee, start, argCount);
+            callCoreType(callee, start, argCount);
             break;
         case ObjType::UserType:
-            callType(callee, start, argCount);
+            callUserType(callee, start, argCount);
             break;
         case ObjType::CoreMethod:
-            AS_CORE_METHOD(callee)->call(registers + start, argCount);
+            callCoreMethod(callee, start, argCount);
             break;
         case ObjType::Method:
-            callMethod(callee, start, argCount);
+            callUserMethod(callee, start, argCount);
             break;
         default:
             CH_UNREACHABLE();
@@ -847,7 +853,7 @@ void VM::dropInstances(Object* limit)
         bool encapsulate{encapsulateCall};
         encapsulateCall = true;
 
-        callMethod(ctor, static_cast<u8>(addr - registers), 0);
+        callUserMethod(ctor, static_cast<u8>(addr - registers), 0);
 
         encapsulateCall = encapsulate;
         addr[-1] = temp;
@@ -1367,8 +1373,8 @@ void VM::executeOp(Opcode op)
             }
             else
             {
-                registers[destReg] = Core::Methods::getMember(
-                    registers[instanceReg].type(),
+                registers[destReg] = Core::Methods::getTypeMember(
+                    registers[instanceReg],
                     field
                 );
             }
@@ -1759,6 +1765,7 @@ void VM::executeChunk(const ByteCode& chunk, Function* func)
     #if WATCH_EXEC
         // Braces in case CH_DEALLOC is #defined to nothing.
         if (func == nullptr) { CH_DEALLOC(temp); }
+        delete this->dis;
     #endif
 }
 
