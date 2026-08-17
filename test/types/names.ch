@@ -11,11 +11,11 @@ println!(typeof!([1, 2, 3]));   // Expect: List
 // Empty list.
 println!(typeof!([]));          // Expect: List
 
-println!(typeof!(typeof!(1)));  // Expect: Builtin Type
-println!(typeof!(println));     // Expect: Builtin Function
+println!(typeof!(typeof!(1)));  // Expect: Builtin-Type
+println!(typeof!(println));     // Expect: Builtin-Function
 
 func A() {}
-println!(typeof!(A)); // Expect: User Function
+println!(typeof!(A)); // Expect: User-Function
 
 func B()
 {
@@ -25,7 +25,7 @@ func B()
     println!(typeof!(C));
 }
 
-B(); // Expect: User Function
+B(); // Expect: User-Function
 
 make D = || {};
 println!(typeof!(D));     // Expect: Lambda
