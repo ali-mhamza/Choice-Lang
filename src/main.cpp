@@ -55,7 +55,7 @@ static DebugInfoState readCacheFileState(const std::filesystem::path& path)
     std::ifstream cacheFile{openFile(path, true)};
 
     cacheFile.seekg(debugInfoBytePosition);
-    u8 state;
+    u8 state{};
     cacheFile >> state;
     cacheFile.close();
     return static_cast<DebugInfoState>(state);
@@ -120,7 +120,7 @@ static void runFile(Args::Config& config)
 static void printReplIntro()
 {
 	#ifndef CH_COMMIT_TIME_STAMP
-		#define CH_COMMIT_TIME_STAMP "last modification time not available"
+		#define CH_COMMIT_TIME_STAMP "last contribution time not available"
 	#endif
 
 	CH_PRINT("Choice {}.{}.{} ", CH_VERSION_MAJOR, CH_VERSION_MINOR,

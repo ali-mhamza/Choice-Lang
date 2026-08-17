@@ -14,7 +14,7 @@ WARNINGS = -Wall -Wextra -Werror -Wno-assume
 
 # Prints out date and time (without time zone) of last commit.
 COMMIT_TIME_STAMP = $(shell git log -1 --format=%ci | awk '{printf "%s %s\n", $$1, $$2}')
-DEFINES += -D 'CH_COMMIT_TIME_STAMP="last modified: $(COMMIT_TIME_STAMP)"'
+DEFINES += -D 'CH_COMMIT_TIME_STAMP="last contribution: $(COMMIT_TIME_STAMP)"'
 
 CXXFLAGS = $(INCLUDES) $(CXX_STANDARD) $(WARNINGS) $(DEFINES) -MMD -MP
 

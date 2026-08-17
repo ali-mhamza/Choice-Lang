@@ -19,27 +19,27 @@
 namespace Args
 {
     const std::unordered_map<std::string_view, Option> options{
-        {"-token", Option::EmitTokens},         {"-t", Option::EmitTokens},
-        {"-bytecode", Option::EmitBytecode},    {"-b", Option::EmitBytecode},
-        {"-cache", Option::CacheBytecode},		{"-c", Option::CacheBytecode},
-        {"-dis", Option::DisProgram},			{"-d", Option::DisProgram},
-        {"-load", Option::LoadProgram},		    {"-l", Option::LoadProgram},
-        {"-check", Option::CheckProgram},       {"-k", Option::CheckProgram},
-        {"-inspect", Option::InspectBytecode},  {"-i", Option::InspectBytecode},
-        {"-explain", Option::ExplainError},     {"-e", Option::ExplainError},
-        {"-test", Option::RunTests}             // No short version for now.
+        {"-token",      Option::EmitTokens},        {"-t",  Option::EmitTokens},
+        {"-bytecode",   Option::EmitBytecode},      {"-b",  Option::EmitBytecode},
+        {"-cache",      Option::CacheBytecode},		{"-c",  Option::CacheBytecode},
+        {"-dis",        Option::DisProgram},	    {"-d",  Option::DisProgram},
+        {"-load",       Option::LoadProgram},	    {"-l",  Option::LoadProgram},
+        {"-check",      Option::CheckProgram},      {"-k",  Option::CheckProgram},
+        {"-inspect",    Option::InspectBytecode},   {"-i",  Option::InspectBytecode},
+        {"-explain",    Option::ExplainError},      {"-e",  Option::ExplainError},
+        {"-test",       Option::RunTests}           // No short version for now.
     };
 
     const std::unordered_map<Option, Handler> optionHandlers{
-        {Option::EmitTokens, optionEmitTokens},
-        {Option::EmitBytecode, optionEmitBytecode},
-        {Option::CacheBytecode, optionCacheBytecode},
-        {Option::DisProgram, optionDisProgram},
-        {Option::LoadProgram, optionLoadProgram},
-        {Option::CheckProgram, optionCheckProgram},
-        {Option::InspectBytecode, optionInspectBytecode},
-        {Option::RunTests, optionRunTests},
-        {Option::ExplainError, optionExplainError}
+        {Option::EmitTokens,        optionEmitTokens},
+        {Option::EmitBytecode,      optionEmitBytecode},
+        {Option::CacheBytecode,     optionCacheBytecode},
+        {Option::DisProgram,        optionDisProgram},
+        {Option::LoadProgram,       optionLoadProgram},
+        {Option::CheckProgram,      optionCheckProgram},
+        {Option::InspectBytecode,   optionInspectBytecode},
+        {Option::RunTests,          optionRunTests},
+        {Option::ExplainError,      optionExplainError}
     };
 
     const std::unordered_map<std::string_view, DebugInfoState> debugInfoOptions{
@@ -49,14 +49,14 @@ namespace Args
     };
 
     const std::array fileOnlyOptions{
-        Option::CacheBytecode, Option::DisProgram, Option::LoadProgram,
-        Option::CheckProgram, Option::InspectBytecode, Option::RunTests
+        Option::CacheBytecode,  Option::DisProgram,         Option::LoadProgram,
+        Option::CheckProgram,   Option::InspectBytecode,    Option::RunTests
     };
 
     // Options that potentially handle source files.
     const std::array optionsUsingSourceFiles{
-        Option::Execute, Option::EmitTokens, Option::EmitBytecode,
-        Option::CacheBytecode, Option::CheckProgram, Option::RunTests
+        Option::Execute,        Option::EmitTokens,     Option::EmitBytecode,
+        Option::CacheBytecode,  Option::CheckProgram,   Option::RunTests
     };
 
     void Config::run()
