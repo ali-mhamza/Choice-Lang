@@ -270,6 +270,8 @@ Obj Core::Ctors::List(iter it, u8 args)
             while (iter->next(temp))
                 list->array.push(temp);
         }
+
+        CH_DEALLOC(iter);
     }
 
     return list;
@@ -314,6 +316,8 @@ Obj Core::Ctors::Table(iter it, u8 args)
             while (iter->next(temp))
                 insertEntry(temp);
         }
+
+        CH_DEALLOC(iter);
     }
 
     return table;

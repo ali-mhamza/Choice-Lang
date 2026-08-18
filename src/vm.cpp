@@ -776,6 +776,10 @@ void VM::startIter()
             this->dis->ip += 3;
         #endif
     }
+    else
+    {
+        CH_DEALLOC(iter);
+    }
 }
 
 void VM::updateIter()
@@ -904,6 +908,8 @@ void VM::unpackObject(u8 reg, u8 count)
         }
         registers[reg + count] = list;
     }
+
+    CH_DEALLOC(iter);
 }
 
 #if WATCH_REG
