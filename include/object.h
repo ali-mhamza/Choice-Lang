@@ -26,13 +26,13 @@ namespace Core
 /* Constants. */
 
 // Variable is fixed/not fixed (bit 7).
-inline constexpr u8 FIXED_FLAG  = 0x80;
+inline constexpr u8 FIXED_FLAG{0b10000000};
 // Value has an active mutable/immutable flag (bit 6).
-inline constexpr u8 INIT_FLAG   = 0x40;
+inline constexpr u8 INIT_FLAG{0b01000000};
 // Value is mutable/immutable (bit 5).
-inline constexpr u8 IMMUT_FLAG  = 0x20;
+inline constexpr u8 IMMUT_FLAG{0b00100000};
 // Remaining bits (max. 32 values).
-inline constexpr u8 TYPE_MASK   = 0x1f;
+inline constexpr u8 TYPE_MASK{0b00011111};
 
 /* Type list macro. */
 
