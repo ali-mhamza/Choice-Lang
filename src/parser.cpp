@@ -506,7 +506,7 @@ bool Parser::parseVariableList(
         }
 
         if (!matchError(TOK_IDENTIFIER, errorMsg)) return false;
-        vars.push_back({ ANY_TYPE, previousTok });
+        vars.push_back({ {ANY_TYPE}, previousTok });
 
         if (consumeTok(TOK_ELLIPSIS))
         {
@@ -614,7 +614,7 @@ bool Parser::parseParams(std::vector<AST::Param>& params)
 
             bool fix{consumeTok(TOK_FIX)};
             if (!matchError(TOK_IDENTIFIER, "expect parameter name")) return false;
-            AST::Var param{ ANY_TYPE, previousTok };
+            AST::Var param{ {ANY_TYPE}, previousTok };
 
             if (consumeTok(TOK_ELLIPSIS)) variadic = true;
             CONSUME_VAR_TYPE(param, false);
@@ -688,7 +688,7 @@ bool Parser::parseField(
     bool fix{consumeTok(TOK_FIX)};
 
     if (!matchError(TOK_IDENTIFIER, "expect field name")) return false;
-    AST::Var name{ ANY_TYPE, previousTok };
+    AST::Var name{ {ANY_TYPE}, previousTok };
     CONSUME_VAR_TYPE(name, false);
 
     ExprUP init{nullptr};
