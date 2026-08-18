@@ -334,7 +334,7 @@ TYPE_LIST
 
 // Object is allocated/involves allocation on the heap.
 #define IS_HEAP_OBJ(obj) \
-    (((obj).type() >= ObjType::Module) && ((obj).type() <= ObjType::Ref))
+    (((obj).type() >= ObjType::CoreMethod) && ((obj).type() <= ObjType::Ref))
 
 // Object is a numeric object (Int or Dec).
 #define IS_NUM(obj)         (IS_INT(obj) || IS_DEC(obj))
