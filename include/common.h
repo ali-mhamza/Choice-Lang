@@ -203,8 +203,12 @@
 // Unreachable points.
 
 #if defined(DEBUG)
-	#define CH_UNREACHABLE() CH_ASSERT(false, 	\
-		"This point should not be reachable.")
+	[[noreturn]] inline void unreachable_()
+	{
+		CH_ASSERT(false, "This point should not be reachable.");
+	}
+
+	#define CH_UNREACHABLE() unreachable_()
 #elif defined(NDEBUG)
 	#if defined(__cpp_lib_unreachable) // Check for C++23 support.
 		#include <utility>
