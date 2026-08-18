@@ -105,7 +105,6 @@ WALKER(CompareExpr)
     {
         return Object{};
     }
-    
 }
 
 WALKER(BitExpr)
