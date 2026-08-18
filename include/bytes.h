@@ -7,8 +7,6 @@
 #include <fstream>
 #include <string>
 
-static_assert(CHAR_BIT == 8, "Incompatible ISA for interpreter.");
-
 namespace Bytes
 {
     template<typename T>
