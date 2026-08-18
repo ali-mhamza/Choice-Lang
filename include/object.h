@@ -582,6 +582,8 @@ struct Text : public HeapObj
     ~Text();
 
     const char* getString() const;
+    void init(const char* str, size_t len);
+    void clean();
 
     [[nodiscard]] Object getIndex(const Object& index) const;
     void setIndex(const Object& index, const Object& value);

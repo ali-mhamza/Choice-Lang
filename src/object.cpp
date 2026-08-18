@@ -991,28 +991,19 @@ Hash Method::hash() const
     return funcObj.hash() + boundInstance->hash();
 }
 
-Text::Text(const std::string_view& view) noexcept:
-    len{view.length()}
+Text::Text(const std::string_view& view) noexcept
 {
-    if (len <= INLINE_SIZE)
-        memcpy(&buf[0], view.data(), len);
-    else
-        str = choiceStrdup(view.data());
+    init(view.data(), view.length());
 }
 
-Text::Text(const char* str, size_t len) noexcept :
-    len{len}
+Text::Text(const char* str, size_t len) noexcept
 {
-    if (len <= INLINE_SIZE)
-        memcpy(&buf[0], str, len);
-    else
-        this->str = choiceStrdup(str);
+    init(str, len);
 }
 
 Text::~Text()
 {
-    if (len > INLINE_SIZE)
-        delete[] str;
+    clean();
 }
 
 const char* Text::getString() const
@@ -1021,6 +1012,21 @@ const char* Text::getString() const
         return str;
     else
         return &buf[0];
+}
+
+void Text::init(const char* str, size_t len)
+{
+    this->len = len;
+    if (len <= INLINE_SIZE)
+        memcpy(&buf[0], str, len);
+    else
+        this->str = choiceStrdup(str);
+}
+
+void Text::clean()
+{
+    if (len > INLINE_SIZE)
+        delete[] str;
 }
 
 Object Text::getIndex(const Object& index) const
@@ -1051,8 +1057,8 @@ void Text::setIndex(const Object& index, const Object& value)
 
 void Text::reset(const std::string_view& view)
 {
-    this->~Text();
-    new (this) Text{view};
+    clean();
+    init(view.data(), view.length());
 }
 
 Text::operator std::string_view() const
