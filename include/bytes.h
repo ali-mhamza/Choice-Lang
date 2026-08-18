@@ -18,7 +18,7 @@ namespace Bytes
 
         if (mem == nullptr) return;
 
-        constexpr auto size{sizeof(T)};
+        constexpr size_t size{sizeof(T)};
         u64 asBytes{};
         memcpy(&asBytes, &value, size);
         for (size_t i{0}; i < size; i++)
