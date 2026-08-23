@@ -891,7 +891,13 @@ void VM::unpackObject(u8 reg, u8 count)
         throw RuntimeError(UNPACK_TOO_MANY);
 
     ObjIter* iter{obj.makeIter()}; // Guaranteed not to fail.
-    if (unpackLastVar) count--; // So we don't unpack any values into it.
+    // So we don't unpack any values into the last variable, if
+    // one is present.
+    // We don't decrement for unpackIgnore, since it doesn't increase
+    // the variable count by 1, unlike unpackLastVar.
+    // E.g., make a, b, c... = [1, 2, 3];   -> Variable count = 3.
+    // E.g., make a, b, ... = [1, 2, 3];    -> Variable count = 2.
+    if (unpackLastVar) count--;
 
     (void) iter->start(registers[reg]);
     for (u8 i{1}; i < count; i++)
