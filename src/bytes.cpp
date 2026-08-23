@@ -150,11 +150,7 @@ Object CodeReader::reconstructType()
 		fields[i].pub = readValue<bool>();
     }
 
-    ByteCode* fieldInits{new ByteCode[fieldCount]};
-    for (u8 i{0}; i < fieldCount; i++)
-        fieldInits[i] = reconstructByteCode();
-
-    return Object{CH_ALLOC(Type, name, fields, fieldInits)};
+    return Object{CH_ALLOC(Type, name, fields)};
 }
 
 Object CodeReader::reconstructFunc()
@@ -795,9 +791,6 @@ void BinaryInspector::inspectBriefType(u64 start)
 	for (u8 i{0}; i < fieldCount; i++)
         it += readValue<u8>() + sizeof(bool) * 2;
 
-	for (u8 i{0}; i < fieldCount; i++)
-        skipByteCode();
-
 	printStartEnd(start, getCurrentPosition(), false);
 	CH_PRINT(" {:^10}", "Type");
 	CH_PRINT(" {:^7}", getCurrentPosition() - start);
@@ -956,31 +949,6 @@ void BinaryInspector::inspectDetailModule(u64 start)
 	}
 }
 
-void BinaryInspector::inspectDetailTypeFields()
-{
-    u64 start{};
-
-   	start = getCurrentPosition();
-	u8 fieldCount{readValue<u8>()};
-	PRINT_ENTRY_RANGE();
-	CH_PRINT("Field count: {}\n", fieldCount);
-
-	if (fieldCount != 0)
-	{
-       	start = getCurrentPosition();
-       	for (u8 i{0}; i < fieldCount; i++)
-            it += readValue<u8>() + sizeof(bool) * 2;
-       	PRINT_ENTRY_RANGE();
-       	CH_PRINT("Field names: [...]\n");
-
-           start = getCurrentPosition();
-           for (u8 i{0}; i < fieldCount; i++)
-               skipByteCode();
-           PRINT_ENTRY_RANGE();
-           CH_PRINT("Field default initializer(s): [...]\n");
-	}
-}
-
 void BinaryInspector::inspectDetailType(u64 start)
 {
    	PRINT_ENTRY_RANGE();
@@ -1006,7 +974,19 @@ void BinaryInspector::inspectDetailType(u64 start)
 			CH_PRINT("Type name: '{:.25}...'  (truncated)\n", name);
 	}
 
-	inspectDetailTypeFields();
+   	start = getCurrentPosition();
+	u8 fieldCount{readValue<u8>()};
+	PRINT_ENTRY_RANGE();
+	CH_PRINT("Field count: {}\n", fieldCount);
+
+	if (fieldCount != 0)
+	{
+       	start = getCurrentPosition();
+       	for (u8 i{0}; i < fieldCount; i++)
+            it += readValue<u8>() + sizeof(bool) * 2;
+       	PRINT_ENTRY_RANGE();
+       	CH_PRINT("Field names: [...]\n");
+	}
 }
 
 void BinaryInspector::inspectDetailFuncName()

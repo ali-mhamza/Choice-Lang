@@ -220,7 +220,7 @@ namespace AST
                     Decl& decl,
                     bool fix,
                     Var& name,
-                    ExprUP& init
+                    ExprUP init
                 );
             };
 
@@ -594,7 +594,7 @@ namespace AST
             StmtUP body{};
             // Whether or not the lambda is an IIFE (Immediately
             // Invoked Function Expression).
-            const bool iife{};
+            bool iife{};
 
             LambdaExpr(
                 std::vector<Param>& params,

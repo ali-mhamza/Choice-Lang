@@ -327,21 +327,19 @@ void Compiler::popScope()
     code.addOp(OP_EXIT_SCOPE);
 }
 
-static void makeComputed(ExprUP& value)
-{
-    if (value == nullptr) return;
-
-    StmtVec block{};
-    block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
-    StmtUP body{std::make_unique<BlockStmt>(block)};
-
-    std::vector<AST::Param> params{};
-    value = std::make_unique<LambdaExpr>(params, body, true);
-}
-
 void Compiler::handleVarAttribute(VarDecl* node)
 {
     const vT& toks{node->decl.attrTokens};
+    auto makeComputed = [](ExprUP& value) {
+        if (value == nullptr) return;
+
+        StmtVec block{};
+        block.emplace_back(std::make_unique<ReturnStmt>(Token{}, value));
+        StmtUP body{std::make_unique<BlockStmt>(block)};
+
+        std::vector<AST::Param> params{};
+        value = std::make_unique<LambdaExpr>(params, body, true);
+    };
 
     if (isPrivate(currentAttr))
     {
@@ -382,7 +380,8 @@ void Compiler::handleFieldAttribute(TypeDecl::Field* field)
     if (isComputed(currentAttr))
     {
         // We turn each value into an IIFE that evaluates it.
-        makeComputed(field->init);
+        LambdaExpr* lambda{static_cast<LambdaExpr*>(field->init.get())};
+        lambda->iife = true;
     }
 
     if (isClosed(currentAttr))
@@ -956,9 +955,6 @@ DEF(TypeDecl)
     reserveReg();
 
     std::vector<Type::Field> fields{};
-    ByteCode* fieldInits{new ByteCode[node->fields.size()]};
-    ByteCode* temp{fieldInits};
-
     for (const auto& field : node->fields)
     {
         currentAttr = field.decl.attr;
@@ -968,21 +964,21 @@ DEF(TypeDecl)
             field.fix,
             !isPrivate(field.decl.attr)
         });
-        if (field.init != nullptr)
-        {
-            Compiler initCompiler{this};
-            initCompiler.compileExpr(field.init);
-            *temp = initCompiler.getCode();
-        }
-        else
-            temp->loadReg(0, OP_NULL);
-
-        temp->addOp(OP_HALT);
-        temp++;
     }
 
-    u8 methodStart{nextReg};
-    std::vector<u8> methodAccess{};
+    Object typeObj{CH_ALLOC(Type, name, fields)};
+    code.loadRegConst(typeObj, typeReg);
+
+    u8 count{0};
+    for (const auto& field : node->fields)
+    {
+        Compiler initCompiler{this};
+        LambdaExpr* init{static_cast<LambdaExpr*>(field.init.get())};
+        u8 initReg{nextReg};
+        funcBodyHelper(initCompiler, init, initReg, std::string{}, init->iife);
+        code.addOp(OP_FIELD, typeReg, initReg, count++);
+    }
+
     for (const auto& method : node->methods)
     {
         FuncDecl* func{static_cast<FuncDecl*>(method.get())};
@@ -997,23 +993,10 @@ DEF(TypeDecl)
 
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
-        methodAccess.emplace_back(static_cast<u8>(!isPrivate(func->decl.attr)));
+        u8 methodAccess{static_cast<u8>(!isPrivate(func->decl.attr))};
         funcBodyHelper(miniCompiler, func, funcReg, name);
-        reserveReg();
+        code.addOp(OP_METHOD, typeReg, funcReg, methodAccess);
     }
-
-    Object typeObj{CH_ALLOC(Type, name, fields, fieldInits)};
-    code.loadRegConst(typeObj, typeReg);
-
-    // TODO: Extend this if optimizer eliminates unused methods.
-    if (node->methods.size() != methodAccess.size()) return;
-
-    for (u64 i{0}; i < node->methods.size(); i++)
-    {
-        code.addOp(OP_METHOD, typeReg, static_cast<u8>(methodStart + i),
-            methodAccess[i]);
-    }
-    nextReg = typeReg + 1; // Methods shouldn't continue to live in registers.
 }
 
 void Compiler::compileUseModule(

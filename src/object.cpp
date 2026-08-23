@@ -534,19 +534,27 @@ void Object::emit(std::ofstream& os) const
 
 void Object::emitMetadata(std::ofstream& os) const
 {
-    switch (type())
-    {
-        case ObjType::UserType: AS_USER_TYPE(*this)->emitMetadata(os);  break;
-        case ObjType::UserFunc:
-        case ObjType::Lambda:   AS_USER_FUNC(*this)->emitMetadata(os);  break;
-        default: break;
-    }
+    AS_USER_FUNC(*this)->emitMetadata(os);
 }
 
 ObjIter* Object::makeIter()
 {
     if (!IS_ITERABLE(*this)) return nullptr;
     return CH_ALLOC(ObjIter, *this);
+}
+
+const Function* AS_FUNCOBJ(const Object& obj)
+{
+    CH_ASSERT(IS_FUNCOBJ(obj), "AS_FUNCOBJ called on non-function object.");
+
+    switch (obj.type())
+    {
+        case ObjType::UserFunc:     return AS_USER_FUNC(obj);
+        case ObjType::Lambda:       return AS_LAMBDA(obj);
+        case ObjType::Closure:      return AS_CLOSURE(obj)->function;
+        case ObjType::UserMethod:   return AS_FUNCOBJ(AS_USER_METHOD(obj)->funcObj);
+        default: CH_UNREACHABLE();
+    }
 }
 
 /* Object structs. */
@@ -611,25 +619,29 @@ u64 Module::byteSize() const
     return sizeof(u8) * 2 + strlen(name);
 }
 
-Type::Type(
-    const std::string& name,
-    std::vector<Field>& fields,
-    const ByteCode* inits
-) noexcept:
-    name{choiceStrdup(name.c_str())}, fieldCode{inits}
+Type::Type(const std::string& name, std::vector<Field>& fields) noexcept:
+    name{choiceStrdup(name.c_str())}
 {
     u8 count{0};
     for (const auto& field : fields)
+        fieldTable.add(field.name, count++);
+
+    if (!fields.empty())
     {
-        this->fields.emplace_back(field);
-        this->fieldTable.add(field.name, count++);
+        fieldInits = new Object[fields.size()];
+        this->fields = std::move(fields);
     }
 }
 
 Type::~Type() noexcept
 {
     delete[] name;
-    delete[] fieldCode;
+    delete[] fieldInits;
+}
+
+void Type::addField(u8 pos, const Object& field)
+{
+    fieldInits[pos] = field;
 }
 
 void Type::addMethod(const Object& method, bool pub)
@@ -678,20 +690,6 @@ void Type::emit(std::ofstream& os) const
         os.put(static_cast<char>(field.fixed));
         os.put(static_cast<char>(field.pub));
     }
-
-    for (u8 i{0}; i < fieldCount; i++)
-    {
-        fieldCode[i].encodeData(os);
-        if (debugInfoState == DebugInfoState::Combined)
-            fieldCode[i].encodeMetadata(os);
-    }
-}
-
-void Type::emitMetadata(std::ofstream& os) const
-{
-    u8 fieldCount{static_cast<u8>(fields.size())};
-    for (u8 i{0}; i < fieldCount; i++)
-        fieldCode[i].encodeMetadata(os);
 }
 
 u64 Type::byteSize() const
@@ -713,13 +711,6 @@ u64 Type::byteSize() const
         // Added Boolean mutability byte (1) and access
         // byte (1).
         size += sizeof(field.fixed) + sizeof(field.pub);
-    }
-
-    for (u8 i{0}; i < fieldCount; i++)
-    {
-        size += chunkDataSize(fieldCode[i]);
-        if (debugInfoState == DebugInfoState::Combined)
-            size += chunkMetadataSize(fieldCode[i]);
     }
 
     return size;

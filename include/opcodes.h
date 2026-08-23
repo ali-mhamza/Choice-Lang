@@ -99,14 +99,15 @@ enum Opcode : u8 // Each opcode is a single byte.
 
 	OP_VAR_ARGS,		// Initialize a parameter with a variable argument list.
 
-	OP_METHOD,          // Create and store a type method from a loaded function object.
-
 	OP_CLOSURE,			// Create a closure with an environment from a loaded function object.
 	OP_CAPTURE_GLOBAL,  // Capture a value from the global scope into a cell.
 	OP_CAPTURE_LOCAL,   // Capture a value from a surrounding local scope into a cell.
 	OP_CAPTURE_CELL,	// Capture a cell from a surrounding scope.
 
 	/* User types. */
+
+	OP_FIELD,			// Store the initializer for a type field (internally a lambda).
+	OP_METHOD,          // Create and store a type method from a loaded function object.
 
 	OP_INSTANCE,        // Create a new instance of a given type.
 	OP_FINISH_FIELDS,   // Finish initializing all fields for an instance.

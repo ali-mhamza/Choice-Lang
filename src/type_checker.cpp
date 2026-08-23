@@ -1096,6 +1096,12 @@ CHECKER(FuncDecl)
 
 CHECKER(TypeDecl)
 {
+    auto unwrapField = [](const ExprUP& expr) -> const ExprUP& {
+        LambdaExpr* lambda{static_cast<LambdaExpr*>(expr.get())};
+        ReturnStmt* stmt{static_cast<ReturnStmt*>(lambda->body.get())};
+        return stmt->expr;
+    };
+
     std::vector<std::string> fields{};
     std::vector<Type> fieldTypes{};
     for (const auto& field : node->fields)
@@ -1122,7 +1128,7 @@ CHECKER(TypeDecl)
     {
         checkExpr(field.init);
         Type fieldType{typeFromHint(field.name.typeHint)};
-        Type initType{getExprType(field.init)};
+        Type initType{getExprType(unwrapField(field.init))};
         if (!compatibleTypes(fieldType, initType))
             reportTypeError(ErrorCode::InitMismatch);
     }

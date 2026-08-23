@@ -685,6 +685,21 @@ bool Parser::parseField(
     AST::Decl& decl
 )
 {
+    auto exprToLambda = [](ExprUP& expr) -> ExprUP {
+        // Initializer sets field to 'null' if no explicit
+        // initializer provided.
+        if (expr == nullptr)
+        {
+            Token tok{};
+            tok.type = TOK_NULL;
+            expr = std::make_unique<LiteralExpr>(tok);
+        }
+
+        std::vector<AST::Param> params{};
+        StmtUP body{std::make_unique<ReturnStmt>(Token{}, expr)};
+        return std::make_unique<LambdaExpr>(params, body);
+    };
+
     bool fix{consumeTok(TOK_FIX)};
 
     if (!matchError(TOK_IDENTIFIER, "expect field name")) return false;
@@ -700,7 +715,7 @@ bool Parser::parseField(
         return false;
     }
 
-    fields.emplace_back(decl, fix, name, init);
+    fields.emplace_back(decl, fix, name, exprToLambda(init));
     return true;
 }
 

@@ -387,6 +387,8 @@ TYPE_LIST
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
+const Function* AS_FUNCOBJ(const Object& obj);
+
 inline std::string getElementText(const Object& obj)
 {
     if (IS_STRING_LIKE(obj)) return CH_QUOTED(obj.printVal());
@@ -461,27 +463,25 @@ struct Type : public HeapObj
     const char* name{};
     std::vector<Field> fields{};
     // Field default initializers. Each field has one.
-    const ByteCode* fieldCode{nullptr};
+    // Each initializer is a lambda object to permit
+    // variable captures.
+    Object* fieldInits{nullptr};
     // Field-position table.
     // Position in 'fields' and 'fieldCode' arrays.
     HashTable<std::string, u8> fieldTable{};
     HashTable<std::string, Object> methods{};
 
-    Type(
-        const std::string& name,
-        std::vector<Field>& fields,
-        const ByteCode* inits
-    ) noexcept;
+    Type(const std::string& name, std::vector<Field>& fields) noexcept;
     ~Type() noexcept;
 
+    void addField(u8 pos, const Object& field);
     void addMethod(const Object& method, bool pub);
+
     bool defines(const std::string& method) const;
     bool isPublicField(const std::string& field) const;
     bool isPublicMethod(const std::string& method) const;
 
     void emit(std::ofstream& os) const;
-    // Emits only metadata components.
-    void emitMetadata(std::ofstream& os) const;
     [[nodiscard]] u64 byteSize() const;
 };
 

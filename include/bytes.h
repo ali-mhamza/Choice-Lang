@@ -170,8 +170,6 @@ namespace Bytes
             void inspectDetailDec(u64 start);
             void inspectDetailTextOrString(u64 start, sv type);
             void inspectDetailModule(u64 start);
-
-            void inspectDetailTypeFields();
             void inspectDetailType(u64 start);
 
             // Function name.

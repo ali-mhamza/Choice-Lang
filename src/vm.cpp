@@ -58,7 +58,7 @@
 
 #define COMPUTE_OBJ(reg)                                                    \
     do {                                                                    \
-        if (IS_LAMBDA(registers[reg]) && AS_LAMBDA(registers[reg])->iife)   \
+        if (IS_FUNCOBJ(registers[reg]) && AS_FUNCOBJ(registers[reg])->iife) \
             callObj(registers[reg], reg + 1, 0);                            \
     } while (false)
 
@@ -801,35 +801,25 @@ void VM::updateIter()
 
 void VM::finishFields(Instance& instance, u8 start)
 {
-    const ByteCode* code{this->currentCode};
-    const u8* ip{this->ip};
-    Object* const registers{this->registers};
-    const Object* pool{this->pool};
-    #if WATCH_EXEC
-        Disassembler* const dis{this->dis};
-    #endif
-
-    auto reset = [=] {
-        this->currentCode = code;
-        this->ip = ip;
-        this->registers = registers;
-        this->pool = pool;
-        #if WATCH_EXEC
-            this->dis = dis;
-        #endif
-    };
-
     const Type* type{instance.type};
     for (auto& [field, value] : instance.fields)
     {
         if (!IS_VALID(value))
         {
-            u8 codePos{*(type->fieldTable.get(field))};
-            const ByteCode& chunk{type->fieldCode[codePos]};
-            this->registers += start;
-            executeChunk(chunk);
-            instance.initField(field, this->registers[0]);
-            reset();
+            u8 pos{*(type->fieldTable.get(field))};
+            const Object& init{type->fieldInits[pos]};
+
+            if (AS_FUNCOBJ(init)->iife)
+            {
+                instance.initField(field, init);
+                continue;
+            }
+
+            bool encapsulate{encapsulateCall};
+            encapsulateCall = true;
+            callUserFunc(init, start, 0);
+            encapsulateCall = encapsulate;
+            instance.initField(field, this->registers[start - 1]);
         }
     }
 }
@@ -1327,6 +1317,25 @@ void VM::executeOp(Opcode op)
         }
 
         // User types.
+
+        CASE(OP_FIELD):
+        {
+            u8 typeReg{readByte()};
+            u8 initReg{readByte()};
+            u8 pos{readByte()};
+
+            AS_USER_TYPE(registers[typeReg])->addField(pos, registers[initReg]);
+            DISPATCH();
+        }
+        CASE(OP_METHOD):
+        {
+            u8 typeReg{readByte()};
+            u8 funcReg{readByte()};
+            bool pub{static_cast<bool>(readByte())};
+
+            AS_USER_TYPE(registers[typeReg])->addMethod(registers[funcReg], pub);
+            DISPATCH();
+        }
 
         CASE(OP_INSTANCE):
         {

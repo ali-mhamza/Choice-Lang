@@ -246,6 +246,7 @@ void Disassembler::typeOp(u8 byte)
 {
     printOpcode(opNames[byte]);
     u8 first{readByte()}, second{readByte()}, third{readByte()};
+
 	if (static_cast<Opcode>(byte) == OP_METHOD)
 	{
 		CH_PRINT("R[{}] R[{}] ", first, second);
@@ -373,7 +374,8 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_LIST:		case OP_EXT_LIST:	case OP_TABLE:		case OP_EXT_TABLE:
 			collectionOp(byte);
 			break;
-		case OP_INIT_FIELD:     case OP_GET_FIELD: 		case OP_SET_FIELD:		case OP_METHOD:
+		case OP_FIELD:			case OP_METHOD:		case OP_INIT_FIELD:		case OP_GET_FIELD:
+		case OP_SET_FIELD:
             typeOp(byte);
             break;
         case OP_GET_ENTRY:
