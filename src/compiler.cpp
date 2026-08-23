@@ -53,8 +53,8 @@ constexpr bool setVar{false};
 Compiler::Compiler(Compiler* comp) :
     scopeCompiler{comp},
     depth{static_cast<u8>(comp == nullptr ? 0 : comp->depth + 1)},
-    currentAttr{(comp == nullptr) ? VarAttr{} : comp->currentAttr},
-    inModule{(comp == nullptr) ? false : comp->inModule}
+    currentAttr{comp == nullptr ? VarAttr{} : comp->currentAttr},
+    inModule{comp == nullptr ? false : comp->inModule}
 {
     if (depth == 0) // Global scope compiler.
         defineBuiltinGlobals();
