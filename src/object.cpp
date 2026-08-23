@@ -1162,7 +1162,7 @@ void Range::validateRange(const std::array<i64, 3>& nums)
     // Checks:
 
     // 1. Step size cannot be zero (unless start == stop).
-    // Checked by range!() function.
+    // Checked by Range() constructor.
 
     // 2. Step cannot be negative if stop > start, and
     // cannot be positive if stop < start.
