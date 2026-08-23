@@ -839,16 +839,25 @@ void VM::dropInstances(Object* limit)
 
         // Calls to Drop() replace the object before the instance
         // with their return value, so we make a copy before calling
-        // Drop() to restore that object after calling it.
+        // Drop() to restore that object after the call.
 
-        Object temp{addr[-1]};
+        Object temp{addr[0]};
         bool encapsulate{encapsulateCall};
         encapsulateCall = true;
 
-        callUserMethod(ctor, static_cast<u8>(addr - registers), 0);
+        // Every time we exit a scope, dropInstances will be called.
+        // This includes the call(s) to Drop() made here as well, and
+        // thus can easily lead to excessive recursion and stack overflow.
+        // To prevent that, we make sure the various calls to Drop() cannot
+        // possibly share the same register window (by adding 1 here), which
+        // means the 'limit' argument will always be different.
+        // If the 'limit' argument is always the same, we end up recursively
+        // trying to drop the same instances over and over again, hitting
+        // overflow.
+        callUserMethod(ctor, static_cast<u8>(addr - registers + 1), 0);
 
         encapsulateCall = encapsulate;
-        addr[-1] = temp;
+        addr[0] = temp;
 
         activeInstances.pop_back();
     }
