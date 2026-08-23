@@ -134,6 +134,8 @@ class VM
         void prepFuncArgs(const Function* func, u8 argCount);
         void restoreData();
 
+        void exitScope(Object* limit);
+
         void callUserFunc(
             const Object& callee,
             u8 start,

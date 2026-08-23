@@ -2411,11 +2411,9 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     clearDeclarations();
     // Inherit hitError from parser.
 
-    code.addOp(OP_ENTER_SCOPE, scopeStart);
     hoistClosedFunctions(program);
     for (const StmtUP& node : program)
         compileStmt(node);
-    code.addOp(OP_EXIT_SCOPE);
 
     // Bytecode chunk is only empty upon error.
     if (hitError)

@@ -69,6 +69,7 @@ VM::VM()
 
 VM::~VM()
 {
+    exitScope(globalRegisters);
     delete[] globalRegisters;
 }
 
@@ -541,6 +542,12 @@ void VM::restoreData()
     #endif
 
     frames.pop_back();
+}
+
+void VM::exitScope(Object* limit)
+{
+    closeCells(limit);
+    dropInstances(limit);
 }
 
 void VM::callUserFunc(
@@ -1555,9 +1562,8 @@ void VM::executeOp(Opcode op)
             registers[-1] = CH_MOVE(registers[returnSlot]);
 
             // Correct regSlot after return.
+            exitScope(registers);
             restoreData();
-            closeCells(registers);
-            dropInstances(registers);
             if (encapsulateCall) return;
 
             DISPATCH();
@@ -1726,8 +1732,7 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_EXIT_SCOPE):
         {
-            closeCells(scopeStarts.back());
-            dropInstances(scopeStarts.back());
+            exitScope(scopeStarts.back());
             scopeStarts.pop_back();
             DISPATCH();
         }
