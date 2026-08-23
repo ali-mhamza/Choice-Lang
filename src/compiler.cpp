@@ -1261,17 +1261,14 @@ void Compiler::matchCaseHelper(
         emptyJump = 0;
     }
 
-    // We check here since compileStmt will call .release()
-    // on the unique_ptr body field, which will make it a
-    // nullptr regardless.
-    bool empty = (checkCase.body == nullptr);
     compileStmt(checkCase.body); // Can handle empty (nullptr) body.
 
     // If we have fallthrough, or there's already fallthrough,
     // fall/keep falling.
     if (checkCase.fallthrough || (fallJump != 0))
         fallJump = code.addJump(OP_JUMP);
-    else if (empty) // Default fallthrough with empty match blocks.
+    // Default fallthrough with empty match blocks.
+    else if (checkCase.body == nullptr)
         emptyJump = code.addJump(OP_JUMP);
     else
         endJumps->push_back(code.addJump(OP_JUMP));
