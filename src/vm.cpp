@@ -82,9 +82,20 @@ namespace
 
     // The default == operator for std::filesystem::path
     // compares them lexicographically (i.e., by string or name).
-    // This alternative comparator compares them by file identity
+    // These alternative comparators compare them by file identity
     // (i.e., whether or not they refer to the same file on disk)
-    // and last write time (so any modifications trigger re-importing).
+    // and possibly also last write time (so any modifications
+    // trigger re-importing into our cache).
+
+    struct PathCompare
+    {
+        bool operator()(const fs::path& p1, const fs::path& p2) const
+        {
+            if (!fs::exists(p1) || !fs::exists(p2)) return false;
+            return fs::equivalent(p1, p2);
+        }
+    };
+
     struct FileCompare
     {
         bool operator()(const fs::path& p1, const fs::path& p2) const
@@ -98,7 +109,7 @@ namespace
     };
 
     bool moduleError{false};
-    set<fs::path, std::hash<fs::path>, FileCompare> pendingImports{};
+    set<fs::path, std::hash<fs::path>, PathCompare> pendingImports{};
     map<fs::path, Object, std::hash<fs::path>, FileCompare> cachedImports{};
 }
 
