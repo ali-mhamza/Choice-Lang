@@ -40,6 +40,7 @@ class LinearAlloc
 template<typename ObjT, typename Dealloc, typename... Args>
 ObjT* LinearAlloc::alloc(Args&&... args) noexcept
 {
+    static_assert(std::is_constructible_v<ObjT, Args...>);
     ObjT* obj = static_cast<ObjT*>(
         alignMem(AS_VOID(AS_BYTES(arena) + used), alignof(ObjT))
     );
