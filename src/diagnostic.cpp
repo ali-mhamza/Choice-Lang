@@ -678,7 +678,7 @@ std::string DiagnosticEngine::printStackEntry(
     if (index != 0)
     {
         const Object& obj{frames[index].regStart[-1]};
-        func = (IS_CLOSURE(obj) ? AS_CLOSURE(obj)->function : AS_USER_FUNC(obj));
+        func = AS_FUNCOBJ(obj);
     }
 
     std::string output{};

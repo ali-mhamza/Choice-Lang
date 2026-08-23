@@ -474,12 +474,7 @@ std::string Object::printVal() const
         }
         case ObjType::Method:
         {
-            const Method* method{AS_USER_METHOD(*this)};
-            const Function* func{};
-            if (IS_USER_FUNC(method->funcObj))
-                func = AS_USER_FUNC(method->funcObj);
-            else if (IS_CLOSURE(method->funcObj))
-                func = AS_CLOSURE(method->funcObj)->function;
+            const Function* func{AS_FUNCOBJ(*this)};
             ret = CH_STR("<method {}>", func->name);
             break;
         }
