@@ -60,11 +60,11 @@ WALKER(LogicExpr)
     Object left{evaluateExpr(expr->left)};
     if (!IS_VALID(left)) return Object{};
 
-    bool _and{(expr->oper == TOK_AMP_AMP) || (expr->oper == TOK_AND)};
-    bool _or{(expr->oper == TOK_BAR_BAR) || (expr->oper == TOK_OR)};
+    bool and_{(expr->oper == TOK_AMP_AMP) || (expr->oper == TOK_AND)};
+    bool or_{(expr->oper == TOK_BAR_BAR) || (expr->oper == TOK_OR)};
 
-    if (_and && !left.isTruthy()) return false;
-    if (_or && left.isTruthy()) return true;
+    if (and_ && !left.isTruthy()) return false;
+    if (or_ && left.isTruthy()) return true;
 
     Object right{evaluateExpr(expr->right)};
     if (!IS_VALID(right)) return Object{};
