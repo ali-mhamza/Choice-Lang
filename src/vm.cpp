@@ -76,33 +76,30 @@ VM::~VM()
 // To give all of them internal linkage.
 namespace
 {
+    namespace fs = std::filesystem;
+    template<typename... Ts> using set = std::unordered_set<Ts...>;
+    template<typename... Ts> using map = std::unordered_map<Ts...>;
+
     // The default == operator for std::filesystem::path
     // compares them lexicographically (i.e., by string or name).
     // This alternative comparator compares them by file identity
-    // (i.e., whether or not they refer to the same file on disk).
+    // (i.e., whether or not they refer to the same file on disk)
+    // and last write time (so any modifications trigger re-importing).
     struct FileCompare
     {
-        bool operator()(
-            const std::filesystem::path& p1,
-            const std::filesystem::path& p2
-        ) const
+        bool operator()(const fs::path& p1, const fs::path& p2) const
         {
-            return std::filesystem::equivalent(p1, p2);
+            if (!fs::exists(p1) || !fs::exists(p2)) return false;
+
+            bool equivalent{fs::equivalent(p1, p2)};
+            bool unedited{fs::last_write_time(p1) == fs::last_write_time(p2)};
+            return (equivalent && unedited);
         }
     };
 
-    std::unordered_set<
-        std::filesystem::path,
-        std::hash<std::filesystem::path>,
-        FileCompare
-    > pendingImports{};
-
-    std::unordered_map<
-        std::filesystem::path,
-        Object,
-        std::hash<std::filesystem::path>,
-        FileCompare
-    > cachedImports{};
+    bool moduleError{false};
+    set<fs::path, std::hash<fs::path>, FileCompare> pendingImports{};
+    map<fs::path, Object, std::hash<fs::path>, FileCompare> cachedImports{};
 }
 
 void VM::defineBuiltinGlobals()
@@ -743,7 +740,13 @@ void VM::getModule(Object& module, const Object& dir)
     const auto path{getModulePath(module, dir)};
     // Currently being imported (cut off recursive import).
     if (pendingImports.find(path) != pendingImports.end())
+    {
+        // The exception will be caught by the current VM instance,
+        // so we also have this flag to signal enclosing imports to
+        // exit.
+        moduleError = true;
         throw RuntimeError(MODULE_IMPORT_PENDING);
+    }
 
     auto checkCache{cachedImports.find(path)};
     if (checkCache != cachedImports.end())
@@ -753,15 +756,21 @@ void VM::getModule(Object& module, const Object& dir)
     }
 
     pendingImports.insert(path);
-    // 'dir' object is guaranteed to be a string.
     auto [success, table] = getModuleTable(path);
-    if (!success) // Some issue occurred with the module.
+    // Some issue occurred with this module or some other
+    // module it tried to import.
+    if (!success || moduleError)
+    {
+        moduleError = true;
         errorReset();
+    }
     else
+    {
         AS_MODULE(module)->entries = std::move(table);
+        cachedImports[path] = module;
+    }
 
     pendingImports.extract(path);
-    cachedImports[path] = module;
 }
 
 // Handle regSlot.
@@ -1830,6 +1839,7 @@ void VM::execute(Function* script)
     frames.reserve(CALL_FRAMES_DEFAULT);
     scopeStarts.reserve(SCOPE_DEPTH_DEFAULT);
     activeCells.reserve(CODE_MAX);
+    if (globalVM) moduleError = false;
 
     try
     {

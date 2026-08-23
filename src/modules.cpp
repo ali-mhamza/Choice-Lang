@@ -25,9 +25,12 @@ getModuleTable(const std::filesystem::path& path)
 
     Lexer lexer{};
     Parser parser{};
+
     Compiler compiler{};
     compiler.inModule = true;
+
     VM vm{};
+    vm.globalVM = false;
 
     bool repl{inRepl};
     // To disable any REPL-specific behavior in the interpreter,

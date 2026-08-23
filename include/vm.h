@@ -179,6 +179,8 @@ class VM
         void executeCode();
 
     public:
+        bool globalVM{true};
+
         VM();
         ~VM();
 
