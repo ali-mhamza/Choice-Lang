@@ -258,6 +258,7 @@ class Compiler
         [[nodiscard]] bool checkFieldCollisions(
             const AST::Statement::TypeDecl* node
         );
+        // Checking collisions among methods.
         [[nodiscard]] bool checkMethodCollisions(
             const AST::Statement::TypeDecl* node
         );
