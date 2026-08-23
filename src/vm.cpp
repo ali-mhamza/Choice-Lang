@@ -124,6 +124,7 @@ void VM::defineBuiltinGlobals()
         *temp = Object{i};
         temp++;
     }
+
     SET_REGSLOT(temp - globalRegisters);
 }
 
@@ -1550,8 +1551,8 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_RETURN):
         {
-            u8 retSlot{readByte()};
-            registers[-1] = CH_MOVE(registers[retSlot]);
+            u8 returnSlot{readByte()};
+            registers[-1] = CH_MOVE(registers[returnSlot]);
 
             // Correct regSlot after return.
             restoreData();
