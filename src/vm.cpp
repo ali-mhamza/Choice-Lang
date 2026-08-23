@@ -1570,33 +1570,15 @@ void VM::executeOp(Opcode op)
         CASE(OP_VAR_ARGS):
         {
             u8 reg{readByte()};
-
-            // Artificial scope in case we use a non-trivial destructor
-            // for objects.
-
+            List* list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
+            for (u8 i{reg}; i < args; i++)
             {
-                Object list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
-                auto& array{AS_LIST(list)->array};
-                for (u8 i{reg}; i < args; i++)
-                {
-                    if (registers + i > globalRegisters + NUM_REGS)
-                        break;
-                    array.push(registers[i]);
-                }
-
-                registers[reg] = list;
+                CH_ASSERT(registers + i <= globalRegisters + NUM_REGS,
+                    "Argument outside VM register array bounds.");
+                list->array.push(registers[i]);
             }
 
-            DISPATCH();
-        }
-
-        CASE(OP_METHOD):
-        {
-            u8 typeReg{readByte()};
-            u8 funcReg{readByte()};
-            bool pub{static_cast<bool>(readByte())};
-
-            AS_USER_TYPE(registers[typeReg])->addMethod(registers[funcReg], pub);
+            registers[reg] = list;
             DISPATCH();
         }
 
