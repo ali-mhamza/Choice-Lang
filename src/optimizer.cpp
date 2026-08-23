@@ -168,7 +168,7 @@ WALKER(LiteralExpr)
         case TOK_RAW_STR:   return Object{};
         case TOK_TRUE:      return Object{true};
         case TOK_FALSE:     return Object{false};
-        case TOK_NULL:      return Object{ObjType::Null};
+        case TOK_NULL:      return Object::typed(ObjType::Null);
         default: CH_UNREACHABLE();
     }
 }

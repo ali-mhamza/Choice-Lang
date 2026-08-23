@@ -115,8 +115,6 @@ void VM::defineBuiltinGlobals()
 
     for EACH_ENUM_VAL(Core::Ctor, i)
     {
-        // Use implicit conversion here to avoid overload
-        // with an ObjType enum argument.
         *temp = Core::Ctors::types[to_num(i)];
         temp++;
     }
@@ -273,7 +271,7 @@ inline Object VM::loadOper()
             return Object{i64(oper - 2)};
         case OP_TRUE:       return Object{true};
         case OP_FALSE:      return Object{false};
-        case OP_NULL:       return Object{ObjType::Null};
+        case OP_NULL:       return Object::typed(ObjType::Null);
         case OP_BYTE_OPER:  return pool[readByte()];
         case OP_SHORT_OPER: return pool[readShort()];
         case OP_LONG_OPER:  return pool[readLong()];
@@ -1556,7 +1554,7 @@ void VM::executeOp(Opcode op)
         }
         CASE(OP_VOID):
         {
-            registers[readByte()] = Object{ObjType::Void};
+            registers[readByte()] = Object::typed(ObjType::Void);
             DISPATCH();
         }
 

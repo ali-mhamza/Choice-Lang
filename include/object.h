@@ -1,6 +1,7 @@
 #pragma once
 #include "bytecode.h"
 #include "common.h"
+#include "linear_alloc.h"
 #include "modules.h"
 #include "utils.h"
 #include <personal/array.h>
@@ -141,7 +142,12 @@ class Object
         } as;
 
         Object() noexcept : type_{static_cast<u8>(ObjType::Invalid)}, as{0} {}
-        explicit Object(ObjType type) : type_{static_cast<u8>(type)}, as{0} {}
+        static Object typed(ObjType type)
+        {
+            Object obj{};
+            obj.type_ = static_cast<u8>(type);
+            return obj;
+        }
         template<typename T> Object(T val) noexcept;
 
         #if !CH_USE_ALLOC
