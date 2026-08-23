@@ -30,9 +30,9 @@ constexpr u32 fourByteMax{0x10ffff};
 constexpr u32 surrogateRangeStart{0xd800};
 constexpr u32 surrogateRangeEnd{0xdfff};
 
-constexpr u8 commonByteStart{1 << 7};
-constexpr u8 lastSixBits{0x3f};
-constexpr u8 remainingBits{0xff};
+constexpr u8 commonByteStart{0b10000000};
+constexpr u8 lastSixBits{0b00111111};
+constexpr u8 remainingBits{0b11111111};
 
 struct NumParseRules
 {
