@@ -6,7 +6,9 @@
 #include "../include/error.h"
 #include "../include/lexer.h"
 #include "../include/object.h"
+#include "../include/optimizer.h"
 #include "../include/parser.h"
+#include "../include/type_checker.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
 #include <filesystem>
@@ -38,7 +40,16 @@ getModuleTable(const std::filesystem::path& path)
     inRepl = false;
 
     const auto& tokens{lexer.tokenize(id, content)};
-    const auto& program{parser.parseToAST(id, tokens)};
+    auto& program{parser.parseToAST(id, tokens)};
+
+    #if CH_TYPE_CHECKING_ON
+		TypeChecker{}.check(program);
+	#endif
+
+	#if CH_OPTIMIZATIONS_ON
+		Optimizer::optimize(program);
+	#endif
+
     Function* script{compiler.compile(id, program)};
     vm.execute(script);
 
