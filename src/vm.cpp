@@ -685,10 +685,13 @@ void VM::callUserMethod(const Object& callee, u8 start, u8 argCount)
     // for the instance object.
     std::move_backward(&registers[start], &registers[start + argCount],
         &registers[start + argCount + 1]);
+
     const Method* method{AS_USER_METHOD(callee)};
+    const Type* type{AS_INSTANCE(method->boundInstance)->type};
+
     registers[start - 1] = method->funcObj;
     registers[start] = method->boundInstance;
-    callUserFunc(method->funcObj, start, argCount, method->boundInstance->type);
+    callUserFunc(method->funcObj, start, argCount, type);
 }
 
 void VM::callCoreMethod(const Object& callee, u8 start, u8 argCount)

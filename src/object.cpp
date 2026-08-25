@@ -975,7 +975,7 @@ bool Method::operator==(const Method& other) const
 
 Hash Method::hash() const
 {
-    return funcObj.hash() + boundInstance->hash();
+    return funcObj.hash() + boundInstance.hash();
 }
 
 Text::Text(const std::string_view& view) noexcept

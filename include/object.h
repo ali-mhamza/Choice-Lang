@@ -564,8 +564,14 @@ struct Closure : public HeapObj
 
 struct Method : public HeapObj
 {
-    const Object funcObj{}; // Function or closure.
-    const Instance* boundInstance{};
+    // Function or closure.
+    const Object funcObj{};
+    // We store an object instead of an Instance*
+    // so we can maintain an additional reference to
+    // the instance object through a method bound to it,
+    // preventing it from becoming a dangling pointer
+    // when using ref-counting.
+    Object boundInstance{};
     const bool pub{};
 
     Method(const Object& funcObj, bool pub) noexcept;
