@@ -33,6 +33,8 @@ namespace Core
         quit,
         getattr,
         setattr,
+        binary,
+        members,
         Count
     };
 
@@ -70,6 +72,8 @@ namespace Core
             return callable(instance, it, args);
         }
     };
+
+    void checkArity(u8 min, u8 max, bool exclusive, u8 args);
 
     namespace Functions
     {

@@ -1,6 +1,19 @@
 #include "../../include/core.h"
 #include "../../include/error.h"
 
+#define FUNCTION_LIST   \
+    X(print)            \
+    X(println)          \
+    X(typeof)           \
+    X(len)              \
+    X(clock)            \
+    X(read)             \
+    X(quit)             \
+    X(getattr)          \
+    X(setattr)          \
+    X(binary)           \
+    X(members)
+
 /* Forward declarations. */
 
 #define FUNCTION(name) void name(iter it, u8 argCount);
@@ -9,15 +22,9 @@ namespace Core
 {
     namespace Functions
     {
-        FUNCTION(print);
-        FUNCTION(println);
-        FUNCTION(typeof);
-        FUNCTION(len);
-        FUNCTION(clock);
-        FUNCTION(read);
-        FUNCTION(quit);
-        FUNCTION(getattr);
-        FUNCTION(setattr);
+        #define X(name) FUNCTION(name)
+        FUNCTION_LIST
+        #undef X
     };
 };
 
@@ -28,41 +35,23 @@ namespace Core
 
 const std::array<Core::sv, to_num(Core::Function::Count)>
 Core::Functions::names{
-    "print",
-    "println",
-    "typeof",
-    "len",
-    "clock",
-    "read",
-    "quit",
-    "getattr",
-    "setattr"
+    #define X(name) #name,
+    FUNCTION_LIST
+    #undef X
 };
 
 const std::array<Core::Callable::Func, to_num(Core::Function::Count)>
 Core::Functions::impls{
-    print,
-    println,
-    typeof,
-    len,
-    clock,
-    read,
-    quit,
-    getattr,
-    setattr
+    #define X(name) name,
+    FUNCTION_LIST
+    #undef X
 };
 
 const std::unordered_map<Core::sv, Core::Function>
 Core::Functions::search{
-    {"print",   Function::print},
-    {"println", Function::println},
-    {"typeof",  Function::typeof},
-    {"len",     Function::len},
-    {"clock",   Function::clock},
-    {"read",    Function::read},
-    {"quit",    Function::quit},
-    {"getattr", Function::getattr},
-    {"setattr", Function::setattr}
+    #define X(name) {#name, Function::name},
+    FUNCTION_LIST
+    #undef X
 };
 
 
@@ -92,7 +81,7 @@ void Core::Functions::print(iter it, u8 args)
     else
         fflush(stdout);
 
-    it[-1] = Object{ObjType::Void};
+    it[-1] = Object::typed(ObjType::Void);
 }
 
 void Core::Functions::println(iter it, u8 args)
@@ -107,15 +96,7 @@ void Core::Functions::println(iter it, u8 args)
 
 void Core::Functions::typeof(iter it, u8 args)
 {
-    if (args != 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected 1 argument but found {}", args)
-        );
-    }
-
-    // Use implicit conversion here to avoid the overload
-    // which takes an ObjType enum argument.
+    checkArity(1, 1, true, args);
 
     if (IS_INSTANCE(*it))
         it[-1] = AS_INSTANCE(*it)->type;
@@ -125,12 +106,7 @@ void Core::Functions::typeof(iter it, u8 args)
 
 void Core::Functions::len(iter it, u8 args)
 {
-    if (args != 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected 1 argument but found {}", args)
-        );
-    }
+    checkArity(1, 1, true, args);
 
     const Object& obj{*it};
     // Collection == iterable, in this context.
@@ -164,12 +140,7 @@ void Core::Functions::len(iter it, u8 args)
 
 void Core::Functions::clock(iter it, u8 args)
 {
-    if (args != 0)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected 0 arguments but found {}", args)
-        );
-    }
+    checkArity(0, 0, true, args);
 
     using clock = std::chrono::steady_clock;
     using std::chrono::duration_cast;
@@ -183,12 +154,8 @@ void Core::Functions::clock(iter it, u8 args)
 
 void Core::Functions::read(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 0 or 1 arguments but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
+
     if (args == 1)
     {
         if (!IS_STRING_LIKE(it[0]))
@@ -200,17 +167,13 @@ void Core::Functions::read(iter it, u8 args)
     std::ios_base::sync_with_stdio(false);
     std::string input{};
     std::getline(std::cin, input);
-    it[-1] = Object{CH_ALLOC(String, input)};
+    it[-1] = Object{CH_ALLOC_STRING(input)};
 }
 
 void Core::Functions::quit(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 0 or 1 arguments but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
+
     if ((args == 1) && !IS_INT(it[0]))
         throw RuntimeError(WRONG_ARG_TYPE, "argument must be an integer");
 
@@ -225,12 +188,7 @@ void Core::Functions::quit(iter it, u8 args)
 
 void Core::Functions::getattr(iter it, u8 args)
 {
-    if (args != 2)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 2 arguments but found {}", args)
-        );
-    }
+    checkArity(2, 2, true, args);
 
     if (!IS_INSTANCE(it[0]))
         throw RuntimeError(WRONG_ARG_TYPE, "first argument must be a type instance");
@@ -243,12 +201,7 @@ void Core::Functions::getattr(iter it, u8 args)
 
 void Core::Functions::setattr(iter it, u8 args)
 {
-    if (args != 3)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 3 arguments but found {}", args)
-        );
-    }
+    checkArity(3, 3, true, args);
 
     if (!IS_INSTANCE(it[0]))
         throw RuntimeError(WRONG_ARG_TYPE, "first argument must be a type instance");
@@ -257,5 +210,63 @@ void Core::Functions::setattr(iter it, u8 args)
 
     std::string field{it[1].getObjectText()};
     AS_INSTANCE(it[0])->setField(field, it[2], nullptr);
-    it[-1] = Object{ObjType::Void};
+    it[-1] = Object::typed(ObjType::Void);
 }
+
+void Core::Functions::binary(iter it, u8 args)
+{
+    checkArity(1, 1, true, args);
+
+    if (!IS_INT(it[0]))
+        throw RuntimeError(WRONG_ARG_TYPE, "argument must be an integer");
+
+    std::string bin{CH_STR("{:#b}", AS_INT(it[0]))};
+    it[-1] = CH_ALLOC_STRING(bin);
+}
+
+static Object listFromMemberArray(const Core::sv members[], u8 count)
+{
+    List* list{CH_ALLOC_LIST(DEFAULT_LIST_SIZE)};
+    for (u8 i{0}; i < count; i++)
+        list->array.push(CH_ALLOC_TEXT(members[i]));
+    return list;
+}
+
+static void appendCommonMembers(Object& obj)
+{
+    List* list{AS_LIST(obj)};
+    for (u8 i{0}; i < Core::Methods::methodCount; i++)
+        list->array.push(CH_ALLOC_TEXT(Core::Methods::names[i]));
+}
+
+void Core::Functions::members(iter it, u8 args)
+{
+    checkArity(1, 1, true, args);
+
+    #define START_CHECK switch (it[0].type()) {
+    #define X(type)                                 \
+        case ObjType::type:                         \
+        {                                           \
+            it[-1] = listFromMemberArray(           \
+                Core::Methods::type::names,         \
+                Core::Methods::type::methodCount    \
+            );                                      \
+            break;                                  \
+        }
+    #define END_CHECK                                       \
+            default:                                        \
+                it[-1] = CH_ALLOC_LIST(DEFAULT_LIST_SIZE);  \
+        }
+
+    START_CHECK
+        METHOD_TYPE_LIST
+    END_CHECK
+
+    appendCommonMembers(it[-1]);
+
+    #undef START_CHECK
+    #undef X
+    #undef END_CHECK
+}
+
+#undef FUNCTION_LIST

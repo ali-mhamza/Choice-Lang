@@ -29,7 +29,7 @@ namespace Core
 
 const std::array<Core::sv, to_num(Core::Ctor::Count)>
 Core::Ctors::names{
-    "Obj",
+    "Object",
     "Int",
     "Dec",
     "Bool",
@@ -87,18 +87,15 @@ using Obj = ::Object; // To avoid name collisions.
 Obj Core::Ctors::Object(iter it, u8 args)
 {
     (void) it;
-    if (args != 0)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected 0 arguments but found {}", args)
-        );
-    }
+    checkArity(0, 0, true, args);
 
     return Obj{ObjType::Void};
 }
 
 Obj Core::Ctors::Int(iter it, u8 args)
 {
+    checkArity(0, 2, false, args);
+
     if (args == 0)
         return Obj{i64(0)};
 
@@ -144,13 +141,13 @@ Obj Core::Ctors::Int(iter it, u8 args)
         return Obj{value};
     }
 
-    throw RuntimeError(ARITY_MISMATCH,
-        CH_STR("expected at most 2 arguments but found {}", args)
-    );
+    CH_UNREACHABLE();
 }
 
 Obj Core::Ctors::Dec(iter it, u8 args)
 {
+    checkArity(0, 1, true, args);
+
     if (args == 0)
         return Obj{0.0};
 
@@ -175,19 +172,12 @@ Obj Core::Ctors::Dec(iter it, u8 args)
             throw RuntimeError(WRONG_ARG_TYPE, "argument must be a number or a string");
     }
 
-    throw RuntimeError(ARITY_MISMATCH,
-        CH_STR("expected at most 1 argument but found {}", args)
-    );
+    CH_UNREACHABLE();
 }
 
 Obj Core::Ctors::Bool(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected at most 1 argument but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
 
     if (args == 0)
         return Obj{false};
@@ -196,40 +186,26 @@ Obj Core::Ctors::Bool(iter it, u8 args)
 
 Obj Core::Ctors::Text(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected at most 1 argument but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
 
     if (args == 0)
-        return Obj{CH_ALLOC(::Text, "")};
-    return Obj{CH_ALLOC(::Text, it->printVal())};
+        return Obj{CH_ALLOC_TEXT("")};
+    return Obj{CH_ALLOC_TEXT(it->printVal())};
 }
 
 Obj Core::Ctors::String(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected at most 1 argument but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
 
     if (args == 0)
-        return Obj{CH_ALLOC(::String, "")};
-    return Obj{CH_ALLOC(::String, it->printVal())};
+        return Obj{CH_ALLOC_STRING("")};
+    return Obj{CH_ALLOC_STRING(it->printVal())};
 }
 
 Obj Core::Ctors::Range(iter it, u8 args)
 {
-    if ((args != 2) && (args != 3))
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 2 or 3 arguments but found {}", args)
-        );
-    }
+    checkArity(2, 3, true, args);
+
     if (!IS_INT(it[0]) || !IS_INT(it[1]) || ((args == 3) && !IS_INT(it[2])))
         throw RuntimeError(WRONG_ARG_TYPE, "arguments must be integers");
 
@@ -244,19 +220,14 @@ Obj Core::Ctors::Range(iter it, u8 args)
     if (args == 3) nums[2] = AS_INT(it[2]);
 
     Range::validateRange(nums); // May throw on error.
-    return Obj{CH_ALLOC(::Range, nums)};
+    return Obj{CH_ALLOC_RANGE(nums)};
 }
 
 Obj Core::Ctors::List(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected at most 1 argument but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
 
-    ::List* list{CH_ALLOC(::List, DEFAULT_LIST_SIZE)};
+    auto* list{CH_ALLOC_LIST(DEFAULT_LIST_SIZE)};
     if (args == 1)
     {
         if (!IS_ITERABLE(*it))
@@ -279,14 +250,9 @@ Obj Core::Ctors::List(iter it, u8 args)
 
 Obj Core::Ctors::Table(iter it, u8 args)
 {
-    if (args > 1)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expected at most 1 argument but found {}", args)
-        );
-    }
+    checkArity(0, 1, true, args);
 
-    ::Table* table{CH_ALLOC(::Table)};
+    auto* table{CH_ALLOC_TABLE()};
     auto insertEntry = [table](const Obj& obj) {
         if (!IS_LIST(obj) || (AS_LIST(obj)->array.count() != 2))
         {
