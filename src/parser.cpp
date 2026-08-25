@@ -724,12 +724,16 @@ void Parser::parseMethod(
     AST::Decl& decl
 )
 {
-    bool constructor{inConstructor};
+    bool init{inInit}, drop{inDrop};
     if (currentTok.text == CH_CONSTRUCTOR)
-        inConstructor = true;
+        inInit = true;
+    else if (currentTok.text == CH_DESTRUCTOR)
+        inDrop = true;
+
     methods.push_back(funcDecl());
     SET_DECL_INFO(methods.back(), FuncDecl);
-    inConstructor = constructor;
+    inInit = init;
+    inDrop = drop;
 }
 
 StmtUP Parser::typeDecl()
@@ -1034,15 +1038,16 @@ StmtUP Parser::repeatStmt()
 
 StmtUP Parser::returnStmt()
 {
-    if (!inFunc)
-        REPORT_SEMANTIC(INVALID_RETURN, previousTok);
-    else if (inConstructor)
-        REPORT_SEMANTIC(RETURN_IN_CTOR, previousTok);
+    if (!inFunc) REPORT_SEMANTIC(INVALID_RETURN, previousTok);
 
     Token keyword{previousTok};
     ExprUP expr{nullptr};
     if (!checkTok(TOK_SEMICOLON))
+    {
+        if (inInit) REPORT_SEMANTIC(RETURN_IN_INIT, currentTok);
+        else if (inDrop) REPORT_SEMANTIC(RETURN_IN_DROP, currentTok);
         expr = returnExpr();
+    }
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after return statement");
     return std::make_unique<ReturnStmt>(keyword, expr);
 }

@@ -108,8 +108,13 @@
 
 // Constructor/destructor name.
 
-#define CH_CONSTRUCTOR	"Self"
-#define CH_DESTRUCTOR	"Drop"
+// Technically, 'init' is not a constructor (it's an
+// initializer) and 'drop' is not a destructor (more of
+// a general 'clean up' function), but these are fairly
+// conventional names, so we use them here.
+
+#define CH_CONSTRUCTOR	"init"
+#define CH_DESTRUCTOR	"drop"
 
 // Opcode appearance.
 

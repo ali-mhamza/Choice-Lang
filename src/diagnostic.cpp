@@ -29,7 +29,7 @@ static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     SCOPE_NOT_IDENT, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
-    RETURN_IN_CTOR, CLOSED_NON_FUNCTION, INVALID_CALLABLE_TYPE,
+    RETURN_IN_DROP, CLOSED_NON_FUNCTION, INVALID_CALLABLE_TYPE,
     UNREACHABLE_CODE, MUT_TO_IMMUT
 };
 
@@ -148,7 +148,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Case found after default case in match-is structure.",
     "Cannot use 'return' outside of a function/lambda.",
     "A conditional expression must have a false-case branch.",
-    "Cannot return within a constructor.",
+    "Cannot return value within '" CH_CONSTRUCTOR "' method.",
+    "Cannot return value within '" CH_DESTRUCTOR "' method.",
 
     // Attribute errors.
 

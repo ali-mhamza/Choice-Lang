@@ -31,7 +31,7 @@ class Parser
 
         vT::const_iterator it{};
         // For functions and control-flow.
-        bool inFunc{false}, inConstructor{false};
+        bool inFunc{false}, inInit{false}, inDrop{false};
         bool inLoop{false}, inComprehension{false};
         bool inMatch{false}, fallthrough{false};
         // We are currently in an error state.

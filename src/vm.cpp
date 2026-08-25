@@ -865,22 +865,22 @@ void VM::dropInstances(Object* limit)
         CH_ASSERT(IS_INSTANCE(obj), "Attempt to drop non-instance object.");
         Instance* instance{AS_INSTANCE(obj)};
 
-        // We only add instances that have a custom Drop() method
+        // We only add instances that have a custom drop() method
         // to the array, so no existence check needed here.
         Object ctor{instance->getField(CH_DESTRUCTOR)};
 
-        // Calls to Drop() replace the object before the instance
+        // Calls to drop() replace the object before the instance
         // with their return value, so we make a copy before calling
-        // Drop() to restore that object after the call.
+        // drop() to restore that object after the call.
 
         Object temp{addr[0]};
         bool encapsulate{encapsulateCall};
         encapsulateCall = true;
 
         // Every time we exit a scope, dropInstances will be called.
-        // This includes the call(s) to Drop() made here as well, and
+        // This includes the call(s) to drop() made here as well, and
         // thus can easily lead to excessive recursion and stack overflow.
-        // To prevent that, we make sure the various calls to Drop() cannot
+        // To prevent that, we make sure the various calls to drop() cannot
         // possibly share the same register window (by adding 1 here), which
         // means the 'limit' argument will always be different.
         // If the 'limit' argument is always the same, we end up recursively

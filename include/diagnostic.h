@@ -172,7 +172,7 @@ enum DiagCode : u8
 
     // Closed function cannot capture outside data.
     CLOSED_FUNC_CAPTURING,
-    // 'Drop' special method does not accept parameters.
+    // 'drop' special method does not accept parameters.
     DROP_HAS_PARAMS,
     // Test function does not accept parameters.
     TEST_FUNC_HAS_PARAMS,
@@ -320,8 +320,10 @@ enum DiagCode : u8
     INVALID_RETURN,
     // If-expression missing a false-case expression.
     IF_EXPR_MISSING_FALSE,
-    // Attempt to return within a constructor.
-    RETURN_IN_CTOR,
+    // Attempt to return value within 'init' method.
+    RETURN_IN_INIT,
+    // Attempt to return value within 'drop' method.
+    RETURN_IN_DROP,
 
 
     /* Attribute errors. */
