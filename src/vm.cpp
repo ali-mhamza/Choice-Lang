@@ -740,6 +740,7 @@ static std::filesystem::path getModulePath(
 {
     Module* module_{AS_MODULE(module)};
     const std::string file{module_->name};
+    // 'dir' object is guaranteed to be a string.
     const std::string dirString{AS_STRING(dir)->str};
 
     std::filesystem::path scriptPath{dirString};
