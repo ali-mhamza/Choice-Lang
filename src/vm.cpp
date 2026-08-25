@@ -117,7 +117,7 @@ void VM::defineBuiltinGlobals()
 {
     Object* temp{globalRegisters};
 
-    temp[FILENAME_LOC] = Object{CH_ALLOC(Text, "")};
+    temp[FILENAME_LOC] = Object{CH_ALLOC_TEXT("")};
     MAKE_FIXED(temp[FILENAME_LOC]);
     MAKE_IMMUT(temp[FILENAME_LOC]);
     temp++;
@@ -184,7 +184,7 @@ inline Cell* VM::captureValue(u8 slot, bool local)
             return cell;
     }
 
-    Cell* cell{CH_ALLOC(Cell, addr)};
+    Cell* cell{CH_ALLOC_REF(addr)};
     // Insert the cell in sorted order.
     auto it{std::lower_bound(activeCells.begin(),
         activeCells.end(),
@@ -229,7 +229,7 @@ Object VM::concatStrings(const Object& str1, const Object& str2)
 {
     std::string concat{str1.getObjectText()};
     concat += str2.getObjectText();
-    return CH_ALLOC(String, concat);
+    return CH_ALLOC_STRING(concat);
 }
 
 Object VM::makeRange(const Object& start, const Object& stop)
@@ -242,7 +242,7 @@ Object VM::makeRange(const Object& start, const Object& stop)
 
     std::array nums{start_, stop_, ((stop_ >= start_) ? i64(1) : i64(-1))};
     Range::validateRange(nums); // May throw on error.
-    return CH_ALLOC(Range, nums);
+    return CH_ALLOC_RANGE(nums);
 }
 
 Object VM::makeReference()
@@ -269,7 +269,7 @@ Object VM::makeReference()
             CH_UNREACHABLE();
     }
 
-    return CH_ALLOC(Cell, addr);
+    return CH_ALLOC_REF(addr);
 }
 
 inline Object VM::loadOper()
@@ -630,7 +630,7 @@ void VM::callUserType(const Object& callee, u8 start, u8 argCount)
         throw RuntimeError(ARITY_MISMATCH, errorMsg);
     }
 
-    Instance* instance{CH_ALLOC(Instance, type)};
+    Instance* instance{CH_ALLOC_INSTANCE(type)};
     if (hasCtor)
     {
         Object ctor{instance->getField(CH_CONSTRUCTOR)};
@@ -930,7 +930,7 @@ void VM::unpackObject(u8 reg, u8 count)
 
     if (unpackLastVar) // We do nothing if unpackIgnore == true.
     {
-        List* list{CH_ALLOC(List, collectionSize - count)};
+        List* list{CH_ALLOC_LIST(collectionSize - count)};
         Object temp{};
         for (u64 i{0}; i < collectionSize - count; i++)
         {
@@ -1286,7 +1286,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_LIST):
         {
-            registers[readByte()] = CH_ALLOC(List, DEFAULT_LIST_SIZE);
+            registers[readByte()] = CH_ALLOC_LIST(DEFAULT_LIST_SIZE);
             SET_REGSLOT(*(ip - 1));
             DISPATCH();
         }
@@ -1304,7 +1304,7 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_TABLE):
         {
-            registers[readByte()] = CH_ALLOC(Table);
+            registers[readByte()] = CH_ALLOC_TABLE();
             SET_REGSLOT(*(ip - 1));
             DISPATCH();
         }
@@ -1346,7 +1346,7 @@ void VM::executeOp(Opcode op)
 
                 for (u8 i{0}; i < count; i++)
                     str += registers[index + i].printVal();
-                registers[index] = CH_ALLOC(String, str);
+                registers[index] = CH_ALLOC_STRING(str);
             }
             DISPATCH();
         }
@@ -1380,7 +1380,7 @@ void VM::executeOp(Opcode op)
 
             Type* type{AS_USER_TYPE(registers[typeReg])};
             // Replace the class.
-            registers[typeReg] = CH_ALLOC(Instance, type);
+            registers[typeReg] = CH_ALLOC_INSTANCE(type);
 
             if (type->defines(CH_DESTRUCTOR))
             {
@@ -1597,7 +1597,7 @@ void VM::executeOp(Opcode op)
         CASE(OP_VAR_ARGS):
         {
             u8 reg{readByte()};
-            List* list{CH_ALLOC(List, DEFAULT_LIST_SIZE)};
+            List* list{CH_ALLOC_LIST(DEFAULT_LIST_SIZE)};
             for (u8 i{reg}; i < args; i++)
             {
                 CH_ASSERT(registers + i <= globalRegisters + NUM_REGS,
@@ -1613,7 +1613,7 @@ void VM::executeOp(Opcode op)
         {
             u8 slot{readByte()};
             auto* func{AS_USER_FUNC(registers[slot])};
-            registers[slot] = CH_ALLOC(Closure, func);
+            registers[slot] = CH_ALLOC_CLOSURE(func);
             DISPATCH();
         }
         CASE(OP_CAPTURE_GLOBAL):
@@ -1741,7 +1741,7 @@ void VM::executeOp(Opcode op)
                 if (!IS_MUT(*find)) MAKE_IMMUT(*find);
             }
 
-            registers[instanceReg] = CH_ALLOC(Cell, find);
+            registers[instanceReg] = CH_ALLOC_REF(find);
             DISPATCH();
         }
 
@@ -1792,7 +1792,7 @@ void VM::executeChunk(const ByteCode& chunk, Function* func)
 
     #if WATCH_EXEC
         Function* temp{func};
-        if (func == nullptr) temp = CH_ALLOC(Function, chunk);
+        if (func == nullptr) temp = CH_ALLOC_USER_FUNC(chunk);
         this->dis = new Disassembler{temp};
     #endif
 

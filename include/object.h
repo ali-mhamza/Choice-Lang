@@ -822,6 +822,20 @@ struct CustomDealloc
     }
 };
 
+
+/* Allocation helper functions. */
+
+#define X(TYPE, name, field)                                            \
+    template<typename... Ts>                                            \
+    [[nodiscard]] static inline auto* CH_ALLOC_##TYPE(Ts&&... args) {   \
+        using T = std::remove_pointer_t<decltype(Object{}.as.field)>;   \
+        return CH_ALLOC(T, args...);                                    \
+    }
+
+TYPE_LIST
+
+#undef X
+
 #undef TYPE_LIST
 #pragma pop_macro("AS_VOID")
 #pragma pop_macro("NULL")

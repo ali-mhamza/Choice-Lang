@@ -85,9 +85,9 @@ void Compiler::defineBuiltinLocals(const std::string& funcName)
     defVar("_func_", nextReg, accessFix);
     Object nameObj{};
     if (funcName.empty()) // Lambda.
-        nameObj = CH_ALLOC(String, "lambda");
+        nameObj = CH_ALLOC_STRING("lambda");
     else
-        nameObj = CH_ALLOC(String, funcName);
+        nameObj = CH_ALLOC_STRING(funcName);
 
     MAKE_FIXED(nameObj);
     MAKE_IMMUT(nameObj);
@@ -774,9 +774,9 @@ Object Compiler::makeFuncObj(
     u8 min{static_cast<u8>(arity - defaultCount)};
 
     if (name.empty()) // Compiling a lambda.
-        func = CH_ALLOC(Function, funcCode, min, arity);
+        func = CH_ALLOC_USER_FUNC(funcCode, min, arity);
     else
-        func = CH_ALLOC(Function, name, funcCode, min, arity);
+        func = CH_ALLOC_USER_FUNC(name, funcCode, min, arity);
 
     AS_USER_FUNC(func)->defaultArgs = defaultArgs;
     AS_USER_FUNC(func)->variadic = variadic;
@@ -966,7 +966,7 @@ DEF(TypeDecl)
         });
     }
 
-    Object typeObj{CH_ALLOC(Type, name, fields)};
+    Object typeObj{CH_ALLOC_USER_TYPE(name, fields)};
     code.loadRegConst(typeObj, typeReg);
 
     u8 count{0};
@@ -1028,8 +1028,8 @@ void Compiler::compileUseModule(
         alias = std::string{node->alias.text};
 
     startDeclaration();
-    Object module{CH_ALLOC(Module, name)};
-    Object directory{CH_ALLOC(String, dir)};
+    Object module{CH_ALLOC_MODULE(name)};
+    Object directory{CH_ALLOC_STRING(dir)};
 
     u8 moduleReg{nextReg};
     code.loadRegConst(module, moduleReg);
@@ -1056,8 +1056,8 @@ void Compiler::compileUseModuleEntries(
     }
 
     startDeclaration();
-    Object module{CH_ALLOC(Module, name)};
-    Object directory{CH_ALLOC(String, dir)};
+    Object module{CH_ALLOC_MODULE(name)};
+    Object directory{CH_ALLOC_STRING(dir)};
 
     u8 moduleReg{nextReg};
     code.loadRegConst(module, moduleReg);
@@ -1069,7 +1069,7 @@ void Compiler::compileUseModuleEntries(
 
     for (const auto& entry : node->entries)
     {
-        Object origName{CH_ALLOC(String, entry.name.text)};
+        Object origName{CH_ALLOC_STRING(entry.name.text)};
         u8 entryReg{nextReg};
         code.loadRegConst(origName, entryReg);
 
@@ -1551,7 +1551,7 @@ void Compiler::assignToField(
     FieldExpr* expr{static_cast<FieldExpr*>(target.get())};
     u8 objReg{compileExpr(expr->obj)};
 
-    Object field{CH_ALLOC(String, expr->field.text)};
+    Object field{CH_ALLOC_STRING(expr->field.text)};
     u8 fieldReg{nextReg};
     code.loadRegConst(field, fieldReg);
     reserveReg();
@@ -1847,7 +1847,7 @@ void Compiler::_crementField(
     FieldExpr* expr{static_cast<FieldExpr*>(node->expr.get())};
     u8 objReg{compileExpr(expr->obj)};
 
-    Object field{CH_ALLOC(String, expr->field.text)};
+    Object field{CH_ALLOC_STRING(expr->field.text)};
     u8 fieldReg{nextReg};
     code.loadRegConst(field, fieldReg);
     reserveReg();
@@ -1953,7 +1953,7 @@ DEF(FieldExpr)
 {
     u8 objReg{compileExpr(node->obj)};
 
-    Object field{CH_ALLOC(String, node->field.text)};
+    Object field{CH_ALLOC_STRING(node->field.text)};
     u8 fieldReg{nextReg};
     code.loadRegConst(field, fieldReg);
 
@@ -1964,7 +1964,7 @@ DEF(ScopeExpr)
 {
     u8 moduleReg{compileExpr(node->module)};
 
-    Object entry{CH_ALLOC(String, node->entry.text)};
+    Object entry{CH_ALLOC_STRING(node->entry.text)};
     u8 entryReg{nextReg};
     code.loadRegConst(entry, entryReg);
 
@@ -2052,7 +2052,7 @@ DEF(InstanceExpr)
 
     for (const auto& field : node->fields)
     {
-        Object name{CH_ALLOC(String, field.name.text)};
+        Object name{CH_ALLOC_STRING(field.name.text)};
         u8 nameReg{nextReg};
         code.loadRegConst(name, nameReg);
         reserveReg();
@@ -2175,7 +2175,7 @@ void Compiler::fieldReference(const RefExpr* node)
 {
     const FieldExpr* field{static_cast<const FieldExpr*>(node->obj.get())};
     u8 objReg{compileExpr(field->obj)};
-    Object fieldName{CH_ALLOC(String, field->field.text)};
+    Object fieldName{CH_ALLOC_STRING(field->field.text)};
     code.loadRegConst(fieldName, nextReg);
 
     code.addOp(OP_FIELD_REF, objReg, nextReg);
@@ -2225,7 +2225,7 @@ DEF(StringPartExpr)
             CH_UNREACHABLE();
     }
 
-    Object obj{CH_ALLOC(String, parseStringToken(node->part, start, offset))};
+    Object obj{CH_ALLOC_STRING(parseStringToken(node->part, start, offset))};
     code.loadRegConst(obj, nextReg);
     // The parts of a format string/string interpolation do not
     // exist on their own (the entire string + format arguments
@@ -2285,14 +2285,14 @@ DEF(LiteralExpr)
 
     else if (tok.type == TOK_STR_LIT)
     {
-        Object obj{CH_ALLOC(Text, parseStringToken(tok, 1, 2))};
+        Object obj{CH_ALLOC_TEXT(parseStringToken(tok, 1, 2))};
         code.loadRegConst(obj, nextReg);
         reserveReg();
     }
 
     else if (tok.type == TOK_RAW_STR)
     {
-        Object obj{CH_ALLOC(Text, getRawString(tok.text))};
+        Object obj{CH_ALLOC_TEXT(getRawString(tok.text))};
         code.loadRegConst(obj, nextReg);
         reserveReg();
     }
@@ -2426,7 +2426,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     else
         code.addOp(OP_HALT);
 
-    return CH_ALLOC(Function, getCode());
+    return CH_ALLOC_USER_FUNC(getCode());
 }
 
 std::pair<const Compiler::VarTable&, const Compiler::DeclTable&>

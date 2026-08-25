@@ -127,7 +127,7 @@ Object CodeReader::reconstructModule()
    	name.resize(nameLen);
     readBytes(name.data(), nameLen);
 
-    return Object{CH_ALLOC(Module, name)};
+    return Object{CH_ALLOC_MODULE(name)};
 }
 
 Object CodeReader::reconstructType()
@@ -150,7 +150,7 @@ Object CodeReader::reconstructType()
 		fields[i].pub = readValue<bool>();
     }
 
-    return Object{CH_ALLOC(Type, name, fields)};
+    return Object{CH_ALLOC_USER_TYPE(name, fields)};
 }
 
 Object CodeReader::reconstructFunc()
@@ -172,9 +172,9 @@ Object CodeReader::reconstructFunc()
 
 	Object func{};
 	if (nameLen == 0) // Lambda.
-		func = CH_ALLOC(Function, code, arityMin, arityMax);
+		func = CH_ALLOC_USER_FUNC(code, arityMin, arityMax);
 	else
-		func = CH_ALLOC(Function, name, code, arityMin, arityMax);
+		func = CH_ALLOC_USER_FUNC(name, code, arityMin, arityMax);
 
 	u8 defaultCount{static_cast<u8>(arityMax - arityMin)};
 	ByteCode* defaultArgs{new ByteCode[defaultCount]};
@@ -198,7 +198,7 @@ Object CodeReader::reconstructText()
 		readBytes(str.data(), length);
 	}
 
-	return Object{CH_ALLOC(Text, str)};
+	return Object{CH_ALLOC_TEXT(str)};
 }
 
 Object CodeReader::reconstructString()
@@ -212,7 +212,7 @@ Object CodeReader::reconstructString()
 		readBytes(str.data(), length);
 	}
 
-	return Object{CH_ALLOC(String, str)};
+	return Object{CH_ALLOC_STRING(str)};
 }
 
 vObj CodeReader::reconstructPool(u64 poolByteSize)

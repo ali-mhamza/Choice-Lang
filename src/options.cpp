@@ -220,7 +220,7 @@ void optionDisProgram(FileID id, std::string_view input)
 	(void) id;
 
 	ByteCode chunk{readByteCode(input)};
-	Function* script{CH_ALLOC(Function, chunk)};
+	Function* script{CH_ALLOC_USER_FUNC(chunk)};
 	Disassembler{script}.disassembleCode();
 	CH_DEALLOC(script);
 }
@@ -230,7 +230,7 @@ void optionLoadProgram(FileID id, std::string_view input)
 	(void) id;
 
 	ByteCode chunk{readByteCode(input)};
-	Function* script{CH_ALLOC(Function, chunk)};
+	Function* script{CH_ALLOC_USER_FUNC(chunk)};
 	runVM(script); // Reports errors through diagEngine directly.
 	CH_DEALLOC(script);
 }

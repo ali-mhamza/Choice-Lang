@@ -322,7 +322,7 @@ Cell* Object::indexRef(const Object& index)
         }
     }
 
-    Cell* cell{CH_ALLOC(Cell, this, index)};
+    Cell* cell{CH_ALLOC_REF(this, index)};
     // Since we replace it immediately in the VM.
     cell->close();
     return cell;
@@ -535,7 +535,7 @@ void Object::emitMetadata(std::ofstream& os) const
 ObjIter* Object::makeIter()
 {
     if (!IS_ITERABLE(*this)) return nullptr;
-    return CH_ALLOC(ObjIter, *this);
+    return CH_ALLOC_ITER(*this);
 }
 
 const Function* AS_FUNCOBJ(const Object& obj)
@@ -646,7 +646,8 @@ void Type::addMethod(const Object& method, bool pub)
         name = AS_USER_FUNC(method)->name;
     else if (IS_CLOSURE(method))
         name = AS_CLOSURE(method)->function->name;
-    methods.add(name, Object{CH_ALLOC(Method, method, pub)});
+    CH_ASSERT(name != nullptr, "Invalid null name for method.");
+    methods.add(name, Object{CH_ALLOC_USER_METHOD(method, pub)});
 }
 
 bool Type::defines(const std::string& method) const
@@ -1032,7 +1033,7 @@ Object Text::getIndex(const Object& index) const
         );
     }
 
-    return CH_ALLOC(Text, getString() + AS_INT(index), 1);
+    return CH_ALLOC_TEXT(getString() + AS_INT(index), 1);
 }
 
 void Text::setIndex(const Object& index, const Object& value)
@@ -1099,7 +1100,7 @@ Object String::getIndex(const Object& index) const
         );
     }
 
-    return CH_ALLOC(String, str.data() + AS_INT(index), 1);
+    return CH_ALLOC_STRING(str.data() + AS_INT(index), 1);
 }
 
 void String::setIndex(const Object& index, const Object& value)
@@ -1448,7 +1449,7 @@ bool TextIter::start(Object& var)
 {
     if (obj->len == 0) return false;
 
-    var = Object{CH_ALLOC(Text, obj->getString() + pos, 1)};
+    var = Object{CH_ALLOC_TEXT(obj->getString() + pos, 1)};
     return true;
 }
 
@@ -1456,7 +1457,7 @@ bool TextIter::next(Object& var)
 {
     if (++pos == obj->len) return false;
 
-    var = Object{CH_ALLOC(Text, obj->getString() + pos, 1)};
+    var = Object{CH_ALLOC_TEXT(obj->getString() + pos, 1)};
     return true;
 }
 
@@ -1503,7 +1504,7 @@ bool StringIter::start(Object& var)
 {
     if (obj->str.size() == 0) return false;
 
-    var = Object{CH_ALLOC(String, &(obj->str[pos]), 1)};
+    var = Object{CH_ALLOC_STRING(&(obj->str[pos]), 1)};
     setMutFlags(var, flags);
 
     return true;
@@ -1514,7 +1515,7 @@ bool StringIter::next(Object& var)
     if (++pos == obj->str.size())
         return false;
 
-    var = Object{CH_ALLOC(String, &(obj->str[pos]), 1)};
+    var = Object{CH_ALLOC_STRING(&(obj->str[pos]), 1)};
     setMutFlags(var, flags);
 
     return true;
@@ -1690,7 +1691,7 @@ bool TableIter::start(Object& var)
 
     it = obj->table.begin();
 
-    List* list{CH_ALLOC(List, 2)};
+    List* list{CH_ALLOC_LIST(2)};
     list->array.push(*(it->first));
     // So users cannot modify keys directly.
     MAKE_IMMUT(list->array[0]);
@@ -1707,7 +1708,7 @@ bool TableIter::next(Object& var)
     if (++it == obj->table.end())
         return false;
 
-    List* list{CH_ALLOC(List, 2)};
+    List* list{CH_ALLOC_LIST(2)};
     list->array.push(*(it->first));
     MAKE_IMMUT(list->array[0]);
     list->array.push(*(it->second));
