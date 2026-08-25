@@ -26,7 +26,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    SCOPE_NOT_IDENT, METHOD_PRIVATE, TEST_FUNC_HAS_PARAMS,
+    SCOPE_NOT_IDENT, DROP_METHOD_GET, TEST_FUNC_HAS_PARAMS,
     FIELD_NO_INSTANCE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
     RETURN_IN_DROP, CLOSED_NON_FUNCTION, INVALID_CALLABLE_TYPE,
@@ -79,6 +79,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Method name collides with a field declared before it.",
     "Cannot get the value of a field before it has been initialized.",
     "Field is private.", "Method is private.",
+    "Cannot directly retrieve '" CH_CONSTRUCTOR "' method.",
+    "Cannot directly retrieve '" CH_DESTRUCTOR "' method.",
 
     // Function errors.
 

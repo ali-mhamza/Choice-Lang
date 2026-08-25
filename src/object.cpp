@@ -776,7 +776,11 @@ Object Instance::getField(
     {
         if (IS_USER_METHOD(*location))
         {
-            if (!type->isPublicMethod(name))
+            if (name == CH_CONSTRUCTOR)
+                throw RuntimeError(INIT_METHOD_GET);
+            else if (name == CH_DESTRUCTOR)
+                throw RuntimeError(DROP_METHOD_GET);
+            else if (!type->isPublicMethod(name))
                 throw RuntimeError(METHOD_PRIVATE);
         }
         else if (!type->isPublicField(name))

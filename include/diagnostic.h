@@ -166,6 +166,10 @@ enum DiagCode : u8
     FIELD_PRIVATE,
     // Method is private.
     METHOD_PRIVATE,
+    // Cannot retrieve 'init' method.
+    INIT_METHOD_GET,
+    // Cannot retrieve 'drop' method.
+    DROP_METHOD_GET,
 
 
     /* Function errors. */
