@@ -1861,7 +1861,8 @@ void VM::execute(Function* script)
         amendFileName();
         executeCode();
     }
-    catch (RuntimeError& error) {
+    catch (RuntimeError& error)
+    {
         reportError(error);
         errorReset();
     }
