@@ -1906,3 +1906,4 @@ CallFrame::CallFrame(const Args& args) :
 #undef SET_REGSLOT
 #undef SET_REGSLOT_MAX
 #undef MAX
+#undef COMPUTE_OBJ
