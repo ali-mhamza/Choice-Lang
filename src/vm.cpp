@@ -123,7 +123,16 @@ namespace
     };
 
     bool moduleError{false};
+    // For pending imports, we only check file path, since we want
+    // to guarantee no circular imports, even if the file for the
+    // pending import has somehow been modified since its first import
+    // started.
     set<fs::path, std::hash<fs::path>, PathCompare> pendingImports{};
+    // For cached imports, we check both file path and last write time.
+    // This allows us to re-import modules that have been modified since
+    // first being imported.
+    // This is still a work in progress since the compiler eliminates
+    // repeated module imports.
     map<fs::path, Object, std::hash<fs::path>, FileCompare> cachedImports{};
 }
 
