@@ -97,7 +97,7 @@ WALKER(CompareExpr)
             case TOK_GT_EQ: return ((left > right) || (left == right));
             case TOK_LT:    return (left < right);
             case TOK_LT_EQ: return ((left < right) || (left == right));
-            case TOK_IN:     return left.in(right);
+            case TOK_IN:    return left.in(right);
             default: CH_UNREACHABLE();
         }
     }
