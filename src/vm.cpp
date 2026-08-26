@@ -69,7 +69,21 @@ VM::VM()
 
 VM::~VM()
 {
-    exitScope(globalRegisters);
+    // In case implicit call to drop() method hits an
+    // error for a particular instance.
+
+    try
+    {
+        exitScope(globalRegisters);
+    }
+    catch (RuntimeError& error)
+    {
+        // Stack traces don't work properly for implicit
+        // calls (like calls to drop()).
+        reportShortError(error);
+        errorReset();
+    }
+
     delete[] globalRegisters;
 }
 
@@ -631,6 +645,15 @@ void VM::callUserType(const Object& callee, u8 start, u8 argCount)
     }
 
     Instance* instance{CH_ALLOC_INSTANCE(type)};
+    registers[start - 1] = instance;
+    if (type->defines(CH_DESTRUCTOR))
+    {
+        activeInstances.push_back({
+            registers + start - 1,
+            registers[start - 1]
+        });
+    }
+
     if (hasCtor)
     {
         Object ctor{instance->getField(CH_CONSTRUCTOR)};
@@ -650,15 +673,6 @@ void VM::callUserType(const Object& callee, u8 start, u8 argCount)
     }
 
     finishFields(*instance, start);
-    registers[start - 1] = instance;
-
-    if (type->defines(CH_DESTRUCTOR))
-    {
-        activeInstances.push_back({
-            registers + start - 1,
-            registers[start - 1]
-        });
-    }
 }
 
 void VM::callCoreType(const Object& callee, u8 start, u8 argCount)
