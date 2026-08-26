@@ -2047,8 +2047,8 @@ DEF(TableExpr)
 
 DEF(InstanceExpr)
 {
-    u8 objReg{compileExpr(node->typeName)};
-    code.addOp(OP_INSTANCE, objReg);
+    u8 typeReg{compileExpr(node->type)};
+    code.addOp(OP_INSTANCE, typeReg);
 
     for (const auto& field : node->fields)
     {
@@ -2058,11 +2058,11 @@ DEF(InstanceExpr)
         reserveReg();
 
         u8 initReg{compileExpr(field.init)};
-        code.addOp(OP_INIT_FIELD, objReg, nameReg, initReg);
+        code.addOp(OP_INIT_FIELD, typeReg, nameReg, initReg);
     }
 
-    code.addOp(OP_FINISH_FIELDS, objReg);
-    nextReg = objReg + 1; // Reserve a register for the instance object.
+    code.addOp(OP_FINISH_FIELDS, typeReg);
+    nextReg = typeReg + 1; // Reserve a register for the instance object.
 }
 
 template<typename NodeT, typename Lambda>
