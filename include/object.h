@@ -143,7 +143,7 @@ class Object
 
         constexpr Object() noexcept :
             type_{static_cast<u8>(ObjType::Invalid)}, as{0} {}
-        static Object typed(ObjType type)
+        static Object typed(ObjType type) noexcept
         {
             Object obj{};
             obj.type_ = static_cast<u8>(type);
