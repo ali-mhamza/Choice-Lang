@@ -141,7 +141,8 @@ class Object
             ObjIter*        iterVal;
         } as;
 
-        Object() noexcept : type_{static_cast<u8>(ObjType::Invalid)}, as{0} {}
+        constexpr Object() noexcept :
+            type_{static_cast<u8>(ObjType::Invalid)}, as{0} {}
         static Object typed(ObjType type)
         {
             Object obj{};
