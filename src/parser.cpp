@@ -1532,6 +1532,9 @@ ExprUP Parser::post()
                 REPORT_SEMANTIC(SCOPE_NOT_IDENT, previousTok);
             MATCH_TOK(TOK_IDENTIFIER, "expect name of module entry");
             expr = std::make_unique<ScopeExpr>(expr, previousTok);
+
+            if (checkTok(TOK_LEFT_BRACE))
+                expr = instance(std::move(expr));
         }
         else
             return expr;
@@ -1675,9 +1678,8 @@ ExprUP Parser::table()
     return std::make_unique<TableExpr>(pairs);
 }
 
-ExprUP Parser::instance()
+ExprUP Parser::instance(ExprUP&& type)
 {
-    ExprUP typeName{std::make_unique<VarExpr>(previousTok)};
     nextTok(); // Skip the checked open brace '{'.
 
     std::vector<InstanceExpr::Field> fields{};
@@ -1693,7 +1695,7 @@ ExprUP Parser::instance()
     }
 
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude instance");
-    return std::make_unique<InstanceExpr>(typeName, fields);
+    return std::make_unique<InstanceExpr>(std::move(type), fields);
 }
 
 ExprUP Parser::listComprehension()
@@ -1777,7 +1779,7 @@ ExprUP Parser::primary()
     else if (type == TOK_IDENTIFIER)
     {
         if (checkTok(TOK_LEFT_BRACE))
-            expr = instance();
+            expr = instance(std::make_unique<VarExpr>(previousTok));
         else
             expr = std::make_unique<VarExpr>(previousTok);
     }

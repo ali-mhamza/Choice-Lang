@@ -636,13 +636,11 @@ namespace AST
                 );
             };
 
-            // Expression so we can evaluate it easily.
-            // Must still be a variable.
-            const ExprUP typeName{};
+            const ExprUP type{};
             std::vector<Field> fields{};
 
             InstanceExpr(
-                ExprUP& typeName,
+                ExprUP type,
                 std::vector<Field>& fields
             );
         };

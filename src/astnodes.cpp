@@ -179,9 +179,9 @@ TableExpr::TableExpr(std::vector<TablePair>& pairs) :
 InstanceExpr::Field::Field(const Token& name, ExprUP init) :
     name{name}, init{std::move(init)} {}
 
-InstanceExpr::InstanceExpr(ExprUP& typeName, std::vector<Field>& fields) :
+InstanceExpr::InstanceExpr(ExprUP type, std::vector<Field>& fields) :
     Expr{ExprType::InstanceExpr},
-    typeName{std::move(typeName)}, fields{std::move(fields)} {}
+    type{std::move(type)}, fields{std::move(fields)} {}
 
 ListCompExpr::ListCompExpr(AST::LoopHeader& header, ExprUP& expr) :
     Expr{ExprType::ListCompExpr},

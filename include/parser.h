@@ -154,7 +154,7 @@ class Parser
         [[nodiscard]] ExprUP lambda(bool skipParams);
         [[nodiscard]] ExprUP list();
         [[nodiscard]] ExprUP table();
-        [[nodiscard]] ExprUP instance();
+        [[nodiscard]] ExprUP instance(ExprUP&& type);
         [[nodiscard]] ExprUP listComprehension();
         [[nodiscard]] ExprUP tableComprehension();
         [[nodiscard]] ExprUP formatString();

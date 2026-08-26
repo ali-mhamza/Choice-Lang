@@ -915,7 +915,11 @@ TYPE_GETTER(TableExpr)
 
 TYPE_GETTER(InstanceExpr)
 {
-    const VarExpr* var{static_cast<const VarExpr*>(node->typeName.get())};
+    // For now.
+    if (node->type->type != ExprType::VarExpr)
+        return DUMMY_TYPE;
+
+    const VarExpr* var{static_cast<const VarExpr*>(node->type.get())};
     std::string name{var->name.text};
     return Type{ TypeTag::Basic, BasicType{false, name}};
 }
@@ -1374,7 +1378,11 @@ CHECKER(TableExpr)
 
 CHECKER(InstanceExpr)
 {
-    const VarExpr* var{static_cast<const VarExpr*>(node->typeName.get())};
+    // For now.
+    if (node->type->type != ExprType::VarExpr)
+        return;
+
+    const VarExpr* var{static_cast<const VarExpr*>(node->type.get())};
     std::string name{var->name.text};
     const TypeRecord* record{getRecord<TypeRecord>(name)};
 
