@@ -134,7 +134,7 @@ namespace
     // This is still a work in progress since the compiler eliminates
     // repeated module imports.
     map<fs::path, Object, std::hash<fs::path>, FileCompare> cachedImports{};
-}
+};
 
 void VM::defineBuiltinGlobals()
 {
