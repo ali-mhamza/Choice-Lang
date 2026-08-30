@@ -1422,7 +1422,11 @@ void VM::executeOp(Opcode op)
         {
             u8 instanceReg{readByte()};
             Instance* instance{AS_INSTANCE(registers[instanceReg])};
-            finishFields(*instance, instanceReg + 1);
+            // Starting the call window at instanceReg + 2 places
+            // each initializer value at instanceReg + 1 (after it
+            // runs), which ensures our instance object is never
+            // overwritten.
+            finishFields(*instance, instanceReg + 2);
             DISPATCH();
         }
         CASE(OP_INIT_FIELD):
