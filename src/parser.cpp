@@ -537,9 +537,7 @@ StmtUP Parser::declaration()
     StmtUP ret{nullptr};
     u64 start{currentTok.byteOffset};
 
-    if (consumeTok(TOK_SEMICOLON)) // Empty statement.
-        return ret;
-    else if (consumeToks(TOK_MAKE, TOK_FIX))
+    if (consumeToks(TOK_MAKE, TOK_FIX))
     {
         ret = varDecl();
         SET_DECL_INFO(ret, VarDecl);
@@ -782,7 +780,9 @@ StmtUP Parser::statement()
     StmtUP stmt{nullptr};
     u64 start{currentTok.byteOffset};
 
-    if (consumeTok(TOK_USE))
+    if (consumeTok(TOK_SEMICOLON)) // Empty statement.
+        return nullptr;
+    else if (consumeTok(TOK_USE))
         stmt = useStmt();
     else if (consumeTok(TOK_IF))
         stmt = ifStmt();
