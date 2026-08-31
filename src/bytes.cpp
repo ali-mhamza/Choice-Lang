@@ -627,11 +627,21 @@ void BinaryInspector::inspectByteCode()
 	end = getCurrentPosition();
 	printStartEnd(start, end, true);
 	printEntryTitle("Code bytes:", titleLength);
-	CH_PRINT("[{}, {}, {}, {}, {}, ...]\n", code[0], code[1], code[2],
-		code[3], code[4]);
 
-	CH_PRINT("\nConstant pool:\n");
-	inspectConstantPool(poolSize);
+	constexpr u8 printedByteMax{5};
+	u8 bytes{std::min(static_cast<u8>(codeSize), printedByteMax)};
+
+	CH_PRINT("[");
+	for (u8 i{0}; i < bytes; i++)
+		CH_PRINT("{}{}", code[i], (i == bytes - 1 ? "" : ", "));
+	if (codeSize > printedByteMax) CH_PRINT(", ...");
+	CH_PRINT("]\n");
+
+	if (poolSize != 0)
+	{
+		CH_PRINT("\nConstant pool:\n");
+		inspectConstantPool(poolSize);
+	}
 }
 
 void BinaryInspector::inspectConstantPool(u64 poolSize)
