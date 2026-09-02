@@ -907,8 +907,8 @@ void VM::dropInstances(Object* limit)
         // possibly share the same register window (by adding 1 here), which
         // means the 'limit' argument will always be different.
         // If the 'limit' argument is always the same, we end up recursively
-        // trying to drop the same instances over and over again, hitting
-        // overflow.
+        // trying to drop the same instances over and over again, overflowing
+        // the stack.
         callUserMethod(ctor, static_cast<u8>(addr - registers + 1), 0);
 
         encapsulateCall = encapsulate;
