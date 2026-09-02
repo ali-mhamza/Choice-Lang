@@ -1474,7 +1474,6 @@ void VM::executeOp(Opcode op)
             u8 fieldReg{readByte()};
             u8 valueReg{readByte()};
 
-            // For now; built-in types may also have fields/methods later.
             if (!IS_INSTANCE(registers[instanceReg]))
                 throw RuntimeError(FIELD_NO_INSTANCE);
             else if (IS_IMMUT(registers[instanceReg]))
