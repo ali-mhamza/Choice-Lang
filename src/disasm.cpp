@@ -247,13 +247,13 @@ void Disassembler::typeOp(u8 byte)
     printOpcode(opNames[byte]);
     u8 first{readByte()}, second{readByte()}, third{readByte()};
 
-	if (static_cast<Opcode>(byte) == OP_METHOD)
-	{
-		CH_PRINT("R[{}] R[{}] ", first, second);
+	CH_PRINT("R[{}] R[{}] ", first, second);
+	if (static_cast<Opcode>(byte) == OP_FIELD)
+		CH_PRINT("({})\n", third);
+	else if (static_cast<Opcode>(byte) == OP_METHOD)
 		CH_PRINT("({})\n", ((third == 1) ? "public" : "private"));
-	}
 	else
-    	CH_PRINT("R[{}] R[{}] R[{}]\n", first, second, third);
+    	CH_PRINT("R[{}]\n", third);
 }
 
 void Disassembler::moduleOp(u8 byte)
