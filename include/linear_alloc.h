@@ -51,7 +51,7 @@ ObjT* LinearAlloc::alloc(Args&&... args) noexcept
 
     CH_ASSERT_MEM(
         (AS_BYTES(obj) < AS_BYTES(start) + cap),
-        "Ran out of memory",
+        "Ran out of memory.",
         start
     );
 
