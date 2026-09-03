@@ -74,8 +74,8 @@ class VM
         // value (otherwise we may accidentally drop non-instance objects).
         std::vector<std::pair<Object*, Object>> activeInstances{};
 
-        // Set to 'true' if each function call in 'callFunc'
-        // should run until termination.
+        // Set to 'true' if each function call in 'callFunc' should run
+        // until termination.
         // If set to 'false', 'callFunc' initializes function object's
         // chunk and exits immediately.
         bool encapsulateCall{false};
@@ -156,7 +156,7 @@ class VM
 
         // Initializes any remaining uninitialized fields in an instance
         // object.
-        // `start`: First available register after instance object.
+        // `start`: Start of call window for initializers.
         void finishFields(Instance& instance, u8 start);
         void dropInstances(Object* limit);
 
