@@ -13,5 +13,5 @@ static_assert(BUILTIN_GLOBALS ==
 
 // Check that object type can fit within 5 bits (+ 3 bits for mutability
 // flags = 1 byte).
-static_assert(ObjType::Count <= static_cast<ObjType>(TYPE_MASK),
+static_assert(ObjType::Count <= static_cast<ObjType>(TYPE_MASK + 1),
     "Too many object types defined.");
