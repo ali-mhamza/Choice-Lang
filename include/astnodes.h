@@ -146,6 +146,7 @@ namespace AST
             VarDecl,
             FuncDecl,
             TypeDecl,
+            AliasDecl,
             UseStmt,
             IfStmt,
             WhileStmt,
@@ -234,6 +235,17 @@ namespace AST
                 const Token& name,
                 std::vector<Field>& fields,
                 StmtVec& methods
+            );
+        };
+
+        struct AliasDecl : public Stmt
+        {
+            const Token alias{};
+            AST::Types::TypeHint type{};
+
+            AliasDecl(
+                const Token& alias,
+                AST::Types::TypeHint& type
             );
         };
 

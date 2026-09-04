@@ -552,6 +552,8 @@ StmtUP Parser::declaration()
         ret = typeDecl();
         SET_DECL_INFO(ret, TypeDecl);
     }
+    else if (consumeTok(TOK_ALIAS))
+        ret = aliasDecl();
     else
         ret = statement();
 
@@ -774,6 +776,17 @@ StmtUP Parser::typeDecl()
 }
 
 #undef SET_DECL_INFO
+
+StmtUP Parser::aliasDecl()
+{
+    MATCH_TOK(TOK_IDENTIFIER, "expect alias name");
+    Token name{previousTok};
+    MATCH_TOK(TOK_EQUAL, "expect '=' after alias name");
+    auto type{consumeType()};
+    MATCH_TOK(TOK_SEMICOLON, "expect ';' after alias declaration");
+
+    return std::make_unique<AliasDecl>(name, type);
+}
 
 StmtUP Parser::statement()
 {

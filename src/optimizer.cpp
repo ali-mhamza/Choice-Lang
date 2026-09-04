@@ -483,6 +483,12 @@ DEF_STMT(TypeDecl)
     optimize(raw->methods);
 }
 
+DEF_STMT(AliasDecl)
+{
+    (void) node;
+    (void) raw;
+}
+
 DEF_STMT(UseStmt) { PASS; }
 
 DEF_STMT(IfStmt)
@@ -866,6 +872,7 @@ void Optimizer::optimizeStmt(StmtUP& node)
         CASE(VarDecl):      OPTIMIZE(VarDecl);      break;
         CASE(FuncDecl):     OPTIMIZE(FuncDecl);     break;
         CASE(TypeDecl):     OPTIMIZE(TypeDecl);     break;
+        CASE(AliasDecl):    OPTIMIZE(AliasDecl);    break;
         CASE(UseStmt):      OPTIMIZE(UseStmt);      break;
         CASE(IfStmt):       OPTIMIZE(IfStmt);       break;
         CASE(WhileStmt):    OPTIMIZE(WhileStmt);    break;

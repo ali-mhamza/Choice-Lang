@@ -90,12 +90,15 @@ class Parser
         );
 
         [[nodiscard]] StmtUP declaration();
+
         [[nodiscard]] StmtUP varDecl();
+
         [[nodiscard]] bool parseParams(std::vector<AST::Param>& params);
         [[nodiscard]] std::pair<StmtUP, AST::Types::TypeHint> funcBodyHelper(
             std::vector<AST::Param>& params
         );
         [[nodiscard]] StmtUP funcDecl();
+
         [[nodiscard]] bool parseField(
             std::vector<AST::Statement::TypeDecl::Field>& fields,
             AST::Decl& decl
@@ -105,6 +108,8 @@ class Parser
             AST::Decl& decl
         );
         [[nodiscard]] StmtUP typeDecl();
+
+        [[nodiscard]] StmtUP aliasDecl();
 
         // Statements.
 

@@ -271,6 +271,8 @@ class Compiler
         );
         DECL_STMT(TypeDecl);
 
+        DECL_STMT(AliasDecl);
+
         /* Statements. */
 
         void compileUseModule(

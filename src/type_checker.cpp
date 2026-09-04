@@ -565,6 +565,9 @@ TypeChecker::Type TypeChecker::typeFromHint(
             auto typeToken{std::get<Token>(typeHint.hint)};
             if (typeToken.text == "Any") return ANY_TYPE;
 
+            auto* check{getRecord<VarRecord>(std::string{typeToken.text})};
+            if (check != nullptr) return check->type;
+
             auto it{typeTokens.find(typeToken.text)};
             BasicType type{};
             if (it != typeTokens.end())
@@ -1140,6 +1143,14 @@ CHECKER(TypeDecl)
         checkStmt(method);
 }
 
+CHECKER(AliasDecl)
+{
+    varRecords.add(
+        VarEntry{ node->alias.text, scope },
+        VarRecord{ typeFromHint(node->type) }
+    );
+}
+
 CHECKER(UseStmt)
 {
     if (node->entries.empty())
@@ -1444,6 +1455,7 @@ void TypeChecker::checkStmt(const StmtUP& node)
         case StmtType::VarDecl:         CHECK(VarDecl);         break;
         case StmtType::FuncDecl:        CHECK(FuncDecl);        break;
         case StmtType::TypeDecl:        CHECK(TypeDecl);        break;
+        case StmtType::AliasDecl:       CHECK(AliasDecl);       break;
         case StmtType::UseStmt:         CHECK(UseStmt);         break;
         case StmtType::IfStmt:          CHECK(IfStmt);          break;
         case StmtType::WhileStmt:       CHECK(WhileStmt);       break;

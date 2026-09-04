@@ -999,6 +999,11 @@ DEF(TypeDecl)
     }
 }
 
+DEF(AliasDecl)
+{
+    (void) node;
+}
+
 void Compiler::compileUseModule(
     const UseStmt* node
 )
@@ -2377,6 +2382,7 @@ void Compiler::compileStmt(const StmtUP& node)
         CASE(VarDecl):      COMPILE(VarDecl);       break;
         CASE(FuncDecl):     COMPILE(FuncDecl);      break;
         CASE(TypeDecl):     COMPILE(TypeDecl);      break;
+        CASE(AliasDecl):    COMPILE(AliasDecl);     break;
         CASE(UseStmt):      COMPILE(UseStmt);       break;
         CASE(IfStmt):       COMPILE(IfStmt);        break;
         CASE(WhileStmt):    COMPILE(WhileStmt);     break;

@@ -236,6 +236,7 @@ class TypeChecker
         CHECK_STMT(VarDecl);
         CHECK_STMT(FuncDecl);
         CHECK_STMT(TypeDecl);
+        CHECK_STMT(AliasDecl);
         CHECK_STMT(UseStmt);
         CHECK_STMT(IfStmt);
         CHECK_STMT(WhileStmt);

@@ -48,7 +48,8 @@ static const std::unordered_map<std::string_view, TokenType> keywords{
 
 	// Declarations.
 
-	{"make", TOK_MAKE}, {"fix", TOK_FIX}, {"func", TOK_FUNC}, {"type", TOK_TYPE},
+	{"make", TOK_MAKE}, 	{"fix", TOK_FIX},		{"func", TOK_FUNC},
+	{"type", TOK_TYPE},		{"alias", TOK_ALIAS},
 
 	// Modules.
 

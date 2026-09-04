@@ -62,6 +62,7 @@ class Optimizer
         DECL_STMT(VarDecl);
         DECL_STMT(FuncDecl);
         DECL_STMT(TypeDecl);
+        DECL_STMT(AliasDecl);
         DECL_STMT(UseStmt);
         DECL_STMT(IfStmt);
         DECL_STMT(WhileStmt);
