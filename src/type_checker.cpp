@@ -453,7 +453,7 @@ bool TypeChecker::validArgsForObj(const CallExpr* node, const VarRecord& record)
     for (u8 i{0}; i < argCount; i++)
     {
         Type argType{getExprType(node->args[i])};
-        if (!compatibleTypes(argType, *(signature.paramTypes[i])))
+        if (!compatibleTypes(*(signature.paramTypes[i]), argType))
             return false;
     }
 
@@ -469,7 +469,7 @@ bool TypeChecker::validArgsForFunc(const CallExpr* node, const FuncRecord& recor
     for (u8 i{0}; i < argCount; i++)
     {
         Type argType{getExprType(node->args[i])};
-        if (!compatibleTypes(argType, record.paramTypes[i]))
+        if (!compatibleTypes(record.paramTypes[i], argType))
             return false;
     }
 
@@ -495,7 +495,7 @@ bool TypeChecker::validArgsForCtor(const CallExpr* node, const TypeRecord& recor
         for (u8 i{0}; i < argCount; i++)
         {
             Type argType{getExprType(node->args[i])};
-            if (!compatibleTypes(argType, record.fieldTypes[i]))
+            if (!compatibleTypes(record.fieldTypes[i], argType))
                 return false;
         }
     }
