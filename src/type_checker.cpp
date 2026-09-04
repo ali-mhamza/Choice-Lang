@@ -1019,7 +1019,7 @@ TypeChecker::FuncRecord TypeChecker::makeFuncRecord(const FuncDecl* func) const
 template<typename NodeT>
 void TypeChecker::checkFuncBody(const NodeT* node)
 {
-    TypeChecker miniChecker{*this};
+    TypeChecker miniChecker{this};
 
     for (const auto& paramEntry : node->params)
     {
