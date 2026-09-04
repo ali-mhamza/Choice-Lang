@@ -216,7 +216,7 @@ ExprUP TreeWalker::evaluate(ExprUP& expr)
 
 #define OPTIMIZE(type)                              \
     do {                                            \
-        auto* ptr = static_cast<type*>(node.get()); \
+        auto* ptr{static_cast<type*>(node.get())};  \
         optimize##type(node, ptr);                  \
     } while (false)
 
@@ -225,7 +225,7 @@ ExprUP TreeWalker::evaluate(ExprUP& expr)
 
 #define CHECK_OPERANDS(type)                                    \
     do {                                                        \
-        auto* ptr = static_cast<type*>(node.get());             \
+        auto* ptr{static_cast<type*>(node.get())};              \
         return isConstant(ptr->left) && isConstant(ptr->right); \
     } while (false)
 
@@ -823,6 +823,8 @@ DEF_EXPR(FormatExpr)
 }
 
 DEF_EXPR(LiteralExpr) { PASS; }
+
+/* General driver functions. */
 
 void Optimizer::optimizeExpr(ExprUP& node)
 {
