@@ -64,6 +64,8 @@ static std::unordered_map<std::string_view, ObjType> typeTokens{
     {"Table",   ObjType::Table}
 };
 
+std::vector<TypeChecker::TypeError> TypeChecker::errors{};
+
 /* Helper data structures. */
 
 bool TypeChecker::BasicType::operator==(const BasicType& other) const

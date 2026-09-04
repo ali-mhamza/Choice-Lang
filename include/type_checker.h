@@ -151,13 +151,14 @@ class TypeChecker
             std::vector<FuncRecord> methodRecords{};
         };
 
+        static std::vector<TypeError> errors;
+
         HashTable<VarEntry, VarRecord, VarHasher> varRecords{};
         HashTable<VarEntry, FuncRecord, VarHasher> funcRecords{};
         HashTable<VarEntry, TypeRecord, VarHasher> typeRecords{};
 
         const TypeChecker* const scopeChecker{};
         Type currentReturnType{};
-        std::vector<TypeError> errors{};
         u8 scope{0};
 
         /* Helpers. */
