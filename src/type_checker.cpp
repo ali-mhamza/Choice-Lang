@@ -861,7 +861,7 @@ TYPE_GETTER(FieldExpr)
         return record->fieldTypes[pos];
     }
 
-    // TODO: remove method look-up when field expression is
+    // TODO: Remove method look-up when field expression is
     // an assignment target.
 
     const auto& methods{record->methods};
