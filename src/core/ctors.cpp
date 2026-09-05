@@ -89,7 +89,7 @@ Obj Core::Ctors::Object(iter it, u8 args)
     (void) it;
     checkArity(0, 0, true, args);
 
-    return Obj{ObjType::Void};
+    return Obj::typed(ObjType::Void);
 }
 
 Obj Core::Ctors::Int(iter it, u8 args)
