@@ -57,7 +57,7 @@ inline constexpr u8 TYPE_MASK{0b00011111};
     X(USER_FUNC, UserFunc, userFuncVal)         \
     X(LAMBDA, Lambda, userFuncVal)              \
     X(CLOSURE, Closure, closureVal)             \
-    X(USER_METHOD, Method, methodVal)           \
+    X(USER_METHOD, UserMethod, userMethodVal)   \
     X(BIGINT, BigInt, heapVal)                  \
     X(BIGDEC, BigDec, heapVal)                  \
     X(TEXT, Text, textVal)                      \
@@ -130,7 +130,7 @@ class Object
             Instance*       instanceVal;
             Function*       userFuncVal;
             Closure*        closureVal;
-            Method*         methodVal;
+            Method*         userMethodVal;
             Text*           textVal;
             String*         stringVal;
             Range*          rangeVal;
@@ -213,7 +213,7 @@ ObjType getObjectType(T val)
     if constexpr (std::is_same_v<U, Type>)          return ObjType::UserType;
     if constexpr (std::is_same_v<U, Instance>)      return ObjType::Instance;
     if constexpr (std::is_same_v<U, Closure>)       return ObjType::Closure;
-    if constexpr (std::is_same_v<U, Method>)        return ObjType::Method;
+    if constexpr (std::is_same_v<U, Method>)        return ObjType::UserMethod;
     if constexpr (std::is_same_v<U, Text>)          return ObjType::Text;
     if constexpr (std::is_same_v<U, String>)        return ObjType::String;
     if constexpr (std::is_same_v<U, Range>)         return ObjType::Range;
@@ -236,7 +236,7 @@ decltype(auto) Object::getTypePointer()
     if constexpr (std::is_same_v<U, Instance>)      return (as.instanceVal);
     if constexpr (std::is_same_v<U, Function>)      return (as.userFuncVal);
     if constexpr (std::is_same_v<U, Closure>)       return (as.closureVal);
-    if constexpr (std::is_same_v<U, Method>)        return (as.methodVal);
+    if constexpr (std::is_same_v<U, Method>)        return (as.userMethodVal);
     if constexpr (std::is_same_v<U, Text>)          return (as.textVal);
     if constexpr (std::is_same_v<U, String>)        return (as.stringVal);
     if constexpr (std::is_same_v<U, Range>)         return (as.rangeVal);

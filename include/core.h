@@ -56,11 +56,11 @@ namespace Core
     struct Method : public HeapObj
     {
         const sv name{};
-        Object instance{};
         const Callable::Method callable{};
+        Object instance{};
 
-        Method(sv name, Callable::Method callable) :
-            name{name}, callable{callable} {}
+        Method(const Object& instance, sv name, Callable::Method callable) :
+            name{name}, callable{callable}, instance{instance} {}
 
         bool operator==(const Method& other) const
         {
@@ -93,30 +93,40 @@ namespace Core
 
     namespace Methods
     {
-        Object getMember(ObjType type, const std::string& name);
-        Object getMember(const std::string& name);
+        extern const u8 methodCount;
+        /* C-style arrays so we don't have to declare size here as well. */
+        extern const sv names[];
+        extern const Callable::Method impls[];
+        extern const std::unordered_map<sv, u8> search;
 
-        #define METHOD_TYPE_LIST                                            \
-            X(Int, 0)   X(Dec, 0)   X(Bool, 0)  X(Text, 0)  X(String, 0)    \
-            X(Range, 0) X(List, 0)  X(Table, 0)
+        Object getTypeMember(Object& obj, const std::string& name);
+        Object getCommonMember(Object& obj, const std::string& name);
 
-        #define NAMESPACE(name, count)                                                  \
-            namespace name                                                              \
-            {                                                                           \
-                constexpr u8 methodCount{count};                                        \
-                extern const std::array<sv, methodCount> names;                         \
-                extern const std::array<Callable::Method, methodCount> impls;           \
-                extern const std::unordered_map<sv, u8> search;                         \
-                inline Object getMember(const std::string& name)                        \
-                {                                                                       \
-                    auto it{search.find(name)};                                         \
-                    if (it != search.end())                                             \
-                        return CH_ALLOC(Method, names[it->second], impls[it->second]);  \
-                    return Methods::getMember(name);                                    \
-                }                                                                       \
+        #define METHOD_TYPE_LIST    \
+            X(Dec)                  \
+            X(Text)                 \
+            X(String)               \
+            X(Range)                \
+            X(List)                 \
+            X(Table)
+
+        #define NAMESPACE(name)                                                                 \
+            namespace name                                                                      \
+            {                                                                                   \
+                extern const u8 methodCount;                                                    \
+                extern const sv names[];                                                        \
+                extern const Callable::Method impls[];                                          \
+                extern const std::unordered_map<sv, u8> search;                                 \
+                inline Object getMember(Object& obj, const std::string& name)                   \
+                {                                                                               \
+                    auto it{search.find(name)};                                                 \
+                    if (it != search.end())                                                     \
+                        return CH_ALLOC_CORE_METHOD(obj, names[it->second], impls[it->second]); \
+                    return Methods::getCommonMember(obj, name);                                 \
+                }                                                                               \
             }
 
-        #define X(name, count) NAMESPACE(name, count)
+        #define X(name) NAMESPACE(name)
 
         METHOD_TYPE_LIST
 

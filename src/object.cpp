@@ -127,7 +127,7 @@ HeapObj* Object::heapPointer() const
         case ObjType::UserFunc:
         case ObjType::Lambda:       return static_cast<HeapObj*>(as.userFuncVal);
         case ObjType::Closure:      return static_cast<HeapObj*>(as.closureVal);
-        case ObjType::Method:       return static_cast<HeapObj*>(as.methodVal);
+        case ObjType::UserMethod:   return static_cast<HeapObj*>(as.userMethodVal);
         case ObjType::Text:         return static_cast<HeapObj*>(as.textVal);
         case ObjType::String:       return static_cast<HeapObj*>(as.stringVal);
         case ObjType::Range:        return static_cast<HeapObj*>(as.rangeVal);
@@ -159,7 +159,7 @@ bool Object::operator==(const Object& other) const
         case ObjType::Lambda:       return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
         case ObjType::Closure:      return AS_CLOSURE(*this) == AS_CLOSURE(other);
         case ObjType::CoreMethod:   return *(AS_CORE_METHOD(*this)) == *(AS_CORE_METHOD(other));
-        case ObjType::Method:       return *(AS_USER_METHOD(*this)) == *(AS_USER_METHOD(other));
+        case ObjType::UserMethod:   return *(AS_USER_METHOD(*this)) == *(AS_USER_METHOD(other));
         case ObjType::Range:        return *(AS_RANGE(*this)) == *(AS_RANGE(other));
         case ObjType::List:         return *(AS_LIST(*this)) == *(AS_LIST(other));
         case ObjType::Table:        return *(AS_TABLE(*this)) == *(AS_TABLE(other));
@@ -378,7 +378,10 @@ Hash Object::hash() const
             const auto* method{AS_CORE_METHOD(*this)};
             return method->instance.hash() + hashPointer(method->callable);
         }
-        case ObjType::Method:   return AS_USER_METHOD(*this)->hash();
+        case ObjType::UserMethod:
+        {
+            return AS_USER_METHOD(*this)->hash();
+        }
         case ObjType::Text:
         {
             const Text* text{AS_TEXT(*this)};
@@ -472,7 +475,7 @@ std::string Object::printVal() const
             ret = method->name;
             break;
         }
-        case ObjType::Method:
+        case ObjType::UserMethod:
         {
             const Function* func{AS_FUNCOBJ(*this)};
             ret = CH_STR("<method {}>", func->name);

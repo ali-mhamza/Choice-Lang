@@ -170,6 +170,9 @@ enum DiagCode : u8
     INIT_METHOD_GET,
     // Cannot retrieve 'drop' method.
     DROP_METHOD_GET,
+    // Core method not common or defined for this
+    // type.
+    CORE_METHOD_NOT_DEFINED,
 
 
     /* Function errors. */
