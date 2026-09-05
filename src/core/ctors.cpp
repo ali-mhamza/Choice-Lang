@@ -214,7 +214,7 @@ Obj Core::Ctors::Range(iter it, u8 args)
 
     // Step size 0 is allowed if start == stop (step size will never be used).
     if ((args == 3) && (AS_INT(it[2]) == 0) && (start != stop))
-        throw RuntimeError(WRONG_ARG_TYPE, "cannot have a step size of zero");
+        throw RuntimeError(INVALID_RANGE_STEP, "cannot have a step size of zero");
 
     std::array nums{start, stop, ((stop >= start) ? i64(1) : i64(-1))};
     if (args == 3) nums[2] = AS_INT(it[2]);
