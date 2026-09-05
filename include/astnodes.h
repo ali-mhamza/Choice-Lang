@@ -241,11 +241,11 @@ namespace AST
         struct AliasDecl : public Stmt
         {
             const Token alias{};
-            AST::Types::TypeHint type{};
+            AST::Types::TypeHint hint{};
 
             AliasDecl(
                 const Token& alias,
-                AST::Types::TypeHint& type
+                AST::Types::TypeHint& hint
             );
         };
 

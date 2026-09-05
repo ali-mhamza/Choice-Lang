@@ -48,9 +48,9 @@ TypeDecl::TypeDecl(
     Stmt{StmtType::TypeDecl},
     name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}
 
-AliasDecl::AliasDecl(const Token& alias, AST::Types::TypeHint& type) :
+AliasDecl::AliasDecl(const Token& alias, AST::Types::TypeHint& hint) :
     Stmt{StmtType::AliasDecl},
-    alias{alias}, type{std::move(type)} {}
+    alias{alias}, hint{std::move(hint)} {}
 
 UseStmt::UseStmt(const Token& module, const Token& directory,
     const Token& alias, const std::vector<Entry>& entries) :

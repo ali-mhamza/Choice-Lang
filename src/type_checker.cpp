@@ -1149,7 +1149,7 @@ CHECKER(AliasDecl)
 {
     varRecords.add(
         VarEntry{ node->alias.text, scope },
-        VarRecord{ typeFromHint(node->type) }
+        VarRecord{ typeFromHint(node->hint) }
     );
 }
 
