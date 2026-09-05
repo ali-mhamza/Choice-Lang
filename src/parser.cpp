@@ -497,14 +497,16 @@ bool Parser::parseVariableList(
 )
 {
     bool done{false};
+    bool first{true};
 
     do {
-        if (consumeTok(TOK_ELLIPSIS))
+        if (!first && consumeTok(TOK_ELLIPSIS))
         {
             unpack.unpackIgnore = true;
             break;
         }
 
+        first = false;
         if (!matchError(TOK_IDENTIFIER, errorMsg)) return false;
         vars.push_back({ {ANY_TYPE}, previousTok });
 
