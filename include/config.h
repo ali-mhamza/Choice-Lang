@@ -44,7 +44,7 @@ constexpr inline unsigned int MAX_BLOCK_SCOPE_DEPTH{100};
 
 // Number of pre-defined global identifiers (constants or functions).
 // Natives, constructors, and '_file_' variable.
-constexpr inline unsigned int BUILTIN_GLOBALS{21};
+constexpr inline unsigned int BUILTIN_GLOBALS{22};
 // Number of pre-defined local identifiers (constant or functions).
 constexpr inline unsigned int BUILTIN_LOCALS{1};
 // Register location of '_file_' global variable.

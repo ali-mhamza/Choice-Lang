@@ -12,6 +12,7 @@
     X(getattr)          \
     X(setattr)          \
     X(binary)           \
+    X(hex)              \
     X(members)
 
 /* Forward declarations. */
@@ -57,7 +58,9 @@ Core::Functions::search{
 
 /* Implementations. */
 
-void Core::Functions::print(iter it, u8 args)
+#define FUNC(name) void Core::Functions::name(iter it, u8 args)
+
+FUNC(print)
 {
     for (u8 i{0}; i < args; i++)
     {
@@ -84,7 +87,7 @@ void Core::Functions::print(iter it, u8 args)
     it[-1] = Object::typed(ObjType::Void);
 }
 
-void Core::Functions::println(iter it, u8 args)
+FUNC(println)
 {
     print(it, args);
     if (!inRepl)
@@ -94,7 +97,7 @@ void Core::Functions::println(iter it, u8 args)
     }
 }
 
-void Core::Functions::typeof(iter it, u8 args)
+FUNC(typeof)
 {
     checkArity(1, 1, true, args);
 
@@ -104,7 +107,7 @@ void Core::Functions::typeof(iter it, u8 args)
         it[-1] = it->type();
 }
 
-void Core::Functions::len(iter it, u8 args)
+FUNC(len)
 {
     checkArity(1, 1, true, args);
 
@@ -138,7 +141,7 @@ void Core::Functions::len(iter it, u8 args)
     it[-1] = Object{len};
 }
 
-void Core::Functions::clock(iter it, u8 args)
+FUNC(clock)
 {
     checkArity(0, 0, true, args);
 
@@ -152,7 +155,7 @@ void Core::Functions::clock(iter it, u8 args)
     it[-1] = Object{i64(ret.count())};
 }
 
-void Core::Functions::read(iter it, u8 args)
+FUNC(read)
 {
     checkArity(0, 1, true, args);
 
@@ -170,7 +173,7 @@ void Core::Functions::read(iter it, u8 args)
     it[-1] = Object{CH_ALLOC_STRING(input)};
 }
 
-void Core::Functions::quit(iter it, u8 args)
+FUNC(quit)
 {
     checkArity(0, 1, true, args);
 
@@ -186,7 +189,7 @@ void Core::Functions::quit(iter it, u8 args)
     // No return value.
 }
 
-void Core::Functions::getattr(iter it, u8 args)
+FUNC(getattr)
 {
     checkArity(2, 2, true, args);
 
@@ -199,7 +202,7 @@ void Core::Functions::getattr(iter it, u8 args)
     it[-1] = AS_INSTANCE(it[0])->getField(field, nullptr);
 }
 
-void Core::Functions::setattr(iter it, u8 args)
+FUNC(setattr)
 {
     checkArity(3, 3, true, args);
 
@@ -213,7 +216,7 @@ void Core::Functions::setattr(iter it, u8 args)
     it[-1] = Object::typed(ObjType::Void);
 }
 
-void Core::Functions::binary(iter it, u8 args)
+FUNC(binary)
 {
     checkArity(1, 1, true, args);
 
@@ -222,6 +225,17 @@ void Core::Functions::binary(iter it, u8 args)
 
     std::string bin{CH_STR("{:#b}", AS_INT(it[0]))};
     it[-1] = CH_ALLOC_STRING(bin);
+}
+
+FUNC(hex)
+{
+    checkArity(1, 1, true, args);
+
+    if (!IS_INT(it[0]))
+        throw RuntimeError(WRONG_ARG_TYPE, "argument must be an integer");
+
+    std::string hex{CH_STR("{:#x}", AS_INT(it[0]))};
+    it[-1] = CH_ALLOC_STRING(hex);
 }
 
 static Object listFromMemberArray(const Core::sv members[], u8 count)
@@ -239,7 +253,7 @@ static void appendCommonMembers(Object& obj)
         list->array.push(CH_ALLOC_TEXT(Core::Methods::names[i]));
 }
 
-void Core::Functions::members(iter it, u8 args)
+FUNC(members)
 {
     checkArity(1, 1, true, args);
 

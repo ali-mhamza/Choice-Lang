@@ -34,6 +34,7 @@ namespace Core
         getattr,
         setattr,
         binary,
+        hex,
         members,
         Count
     };
