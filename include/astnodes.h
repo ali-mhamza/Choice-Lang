@@ -61,13 +61,13 @@ namespace AST
         struct TypeHint
         {
             HintType tag{};
-            HintVariant hint{};
+            HintVariant variant{};
 
             TypeHint() = default;
-            TypeHint(HintType tag) : tag{tag}, hint{} {}
+            TypeHint(HintType tag) : tag{tag}, variant{} {}
             template<typename T>
-            TypeHint(HintType tag, T&& hint) :
-                tag{tag}, hint{std::forward<T>(hint)} {}
+            TypeHint(HintType tag, T&& variant) :
+                tag{tag}, variant{std::forward<T>(variant)} {}
 
             TypeHint(TypeHint&& other) = default;
             TypeHint& operator=(TypeHint&& other) = default;

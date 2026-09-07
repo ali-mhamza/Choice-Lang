@@ -564,7 +564,7 @@ TypeChecker::Type TypeChecker::typeFromHint(
         }
         case HintType::Name:
         {
-            auto typeToken{std::get<Token>(typeHint.hint)};
+            auto typeToken{std::get<Token>(typeHint.variant)};
             if (typeToken.text == "Any") return ANY_TYPE;
 
             auto* check{getRecord<VarRecord>(std::string{typeToken.text})};
@@ -581,7 +581,7 @@ TypeChecker::Type TypeChecker::typeFromHint(
         }
         case HintType::Signature:
         {
-            const auto& signature{std::get<Types::Signature>(typeHint.hint)};
+            const auto& signature{std::get<Types::Signature>(typeHint.variant)};
             TypeList paramTypes{};
             for (const auto& type : signature.paramTypes)
                 paramTypes.add(typeFromHint(*type));
@@ -593,7 +593,7 @@ TypeChecker::Type TypeChecker::typeFromHint(
         case HintType::Option:
         case HintType::Group:
         {
-            const auto& typeVec{std::get<Types::TypeVec>(typeHint.hint)};
+            const auto& typeVec{std::get<Types::TypeVec>(typeHint.variant)};
             TypeList types{};
             for (const auto& type : typeVec)
                 types.add(typeFromHint(*type));
@@ -604,7 +604,7 @@ TypeChecker::Type TypeChecker::typeFromHint(
         }
         case HintType::Generic:
         {
-            const auto& collection{std::get<Types::Generic>(typeHint.hint)};
+            const auto& collection{std::get<Types::Generic>(typeHint.variant)};
             Type base{typeFromHint(*(collection.baseType))};
             TypeList specTypes{};
             for (const auto& type : collection.specTypes)
@@ -616,7 +616,7 @@ TypeChecker::Type TypeChecker::typeFromHint(
         case HintType::Reference:
         case HintType::Nullable:
         {
-            const auto& innerType{std::get<Types::TypeUP>(typeHint.hint)};
+            const auto& innerType{std::get<Types::TypeUP>(typeHint.variant)};
             TypeSP type{std::make_shared<Type>(typeFromHint(*innerType))};
 
             if (typeHint.tag == HintType::Reference)
