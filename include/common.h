@@ -140,9 +140,7 @@
 	#include <cstdlib>
 	#define CH_ASSERT(expr, msg)										\
 		do {															\
-			if (expr)													\
-				break;													\
-			else														\
+			if (!(expr))												\
 			{															\
 				CH_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",			\
 					(__FILE__), (__func__), (__LINE__), msg);			\
@@ -184,9 +182,7 @@
 	#if defined(DEBUG)
 		#define CH_ASSERT_MEM(expr, msg, arena)								\
 			do {															\
-				if (expr)													\
-					break;													\
-				else														\
+				if (!(expr))												\
 				{															\
 					CH_PRINT("ASSERTION FAILED [{}: {}, {}]: {}\n",			\
 						(__FILE__), (__func__), (__LINE__), msg);			\
@@ -200,7 +196,7 @@
 #else
     #include <utility>
 
-	#define CH_ALLOC(type, ...) new type{__VA_ARGS__}
+	#define CH_ALLOC(type, ...) new type(__VA_ARGS__)
 	#define CH_DEALLOC(ptr) delete ptr
 	#define CH_MOVE(obj) std::move(obj)
 #endif
@@ -208,8 +204,7 @@
 // Unreachable points.
 
 #if defined(DEBUG)
-	#define CH_UNREACHABLE() \
-		CH_ASSERT(false, "This point should not be reachable.")
+	#define CH_UNREACHABLE() CH_ASSERT(false, "This point should not be reachable.")
 #elif defined(NDEBUG)
 	#if defined(__cpp_lib_unreachable) // Check for C++23 support.
 		#include <utility>
