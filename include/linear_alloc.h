@@ -50,7 +50,7 @@ ObjT* LinearAlloc::alloc(Args&&... args) noexcept
     used = (AS_BYTES(obj) + sizeof(ObjT)) - AS_BYTES(arena);
 
     CH_ASSERT_MEM(
-        (AS_BYTES(obj) < AS_BYTES(start) + cap),
+        AS_BYTES(obj) < AS_BYTES(start) + cap,
         "Ran out of memory.",
         start
     );

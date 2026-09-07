@@ -14,13 +14,13 @@ LinearAlloc::LinearAlloc(size_t size) :
     start{malloc(size)}, cap{size}
 {
     CH_ASSERT_MEM(
-        (start != nullptr),
+        start != nullptr,
         "Allocation failure.",
         start
     );
     arena = reinterpret_cast<Arena*>(alignMem(start, MAX_ALIGN));
     CH_ASSERT_MEM(
-        (AS_BYTES(arena) < AS_BYTES(start) + size),
+        AS_BYTES(arena) < AS_BYTES(start) + size,
         "Arena is too small.",
         start
     );
