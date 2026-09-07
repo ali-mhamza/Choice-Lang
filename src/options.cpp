@@ -5,6 +5,7 @@
 
 #include "../include/options.h"
 #include "../include/astnodes.h"
+#include "../include/ast_printer.h"
 #include "../include/bytecode.h"
 #include "../include/bytes.h"
 #include "../include/common.h"
@@ -83,6 +84,23 @@ void optionEmitTokens(FileID id, std::string_view input)
     vT& tokens{runLexer(id, input)};
     REPORT_ERRORS();
     TokenPrinter{id, tokens}.printTokens();
+}
+
+void optionPrintAST(FileID id, std::string_view input)
+{
+	vT& tokens{runLexer(id, input)};
+	Parser parser{};
+	StmtVec& program{parser.parseToAST(id, tokens)};
+
+	// The parser doesn't clear its AST on error (so that
+	// the compiler can still process nodes that parsed without
+	// issue), so we have to manually disable printing if a parsing
+	// error occurred.
+
+	if (diagEngine.hasReports())
+		diagEngine.emitReports();
+	else
+		ASTPrinter{}.printAST(program);
 }
 
 void optionEmitBytecode(FileID id, std::string_view input)

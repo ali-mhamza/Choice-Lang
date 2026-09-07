@@ -4,6 +4,7 @@
 
 void optionExecute(FileID id, std::string_view input);
 void optionEmitTokens(FileID id, std::string_view input);
+void optionPrintAST(FileID id, std::string_view input);
 void optionEmitBytecode(FileID id, std::string_view input);
 void optionCacheBytecode(FileID id, std::string_view input);
 void optionDisProgram(FileID id, std::string_view input);

@@ -16,6 +16,9 @@ namespace Args
         // script or REPL input.
         EmitTokens,
 
+        // Print the AST of the parsed (not compiled) program.
+        PrintAST,
+
         // Compile and show the bytecode for the
         // given script or REPL input.
         EmitBytecode,

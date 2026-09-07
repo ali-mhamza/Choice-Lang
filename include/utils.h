@@ -39,6 +39,15 @@ constexpr std::string_view NORMAL{"\033[0m"};
 #define CH_PRINT_ERROR_ARGS(msg, ...)                              \
     CH_PRINT(stderr, "{}" msg "{}", RED, __VA_ARGS__, NORMAL)
 
+/* Box-drawing (unicode) characters. */
+
+// Copied from the 'tree' utility.
+
+constexpr auto LEFT_BRANCH{"├── "};
+constexpr auto LEFT_CORNER{"└── "};
+constexpr auto VERTICAL_BAR{"│"};
+constexpr auto EMPTY_SPACE{"    "};
+
 /* Enum helpers. */
 
 template<typename T, typename = std::enable_if_t<std::is_enum_v<T>>>

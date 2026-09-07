@@ -20,6 +20,7 @@ namespace Args
 {
     const std::unordered_map<std::string_view, Option> options{
         {"-token",      Option::EmitTokens},        {"-t",  Option::EmitTokens},
+        {"-ast",        Option::PrintAST},          // No short version for now.
         {"-bytecode",   Option::EmitBytecode},      {"-b",  Option::EmitBytecode},
         {"-cache",      Option::CacheBytecode},		{"-c",  Option::CacheBytecode},
         {"-dis",        Option::DisProgram},	    {"-d",  Option::DisProgram},
@@ -32,6 +33,7 @@ namespace Args
 
     const std::unordered_map<Option, Handler> optionHandlers{
         {Option::EmitTokens,        optionEmitTokens},
+        {Option::PrintAST,          optionPrintAST},
         {Option::EmitBytecode,      optionEmitBytecode},
         {Option::CacheBytecode,     optionCacheBytecode},
         {Option::DisProgram,        optionDisProgram},
@@ -48,15 +50,17 @@ namespace Args
         {"-n", DebugInfoState::Stripped},	{"-nodebug", DebugInfoState::Stripped}
     };
 
+    // Options that *only* handle source files.
     const std::array fileOnlyOptions{
         Option::CacheBytecode,  Option::DisProgram,         Option::LoadProgram,
         Option::CheckProgram,   Option::InspectBytecode,    Option::RunTests
     };
 
-    // Options that potentially handle source files.
+    // Options that *potentially* handle source files.
     const std::array optionsUsingSourceFiles{
-        Option::Execute,        Option::EmitTokens,     Option::EmitBytecode,
-        Option::CacheBytecode,  Option::CheckProgram,   Option::RunTests
+        Option::Execute,        Option::EmitTokens,     Option::PrintAST,
+        Option::EmitBytecode,   Option::CacheBytecode,  Option::CheckProgram,
+        Option::RunTests
     };
 
     void Config::run()
