@@ -810,7 +810,6 @@ void VM::getModule(Object& module, const Object& dir)
     pendingImports.extract(path);
 }
 
-// Handle registerMax.
 void VM::startIter()
 {
     Object& var{registers[readByte()]};
