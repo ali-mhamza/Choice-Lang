@@ -30,10 +30,10 @@ using namespace AST::Expression;
 /* General macros. */
 
 #define DEF(type) void Compiler::compile##type(const type* node)
-#define COMPILE(type)                                   \
-    do {                                                \
-        auto* ptr = static_cast<type*>(node.get());     \
-        compile##type(ptr);                             \
+#define COMPILE(type)                               \
+    do {                                            \
+        auto* ptr{static_cast<type*>(node.get())};  \
+        compile##type(ptr);                         \
     } while (false)
 
 #define REPORT_ERROR(...)           \
@@ -42,8 +42,8 @@ using namespace AST::Expression;
         return;                     \
     } while (false)
 
-constexpr bool accessFix{false};
 constexpr bool accessVar{true};
+constexpr bool accessFix{false};
 
 constexpr bool getVar{true};
 constexpr bool setVar{false};
@@ -317,13 +317,12 @@ void Compiler::pushScope()
 
 void Compiler::popScope()
 {
-    auto& scopeVars{varScopes.top()};
-    for (std::string& var : scopeVars)
+    for (std::string& var : varScopes.top())
         varLocations->remove({var, scope});
 
     varScopes.pop();
-    scope--;
     nextReg = scopeStart;
+    scope--;
     code.addOp(OP_EXIT_SCOPE);
 }
 
