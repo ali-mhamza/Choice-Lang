@@ -744,7 +744,7 @@ void VM::callObj(const Object& callee, u8 start, u8 argCount)
         case ObjType::CoreMethod:
             callCoreMethod(callee, start, argCount);
             break;
-        case ObjType::Method:
+        case ObjType::UserMethod:
             callUserMethod(callee, start, argCount);
             break;
         default:
