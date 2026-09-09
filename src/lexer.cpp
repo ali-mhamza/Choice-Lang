@@ -599,10 +599,30 @@ void Lexer::singleToken()
 		case ':':	conditionalToken(':', TOK_SCOPE, TOK_COLON);        break;
 		case '.':
 		{
-			if (consumeChar('.'))
-				conditionalToken('.', TOK_ELLIPSIS, TOK_DOT_DOT);
+			// A '..' sequence should be separately consumed as two
+			// TOK_DOT tokens. We shouldn't automatically consume the
+			// second dot until we can confirm it is a valid token that
+			// starts with '..' ('...', '..=', or '..<').
+			if (peekChar() == '.')
+			{
+				constexpr std::string_view acceptable{".=<"};
+				if (acceptable.find(peekChar(1)) == std::string_view::npos)
+				{
+					makeToken(TOK_DOT);
+					break;
+				}
+
+				advance();
+				if (consumeChar('.'))
+					makeToken(TOK_ELLIPSIS);
+				else if (consumeChar('='))
+					makeToken(TOK_DOT_DOT_EQ);
+				else if (consumeChar('<'))
+					makeToken(TOK_DOT_DOT_LT);
+			}
 			else
 				makeToken(TOK_DOT);
+
 			break;
 		}
 		case '=':

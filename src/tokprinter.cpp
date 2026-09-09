@@ -78,7 +78,7 @@ constexpr std::array<const char*, NUM_TOK_TYPES> typeStrings{
     "TOK_AMP", "TOK_BAR", "TOK_UARROW", "TOK_TILDE",
     "TOK_LEFT_SHIFT", "TOK_RIGHT_SHIFT",
 
-    "TOK_DOT_DOT",
+    "TOK_DOT_DOT_EQ", "TOK_DOT_DOT_LT",
 
     "TOK_PLUS_EQ", "TOK_MINUS_EQ", "TOK_STAR_EQ", "TOK_SLASH_EQ",
 	"TOK_PERCENT_EQ", "TOK_STAR_STAR_EQ", "TOK_AMP_EQ", "TOK_BAR_EQ",

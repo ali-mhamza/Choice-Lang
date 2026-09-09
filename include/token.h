@@ -94,7 +94,8 @@ enum TokenType : u8
 
 	/* Range operator. */
 
-	TOK_DOT_DOT,		// ..
+	TOK_DOT_DOT_EQ,		// ..=
+	TOK_DOT_DOT_LT,		// ..<
 
 	/* Compound assignment operators. */
 

@@ -1,4 +1,4 @@
-make x = [for (i in 0..9): || {
+make x = [for (i in 0..=9): || {
     print!(i);
 }];
 

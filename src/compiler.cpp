@@ -1761,17 +1761,19 @@ DEF(BinaryExpr)
     Opcode op{};
     switch (node->oper)
     {
-        case TOK_PLUS:      op = OP_ADD;    break;
-        case TOK_MINUS:     op = OP_SUB;    break;
-        case TOK_STAR:      op = OP_MULT;   break;
-        case TOK_SLASH:     op = OP_DIV;    break;
-        case TOK_PERCENT:   op = OP_MOD;    break;
-        case TOK_STAR_STAR: op = OP_POWER;  break;
-        case TOK_DOT_DOT:   op = OP_RANGE;  break;
+        case TOK_PLUS:          op = OP_ADD;    break;
+        case TOK_MINUS:         op = OP_SUB;    break;
+        case TOK_STAR:          op = OP_MULT;   break;
+        case TOK_SLASH:         op = OP_DIV;    break;
+        case TOK_PERCENT:       op = OP_MOD;    break;
+        case TOK_STAR_STAR:     op = OP_POWER;  break;
+        case TOK_DOT_DOT_EQ:    op = OP_RANGE;  break;
+        case TOK_DOT_DOT_LT:    op = OP_RANGE;  break;
         default: CH_UNREACHABLE();
     }
 
     code.addOp(op, firstOper, secondOper);
+    if (op == OP_RANGE) code.addByte(node->oper == TOK_DOT_DOT_EQ);
     freeReg();
 }
 

@@ -1,13 +1,13 @@
 #==========#
 
-for (i in 0..9)
+for (i in 0..=9)
     print!(i);  // Expect: 0123456789
 
 println!();
 
 #==========#
 
-for (i in 0..9 where i % 2 == 1)
+for (i in 0..=9 where i % 2 == 1)
     print!(i);  // Expect: 13579
 
 println!();
@@ -26,7 +26,7 @@ println!(str); // Expect: Not hello world!
 
 #==========#
 
-for (i in 0..9)
+for (i in 0..=9)
 {
     if (i == 5) break;
         print!(i);
@@ -39,7 +39,7 @@ else
 
 println!();
 
-for (i in 0..9)
+for (i in 0..=9)
     print!(i);  // Expect: 0123456789
 else
 {

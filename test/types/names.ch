@@ -6,7 +6,7 @@ println!(typeof!("Word"));      // Expect: Text
 println!(typeof!("a" + "b"));   // Expect: String
 // Empty string.
 println!(typeof!(""));          // Expect: Text
-println!(typeof!(1..10));       // Expect: Range
+println!(typeof!(1..=10));      // Expect: Range
 println!(typeof!([1, 2, 3]));   // Expect: List
 // Empty list.
 println!(typeof!([]));          // Expect: List

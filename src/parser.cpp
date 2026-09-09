@@ -1323,7 +1323,7 @@ ExprUP Parser::range()
 {
     u64 start{currentTok.byteOffset};
     ExprUP expr{bitOr()};
-    if (consumeTok(TOK_DOT_DOT))
+    if (consumeToks(TOK_DOT_DOT_EQ, TOK_DOT_DOT_LT))
     {
         TokenType oper{previousTok.type};
         expr = std::make_unique<BinaryExpr>(expr, oper, bitOr());

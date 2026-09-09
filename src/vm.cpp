@@ -255,13 +255,13 @@ Object VM::concatStrings(const Object& str1, const Object& str2)
     return CH_ALLOC_STRING(concat);
 }
 
-Object VM::makeRange(const Object& start, const Object& stop)
+Object VM::makeRange(const Object& start, const Object& stop, bool equal)
 {
     if (!IS_INT(start) || !IS_INT(stop))
         throw reportBinaryOperator(OP_RANGE, start, stop);
 
     i64 start_{AS_INT(start)};
-    i64 stop_{AS_INT(stop)};
+    i64 stop_{AS_INT(stop) - (equal ? 0 : 1)};
 
     std::array nums{start_, stop_, ((stop_ >= start_) ? i64(1) : i64(-1))};
     Range::validateRange(nums); // May throw on error.
@@ -1355,8 +1355,9 @@ void VM::executeOp(Opcode op)
         {
             Object& start{registers[readByte()]};
             Object& stop{registers[readByte()]};
+            bool equal{static_cast<bool>(readByte())};
 
-            start = makeRange(start, stop);
+            start = makeRange(start, stop, equal);
             DISPATCH();
         }
         CASE(OP_FORMAT_STR):

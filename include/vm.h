@@ -117,7 +117,7 @@ class VM
         #endif
 
         [[nodiscard]] Object concatStrings(const Object& str1, const Object& str2);
-        [[nodiscard]] Object makeRange(const Object& start, const Object& stop);
+        [[nodiscard]] Object makeRange(const Object& start, const Object& stop, bool equal);
         [[nodiscard]] Object makeReference();
 
         [[nodiscard]] Object loadOper();

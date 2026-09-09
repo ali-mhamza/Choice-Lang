@@ -365,7 +365,8 @@ bool TypeChecker::canApplyBinaryOperator(
         case TOK_SLASH:
         case TOK_PERCENT:
         case TOK_STAR_STAR:
-        case TOK_DOT_DOT:
+        case TOK_DOT_DOT_EQ:
+        case TOK_DOT_DOT_LT:
         {
             return (
                 t1.isBasicWithTypes(ObjType::Int)
@@ -771,7 +772,8 @@ TYPE_GETTER(BinaryExpr)
         {
             return BUILTIN_TYPE(Int);
         }
-        case TOK_DOT_DOT:
+        case TOK_DOT_DOT_EQ:
+        case TOK_DOT_DOT_LT:
         {
             return BUILTIN_TYPE(Range);
         }
