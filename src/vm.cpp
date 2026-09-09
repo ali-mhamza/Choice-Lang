@@ -561,7 +561,7 @@ void VM::restoreData()
     currentCode = frame.code;
     currentMethodType = frame.methodType;
     currentClosure = frame.closure;
-    registers = frame.regStart;
+    registers = frame.window;
     ip = frame.ip;
     pool = currentCode->pool.data();
     #if WATCH_EXEC
@@ -1907,7 +1907,7 @@ CallFrame::CallFrame(const Args& args) :
     code{args.code},
     methodType{args.methodType},
     closure{args.closure},
-    regStart{args.regStart},
+    window{args.window},
     ip{args.ip}
     #if WATCH_EXEC
     , dis{args.dis}

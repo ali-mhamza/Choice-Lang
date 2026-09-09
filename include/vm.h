@@ -27,7 +27,7 @@ struct CallFrame
         const ByteCode* code{};
         const Type* methodType{};
         Closure* closure{};
-        Object* regStart{};
+        Object* window{};
         const u8* ip{};
 
         #if WATCH_EXEC
@@ -38,7 +38,7 @@ struct CallFrame
     const ByteCode* code{};
     const Type* methodType{};
     Closure* closure{};
-    Object* regStart{};
+    Object* window{};
     const u8* ip{};
 
     #if WATCH_EXEC
