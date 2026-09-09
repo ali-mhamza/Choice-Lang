@@ -438,6 +438,18 @@ bool TypeChecker::canCall(const Type& type) const
     if (type.isBasic() && !std::get<BasicType>(type.variant).builtin)
         return true;
 
+    // Calling a type object.
+    if (type.tag == TypeTag::Generic)
+    {
+        const auto& generic{std::get<Generic>(type.variant)};
+        if (generic.baseType->isBasic())
+        {
+            const auto& basic{std::get<BasicType>(generic.baseType->variant)};
+            if (!basic.builtin && (std::get<std::string>(basic.type) == "Type"))
+                return true;
+        }
+    }
+
     return false;
 }
 
