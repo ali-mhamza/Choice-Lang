@@ -101,7 +101,7 @@ class TypeChecker
         struct Type
         {
             TypeTag tag{};
-            TypeVariant type{};
+            TypeVariant variant{};
 
             bool operator==(const Type& other) const;
             bool operator!=(const Type& other) const;

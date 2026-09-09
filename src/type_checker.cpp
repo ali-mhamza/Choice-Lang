@@ -114,8 +114,7 @@ void TypeChecker::TypeList::add(const Type& type)
 
 bool TypeChecker::Type::operator==(const Type& other) const
 {
-    return ((this->tag == other.tag)
-            && (this->type == other.type));
+    return ((this->tag == other.tag) && (this->variant == other.variant));
 }
 
 bool TypeChecker::Type::operator!=(const Type& other) const
@@ -140,7 +139,7 @@ bool TypeChecker::Type::isBasicWithTypes(Types... types) const
 
     if (tag == TypeTag::Any) return true;
     if (tag != TypeTag::Basic) return false;
-    BasicType basic{std::get<BasicType>(type)};
+    BasicType basic{std::get<BasicType>(variant)};
     if (!basic.builtin) return false;
 
     ObjType objType{std::get<ObjType>(basic.type)};
@@ -212,7 +211,7 @@ bool TypeChecker::compatibleTypes(const Type& t1, const Type& t2) const
     // Special handling for optional types.
     if (t1.tag == TypeTag::Option)
     {
-        const auto& list{std::get<TypeList>(t1.type)};
+        const auto& list{std::get<TypeList>(t1.variant)};
         for (const auto& typeEntry : list.types)
         {
             if (compatibleTypes(*typeEntry, t2))
@@ -223,7 +222,7 @@ bool TypeChecker::compatibleTypes(const Type& t1, const Type& t2) const
     }
     else if (t1.tag == TypeTag::Nullable)
     {
-        const InnerType& inner{std::get<InnerType>(t1.type)};
+        const InnerType& inner{std::get<InnerType>(t1.variant)};
         const Type& type{*(inner.type)};
         return (
             t2.isBasicWithTypes(ObjType::Null) || compatibleTypes(type, t2)
@@ -240,7 +239,7 @@ bool TypeChecker::compatibleTypes(const Type& t1, const Type& t2) const
             return t1 == t2;
         else
             return false;
-    }, t1.type, t2.type);
+    }, t1.variant, t2.variant);
 }
 
 bool TypeChecker::canApplyLogicOperator(
@@ -411,7 +410,7 @@ bool TypeChecker::canIndexWith(const Type& objType, const Type& indexType) const
 {
     if (objType.isAny()) return true;
     if (!objType.isBasic()) return false;
-    BasicType basic{std::get<BasicType>(objType.type)};
+    BasicType basic{std::get<BasicType>(objType.variant)};
     if (!basic.builtin) return false;
 
     ObjType obj{std::get<ObjType>(basic.type)};
@@ -436,7 +435,7 @@ bool TypeChecker::canCall(const Type& type) const
         return true;
 
     // Custom type (constructor call).
-    if (type.isBasic() && !std::get<BasicType>(type.type).builtin)
+    if (type.isBasic() && !std::get<BasicType>(type.variant).builtin)
         return true;
 
     return false;
@@ -445,7 +444,7 @@ bool TypeChecker::canCall(const Type& type) const
 bool TypeChecker::validArgsForObj(const CallExpr* node, const VarRecord& record) const
 {
     if (record.type.tag != TypeTag::Signature) return false;
-    const Signature& signature{std::get<Signature>(record.type.type)};
+    const Signature& signature{std::get<Signature>(record.type.variant)};
 
     if (node->args.size() != signature.paramTypes.size())
         return false;
@@ -528,7 +527,7 @@ bool TypeChecker::validFieldForType(const Type& type, const Token& field) const
     if (type.isAny()) return true;
     if (!type.isBasic()) return false;
 
-    BasicType basic{std::get<BasicType>(type.type)};
+    BasicType basic{std::get<BasicType>(type.variant)};
     if (basic.builtin) return false; // For now.
 
     const auto& typeName{std::get<std::string>(basic.type)};
@@ -647,7 +646,7 @@ TypeChecker::Type TypeChecker::getElementType(const Type& type) const
     if (type.isAny()) return ANY_TYPE;
     if (!type.isBasic()) return DUMMY_TYPE; // For now.
 
-    BasicType basic{std::get<BasicType>(type.type)};
+    BasicType basic{std::get<BasicType>(type.variant)};
     if (!basic.builtin) return DUMMY_TYPE;
 
     switch (std::get<ObjType>(basic.type))
@@ -822,7 +821,7 @@ TYPE_GETTER(CallExpr)
     {
         if (varRecord->type.tag != TypeTag::Signature)
             return DUMMY_TYPE;
-        const Signature& signature{std::get<Signature>(varRecord->type.type)};
+        const Signature& signature{std::get<Signature>(varRecord->type.variant)};
         return *(signature.returnType);
     }
 
@@ -848,7 +847,7 @@ TYPE_GETTER(FieldExpr)
 
     // For now, only handling singular types.
     if (!objType.isBasic()) return DUMMY_TYPE;
-    BasicType basic{std::get<BasicType>(objType.type)};
+    BasicType basic{std::get<BasicType>(objType.variant)};
     if (basic.builtin) return DUMMY_TYPE;
 
     const auto& typeName{std::get<std::string>(basic.type)};
