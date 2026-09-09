@@ -89,7 +89,7 @@ class VM
         u8 clearIndex{};
 
         #if WATCH_REG
-        u8 regSlot{};
+        u8 registerMax{};
         #endif
 
         #if WATCH_EXEC

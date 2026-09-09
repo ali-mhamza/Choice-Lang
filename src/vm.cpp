@@ -41,15 +41,15 @@
 #if WATCH_REG
     #define SET_REGSLOT(slot)   \
         do {                    \
-            regSlot = slot;     \
+            registerMax = slot; \
         } while (false)
 
     #undef MAX
     #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-    #define SET_REGSLOT_MAX(a, b)   \
-        do {                        \
-            regSlot = MAX(a, b);    \
+    #define SET_REGSLOT_MAX(a, b)       \
+        do {                            \
+            registerMax = MAX(a, b);    \
         } while (false)
 #else
     #define SET_REGSLOT(slot)
@@ -808,7 +808,7 @@ void VM::getModule(Object& module, const Object& dir)
     pendingImports.extract(path);
 }
 
-// Handle regSlot.
+// Handle registerMax.
 void VM::startIter()
 {
     Object& var{registers[readByte()]};
@@ -977,7 +977,7 @@ void VM::printRegisters()
     else
         i = 0;
 
-    while (i <= regSlot)
+    while (i <= registerMax)
     {
         if (!IS_VALID(registers[i]))
             break;
@@ -1530,7 +1530,7 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             registers[dest] = arithOper(op, dest);
-            SET_REGSLOT(regSlot - 1);
+            SET_REGSLOT(registerMax - 1);
             DISPATCH();
         }
 
@@ -1540,7 +1540,7 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             registers[dest] = compareOper(op, dest);
-            SET_REGSLOT(regSlot - 1);
+            SET_REGSLOT(registerMax - 1);
             DISPATCH();
         }
 
@@ -1551,7 +1551,7 @@ void VM::executeOp(Opcode op)
         {
             u8 dest{readByte()};
             registers[dest] = bitOper(op, dest);
-            SET_REGSLOT(regSlot - 1);
+            SET_REGSLOT(registerMax - 1);
             DISPATCH();
         }
 
@@ -1582,7 +1582,7 @@ void VM::executeOp(Opcode op)
             u8 argCount{readByte()};
 
             #if WATCH_REG
-                u8 currentSlot = regSlot;
+                u8 currentSlot = registerMax;
             #endif
             SET_REGSLOT(start);
 
@@ -1609,7 +1609,7 @@ void VM::executeOp(Opcode op)
             u8 returnSlot{readByte()};
             registers[-1] = CH_MOVE(registers[returnSlot]);
 
-            // Correct regSlot after return.
+            // Correct registerMax after return.
             exitScope(registers);
             restoreData();
             if (encapsulateCall) return;
