@@ -37,7 +37,7 @@
 	} while (false)
 
 [[nodiscard]]
-static inline vT& runLexer(FileID id, const std::string_view source)
+static vT& runLexer(FileID id, const std::string_view source)
 {
 	static Lexer lexer{};
 	return lexer.tokenize(id, source);
