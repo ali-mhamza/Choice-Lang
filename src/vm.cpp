@@ -709,9 +709,11 @@ void VM::callUserMethod(const Object& callee, u8 start, u8 argCount)
     const Method* method{AS_USER_METHOD(callee)};
     const Type* type{AS_INSTANCE(method->boundInstance)->type};
 
+    Object copy{registers[start - 1]};
     registers[start - 1] = method->funcObj;
     registers[start] = method->boundInstance;
     callUserFunc(method->funcObj, start, argCount, type);
+    registers[start - 1] = CH_MOVE(copy);
 }
 
 void VM::callCoreMethod(const Object& callee, u8 start, u8 argCount)
@@ -867,9 +869,9 @@ void VM::finishFields(Instance& instance, u8 start)
 
             bool encapsulate{encapsulateCall};
             encapsulateCall = true;
-            callUserFunc(init, start, 0);
+            callUserFunc(init, start + 1, 0);
             encapsulateCall = encapsulate;
-            instance.initField(field, this->registers[start - 1]);
+            instance.initField(field, this->registers[start]);
         }
     }
 }
@@ -1424,7 +1426,7 @@ void VM::executeOp(Opcode op)
             // each initializer value at instanceReg + 1 (after it
             // runs), which ensures our instance object is never
             // overwritten.
-            finishFields(*instance, instanceReg + 2);
+            finishFields(*instance, instanceReg + 1);
             DISPATCH();
         }
         CASE(OP_INIT_FIELD):
