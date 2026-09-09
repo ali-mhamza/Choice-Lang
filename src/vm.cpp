@@ -171,13 +171,13 @@ void VM::amendFileName()
         AS_TEXT(name)->reset(sourceManager.getFile(currentCode->getID()));
 }
 
-inline u8 VM::readByte()
+u8 VM::readByte()
 {
     ip++;
     return *(ip - 1);
 }
 
-inline u16 VM::readShort()
+u16 VM::readShort()
 {
     u16 b1{ip[0]};
     u16 b2{ip[1]};
@@ -185,7 +185,7 @@ inline u16 VM::readShort()
     return static_cast<u16>((b1 << 8) | b2);
 }
 
-inline u32 VM::readLong()
+u32 VM::readLong()
 {
     u32 b1{ip[0]};
     u32 b2{ip[1]};
@@ -195,7 +195,7 @@ inline u32 VM::readLong()
     return static_cast<u32>((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
 }
 
-inline Cell* VM::captureValue(u8 slot, bool local)
+Cell* VM::captureValue(u8 slot, bool local)
 {
     Object* addr{(local ? registers : globalRegisters) + slot};
     for (auto it{activeCells.rbegin()}; it != activeCells.rend(); it++)
@@ -220,7 +220,7 @@ inline Cell* VM::captureValue(u8 slot, bool local)
     return cell;
 }
 
-inline void VM::closeCells(Object* limit)
+void VM::closeCells(Object* limit)
 {
     // Close all cells that were declared *in this scope*.
     // Do not clear or close ALL cells.
@@ -235,7 +235,7 @@ inline void VM::closeCells(Object* limit)
 }
 
 #if COPY_INLINE
-    inline void VM::copyObject(Object& dest, const Object& src)
+    void VM::copyObject(Object& dest, const Object& src)
     {
         if (IS_PRIMITIVE(dest) && IS_PRIMITIVE(src))
         {
@@ -295,7 +295,7 @@ Object VM::makeReference()
     return CH_ALLOC_REF(addr);
 }
 
-inline Object VM::loadOper()
+Object VM::loadOper()
 {
     switch (u8 oper = readByte())
     {
@@ -312,17 +312,14 @@ inline Object VM::loadOper()
     }
 }
 
-// Credit for ipow: jdh8.
-// Source: https://stackoverflow.com/questions/1505675/.
-[[nodiscard]] static inline i64 ipow(i64 base, i64 exp)
+[[nodiscard]] static i64 ipow(i64 base, i64 exp)
 {
     i64 res{1};
     while (exp != 0)
     {
-        if (exp & 1)
-            res *= base;
-        exp >>= 1;
+        if (exp & 1) res *= base;
         base *= base;
+        exp >>= 1;
     }
 
     return res;
