@@ -888,6 +888,8 @@ void VM::finishFields(Instance& instance, u8 start)
     const Type* type{instance.type};
     for (auto& [field, value] : instance.fields)
     {
+        // Field is not a valid object -> field has yet to
+        // be initialized.
         if (!IS_VALID(value))
         {
             u8 pos{*(type->fieldTable.get(field))};
