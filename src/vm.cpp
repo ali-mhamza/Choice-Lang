@@ -847,7 +847,8 @@ void VM::startIter()
 
 void VM::updateIter()
 {
-    closeCells(scopeStarts.back());
+    // Since this runs before actual scope exit.
+    exitScope(scopeStarts.back());
 
     Object& var{registers[readByte()]};
     Object& iter{registers[readByte()]};
