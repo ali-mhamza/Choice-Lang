@@ -305,6 +305,9 @@ static void compileTests(
 		if (node->type == StmtType::FuncDecl)
 		{
 			FuncDecl* func{static_cast<FuncDecl*>(node.get())};
+			// TODO: Allow the 'compiler' to also capture non-test
+			// functions (which test functions may still call).
+			// Maybe only for closed functions?
 			if (!isTest(func->decl.attr)) continue;
 			if (func->params.size() != 0)
 			{
@@ -347,6 +350,7 @@ static void runTests(
 				CH_PRINT("{}FAIL{}\n", RED, NORMAL);
 			else
 				CH_PRINT("{}PASS{}\n", GREEN, NORMAL);
+
 			fflush(stdout);
 			diagEngine.clearReports();
 		}
