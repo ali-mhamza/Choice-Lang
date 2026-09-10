@@ -1652,16 +1652,16 @@ void VM::executeOp(Opcode op)
 
         CASE(OP_VAR_ARGS):
         {
-            u8 reg{readByte()};
+            u8 start{readByte()};
             List* list{CH_ALLOC_LIST(DEFAULT_LIST_SIZE)};
-            for (u8 i{reg}; i < args; i++)
+            for (u8 i{start}; i < args; i++)
             {
                 CH_ASSERT(registers + i <= globalRegisters + NUM_REGS,
                     "Argument outside VM register array bounds.");
                 list->array.push(registers[i]);
             }
 
-            registers[reg] = list;
+            registers[start] = list;
             DISPATCH();
         }
 
