@@ -580,6 +580,19 @@ void VM::exitScope(Object* limit)
     dropInstances(limit);
 }
 
+void VM::clearVM()
+{
+    // Each frame (currently) introduces a new scope, so we can
+    // suffice with performing detailed clean-up on the scope
+    // start array only.
+    frames.clear();
+
+    // Clean up each scope in reverse order (inner -> outer).
+    for (auto rit{scopeStarts.rbegin()}; rit != scopeStarts.rend(); rit++)
+        exitScope(*rit);
+    scopeStarts.clear();
+}
+
 void VM::callUserFunc(
     const Object& callee,
     u8 start,
@@ -613,7 +626,7 @@ void VM::callUserFunc(
     registers += start;
     prepFuncArgs(func, argCount);
 
-    if (encapsulateCall)
+    if (implicitCall)
         executeChunk(func->code, func);
     else
     {
@@ -654,21 +667,11 @@ void VM::callUserType(const Object& callee, u8 start, u8 argCount)
 
     Instance* instance{CH_ALLOC_INSTANCE(type)};
     registers[start - 1] = instance;
-    if (type->defines(CH_DESTRUCTOR))
-    {
-        activeInstances.push_back({
-            registers + start - 1,
-            registers[start - 1]
-        });
-    }
 
     if (hasCtor)
     {
         Object ctor{instance->getField(CH_CONSTRUCTOR)};
-        bool encapsulate{encapsulateCall};
-        encapsulateCall = true;
-        callUserMethod(ctor, start, argCount);
-        encapsulateCall = encapsulate;
+        implicitMethodCall(ctor, start, argCount);
     }
     else
     {
@@ -681,6 +684,13 @@ void VM::callUserType(const Object& callee, u8 start, u8 argCount)
     }
 
     finishFields(*instance, start);
+    if (type->defines(CH_DESTRUCTOR))
+    {
+        activeInstances.push_back({
+            registers + start - 1,
+            registers[start - 1]
+        });
+    }
 }
 
 void VM::callCoreType(const Object& callee, u8 start, u8 argCount)
@@ -852,6 +862,26 @@ void VM::updateIter()
     }
 }
 
+void VM::implicitFunctionCall(const Object& callee, u8 start, u8 argCount)
+{
+    bool implicit{implicitCall};
+    implicitCall = true;
+    // Load the function object into the register it is expected
+    // to be in.
+    // Regular function calls automatically have this state.
+    registers[start - 1] = callee;
+    callUserFunc(callee, start, argCount);
+    implicitCall = implicit;
+}
+
+void VM::implicitMethodCall(const Object& callee, u8 start, u8 argCount)
+{
+    bool implicit{implicitCall};
+    implicitCall = true;
+    callUserMethod(callee, start, argCount);
+    implicitCall = implicit;
+}
+
 void VM::finishFields(Instance& instance, u8 start)
 {
     const Type* type{instance.type};
@@ -868,10 +898,7 @@ void VM::finishFields(Instance& instance, u8 start)
                 continue;
             }
 
-            bool encapsulate{encapsulateCall};
-            encapsulateCall = true;
-            callUserFunc(init, start + 1, 0);
-            encapsulateCall = encapsulate;
+            implicitFunctionCall(init, start + 1, 0);
             instance.initField(field, this->registers[start]);
         }
     }
@@ -892,27 +919,28 @@ void VM::dropInstances(Object* limit)
         // to the array, so no existence check needed here.
         Object ctor{instance->getField(CH_DESTRUCTOR)};
 
-        // Calls to drop() replace the object before the instance
-        // with their return value, so we make a copy before calling
-        // drop() to restore that object after the call.
+        // If an error occurs while calling drop(), we want to remove the
+        // instance from our array so we don't try to drop it again
+        // (without suppressing the error).
 
-        Object temp{addr[0]};
-        bool encapsulate{encapsulateCall};
-        encapsulateCall = true;
-
-        // Every time we exit a scope, dropInstances will be called.
-        // This includes the call(s) to drop() made here as well, and
-        // thus can easily lead to excessive recursion and stack overflow.
-        // To prevent that, we make sure the various calls to drop() cannot
-        // possibly share the same register window (by adding 1 here), which
-        // means the 'limit' argument will always be different.
-        // If the 'limit' argument is always the same, we end up recursively
-        // trying to drop the same instances over and over again, overflowing
-        // the stack.
-        callUserMethod(ctor, static_cast<u8>(addr - registers + 1), 0);
-
-        encapsulateCall = encapsulate;
-        addr[0] = temp;
+        try
+        {
+            // Every time we exit a scope, dropInstances will be called.
+            // This includes the call(s) to drop() made here as well, and
+            // thus can easily lead to excessive recursion and stack overflow.
+            // To prevent that, we make sure the various calls to drop() cannot
+            // possibly share the same register window (by adding 1 here), which
+            // means the 'limit' argument will always be different.
+            // If the 'limit' argument is always the same, we end up recursively
+            // trying to drop the same instances over and over again, overflowing
+            // the stack.
+            implicitMethodCall(ctor, static_cast<u8>(addr - registers + 1), 0);
+        }
+        catch (RuntimeError& error)
+        {
+            activeInstances.pop_back();
+            throw;
+        }
 
         activeInstances.pop_back();
     }
@@ -1053,6 +1081,7 @@ void VM::reportWarning(DiagCode code, const std::string& label)
 
 void VM::errorReset()
 {
+    implicitCall = false;
     if (inDeclaration)
     {
         Compiler::clearDeclaredVars = true;
@@ -1409,25 +1438,21 @@ void VM::executeOp(Opcode op)
             Type* type{AS_USER_TYPE(registers[typeReg])};
             // Replace the class.
             registers[typeReg] = CH_ALLOC_INSTANCE(type);
-
-            if (type->defines(CH_DESTRUCTOR))
-            {
-                activeInstances.push_back({
-                    registers + typeReg,
-                    registers[typeReg]
-                });
-            }
             DISPATCH();
         }
         CASE(OP_FINISH_FIELDS):
         {
             u8 instanceReg{readByte()};
             Instance* instance{AS_INSTANCE(registers[instanceReg])};
-            // Starting the call window at instanceReg + 2 places
-            // each initializer value at instanceReg + 1 (after it
-            // runs), which ensures our instance object is never
-            // overwritten.
             finishFields(*instance, instanceReg + 1);
+            if (instance->type->defines(CH_DESTRUCTOR))
+            {
+                activeInstances.push_back({
+                    registers + instanceReg,
+                    registers[instanceReg]
+                });
+            }
+
             DISPATCH();
         }
         CASE(OP_INIT_FIELD):
@@ -1615,7 +1640,7 @@ void VM::executeOp(Opcode op)
             // Correct registerMax after return.
             exitScope(registers);
             restoreData();
-            if (encapsulateCall) return;
+            if (implicitCall) return;
 
             DISPATCH();
         }
@@ -1890,7 +1915,7 @@ void VM::execute(Function* script)
     }
     catch (RuntimeError& error)
     {
-        reportError(error);
+        implicitCall ? reportShortError(error) : reportError(error);
         errorReset();
     }
 
@@ -1898,8 +1923,7 @@ void VM::execute(Function* script)
         this->dis = nullptr;
     #endif
 
-    frames.clear();
-    scopeStarts.clear();
+    clearVM();
 }
 
 /* CallFrame constructor. */

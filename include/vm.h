@@ -78,7 +78,9 @@ class VM
         // until termination.
         // If set to 'false', 'callFunc' initializes function object's
         // chunk and exits immediately.
-        bool encapsulateCall{false};
+        // Used to perform implicit method calls to set up or clean up
+        // type instances.
+        bool implicitCall{false};
 
         // Argument count for most recent call.
         u8 args{};
@@ -135,6 +137,7 @@ class VM
         void restoreData();
 
         void exitScope(Object* limit);
+        void clearVM();
 
         void callUserFunc(
             const Object& callee,
@@ -154,6 +157,11 @@ class VM
         void startIter();
         void updateIter();
 
+        // Allows calls to implicit field initializers.
+        // `start - 1` should be clear to modify/replace.
+        void implicitFunctionCall(const Object& callee, u8 start, u8 argCount);
+        // Allows calls to implicit methods (ctors and dtors).
+        void implicitMethodCall(const Object& callee, u8 start, u8 argCount);
         // Initializes any remaining uninitialized fields in an instance
         // object.
         // `start`: Start of call window for initializers.
