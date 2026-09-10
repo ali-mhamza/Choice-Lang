@@ -122,6 +122,8 @@ namespace
         }
     };
 
+    // To indicate that a module failed to be evaluated at some
+    // import level or depth.
     bool moduleError{false};
     // For pending imports, we only check file path, since we want
     // to guarantee no circular imports, even if the file for the
