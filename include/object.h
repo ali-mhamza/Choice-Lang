@@ -175,12 +175,12 @@ class Object
         // Only to be used on Text or String objects.
         // Should not be used if the String object may be modified
         // while the view is in use.
-        std::string_view getObjectText() const;
+        [[nodiscard]] std::string_view getObjectText() const;
 
         [[nodiscard]] Cell* indexRef(const Object& index);
         // Only to be used on Cell objects.
         // Does not type-check.
-        Object& deref();
+        [[nodiscard]] Object& deref();
 
         // Get the size of the collection object payload.
         // Only valid to call for collections.
