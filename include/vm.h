@@ -186,6 +186,8 @@ class VM
         void executeCode();
 
     public:
+        // To mark if this VM is for the original script, rather
+        // than an imported module.
         bool globalVM{true};
 
         VM();
