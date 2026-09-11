@@ -1531,7 +1531,14 @@ void VM::executeOp(Opcode op)
             u8 entryReg{readByte()};
 
             if (!IS_MODULE(registers[moduleReg]))
-                throw RuntimeError(ENTRY_NO_MODULE);
+            {
+                throw RuntimeError(ENTRY_NO_MODULE,
+                    CH_STR(
+                        "no entry access supported for ({})",
+                        registers[moduleReg].printType()
+                    )
+                );
+            }
 
             Module* module{AS_MODULE(registers[moduleReg])};
             const std::string& entry{AS_STRING(registers[entryReg])->str};
