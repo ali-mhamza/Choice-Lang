@@ -1007,18 +1007,6 @@ void Compiler::compileUseModule(
     const UseStmt* node
 )
 {
-    VarInfo info{resolveVariable(node->module)};
-    if (info.found)
-    {
-        if (node->alias)
-        {
-            emitVariableOp(getVar, info, nextReg, info.slot);
-            defVar(std::string{node->alias.text}, nextReg, accessVar);
-            reserveReg();
-        }
-        return;
-    }
-
     std::string name{node->module.text};
     std::string dir{};
     std::string alias{};
