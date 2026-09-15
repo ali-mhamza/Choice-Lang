@@ -5,7 +5,6 @@
 #include "modules.h"
 #include "utils.h"
 #include <personal/array.h>
-#include <personal/hash_table.h>
 #include <array>
 #include <fstream>
 #include <string>

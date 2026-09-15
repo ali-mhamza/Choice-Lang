@@ -6,7 +6,6 @@
 #include "debug.h"
 #include "diagnostic.h"
 #include "vartable.h"
-#include <personal/hash_table.h>
 #include <memory>
 #include <stack>
 #include <string>

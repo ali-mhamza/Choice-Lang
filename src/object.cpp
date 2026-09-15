@@ -820,7 +820,7 @@ void Instance::initField(const std::string& name, const Object& value)
     *location = value;
 
     // Field must exist if we have reached this point.
-    u8 position{*(type->fieldTable.get(name))};
+    u8 position{type->fieldTable[name]};
     bool fix{type->fields[position].fixed};
 
     if (fix)
@@ -847,7 +847,7 @@ std::string Instance::printVal() const
     ret += " {\n";
     for (const auto& field : type->fields)
     {
-        const Object& value{*(fields.get(field.name))};
+        const Object& value{fields[field.name]};
         ret += "  " + field.name + ": " + value.printVal() + ",\n";
     }
 

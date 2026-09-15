@@ -3,7 +3,6 @@
 #include "common.h"
 #include "token.h"
 #include "vm.h"
-#include <personal/hash_table.h>
 #include <optional>
 #include <string>
 #include <string_view>

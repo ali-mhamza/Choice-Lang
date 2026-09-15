@@ -1,79 +1,433 @@
 #pragma once
+#include "common.h"
 #include "generics.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <stdexcept>
 #include <type_traits>
 
-#define TEMP template<typename T>
-
-TEMP
+template<typename T, typename Alloc = std::allocator<T>>
 class Array
 {
-    private:
-        T* entries;
-        size_t _count;
-        size_t _capacity;
+    // static_assert(
+    //     std::is_default_constructible_v<T>
+    //     && std::is_nothrow_default_constructible_v<T>,
+    //     "Array element type must be default-constructible without throwing."
+    // );
 
-        static constexpr size_t defaultSize = 8;
-        static constexpr size_t growFactor = 2;
+    // static_assert(
+    //     std::is_copy_assignable_v<T>
+    //     && std::is_nothrow_copy_assignable_v<T>,
+    //     "Array element type must be copy-assignable without throwing."
+    // );
+
+    // static_assert(
+    //     std::is_default_constructible_v<Alloc>
+    //     && std::is_nothrow_default_constructible_v<Alloc>,
+    //     "Allocator type must be default-constructible without throwing."
+    // );
+
+    private:
+        using signed_type = std::int64_t;
+        using param_type = std::conditional_t<
+            sizeof(T) <= 8,
+            T,
+            const T&
+        >;
+
+        static Alloc allocator;
+        T* entries{nullptr};
+        size_type _count{0};
+        size_type _capacity{0};
+
+        static constexpr size_type defaultSize{8};
+        static constexpr size_type growFactor{2};
+
+        static T* alloc(size_type count)
+        {
+            T* mem{allocator.allocate(count)};
+            std::uninitialized_fill_n(mem, count, T());
+            return mem;
+        }
+
+        static void dealloc(T* mem, size_type count)
+        {
+            std::destroy_n(mem, count);
+            allocator.deallocate(mem, count);
+        }
 
         // Shift cannot be larger than end - start.
-        void copy(T* dest, size_t start, size_t end, int shift = 0);
-        void shift(int shift, size_t start = 0);
+        void copy(T* dest, size_type start, size_type end, signed_type shift = 0)
+        {
+            if ((entries == nullptr) || (end - start > _count))
+                return;
+
+            if constexpr (std::is_trivially_copyable_v<T>)
+            {
+                std::memcpy(
+                    dest + start + shift,
+                    entries + start,
+                    (end - start) * sizeof(T)
+                );
+            }
+            else if constexpr (std::is_nothrow_move_assignable_v<T>)
+            {
+                for (size_type i{start}; i < end; i++)
+                    dest[i + shift] = std::move(entries[i]);
+            }
+            else
+            {
+                for (size_type i{start}; i < end; i++)
+                    dest[i + shift] = entries[i];
+            }
+        }
+
+        // When using this function, any unshifted buffer area
+        // in the array must be replaced/initialized immediately
+        // to maintain the contiguous storage of elements in the array.
+        void shift(signed_type shift, size_type start = 0)
+        {
+            if ((shift == 0) || (_count == 0)) // Nothing to do.
+                return;
+
+            // We allow the shift to be negative for element removal.
+            // Just need to be careful when using that internally.
+
+            // Can't be too negative, though.
+            if (shift < (-1 * static_cast<signed_type>(_count)))
+                return; // Throw error?
+
+            if (start >= _count)
+                return; // Throw error?
+
+            size_type oldCapacity{_capacity};
+            resize(_count + shift);
+
+            // To avoid data corruption, we make a new internal array.
+            // Note: we don't use an Array<T, alloc> local variable
+            // since its destructor (called when it goes out of scope
+            // by the end of this function) will deallocate the memory
+            // we just "filled up".
+
+            T* newEntries{alloc(_capacity)};
+            copy(newEntries, 0, start);
+            copy(newEntries, start, _count, shift);
+            dealloc(this->entries, oldCapacity);
+            this->entries = newEntries;
+
+            // Only increment count when we fill the empty spots.
+        }
+
+        void grow()
+        {
+            size_type oldCapacity{_capacity};
+            _capacity = (_capacity == 0 ? defaultSize : _capacity * growFactor);
+            T* newEntries{alloc(_capacity)};
+            copy(newEntries, 0, _count);
+            dealloc(entries, oldCapacity);
+            entries = newEntries;
+        }
 
     public:
-        // Constructing Array objects.
-        Array();
-        Array(size_t size);
-        Array(const Array& other) noexcept;
-        Array(Array&& other) noexcept;
-        Array& operator=(const Array& other) noexcept;
-        Array& operator=(Array&& other) noexcept;
-        ~Array();
+        /* Constructors and assignment operators. */
 
-        // Basic operators.
-        inline T& operator[](size_t index); // index < count.
-        inline const T& operator[](size_t index) const; // index < count.
-        bool operator==(const Array& other) const;
+        Array() = default;
 
-        void resize(size_t size);
-        // This does not reallocate to a larger array.
-        // It simply increases the capacity field as *if*
-        // we were actually growing the array.
-        // Use with care.
-        inline void increaseCapacity();
-        // General resizing utility (doubles or initializes size).
-        void grow();
+        Array(size_type size) :
+            entries{alloc(size)}, _capacity{size} {}
 
-        void push(const T& element);
-        void insert(const T& element, size_t index);
-        T erase(size_t index);
-        void remove(const T& element);
-        inline T pop();
-        inline void popn(size_t n);
-        inline void clear();
+        Array(const Array& other) noexcept :
+            entries{alloc(other._capacity)}, _count{other._count},
+            _capacity{other._capacity}
+        {
+            for (size_type i{0}; i < other._count; i++)
+                this->entries[i] = other.entries[i];
+        }
 
-        int find(const T& element, bool sorted = false) const;
+        Array(Array&& other) noexcept :
+            entries{other.entries}, _count{other._count},
+            _capacity{other._capacity}
+        {
+            other.entries = nullptr;
+            other._count = 0;
+            other._capacity = 0;
+        }
+
+        Array& operator=(const Array& other) noexcept
+        {
+            if (this != &other)
+            {
+                dealloc(this->entries, _capacity);
+                this->entries = alloc(other._capacity);
+
+                for (size_type i{0}; i < other._capacity; i++)
+                    this->entries[i] = other.entries[i];
+
+                this->_count = other._count;
+                this->_capacity = other._capacity;
+            }
+
+            return *this;
+        }
+
+        Array& operator=(Array&& other) noexcept
+        {
+            if (this != &other)
+            {
+                dealloc(this->entries, _capacity);
+
+                this->entries = other.entries;
+                this->_count = other._count;
+                this->_capacity = other._capacity;
+
+                other.entries = nullptr;
+                other._count = 0;
+                other._capacity = 0;
+            }
+
+            return *this;
+        }
+
+        ~Array()
+        {
+            clear();
+        }
+
+
+        /* Basic operators. */
+
+        inline T& operator[](size_type index)
+        {
+            if (index >= _count)
+                throw std::out_of_range("Index out of range.");
+
+            return entries[index];
+        }
+
+        inline const T& operator[](size_type index) const
+        {
+            if (index >= _count)
+                throw std::out_of_range("Index out of range.");
+
+            return entries[index];
+        }
+
+        bool operator==(const Array& other) const
+        {
+            if (this->_count != other._count) return false;
+
+            for (size_type i{0}; i < this->_count; i++)
+            {
+                if (this->entries[i] != other.entries[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+
+        /* Modification. */
+
+        void resize(size_type size)
+        {
+            while (_capacity < size)
+                grow();
+        }
+
+        void push(param_type element)
+        {
+            if (_capacity <= _count)
+                grow();
+            entries[_count++] = element;
+        }
+
+        template<
+            typename... Args,
+            typename = std::enable_if_t<(std::is_same_v<T, Args> || ...)>
+        >
+        void push_range(Args... args)
+        {
+            for (auto arg : {args...})
+                push(arg);
+        }
+
+        template<typename... Args>
+        void emplace(Args... args)
+        {
+            static_assert(
+                std::is_constructible_v<T, Args...>,
+                "Object cannot be constructed from given argument list."
+            );
+
+            if (_capacity <= _count)
+                grow();
+            entries[_count++] = T(std::forward<T>(args)...);
+        }
+
+        void insert(param_type element, size_type index)
+        {
+            if (index >= _count)
+                throw std::out_of_range("Index out of range.");
+
+            if (_capacity <= _count)
+                grow();
+
+            shift(1, index);
+            entries[index] = element;
+            _count++;
+        }
+
+        T erase(size_type index)
+        {
+            if (index >= _count)
+                throw std::out_of_range("Index out of range.");
+
+            T element = entries[index];
+            // Shift begins at the index we pass to shift().
+            // We want to move every element *after*
+            // the parameter index (here) back, so we add 1.
+            shift(-1, index + 1);
+            _count--;
+            return element;
+        }
+
+        void remove(param_type element)
+        {
+            signed_type index{find(element)};
+            if (index == -1) return;
+            erase(index);
+        }
+
+        inline T pop()
+        {
+            _count--;
+            return entries[_count];
+        }
+
+        inline void popn(size_type n)
+        {
+            _count -= n;
+        }
+
+        inline void clear()
+        {
+            _count = 0;
+            _capacity = 0;
+            dealloc(this->entries, _capacity);
+            entries = nullptr; // In case clear() is called again.
+        }
+
+
+        /* Search. */
+
+        signed_type find(param_type element, bool sorted = false) const
+        {
+            static_assert(has_equal_v<T>, "Type is not comparable.");
+            auto defaultEquality = [&](param_type other) -> bool {
+                return element == other;
+            };
+
+            if constexpr (can_compare_v<T>)
+            {
+                if (sorted)
+                {
+                    if (_count == 0) return -1;
+
+                    size_type min{0}, max{_count - 1};
+                    while (min <= max)
+                    {
+                        size_type mid{min + (max - min) / 2};
+                        if (entries[mid] == element)
+                            return static_cast<signed_type>(mid);
+                        else if (entries[mid] < element)
+                            min = mid + 1;
+                        else
+                            max = mid - 1;
+                    }
+
+                    return -1;
+                }
+                else
+                    return find_first_if(defaultEquality);
+            }
+            else
+                return find_first_if(defaultEquality);
+        }
+
         template<typename Pred>
-        int find_first_if(Pred p) const;
+        signed_type find_first_if(Pred p) const
+        {
+            for (size_type i{0}; i < _count; i++)
+            {
+                if (p(entries[i]))
+                    return static_cast<signed_type>(i);
+            }
+
+            return -1;
+        }
+
         template<typename Pred>
-        int find_last_if(Pred p) const;
+        signed_type find_last_if(Pred p) const
+        {
+            for (size_type i{0}; i < _count; i++)
+            {
+                if (p(entries[_count - i - 1]))
+                    return static_cast<signed_type>(i);
+            }
 
-        [[nodiscard]] inline size_t count() const;
-        [[nodiscard]] inline size_t capacity() const;
-        [[nodiscard]] inline bool empty() const;
+            return -1;
+        }
 
-        [[nodiscard]] inline T& front();
-        [[nodiscard]] inline const T& front() const;
-        [[nodiscard]] inline T& back();
-        [[nodiscard]] inline const T& back() const;
+        void fill(param_type object, size_type count = size_max)
+        {
+            if (count == size_max) count = _count;
 
-        inline T& slot(size_t index); // index < capacity.
-        inline const T& slot(size_t index) const; // index < capacity.
-        void slotInsert(const T& element, size_t index); // index < capacity.
-        void fillArray(const T& element, bool capacity = false);
+            for (size_type i{0}; i < count; i++)
+                entries[i] = object;
+        }
+
+
+        /* Getters. */
+
+        [[nodiscard]] inline size_type count() const
+        {
+            return _count;
+        }
+
+        [[nodiscard]] inline size_type capacity() const
+        {
+            return _capacity;
+        }
+
+        [[nodiscard]] inline bool empty() const
+        {
+            return (_count == 0);
+        }
+
+        [[nodiscard]] inline T& front()
+        {
+            return entries[0];
+        }
+
+        [[nodiscard]] inline const T& front() const
+        {
+            return entries[0];
+        }
+
+        [[nodiscard]] inline T& back()
+        {
+            return entries[_count - 1];
+        }
+
+        [[nodiscard]] inline const T& back() const
+        {
+            return entries[_count - 1];
+        }
+
+
+        /* Iterators. */
 
         using iter_diff_type = int64_t;
 
@@ -84,27 +438,88 @@ class Array
 
             public:
                 iterator() = default;
-                iterator(T* ptr);
-                iterator(const iterator& other);
-                iterator& operator=(const iterator& other);
+                iterator(T* ptr) : ptr{ptr} {}
+                iterator(const iterator& other) : ptr{other.ptr} {}
 
-                T& operator*() const;
-                T* operator->() const;
+                iterator& operator=(const iterator& other)
+                {
+                    if (this != &other)
+                        this->ptr = other.ptr;
+                    return *this;
+                }
 
-                iterator operator+(iter_diff_type n);
-                iterator operator-(iter_diff_type n);
-                iterator& operator+=(iter_diff_type n);
-                iterator& operator-=(iter_diff_type n);
+                T& operator*() const
+                {
+                    return *ptr;
+                }
 
-                iterator& operator++();
-                iterator operator++(int);
-                iterator& operator--();
-                iterator operator--(int);
+                T* operator->() const
+                {
+                    return ptr;
+                }
 
-                iter_diff_type operator-(const iterator& iter);
+                iterator operator+(iter_diff_type n)
+                {
+                    return iterator{ptr + n};
+                }
 
-                bool operator==(const iterator& other) const;
-                bool operator!=(const iterator& other) const;
+                iterator operator-(iter_diff_type n)
+                {
+                    return iterator{ptr - n};
+                }
+
+                iterator& operator+=(iter_diff_type n)
+                {
+                    ptr += n;
+                    return *this;
+                }
+
+                iterator& operator-=(iter_diff_type n)
+                {
+                    ptr -= n;
+                    return *this;
+                }
+
+                iterator& operator++()
+                {
+                    ++ptr;
+                    return *this;
+                }
+
+                iterator operator++(int)
+                {
+                    iterator temp{*this};
+                    ptr++;
+                    return temp;
+                }
+
+                iterator& operator--()
+                {
+                    --ptr;
+                    return *this;
+                }
+
+                iterator operator--(int)
+                {
+                    iterator temp{*this};
+                    ptr--;
+                    return temp;
+                }
+
+                iter_diff_type operator-(const iterator& iter)
+                {
+                    return (this->ptr - iter.ptr);
+                }
+
+                bool operator==(const iterator& other) const
+                {
+                    return (this->ptr == other.ptr);
+                }
+
+                bool operator!=(const iterator& other) const
+                {
+                    return (this->ptr != other.ptr);
+                }
         };
 
         class const_iterator
@@ -114,701 +529,123 @@ class Array
 
             public:
                 const_iterator() = default;
-                const_iterator(const T* ptr);
-                const_iterator(const const_iterator& other);
-                const_iterator& operator=(const const_iterator& other);
+                const_iterator(T* ptr) : ptr{ptr} {}
+                const_iterator(const const_iterator& other) : ptr{other.ptr} {}
 
-                const T& operator*() const;
-                const T* operator->() const;
+                const_iterator& operator=(const const_iterator& other)
+                {
+                    if (this != &other)
+                        this->ptr = other.ptr;
+                    return *this;
+                }
 
-                const_iterator operator+(iter_diff_type n);
-                const_iterator operator-(iter_diff_type n);
-                const_iterator& operator+=(iter_diff_type n);
-                const_iterator& operator-=(iter_diff_type n);
+                const T& operator*() const
+                {
+                    return *ptr;
+                }
 
-                const_iterator& operator++();
-                const_iterator operator++(int);
-                const_iterator& operator--();
-                const_iterator operator--(int);
+                const T* operator->() const
+                {
+                    return ptr;
+                }
 
-                iter_diff_type operator-(const const_iterator& iter);
+                const_iterator operator+(iter_diff_type n)
+                {
+                    return const_iterator{ptr + n};
+                }
 
-                bool operator==(const const_iterator& other) const;
-                bool operator!=(const const_iterator& other) const;
+                const_iterator operator-(iter_diff_type n)
+                {
+                    return const_iterator{ptr - n};
+                }
+
+                const_iterator& operator+=(iter_diff_type n)
+                {
+                    ptr += n;
+                    return *this;
+                }
+
+                const_iterator& operator-=(iter_diff_type n)
+                {
+                    ptr -= n;
+                    return *this;
+                }
+
+                const_iterator& operator++()
+                {
+                    ++ptr;
+                    return *this;
+                }
+
+                const_iterator operator++(int)
+                {
+                    const_iterator temp{*this};
+                    ptr++;
+                    return temp;
+                }
+
+                const_iterator& operator--()
+                {
+                    --ptr;
+                    return *this;
+                }
+
+                const_iterator operator--(int)
+                {
+                    const_iterator temp{*this};
+                    ptr--;
+                    return temp;
+                }
+
+                iter_diff_type operator-(const const_iterator& iter)
+                {
+                    return (this->ptr - iter.ptr);
+                }
+
+                bool operator==(const const_iterator& other) const
+                {
+                    return (this->ptr == other.ptr);
+                }
+
+                bool operator!=(const const_iterator& other) const
+                {
+                    return (this->ptr != other.ptr);
+                }
         };
 
-        [[nodiscard]] iterator begin() noexcept;
-        [[nodiscard]] iterator end() noexcept;
-        [[nodiscard]] const_iterator begin() const noexcept;
-        [[nodiscard]] const_iterator end() const noexcept;
-        [[nodiscard]] const_iterator cbegin() const noexcept;
-        [[nodiscard]] const_iterator cend() const noexcept;
+
+        /* Iterator factory methods. */
+
+        [[nodiscard]] iterator begin() noexcept
+        {
+            return iterator{entries};
+        }
+
+        [[nodiscard]] iterator end() noexcept
+        {
+            return iterator{entries + _count};
+        }
+
+        [[nodiscard]] const_iterator begin() const noexcept
+        {
+            return const_iterator{entries};
+        }
+
+        [[nodiscard]] const_iterator end() const noexcept
+        {
+            return const_iterator{entries + _count};
+        }
+
+        [[nodiscard]] const_iterator cbegin() const noexcept
+        {
+            return const_iterator{entries};
+        }
+
+        [[nodiscard]] const_iterator cend() const noexcept
+        {
+            return const_iterator{entries + _count};
+        }
 };
 
-TEMP
-Array<T>::Array() :
-    entries(nullptr), _count(0),
-    _capacity(0) {}
-
-TEMP
-Array<T>::Array(size_t size) :
-    entries(new T[size]), _count(0), // No elements used at time of construction.
-    _capacity(size) {}
-
-TEMP
-Array<T>::Array(const Array<T>& other) noexcept :
-    entries(new T[other._capacity]), _count(other._count),
-    _capacity(other._capacity)
-{
-    for (size_t i = 0; i < other._capacity; i++)
-        this->entries[i] = other.entries[i];
-}
-
-TEMP
-Array<T>::Array(Array<T>&& other) noexcept :
-    entries(other.entries), _count(other._count),
-    _capacity(other._capacity)
-{
-    other.entries = nullptr;
-    other._count = 0;
-    other._capacity = 0;
-}
-
-TEMP
-Array<T>& Array<T>::operator=(const Array<T>& other) noexcept
-{
-    if (this != &other)
-    {
-        delete[] this->entries;
-        this->entries = new T[other._capacity];
-
-        for (size_t i = 0; i < other._capacity; i++)
-            this->entries[i] = other.entries[i];
-
-        this->_count = other._count;
-        this->_capacity = other._capacity;
-    }
-
-    return *this;
-}
-
-TEMP
-Array<T>& Array<T>::operator=(Array<T>&& other) noexcept
-{
-    if (this != &other)
-    {
-        delete[] this->entries;
-
-        this->entries = other.entries;
-        this->_count = other._count;
-        this->_capacity = other._capacity;
-
-        other.entries = nullptr;
-        other._count = 0;
-        other._capacity = 0;
-    }
-
-    return *this;
-}
-
-TEMP
-Array<T>::~Array()
-{
-    clear();
-}
-
-TEMP
-inline T& Array<T>::operator[](size_t index)
-{
-    if (index >= _count)
-        throw std::out_of_range("Index out of range.");
-
-    return entries[index];
-}
-
-TEMP
-inline const T& Array<T>::operator[](size_t index) const
-{
-    if (index >= _count)
-        throw std::out_of_range("Index out of range.");
-
-    return entries[index];
-}
-
-TEMP
-bool Array<T>::operator==(const Array<T>& other) const
-{
-    if (this->_count != other._count) return false;
-
-    for (size_t i = 0; i < this->_count; i++)
-    {
-        if (this->entries[i] != other.entries[i])
-            return false;
-    }
-
-    return true;
-}
-
-TEMP
-void Array<T>::copy(T* dest, size_t start, size_t end, int shift)
-{
-    if ((entries == nullptr) || (end - start > _count))
-        return;
-
-    if constexpr (std::is_trivially_copyable_v<T>)
-    {
-        std::memcpy(
-            dest + start + shift,
-            entries + start,
-            (end - start) * sizeof(T)
-        );
-    }
-    else if constexpr (std::is_nothrow_move_assignable_v<T>)
-    {
-        for (size_t i = start; i < end; i++)
-            dest[i + shift] = std::move(entries[i]);
-    }
-    else
-    {
-        for (size_t i = start; i < end; i++)
-            dest[i + shift] = entries[i];
-    }
-}
-
-TEMP
-void Array<T>::resize(size_t size)
-{
-    while (_capacity < size)
-        grow();
-}
-
-TEMP
-inline void Array<T>::increaseCapacity()
-{
-    _capacity = (_capacity == 0 ? defaultSize : _capacity * growFactor);
-}
-
-TEMP
-void Array<T>::grow()
-{
-    increaseCapacity();
-    T* newEntries = new T[_capacity];
-    copy(newEntries, 0, _count);
-    delete[] entries;
-    this->entries = newEntries;
-    // this->count does not change.
-    // newEntries goes out of scope here.
-}
-
-TEMP
-void Array<T>::push(const T& element)
-{
-    if (_capacity <= _count)
-        grow();
-    entries[_count++] = element;
-}
-
-TEMP
-int Array<T>::find(const T& element, bool sorted) const
-{
-    static_assert(has_equal_v<T>, "Type is not comparable.");
-    auto defaultEquality = [&](const T& other) -> bool {
-        return element == other;
-    };
-
-    if constexpr (can_compare_v<T>)
-    {
-        if (sorted)
-        {
-            if (_count == 0) return -1;
-
-            size_t min = 0, max = _count - 1;
-            while (min <= max)
-            {
-                size_t mid = min + (max - min) / 2;
-                if (entries[mid] == element)
-                    return (int) mid;
-                else if (entries[mid] < element)
-                    min = mid + 1;
-                else
-                    max = mid - 1;
-            }
-
-            return -1;
-        }
-        else
-            return find_first_if(defaultEquality);
-    }
-    else
-        return find_first_if(defaultEquality);
-}
-
-TEMP
-template<typename Pred>
-int Array<T>::find_first_if(Pred p) const
-{
-    for (size_t i = 0; i < _count; i++)
-    {
-        if (p(entries[i]))
-            return i;
-    }
-
-    return -1;
-}
-
-TEMP
-template<typename Pred>
-int Array<T>::find_last_if(Pred p) const
-{
-    for (size_t i = 0; i < _count; i++)
-    {
-        if (p(entries[_count - i - 1]))
-            return i;
-    }
-
-    return -1;
-}
-
-// When using this function, any unshifted
-// buffer area in the array must be replaced/
-// initialized immediately to maintain
-// the contiguous storage of elements in the array.
-TEMP
-void Array<T>::shift(int shift, size_t start)
-{
-    if ((shift == 0) || (_count == 0)) // Nothing to do.
-        return;
-
-    // We allow the shift to be negative
-    // for element removal.
-    // Just need to be careful when using
-    // that internally.
-
-    // Can't be too negative, though.
-    if (shift < (-1 * static_cast<int>(_count)))
-        return; // Throw error?
-
-    if (start >= _count)
-        return; // Throw error?
-
-    resize(_count + shift);
-    
-    // To avoid data corruption, we make a
-    // new internal array.
-    // Note: we don't use an Array<T> local
-    // variable since its destructor (called when
-    // it goes out of scope by the end of this function)
-    // will deallocate the memory we just "filled up".
-
-    T* newEntries = new T[_capacity];
-    copy(newEntries, 0, start);
-    copy(newEntries, start, _count, shift);
-    delete[] this->entries;
-    this->entries = newEntries;
-    // Only increment count when we fill the
-    // empty spots.
-}
-
-TEMP
-void Array<T>::insert(const T& element, size_t index)
-{
-    if (index >= _count)
-        throw std::out_of_range("Index out of range.");
-    
-    if (_capacity <= _count)
-        grow();
-
-    shift(1, index);
-    entries[index] = element;
-    _count++;
-}
-
-TEMP
-T Array<T>::erase(size_t index)
-{
-    if (index >= _count)
-        throw std::out_of_range("Index out of range.");
-
-    T element = entries[index];
-    // Shift begins at the index we pass to shift().
-    // We want to move every element *after*
-    // the parameter index (here) back, so we add 1.
-    shift(-1, index + 1);
-    _count--;
-    return element;
-}
-
-TEMP
-void Array<T>::remove(const T& element)
-{
-    int index = find(element);
-    if (index == -1)
-        return;
-
-    erase(index);
-}
-
-TEMP
-inline T Array<T>::pop()
-{
-    _count--;
-    return entries[_count];
-}
-
-TEMP
-inline void Array<T>::popn(size_t n)
-{
-    _count -= n;
-}
-
-TEMP
-inline void Array<T>::clear()
-{
-    _count = 0;
-    _capacity = 0;
-    delete[] entries;
-    entries = nullptr; // In case clear() is called again.
-}
-
-TEMP
-inline size_t Array<T>::count() const
-{
-    return _count;
-}
-
-TEMP
-inline size_t Array<T>::capacity() const
-{
-    return _capacity;
-}
-
-TEMP
-inline bool Array<T>::empty() const
-{
-    return _count == 0;
-}
-
-TEMP
-inline T& Array<T>::front()
-{
-    return entries[0];
-}
-
-TEMP
-inline const T& Array<T>::front() const
-{
-    return entries[0];
-}
-
-TEMP
-inline T& Array<T>::back()
-{
-    return entries[_count - 1];
-}
-
-TEMP
-inline const T& Array<T>::back() const
-{
-    return entries[_count - 1];
-}
-
-TEMP
-inline T& Array<T>::slot(size_t index)
-{
-    if (index >= _capacity)
-        throw std::out_of_range("Index out of range.");
-    return entries[index];
-}
-
-TEMP
-inline const T& Array<T>::slot(size_t index) const
-{
-    if (index >= _capacity)
-        throw std::out_of_range("Index out of range.");
-    return entries[index];
-}
-
-TEMP
-void Array<T>::slotInsert(const T& element, size_t index)
-{
-    if (index >= _capacity)
-        throw std::out_of_range("Index out of range.");
-        
-    if (_capacity <= _count)
-        grow();
-
-    shift(1, index);
-    entries[index] = element;
-    _count++;
-}
-
-TEMP
-void Array<T>::fillArray(const T& object, bool capacity)
-{
-    for (size_t i = 0; i < _count; i++)
-        entries[i] = object;
-    if (capacity)
-    {
-        for (size_t i = _count; i < _capacity; i++)
-            entries[i] = object;
-    }
-}
-
-// Iterator implementation.
-
-#define arrIter Array<T>::iterator
-
-TEMP
-arrIter::iterator(T* ptr) :
-    ptr(ptr) {}
-
-TEMP
-arrIter::iterator(const arrIter& other) :
-    ptr(other.ptr) {}
-
-TEMP
-typename arrIter& arrIter::operator=(const arrIter& other)
-{
-    if (this != &other)
-        this->ptr = other.ptr;
-    return *this;
-}
-
-TEMP
-T& arrIter::operator*() const
-{
-    return *ptr;
-}
-
-TEMP
-T* arrIter::operator->() const
-{
-    return ptr;
-}
-
-TEMP
-typename arrIter arrIter::operator+(iter_diff_type n)
-{
-    return iterator(ptr + n);
-}
-
-TEMP
-typename arrIter arrIter::operator-(iter_diff_type n)
-{
-    return iterator(ptr - n);
-}
-
-TEMP
-typename arrIter& arrIter::operator+=(iter_diff_type n)
-{
-    ptr += n;
-    return *this;
-}
-
-TEMP
-typename arrIter& arrIter::operator-=(iter_diff_type n)
-{
-    ptr -= n;
-    return *this;
-}
-
-TEMP
-typename arrIter& arrIter::operator++()
-{
-    ++ptr;
-    return *this;
-}
-
-TEMP
-typename arrIter arrIter::operator++(int n)
-{
-    (void) n;
-
-    arrIter temp = *this;
-    ptr++;
-    return temp;
-}
-
-TEMP
-typename arrIter& arrIter::operator--()
-{
-    --ptr;
-    return *this;
-}
-
-TEMP
-typename arrIter arrIter::operator--(int n)
-{
-    (void) n;
-
-    arrIter temp = *this;
-    ptr--;
-    return temp;
-}
-
-TEMP
-typename Array<T>::iter_diff_type arrIter::operator-(const arrIter& iter)
-{
-    return this->ptr - iter.ptr;
-}
-
-TEMP
-bool arrIter::operator==(const arrIter& other) const
-{
-    return (this->ptr == other.ptr);
-}
-
-TEMP
-bool arrIter::operator!=(const arrIter& other) const
-{
-    return (this->ptr != other.ptr);
-}
-
-TEMP
-typename arrIter Array<T>::begin() noexcept
-{
-    return iterator(entries);
-}
-
-TEMP
-typename arrIter Array<T>::end() noexcept
-{
-    return iterator(entries + _count);
-}
-
-// Const iterator implementation.
-
-#define constArrIter Array<T>::const_iterator
-
-TEMP
-constArrIter::const_iterator(const T* ptr) :
-    ptr(ptr) {}
-
-TEMP
-constArrIter::const_iterator(const const_iterator& other) :
-    ptr(other.ptr) {}
-
-TEMP
-typename constArrIter& constArrIter::operator=(const const_iterator& other)
-{
-    if (this != &other)
-        this->ptr = other.ptr;
-    return *this;
-}
-
-TEMP
-const T& constArrIter::operator*() const
-{
-    return *ptr;
-}
-
-TEMP
-const T* constArrIter::operator->() const
-{
-    return ptr;
-}
-
-TEMP
-typename constArrIter constArrIter::operator+(iter_diff_type n)
-{
-    return const_iterator(ptr + n);
-}
-
-TEMP
-typename constArrIter constArrIter::operator-(iter_diff_type n)
-{
-    return const_iterator(ptr - n);
-}
-
-TEMP
-typename constArrIter& constArrIter::operator+=(iter_diff_type n)
-{
-    ptr += n;
-    return *this;
-}
-
-TEMP
-typename constArrIter& constArrIter::operator-=(iter_diff_type n)
-{
-    ptr -= n;
-    return *this;
-}
-
-TEMP
-typename constArrIter& constArrIter::operator++()
-{
-    ++ptr;
-    return *this;
-}
-
-TEMP
-typename constArrIter constArrIter::operator++(int n)
-{
-    (void) n;
-
-    constArrIter temp = *this;
-    ptr++;
-    return temp;
-}
-
-TEMP
-typename constArrIter& constArrIter::operator--()
-{
-    --ptr;
-    return *this;
-}
-
-TEMP
-typename constArrIter constArrIter::operator--(int n)
-{
-    (void) n;
-
-    constArrIter temp = *this;
-    ptr--;
-    return *this;
-}
-
-TEMP
-typename Array<T>::iter_diff_type constArrIter::operator-(const constArrIter& iter)
-{
-    return this->ptr - iter.ptr;
-}
-
-TEMP
-bool constArrIter::operator==(const const_iterator& other) const
-{
-    return (this->ptr == other.ptr);
-}
-
-TEMP
-bool constArrIter::operator!=(const const_iterator& other) const
-{
-    return (this->ptr != other.ptr);
-}
-
-TEMP
-typename constArrIter Array<T>::begin() const noexcept
-{
-    return const_iterator(entries);
-}
-
-TEMP
-typename constArrIter Array<T>::end() const noexcept
-{
-    return const_iterator(entries + _count);
-}
-
-TEMP
-typename constArrIter Array<T>::cbegin() const noexcept
-{
-    return const_iterator(entries);
-}
-
-TEMP
-typename constArrIter Array<T>::cend() const noexcept
-{
-    return const_iterator(entries + _count);
-}
-
-#undef arrIter
-#undef constArrIter
+template<typename T, typename Alloc>
+Alloc Array<T, Alloc>::allocator{};

@@ -178,13 +178,13 @@ void TypeChecker::TypeError::print() const
 template<typename RecordT>
 const RecordT* TypeChecker::getRecord(const std::string& name) const
 {
-    const auto* records = std::invoke([&] {
+    const auto& records = std::invoke([&]() -> decltype(auto) {
         if constexpr (std::is_same_v<RecordT, VarRecord>)
-            return &(this->varRecords);
+            return (this->varRecords);
         else if constexpr (std::is_same_v<RecordT, FuncRecord>)
-            return &(this->funcRecords);
+            return (this->funcRecords);
         else
-            return &(this->typeRecords);
+            return (this->typeRecords);
     });
 
     for (u8 i{0}; i <= scope; i++)
@@ -1037,7 +1037,7 @@ void TypeChecker::checkFuncBody(const NodeT* node)
     for (const auto& paramEntry : node->params)
     {
         Type paramType{typeFromHint(paramEntry.param.typeHint)};
-        miniChecker.varRecords.add(
+        miniChecker.varRecords->add(
             VarEntry{ paramEntry.param.var.text, 0 },
             VarRecord{ paramType }
         );
@@ -1074,7 +1074,7 @@ CHECKER(VarDecl)
     {
         const auto& name{node->names[i]};
         Type varType{typeFromHint(name.typeHint)};
-        varRecords.add(
+        varRecords->add(
             VarEntry{ name.var.text, scope },
             VarRecord{ varType }
         );
@@ -1095,7 +1095,7 @@ CHECKER(FuncDecl)
     auto returnType{currentReturnType};
     currentReturnType = record.returnType;
 
-    funcRecords.add(
+    funcRecords->add(
         VarEntry{ node->name.text, scope },
         record
     );
@@ -1141,7 +1141,7 @@ CHECKER(TypeDecl)
         methodRecords.push_back(makeFuncRecord(decl));
     }
 
-    typeRecords.add(
+    typeRecords->add(
         VarEntry{ node->name.text, scope },
         TypeRecord{ fields, methods, fieldTypes, methodRecords }
     );
@@ -1160,7 +1160,7 @@ CHECKER(TypeDecl)
 
 CHECKER(AliasDecl)
 {
-    varRecords.add(
+    varRecords->add(
         VarEntry{ node->alias.text, scope },
         VarRecord{ typeFromHint(node->hint) }
     );
@@ -1173,7 +1173,7 @@ CHECKER(UseStmt)
         std::string name{
             node->alias ? node->alias.text : node->module.text
         };
-        varRecords.add(
+        varRecords->add(
             VarEntry{ name, scope },
             VarRecord{ BUILTIN_TYPE(Module) }
         );
@@ -1185,7 +1185,7 @@ CHECKER(UseStmt)
             std::string name{
                 entry.alias ? entry.alias.text : entry.name.text
             };
-            varRecords.add(
+            varRecords->add(
                 VarEntry{ name, scope },
                 VarRecord{ ANY_TYPE }
             );
@@ -1521,6 +1521,8 @@ void TypeChecker::checkExpr(const ExprUP& node)
 
 TypeChecker::TypeChecker(TypeChecker* checker) :
     scopeChecker{checker} {}
+
+TypeChecker::~TypeChecker() = default;
 
 void TypeChecker::check(const StmtVec& program)
 {

@@ -4,6 +4,8 @@
  */
 
 #pragma once
+#include <personal/chain_table.h>
+#include <personal/linear_table.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -239,6 +241,14 @@ using vT    = std::vector<Token>;
 using vByte = std::vector<u8>;
 using vObj  = std::vector<Object>;
 using vBit  = vByte::const_iterator;
+
+template<
+	typename Key,
+	typename Value,
+	typename HashFunc = Hasher<Key>,
+	typename Alloc = LinearDefaultAlloc<Key, Value>
+>
+using HashTable = LinearTable<Key, Value, HashFunc, Alloc>;
 
 /* Global variables. */
 

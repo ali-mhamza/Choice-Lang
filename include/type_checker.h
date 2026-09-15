@@ -3,7 +3,6 @@
 #include "object.h"
 #include "token.h"
 #include "vartable.h"
-#include <personal/hash_table.h>
 #include <memory>
 #include <variant>
 #include <vector>
@@ -153,9 +152,23 @@ class TypeChecker
 
         static std::vector<TypeError> errors;
 
-        HashTable<VarEntry, VarRecord, VarHasher> varRecords{};
-        HashTable<VarEntry, FuncRecord, VarHasher> funcRecords{};
-        HashTable<VarEntry, TypeRecord, VarHasher> typeRecords{};
+        // Storing the tables directly causes compilation errors
+        // due to default initializers (multiple internal types
+        // nest here, the compiler gets stuck in a loop trying to
+        // figure out each's default initializer before having fully
+        // parsed/compiled the TypeChecker class).
+        // The only solutions (I can see) would be to place these types
+        // in an external namespace instead, or only storing unique
+        // pointers to our tables.
+        // To not mess with the design too much, I'm going with the latter.
+
+        using VarTable = HashTable<VarEntry, VarRecord, VarHasher>;
+        using FuncTable = HashTable<VarEntry, FuncRecord, VarHasher>;
+        using TypeTable = HashTable<VarEntry, TypeRecord, VarHasher>;
+
+        const std::unique_ptr<VarTable> varRecords{new VarTable};
+        const std::unique_ptr<FuncTable> funcRecords{new FuncTable};
+        const std::unique_ptr<TypeTable> typeRecords{new TypeTable};
 
         const TypeChecker* const scopeChecker{};
         Type currentReturnType{};
@@ -285,6 +298,8 @@ class TypeChecker
 
     public:
         TypeChecker(TypeChecker* checker = nullptr);
+        ~TypeChecker();
+
         void check(const StmtVec& program);
 
     #undef CHECK_STMT

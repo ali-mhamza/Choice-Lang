@@ -69,7 +69,7 @@ getModuleTable(const std::filesystem::path& path)
         for (const auto& [entry, reg] : symbolTable)
         {
             if (reg < BUILTIN_GLOBALS) continue;
-            if (isPrivate(declTable.get(reg)->attr)) continue;
+            if (isPrivate(declTable[reg].attr)) continue;
             table.add(entry.name, registers[reg]);
         }
     }

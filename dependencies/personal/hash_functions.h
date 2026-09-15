@@ -1,4 +1,5 @@
 #pragma once
+#include "common.h"
 #include <climits>
 #include <cstdint>
 #include <cstring>
@@ -9,19 +10,29 @@
 using Hash = std::uint32_t;
 
 template<typename Key>
-inline Hash hashKey(const Key& key, size_t size = SIZE_MAX);
+inline Hash hashKey(const Key& key, size_type size = size_max);
 template<typename T>
 inline Hash hashNumeric(T key);
 inline Hash hashChar(char key);
 inline Hash hashString(std::string_view string);
-inline Hash hashCStr(const char* string, size_t length = SIZE_MAX);
-
-// Need to have the implementations here since
-// this file is #included in source files
-// with template implementations.
+inline Hash hashCStr(const char* string, size_type length = size_max);
 
 template<typename Key>
-inline Hash hashKey(const Key& key, size_t size)
+struct Hasher
+{
+    Hash operator()(const Key& key)
+    {
+        return hashKey(key);
+    }
+
+    Hash operator()(const Key& key, size_type size)
+    {
+        return hashKey(key, size);
+    }
+};
+
+template<typename Key>
+inline Hash hashKey(const Key& key, size_type size)
 {
     if constexpr (std::is_arithmetic_v<Key>)
         return hashNumeric(key);
@@ -39,11 +50,11 @@ inline Hash hashKey(const Key& key, size_t size)
 }
 
 // Using Jenkins' one-at-a-time function.
-inline Hash hashBytes(const std::uint8_t* bytes, size_t size)
+inline Hash hashBytes(const std::uint8_t* bytes, size_type size)
 {
-    Hash hash = 0;
+    Hash hash{0};
 
-    for (size_t i = 0; i < size; i++)
+    for (size_type i{0}; i < size; i++)
     {
         hash += bytes[i];
         hash += (hash << 10);
@@ -59,25 +70,26 @@ inline Hash hashBytes(const std::uint8_t* bytes, size_t size)
 template<typename T>
 inline Hash hashNumeric(T key)
 {
-    const auto* bytes = reinterpret_cast<const std::uint8_t*>(&key);
+    const auto* bytes{reinterpret_cast<const std::uint8_t*>(&key)};
     return hashBytes(bytes, sizeof(T));
 }
 
 inline Hash hashChar(char key)
 {
-    return (std::uint32_t) key;
+    return static_cast<Hash>(key);
 }
 
 inline Hash hashString(std::string_view string)
 {
-    const auto* bytes = reinterpret_cast<const std::uint8_t*>(string.data());
+    const auto* bytes{reinterpret_cast<const std::uint8_t*>(string.data())};
     return hashBytes(bytes, string.size());
 }
 
-inline Hash hashCStr(const char* string, size_t length)
+inline Hash hashCStr(const char* string, size_type length)
 {
-    if (length == SIZE_MAX)
-        length = strlen(string); // Null-terminated.
-    const auto* bytes = reinterpret_cast<const std::uint8_t*>(string);
+    // Assumes null-terminated.
+    if (length == size_max) length = strlen(string);
+
+    const auto* bytes{reinterpret_cast<const std::uint8_t*>(string)};
     return hashBytes(bytes, length);
 }
