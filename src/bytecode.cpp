@@ -50,7 +50,7 @@ void ByteCode::addLong(u32 bytes)
 	addByte(bytes & 0xff);
 }
 
-const DebugRange& ByteCode::getErrorRange(const u8* ip) const
+const DebugRange& ByteCode::getInstructionRange(const u8* ip) const
 {
 	CH_ASSERT(ip >= block.data(), "Wrong IP passed for error reporting.");
 

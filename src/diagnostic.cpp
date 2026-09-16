@@ -747,7 +747,7 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
         if (!lineDataExists) continue;
 
         const ByteCode* code{frames[i].code};
-        const auto& range{code->getErrorRange(frames[i].ip)};
+        const auto& range{code->getInstructionRange(frames[i].ip)};
 
         positions[i] = sourceManager.getLineColumn(code->getID(), range.sourceStart);
         recordError(code->getID(), DiagCode{}, range.sourceStart,

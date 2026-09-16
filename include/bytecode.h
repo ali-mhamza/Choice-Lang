@@ -37,7 +37,7 @@ class ByteCode
         void addLong(u32 bytes);
 
         [[nodiscard]] FileID getID() const { return id; }
-        const DebugRange& getErrorRange(const u8* ip) const;
+        const DebugRange& getInstructionRange(const u8* ip) const;
         void setDebugData(FileID id, const DebugMetadata& metadata);
 
         // Add a jump instruction with an optional condition

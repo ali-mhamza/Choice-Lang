@@ -1030,7 +1030,7 @@ void VM::reportShortError(const RuntimeError& error)
 
     if (debugInfoState != DebugInfoState::Stripped)
     {
-        const auto& range{currentCode->getErrorRange(ip)};
+        const auto& range{currentCode->getInstructionRange(ip)};
         diagEngine.recordError(currentCode->getID(), error.code,
             range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
         diagEngine.emitReports();
@@ -1049,7 +1049,7 @@ void VM::reportError(const RuntimeError& error)
 
     if (debugInfoState != DebugInfoState::Stripped)
     {
-        const auto& range{currentCode->getErrorRange(ip)};
+        const auto& range{currentCode->getInstructionRange(ip)};
         diagEngine.recordError(currentCode->getID(), error.code,
             range.sourceStart, range.sourceEnd - range.sourceStart, error.label);
         diagEngine.emitStackTrace(frames);
@@ -1070,7 +1070,7 @@ void VM::reportWarning(DiagCode code, const std::string& label)
 
     if (debugInfoState != DebugInfoState::Stripped)
     {
-        const auto& range{currentCode->getErrorRange(ip)};
+        const auto& range{currentCode->getInstructionRange(ip)};
         diagEngine.recordWarning(currentCode->getID(), code,
             range.sourceStart, range.sourceEnd - range.sourceStart, label);
         diagEngine.emitReports();
