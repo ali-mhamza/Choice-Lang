@@ -419,8 +419,7 @@ void Disassembler::disassembleCode()
 {
 	// We only abort completely if a compilation error occurred.
 	// Bytecode for empty input is still displayed.
-	if (func->code.codeSize() == 0)
-		return;
+	if (func->code.codeSize() == 0) return;
 
 	inVM = false;
 	auto end{func->code.block.end()};
