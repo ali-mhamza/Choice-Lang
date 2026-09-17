@@ -36,6 +36,7 @@ class Disassembler
         void callOp(u8 byte);
         void iterOp(u8 byte);
         void indexOp(u8 byte);
+        void rangeOp(u8 byte);
         // Currently: lists and tables.
         void collectionOp(u8 byte);
         void typeOp(u8 byte);

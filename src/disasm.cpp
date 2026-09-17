@@ -226,6 +226,17 @@ void Disassembler::indexOp(u8 byte)
 	CH_PRINT("R[{}] R[{}] R[{}]\n", objReg, indexReg, tempReg);
 }
 
+void Disassembler::rangeOp(u8 byte)
+{
+	printOpcode(opNames[byte]);
+
+	u8 start{readByte()}, stop{readByte()};
+	bool equal{static_cast<bool>(readByte())};
+
+	CH_PRINT("R[{}] R[{}] ({})\n", start, stop,
+		(equal ? "inclusive" : "exclusive"));
+}
+
 void Disassembler::collectionOp(u8 byte)
 {
 	printOpcode(opNames[byte]);
@@ -346,7 +357,7 @@ void Disassembler::disassembleOp(u8 byte)
 		case OP_SET_GLOBAL:	case OP_GET_CELL:	case OP_SET_CELL:	case OP_GET_LOCAL:
 		case OP_SET_LOCAL:	case OP_EQUAL:		case OP_GT:			case OP_LT:
 		case OP_VAR:        case OP_FIX:		case OP_IN:			case OP_MOVE_REG:
-		case OP_RANGE:     	case OP_MODULE:
+		case OP_MODULE:
 			doubleOper(byte);
 			break;
 		case OP_JUMP:		case OP_JUMP_TRUE:	case OP_JUMP_FALSE:		case OP_LOOP:
@@ -360,6 +371,9 @@ void Disassembler::disassembleOp(u8 byte)
 			break;
 		case OP_GET_INDEX:	case OP_SET_INDEX:
 			indexOp(byte);
+			break;
+		case OP_RANGE:
+			rangeOp(byte);
 			break;
 		case OP_CLOSURE:	    case OP_NEG:		    case OP_NOT:		    case OP_INCR:
 		case OP_DECR:		    case OP_COMP:		    case OP_RETURN:		    case OP_VOID:
