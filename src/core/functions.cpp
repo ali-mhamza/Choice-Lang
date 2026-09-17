@@ -1,5 +1,7 @@
 #include "../../include/core.h"
 #include "../../include/error.h"
+#include <limits>
+#include <random>
 
 #define FUNCTION_LIST   \
     X(print)            \
@@ -13,7 +15,8 @@
     X(setattr)          \
     X(binary)           \
     X(hex)              \
-    X(members)
+    X(members)          \
+    X(random)
 
 /* Forward declarations. */
 
@@ -281,6 +284,38 @@ FUNC(members)
     #undef START_CHECK
     #undef X
     #undef END_CHECK
+}
+
+FUNC(random)
+{
+    checkArity(0, 2, true, args);
+
+    static std::mt19937_64 generator{};
+    constexpr u64 intMax{static_cast<u64>(std::numeric_limits<i64>::max())};
+
+    if (args == 0)
+    {
+        u64 value{generator()};
+        if (value > intMax)
+            it[-1] = static_cast<i64>(-1 * (value - intMax));
+        else
+            it[-1] = static_cast<i64>(value);
+    }
+
+    if (args == 2)
+    {
+        if (!IS_INT(it[0]) || !IS_INT(it[1]))
+            throw RuntimeError(WRONG_ARG_TYPE, "range value must be integers");
+
+        i64 min{AS_INT(it[0])}, max{AS_INT(it[1])};
+        if (min >= max)
+        {
+            // TODO: Report error.
+        }
+
+        u64 value{generator()};
+        it[-1] = static_cast<i64>(min + (value % (max - min + 1)));
+    }
 }
 
 #undef FUNCTION_LIST

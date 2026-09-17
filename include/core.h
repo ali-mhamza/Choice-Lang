@@ -36,6 +36,7 @@ namespace Core
         binary,
         hex,
         members,
+        random,
         Count
     };
 
