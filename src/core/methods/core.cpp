@@ -93,13 +93,7 @@ Core::Methods::search{
 METHOD(hash)
 {
     (void) it;
-
-    if (args != 0)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 0 arguments but found {}", args)
-        );
-    }
+    checkArity(0, 0, true, args);
 
     return Object{static_cast<i64>(instance.hash())};
 }
@@ -107,13 +101,7 @@ METHOD(hash)
 METHOD(size_of)
 {
     (void) it;
-
-    if (args != 0)
-    {
-        throw RuntimeError(ARITY_MISMATCH,
-            CH_STR("expect 0 arguments but found {}", args)
-        );
-    }
+    checkArity(0, 0, true, args);
 
     u64 size{};
     switch (instance.type())
