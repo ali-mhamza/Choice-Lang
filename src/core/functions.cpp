@@ -85,7 +85,7 @@ FUNC(print)
     if (inRepl)
         CH_PRINT("\n");
     else
-        fflush(stdout);
+        std::fflush(stdout);
 
     it[-1] = Object::typed(ObjType::Void);
 }
@@ -96,7 +96,7 @@ FUNC(println)
     if (!inRepl)
     {
         CH_PRINT("\n");
-        fflush(stdout);
+        std::fflush(stdout);
     }
 }
 
