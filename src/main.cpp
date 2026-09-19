@@ -200,6 +200,8 @@ static void repl(Args::Config& config)
 
 int main(int argc, const char* argv[])
 {
+	// To optimize standard library IO operations.
+	std::ios_base::sync_with_stdio(false);
 	Args::Config config{Args::parseArgs(argc, argv)};
 
 	switch (config.runOption)

@@ -170,7 +170,6 @@ FUNC(read)
         fflush(stdout);
     }
 
-    std::ios_base::sync_with_stdio(false);
     std::string input{};
     std::getline(std::cin, input);
     it[-1] = Object{CH_ALLOC_STRING(input)};
