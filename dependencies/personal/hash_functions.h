@@ -13,6 +13,11 @@ template<typename Key>
 inline Hash hashKey(const Key& key, size_type size = size_max);
 template<typename T>
 inline Hash hashNumeric(T key);
+// We pass a reference instead of the actual pointer since
+// function pointers cannot (generally) be coerced into const T*
+// pointers.
+template<typename T>
+inline Hash hashPointer(const T& ptr);
 inline Hash hashChar(char key);
 inline Hash hashString(std::string_view string);
 inline Hash hashCStr(const char* string, size_type length = size_max);
@@ -34,6 +39,8 @@ struct Hasher
 template<typename Key>
 inline Hash hashKey(const Key& key, size_type size)
 {
+    if constexpr (std::is_pointer_v<Key>)
+        return hashPointer(key);
     if constexpr (std::is_arithmetic_v<Key>)
         return hashNumeric(key);
     if constexpr (std::is_same_v<Key, char>)
@@ -65,6 +72,13 @@ inline Hash hashBytes(const std::uint8_t* bytes, size_type size)
     hash ^= (hash >> 11);
     hash += (hash << 15);
     return hash;
+}
+
+template<typename T>
+inline Hash hashPointer(const T& ptr)
+{
+    const auto* temp{reinterpret_cast<const std::uint8_t*>(&ptr)};
+    return hashBytes(temp, sizeof(T));
 }
 
 template<typename T>

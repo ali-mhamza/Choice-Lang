@@ -350,13 +350,6 @@ u64 Object::collectionSize() const
     }
 }
 
-template<typename T>
-[[nodiscard]] static Hash hashPointer(T* ptr)
-{
-    const u8* temp{reinterpret_cast<const u8*>(&ptr)};
-    return hashBytes(temp, sizeof(T*));
-}
-
 Hash Object::hash() const
 {
     switch (type())
@@ -367,16 +360,16 @@ Hash Object::hash() const
         case ObjType::Null:     return 0;
         case ObjType::Module:   return hashKey(AS_MODULE(*this)->name);
         case ObjType::CoreType: return hashKey(static_cast<u8>(AS_CORE_TYPE(*this)));
-        case ObjType::UserType: return hashPointer(AS_USER_TYPE(*this));
+        case ObjType::UserType: return hashKey(AS_USER_TYPE(*this));
         case ObjType::Instance: return AS_INSTANCE(*this)->hash();
         case ObjType::CoreFunc: return hashKey(static_cast<u8>(AS_CORE_FUNC(*this)));
         case ObjType::UserFunc:
-        case ObjType::Lambda:   return hashPointer(AS_USER_FUNC(*this));
-        case ObjType::Closure:  return hashPointer(AS_CLOSURE(*this));
+        case ObjType::Lambda:   return hashKey(AS_USER_FUNC(*this));
+        case ObjType::Closure:  return hashKey(AS_CLOSURE(*this));
         case ObjType::CoreMethod:
         {
             const auto* method{AS_CORE_METHOD(*this)};
-            return method->instance.hash() + hashPointer(method->callable);
+            return method->instance.hash() + hashKey(method->callable);
         }
         case ObjType::UserMethod:
         {
@@ -396,22 +389,20 @@ Hash Object::hash() const
         }
         case ObjType::List:     return AS_LIST(*this)->hash();
         // For now, at least.
-        case ObjType::Table:    return hashPointer(AS_TABLE(*this));
+        case ObjType::Table:    return hashKey(AS_TABLE(*this));
         case ObjType::Ref:      return AS_REF(*this)->location->hash();
         case ObjType::Void:     return 0;
         default: CH_UNREACHABLE();
     }
 }
 
-static std::unordered_map<const HeapObj*, u64> printedCollections{};
+static HashTable<const HeapObj*, u64> printedCollections{};
 
 #define PRINTING_ENTER(obj)                                                                 \
     do {                                                                                    \
         if (IS_COLLECTION(*(obj)))                                                          \
         {                                                                                   \
-            nested = (                                                                      \
-                printedCollections.find((obj)->heapPointer()) != printedCollections.end()   \
-            );                                                                              \
+            nested = (printedCollections.get((obj)->heapPointer()) != nullptr);             \
             printedCollections[(obj)->heapPointer()]++;                                     \
         }                                                                                   \
     } while (false)
@@ -421,7 +412,7 @@ static std::unordered_map<const HeapObj*, u64> printedCollections{};
         if (IS_COLLECTION(*(obj)))                                  \
         {                                                           \
             if ((--printedCollections[(obj)->heapPointer()]) == 0)  \
-                printedCollections.erase((obj)->heapPointer());     \
+                printedCollections.remove((obj)->heapPointer());    \
         }                                                           \
     } while (false)
 
@@ -832,7 +823,7 @@ void Instance::initField(const std::string& name, const Object& value)
 
 Hash Instance::hash() const
 {
-    Hash hash{hashPointer(type)};
+    Hash hash{hashKey(type)};
     for (const auto& [_, val] : fields)
         hash += val.hash();
     return hash;
