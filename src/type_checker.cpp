@@ -50,7 +50,7 @@ using namespace AST::Expression;
 
 /* Plain data. */
 
-static std::unordered_map<std::string_view, ObjType> typeTokens{
+static const std::unordered_map<std::string_view, ObjType> typeTokens{
     {"Int",     ObjType::Int},
     {"Dec",     ObjType::Dec},
     {"Bool",    ObjType::Bool},
