@@ -66,6 +66,9 @@ ListMethods::search{
 METHOD(append)
 {
     checkArity(1, 1, true, args);
+    if (IS_IMMUT(instance))
+        throw RuntimeError(MOD_IMMUT_VALUE);
+
     AS_LIST(instance)->array.push(it[0]);
     return Object::typed(ObjType::Void);
 }
@@ -74,6 +77,8 @@ METHOD(clear)
 {
     (void) it;
     checkArity(0, 0, true, args);
+    if (IS_IMMUT(instance))
+        throw RuntimeError(MOD_IMMUT_VALUE);
 
     AS_LIST(instance)->array.clear();
     return Object::typed(ObjType::Void);
@@ -130,6 +135,8 @@ METHOD(pop)
 {
     (void) it;
     checkArity(0, 0, true, args);
+    if (IS_IMMUT(instance))
+        throw RuntimeError(MOD_IMMUT_VALUE);
 
     auto& array{AS_LIST(instance)->array};
     if (array.empty())

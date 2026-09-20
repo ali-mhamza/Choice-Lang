@@ -65,6 +65,8 @@ METHOD(clear)
 {
 	(void) it;
     checkArity(0, 0, true, args);
+	if (IS_IMMUT(instance))
+        throw RuntimeError(MOD_IMMUT_VALUE);
 
 	AS_TABLE(instance)->table.clear();
 	return Object::typed(ObjType::Void);
@@ -97,6 +99,9 @@ METHOD(get)
 METHOD(pop)
 {
     checkArity(1, 2, true, args);
+	if (IS_IMMUT(instance))
+        throw RuntimeError(MOD_IMMUT_VALUE);
+
 	auto& table{AS_TABLE(instance)->table};
 	const auto& key{it[0]};
 
