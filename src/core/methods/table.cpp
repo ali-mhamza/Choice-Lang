@@ -3,6 +3,7 @@
 
 #define METHOD_LIST	\
 	X(clear)		\
+	X(empty)		\
 	X(get)			\
 	X(pop)
 
@@ -67,6 +68,14 @@ METHOD(clear)
 
 	AS_TABLE(instance)->table.clear();
 	return Object::typed(ObjType::Void);
+}
+
+METHOD(empty)
+{
+	(void) it;
+	checkArity(0, 0, true, args);
+
+	return (AS_TABLE(instance)->table.size() == 0);
 }
 
 METHOD(get)
