@@ -21,10 +21,10 @@
 #include <string>
 
 ByteCode::ByteCode(const vByte& block) :
-	block{block} {}
+	block(block) {}
 
 ByteCode::ByteCode(const vByte& block, const vObj& pool) :
-	block{block}, pool{pool} {}
+	block(block), pool(pool) {}
 
 void ByteCode::addOp(Opcode op)
 {
