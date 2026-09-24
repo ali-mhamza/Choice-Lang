@@ -10,19 +10,23 @@
 #include "table_error.h"
 #include <cstdint>
 #include <exception>
+#include <functional>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
+#include <utility>
 
-#define EKVList LinkedList<EKV>
+#define EKVList LinkedList<EKV, std::equal_to<EKV>, std::allocator<ListNode<EKV>>>
 
 template<typename Key, typename Value>
-using ChainDefaultAlloc = std::allocator<EKVList>;
+using ChainTableDefaultAlloc = std::allocator<EKVList>;
 
 template<
     typename Key,
     typename Value,
     typename HashFunc = Hasher<Key>,
-    typename Alloc = ChainDefaultAlloc<Key, Value>
+    typename Compare = std::equal_to<Key>,
+    typename Alloc = ChainTableDefaultAlloc<Key, Value>
 >
 class ChainTable
 {
@@ -39,22 +43,15 @@ class ChainTable
     // );
 
     private:
-        using param_key_type = std::conditional_t<
-            sizeof(Key) <= 8,
-            Key,
-            const Key&
-        >;
-        using param_value_type = std::conditional_t<
-            sizeof(Value) <= 8,
-            Value,
-            const Value&
-        >;
+        using base_pair_type = std::pair<Key, Value>;
+        using param_key_type = param_type<Key>;
+        using param_value_type = param_type<Value>;
 
-        static Alloc allocator;
         static HashFunc getHash;
+        static Alloc allocator;
         static constexpr size_type defaultSize{2};
         static constexpr size_type growFactor{2};
-        static constexpr double loadFactor{TABLE_LOAD_FACTOR};
+        static constexpr double loadFactor{LOAD_FACTOR};
 
         EKVList* entries{nullptr};
         // Number of key-value pairs we have in the table.
@@ -100,7 +97,7 @@ class ChainTable
         {
             size_type newCapacity{capacity * growFactor};
             // Easier to just construct a new table.
-            ChainTable<Key, Value, HashFunc> newTable{newCapacity};
+            ChainTable newTable(newCapacity);
             for (size_type i{0}; i <= maxIndex; i++)
             {
                 EKVList& list{entries[i]};
@@ -173,9 +170,9 @@ class ChainTable
         }
 
     public:
-        ChainTable() : ChainTable{defaultSize} {}
+        ChainTable() : ChainTable(defaultSize) {}
 
-        ChainTable(const ChainTable& other) : ChainTable{defaultSize}
+        ChainTable(const ChainTable& other) : ChainTable(defaultSize)
         {
             merge(other);
         }
@@ -189,6 +186,18 @@ class ChainTable
                 merge(other);
             }
 
+            return *this;
+        }
+
+        ChainTable(std::initializer_list<base_pair_type> list) : ChainTable(defaultSize)
+        {
+            for (const auto& pair : list)
+                add(pair.first, pair.second);
+        }
+
+        ChainTable& operator=(std::initializer_list<base_pair_type> list)
+        {
+            *this = ChainTable(list);
             return *this;
         }
 
@@ -314,6 +323,8 @@ class ChainTable
 
         void merge(const ChainTable& other)
         {
+            if (other.empty()) return;
+
             for (const auto& [key, value] : other)
                 this->add(key, value);
         }
@@ -792,10 +803,22 @@ class ChainTable
         }
 };
 
-template<typename Key, typename Value, typename HashFunc, typename Alloc>
-Alloc ChainTable<Key, Value, HashFunc, Alloc>::allocator;
+template<
+    typename Key,
+    typename Value,
+    typename HashFunc,
+    typename Compare,
+    typename Alloc
+>
+HashFunc ChainTable<Key, Value, HashFunc, Compare, Alloc>::getHash;
 
-template<typename Key, typename Value, typename HashFunc, typename Alloc>
-HashFunc ChainTable<Key, Value, HashFunc, Alloc>::getHash;
+template<
+    typename Key,
+    typename Value,
+    typename HashFunc,
+    typename Compare,
+    typename Alloc
+>
+Alloc ChainTable<Key, Value, HashFunc, Compare, Alloc>::allocator;
 
 #undef EKVList

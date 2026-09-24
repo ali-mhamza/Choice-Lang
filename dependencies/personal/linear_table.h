@@ -11,19 +11,23 @@
 #include "hash_functions.h"
 #include "table_error.h"
 #include <cstdint>
+#include <functional>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 template<typename Key, typename Value>
-using LinearDefaultAlloc = std::allocator<EKV>;
+using LinearTableDefaultAlloc = std::allocator<EKV>;
 
 template<
     typename Key,
     typename Value,
     typename HashFunc = Hasher<Key>,
-    typename Alloc = LinearDefaultAlloc<Key, Value>
+    typename Compare = std::equal_to<Key>,
+    typename Alloc = LinearTableDefaultAlloc<Key, Value>
 >
 class LinearTable
 {
@@ -40,23 +44,17 @@ class LinearTable
     // );
 
     private:
-        using param_key_type = std::conditional_t<
-            sizeof(Key) <= 8,
-            Key,
-            const Key&
-        >;
-        using param_value_type = std::conditional_t<
-            sizeof(Value) <= 8,
-            Value,
-            const Value&
-        >;
+        using base_pair_type = std::pair<Key, Value>;
+        using param_key_type = param_type<Key>;
+        using param_value_type = param_type<Value>;
         using signed_type = std::int64_t;
 
-        static Alloc allocator;
         static HashFunc getHash;
+        static Compare compare;
+        static Alloc allocator;
         static constexpr size_type defaultSize{2};
         static constexpr size_type growFactor{2};
-        static constexpr double loadFactor{TABLE_LOAD_FACTOR};
+        static constexpr double loadFactor{LOAD_FACTOR};
 
         EKV* entries{nullptr};
         size_type count{0};             // Number of pairs in the table.
@@ -125,7 +123,7 @@ class LinearTable
         void rehash()
         {
             size_type newCapacity{capacity * growFactor};
-            LinearTable<Key, Value, HashFunc> newTable{newCapacity};
+            LinearTable newTable(newCapacity);
             for (size_type i{0}; i <= maxIndex; i++)
             {
                 EKV& entry{entries[i]};
@@ -142,12 +140,6 @@ class LinearTable
                 count == 0 ? grow() : rehash();
         }
 
-        void increaseCount()
-        {
-            count++;
-            used++;
-        }
-
         // Searches for existing key.
         // Returns reference to available slot if not found.
         EKV& findSlot(param_key_type key, size_type* pos = nullptr)
@@ -159,22 +151,18 @@ class LinearTable
             EKV* tombstone{nullptr};
             EKV* entry{&entries[index]};
 
-            if (pos != nullptr)
-                *pos = index;
+            if (pos != nullptr) *pos = index;
             while (entry->state != EntryState::Empty)
             {
-                if (pos != nullptr)
-                    *pos = index;
-
-                if (entry->key == key)
-                    return *entry;
+                if (pos != nullptr) *pos = index;
 
                 if (entry->state == EntryState::Tombstone)
                     tombstone = entry;
+                else if (compare(entry->key, key))
+                    return *entry;
 
                 index = (index + 1) & bitmask;
-                if (pos != nullptr)
-                    *pos = index;
+                if (pos != nullptr) *pos = index;
 
                 entry = &entries[index];
             }
@@ -194,22 +182,18 @@ class LinearTable
             const EKV* tombstone{nullptr};
             const EKV* entry{&entries[index]};
 
-            if (pos != nullptr)
-                *pos = index;
+            if (pos != nullptr) *pos = index;
             while (entry->state != EntryState::Empty)
             {
-                if (pos != nullptr)
-                    *pos = index;
-
-                if (entry->key == key)
-                    return *entry;
+                if (pos != nullptr) *pos = index;
 
                 if (entry->state == EntryState::Tombstone)
                     tombstone = entry;
+                else if (compare(entry->key, key))
+                    return *entry;
 
                 index = (index + 1) & bitmask;
-                if (pos != nullptr)
-                    *pos = index;
+                if (pos != nullptr) *pos = index;
 
                 entry = &entries[index];
             }
@@ -233,7 +217,8 @@ class LinearTable
             size_type index{};
             EKV& newEntry{findSlot(key, &index)};
 
-            if (newEntry.state != EntryState::Tombstone) increaseCount();
+            count++;
+            if (newEntry.state != EntryState::Tombstone) used++;
             newEntry = EKV::hashEntry(key, hash);
 
             if (maxIndex == size_max)
@@ -245,9 +230,9 @@ class LinearTable
         }
 
     public:
-        LinearTable() : LinearTable{defaultSize} {}
+        LinearTable() : LinearTable(defaultSize) {}
 
-        LinearTable(const LinearTable& other) : LinearTable{defaultSize}
+        LinearTable(const LinearTable& other) : LinearTable(defaultSize)
         {
             merge(other);
         }
@@ -261,6 +246,18 @@ class LinearTable
                 merge(other);
             }
 
+            return *this;
+        }
+
+        LinearTable(std::initializer_list<base_pair_type> list) : LinearTable(defaultSize)
+        {
+            for (const auto& pair : list)
+                add(pair.first, pair.second);
+        }
+
+        LinearTable& operator=(std::initializer_list<base_pair_type> list)
+        {
+            *this = LinearTable(list);
             return *this;
         }
 
@@ -332,7 +329,8 @@ class LinearTable
             size_type index{};
             EKV& newEntry{findSlot(key, &index)};
 
-            if (newEntry.state != EntryState::Tombstone) increaseCount();
+            count++;
+            if (newEntry.state != EntryState::Tombstone) used++;
             newEntry = Entry{key, value, hash};
 
             if (maxIndex == size_max)
@@ -382,16 +380,23 @@ class LinearTable
 
         void remove(param_key_type key)
         {
+            if (count == 0) return;
+
             EKV& entry{findSlot(key)};
             if (entry.state == EntryState::Valid) // Leave it if it's already empty.
             {
                 entry.state = EntryState::Tombstone;
                 count--;
+                // We don't decrease the 'used' field since tombstones
+                // still count as used (even if they don't count as valid
+                // entries).
             }
         }
 
         void merge(const LinearTable& other)
         {
+            if (other.empty()) return;
+
             for (const auto& [key, value] : other)
                 this->add(key, value);
         }
@@ -419,7 +424,7 @@ class LinearTable
         // For debugging.
         void printTable()
         {
-            for (size_type i = 0; i < capacity; i++)
+            for (size_type i{0}; i < capacity; i++)
             {
                 std::cout << "Slot " << i << ": ";
                 EKV& entry{entries[i]};
@@ -488,11 +493,12 @@ class LinearTable
 
                 iterator& operator++(int)
                 {
+                    iterator temp{*this};
                     ptr++;
                     while ((ptr != end) && (ptr->state != EntryState::Valid))
                         ptr++;
                     pair = IterPair{ptr};
-                    return *this;
+                    return temp;
                 }
 
                 bool operator==(const iterator& other) const
@@ -557,11 +563,12 @@ class LinearTable
 
                 const_iterator& operator++(int)
                 {
+                    const_iterator temp{*this};
                     ptr++;
                     while ((ptr != end) && (ptr->state != EntryState::Valid))
                         ptr++;
                     pair = IterPair{ptr};
-                    return *this;
+                    return temp;
                 }
 
                 bool operator==(const const_iterator& other) const
@@ -618,8 +625,29 @@ class LinearTable
         }
 };
 
-template<typename Key, typename Value, typename HashFunc, typename Alloc>
-Alloc LinearTable<Key, Value, HashFunc, Alloc>::allocator{};
+template<
+    typename Key,
+    typename Value,
+    typename HashFunc,
+    typename Compare,
+    typename Alloc
+>
+HashFunc LinearTable<Key, Value, HashFunc, Compare, Alloc>::getHash;
 
-template<typename Key, typename Value, typename HashFunc, typename Alloc>
-HashFunc LinearTable<Key, Value, HashFunc, Alloc>::getHash{};
+template<
+    typename Key,
+    typename Value,
+    typename HashFunc,
+    typename Compare,
+    typename Alloc
+>
+Compare LinearTable<Key, Value, HashFunc, Compare, Alloc>::compare;
+
+template<
+    typename Key,
+    typename Value,
+    typename HashFunc,
+    typename Compare,
+    typename Alloc
+>
+Alloc LinearTable<Key, Value, HashFunc, Compare, Alloc>::allocator;

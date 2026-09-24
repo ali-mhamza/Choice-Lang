@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <utility>
@@ -21,21 +22,18 @@ struct ListNode
         object{object}, next{next} {}
 };
 
-enum class SortCase
-{
-    Sorted,
-    Unsorted,
-    Invalid
-};
-
-template<typename T, typename Alloc = std::allocator<ListNode<T>>>
+template<
+    typename T,
+    typename Compare = std::equal_to<T>,
+    typename Alloc = std::allocator<ListNode<T>>
+>
 class LinkedList
 {
     private:
+        static Compare compare;
         static Alloc allocator;
         ListNode<T>* head{nullptr};
         size_type listLength{0};
-        SortCase isSorted{SortCase::Invalid};
 
         template<typename... Args>
         static ListNode<T>* allocNode(Args... args)
@@ -66,9 +64,6 @@ class LinkedList
         {
             for (const auto& object : other)
                 this->append(object);
-
-            // this->listLength = other.listLength;
-            this->isSorted = other.isSorted;
         }
 
         LinkedList& operator=(const LinkedList& other)
@@ -78,9 +73,6 @@ class LinkedList
                 this->clear();
                 for (const auto& object : other)
                     this->append(object);
-
-                // this->listLength = other.listLength;
-                this->isSorted = other.isSorted;
             }
 
             return *this;
@@ -90,11 +82,9 @@ class LinkedList
         {
             this->head = other.head;
             this->listLength = other.listLength;
-            this->isSorted = other.isSorted;
 
             other.head = nullptr;
             other.listLength = 0;
-            other.isSorted = SortCase::Invalid;
         }
 
         LinkedList& operator=(LinkedList&& other)
@@ -103,11 +93,9 @@ class LinkedList
             
             this->head = other.head;
             this->listLength = other.listLength;
-            this->isSorted = other.isSorted;
 
             other.head = nullptr;
             other.listLength = 0;
-            other.isSorted = SortCase::Invalid;
 
             return *this;
         }
@@ -176,7 +164,6 @@ class LinkedList
             }
 
             listLength = 0;
-            isSorted = SortCase::Invalid;
         }
 
         // Add new node.
@@ -220,8 +207,8 @@ class LinkedList
             }
 
             ListNode<T>* newNode{allocNode(object)};
-            ListNode<T>* previous = nullptr;
-            ListNode<T>* current = head;
+            ListNode<T>* previous{nullptr};
+            ListNode<T>* current{head};
             for (size_type i{0}; i < position; i++)
             {
                 previous = current;
@@ -251,7 +238,7 @@ class LinkedList
             size_type position{start};
             while (temp != nullptr)
             {
-                if (temp->object == object)
+                if (compare(temp->object, object))
                     return position;
                 temp = temp->next;
                 position++;
@@ -346,18 +333,13 @@ class LinkedList
 
         void sort(bool ascending = true)
         {
-            // We assume the list is currently unsorted
-            // when this method is called, so we don't
-            // check for the value of isSorted.
-
             if ((head == nullptr) || (head->next == nullptr))
             {
                 // Empty list or only one element; nothing to sort.
-                isSorted = SortCase::Sorted;
                 return;
             }
 
-            bool ordered = false;
+            bool ordered{false};
             while (!ordered)
             {
                 ordered = true;
@@ -387,8 +369,6 @@ class LinkedList
                     second = second->next;
                 }
             }
-
-            isSorted = SortCase::Sorted;
         }
 
         void reverse()
@@ -417,110 +397,38 @@ class LinkedList
 
         void merge(const LinkedList& other)
         {
-            // We can't simply connect the end node
-            // for this list to the head node of
-            // the other, since they would then have
-            // duplicate pointers, leading to double-freeing
-            // when both list objects' destructors are called.
+            // We can't simply connect the end node for this list to
+            // the head node of the other, since they would then have
+            // duplicate pointers, leading to double-freeing when both
+            // list objects' destructors are called.
 
             for (const auto& object : other)
                 this->append(object);
-
-            // Cannot know if the merged list is still sorted.
-            isSorted = SortCase::Invalid;
         }
 
-        // Manage sorted list.
-        // All methods (except sorted()) will
-        // assume the list object is already
-        // sorted. They will not sort it if it isn't.
-
-        // Check if it's sorted first.
-         // Will add ascending flag parameter later.
-        bool sorted()
+        bool sorted(bool ascending = true) const
         {
-            // If previous state is known, return it.
-            if (isSorted == SortCase::Sorted || isSorted == SortCase::Unsorted)
-                return (isSorted == SortCase::Sorted); // True if sorted, false otherwise.
-            
             if ((head == nullptr) || (head->next == nullptr))
-            {
-                isSorted = SortCase::Sorted;
                 return true;
-            }
             
-            ListNode<T>* first = head;
-            ListNode<T>* second = head->next;
+            ListNode<T>* first{head};
+            ListNode<T>* second{head->next};
 
             for (size_type i{0}; i < listLength - 1; i++)
             {
-                if (first->object > second->object)
-                {
-                    isSorted = SortCase::Unsorted;
+                if (ascending && (first->object > second->object))
                     return false;
-                }
+                else if (!ascending && (first->object < second->object))
+                    return false;
 
                 first = second;
                 second = second->next;
             }
 
-            isSorted = SortCase::Sorted;
             return true;
         }
 
-        void sortAdd(const T& object)
-        {
-            ListNode<T>* temp = head;
-            size_type position{0};
-            while (temp != nullptr)
-            {
-                if (temp->object > object)
-                    break;
-                temp = temp->next;
-                position++;
-            }
-
-            if (position != listLength)
-                insert(object, position);
-            else
-                append(object);
-        }
-
-        size_type sortPosition(const T& object, size_type start = 0) const
-        {
-            if (start >= listLength) return size_max;
-
-            ListNode<T>* temp{head};
-            for (size_type i{0}; i < start; i++)
-                temp = temp->next;
-
-            size_type position{start};
-            while (temp != nullptr)
-            {
-                if (temp->object == object)
-                    return position;
-                if (temp->object > object) // It's not there.
-                    break;
-                temp = temp->next;
-                position++;
-            }
-
-            return size_max;
-        }
-
-        bool sortHas(const T& object) const
-        {
-            return (sortPosition(object) != size_max);
-        }
-
-        void sortRemove(const T& object)
-        {
-            size_type pos{sortPosition(object)};
-            if (pos != size_max)
-                erase(pos);
-        }
-
-        // Make a copy of the list.
+        // Make a deep copy of the list.
         template<typename U>
         friend LinkedList<U> copy(const LinkedList<U>& list);
 
@@ -665,8 +573,11 @@ class LinkedList
         }
 };
 
-template<typename T, typename Alloc>
-Alloc LinkedList<T, Alloc>::allocator;
+template<typename T, typename Compare, typename Alloc>
+Compare LinkedList<T, Compare, Alloc>::compare;
+
+template<typename T, typename Compare, typename Alloc>
+Alloc LinkedList<T, Compare, Alloc>::allocator;
 
 template<typename U>
 LinkedList<U> copy(const LinkedList<U>& list)

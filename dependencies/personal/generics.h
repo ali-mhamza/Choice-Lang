@@ -11,6 +11,13 @@
 
 // #if CPP_VERSION < 202002L
 
+template<typename T>
+using param_type = std::conditional_t<
+    sizeof(T) <= sizeof(void*),
+    T,
+    const T&
+>;
+
 template<typename T, typename = void>
 struct has_equal : std::false_type {};
 
