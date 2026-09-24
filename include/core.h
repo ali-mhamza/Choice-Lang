@@ -81,14 +81,14 @@ namespace Core
     {
         extern const std::array<sv, to_num(Function::Count)> names;
         extern const std::array<Callable::Func, to_num(Function::Count)> impls;
-        extern const std::unordered_map<sv, Function> search;
+        extern const HashTable<sv, Function> search;
     };
 
     namespace Ctors
     {
         extern const std::array<sv, to_num(Ctor::Count)> names;
         extern const std::array<Callable::Ctor, to_num(Ctor::Count)> impls;
-        extern const std::unordered_map<ObjType, Ctor> search;
+        extern const HashTable<ObjType, Ctor> search;
         extern const std::array<ObjType, to_num(Ctor::Count)> types;
     };
 
@@ -98,7 +98,7 @@ namespace Core
         /* C-style arrays so we don't have to declare size here as well. */
         extern const sv names[];
         extern const Callable::Method impls[];
-        extern const std::unordered_map<sv, u8> search;
+        extern const HashTable<sv, u8> search;
 
         Object getTypeMember(Object& obj, const std::string& name);
         Object getCommonMember(Object& obj, const std::string& name);
@@ -111,20 +111,20 @@ namespace Core
             X(List)                 \
             X(Table)
 
-        #define NAMESPACE(name)                                                                 \
-            namespace name                                                                      \
-            {                                                                                   \
-                extern const u8 methodCount;                                                    \
-                extern const sv names[];                                                        \
-                extern const Callable::Method impls[];                                          \
-                extern const std::unordered_map<sv, u8> search;                                 \
-                inline Object getMember(Object& obj, const std::string& name)                   \
-                {                                                                               \
-                    auto it{search.find(name)};                                                 \
-                    if (it != search.end())                                                     \
-                        return CH_ALLOC_CORE_METHOD(obj, names[it->second], impls[it->second]); \
-                    return Methods::getCommonMember(obj, name);                                 \
-                }                                                                               \
+        #define NAMESPACE(name)                                                     \
+            namespace name                                                          \
+            {                                                                       \
+                extern const u8 methodCount;                                        \
+                extern const sv names[];                                            \
+                extern const Callable::Method impls[];                              \
+                extern const HashTable<sv, u8> search;                              \
+                inline Object getMember(Object& obj, const std::string& name)       \
+                {                                                                   \
+                    const u8* it{search.get(name)};                                 \
+                    if (it != nullptr)                                              \
+                        return CH_ALLOC_CORE_METHOD(obj, names[*it], impls[*it]);   \
+                    return Methods::getCommonMember(obj, name);                     \
+                }                                                                   \
             }
 
         #define X(name) NAMESPACE(name)

@@ -50,7 +50,7 @@ using namespace AST::Expression;
 
 /* Plain data. */
 
-static const std::unordered_map<std::string_view, ObjType> typeTokens{
+static const HashTable<std::string_view, ObjType> typeTokens{
     {"Int",     ObjType::Int},
     {"Dec",     ObjType::Dec},
     {"Bool",    ObjType::Bool},
@@ -582,10 +582,10 @@ TypeChecker::Type TypeChecker::typeFromHint(
             auto* check{getRecord<VarRecord>(std::string{typeToken.text})};
             if (check != nullptr) return check->type;
 
-            auto it{typeTokens.find(typeToken.text)};
+            const auto* it{typeTokens.get(typeToken.text)};
             BasicType type{};
-            if (it != typeTokens.end())
-                type = BasicType{ true, it->second };
+            if (it != nullptr)
+                type = BasicType{ true, *it };
             else
                 type = BasicType{ false, std::string{typeToken.text} };
 

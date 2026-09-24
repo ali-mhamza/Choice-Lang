@@ -92,7 +92,14 @@ namespace
 {
     namespace fs = std::filesystem;
     template<typename... Ts> using set = std::unordered_set<Ts...>;
-    template<typename... Ts> using map = std::unordered_map<Ts...>;
+
+    struct PathHash
+    {
+        bool operator()(const fs::path& path) const
+        {
+            return static_cast<Hash>(std::hash<fs::path>{}(path));
+        }
+    };
 
     // The default == operator for std::filesystem::path
     // compares them lexicographically (i.e., by string or name).
@@ -129,13 +136,13 @@ namespace
     // to guarantee no circular imports, even if the file for the
     // pending import has somehow been modified since its first import
     // started.
-    set<fs::path, std::hash<fs::path>, PathCompare> pendingImports{};
+    set<fs::path, PathHash, PathCompare> pendingImports{};
     // For cached imports, we check both file path and last write time.
     // This allows us to re-import modules that have been modified since
     // first being imported.
     // This is still a work in progress since the compiler eliminates
     // repeated module imports.
-    map<fs::path, Object, std::hash<fs::path>, FileCompare> cachedImports{};
+    HashTable<fs::path, Object, PathHash, FileCompare> cachedImports{};
 };
 
 void VM::defineBuiltinGlobals()
@@ -696,8 +703,8 @@ void VM::callUserType(const Object& callee, u8 start, u8 argCount)
 void VM::callCoreType(const Object& callee, u8 start, u8 argCount)
 {
     ObjType type{AS_CORE_TYPE(callee)};
-    auto it{Core::Ctors::search.find(type)};
-    if (it == Core::Ctors::search.end())
+    const auto* it{Core::Ctors::search.get(type)};
+    if (it == nullptr)
     {
         throw RuntimeError(NO_TYPE_CTOR,
             CH_STR(
@@ -707,7 +714,7 @@ void VM::callCoreType(const Object& callee, u8 start, u8 argCount)
         );
     }
 
-    auto ctor{Core::Ctors::impls[to_num(it->second)]};
+    auto ctor{Core::Ctors::impls[to_num(*it)]};
     registers[start - 1] = ctor(&registers[start], argCount);
 }
 
@@ -797,10 +804,10 @@ void VM::getModule(Object& module, const Object& dir)
         throw RuntimeError(MODULE_IMPORT_PENDING);
     }
 
-    auto checkCache{cachedImports.find(path)};
-    if (checkCache != cachedImports.end())
+    const auto* checkCache{cachedImports.get(path)};
+    if (checkCache != nullptr)
     {
-        module = checkCache->second;
+        module = *checkCache;
         return;
     }
 

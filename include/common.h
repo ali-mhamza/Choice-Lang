@@ -7,6 +7,7 @@
 #include <personal/chain_table.h>
 #include <personal/linear_table.h>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -246,9 +247,10 @@ template<
 	typename Key,
 	typename Value,
 	typename HashFunc = Hasher<Key>,
-	typename Alloc = LinearDefaultAlloc<Key, Value>
+	typename Compare = std::equal_to<Key>,
+	typename Alloc = LinearTableDefaultAlloc<Key, Value>
 >
-using HashTable = LinearTable<Key, Value, HashFunc, Alloc>;
+using HashTable = LinearTable<Key, Value, HashFunc, Compare, Alloc>;
 
 /* Global variables. */
 

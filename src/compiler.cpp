@@ -1918,10 +1918,10 @@ DEF(CallExpr)
     if (node->builtin)
     {
         auto* var{static_cast<VarExpr*>(node->callee.get())};
-        auto find{Core::Functions::search.find(var->name.text)};
-        if (find == Core::Functions::search.end())
+        const auto* find{Core::Functions::search.get(var->name.text)};
+        if (find == nullptr)
             REPORT_ERROR(BUILTIN_NOT_FOUND, var->name);
-        location = static_cast<u8>(find->second);
+        location = static_cast<u8>(*find);
         reserveReg(); // Reserve a register in place of the function object.
     }
     else

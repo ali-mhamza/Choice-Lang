@@ -51,7 +51,7 @@ Core::Functions::impls{
     #undef X
 };
 
-const std::unordered_map<Core::sv, Core::Function>
+const HashTable<Core::sv, Core::Function>
 Core::Functions::search{
     #define X(name) {#name, Function::name},
     FUNCTION_LIST

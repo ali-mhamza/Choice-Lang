@@ -42,7 +42,7 @@ DecMethods::impls[DecMethods::methodCount]{
 };
 
 [[maybe_unused]] static u8 index_{0};
-const std::unordered_map<Core::sv, u8>
+const HashTable<Core::sv, u8>
 DecMethods::search{
     #define X(name) {#name, index_++},
     METHOD_LIST

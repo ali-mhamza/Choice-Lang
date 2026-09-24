@@ -53,7 +53,7 @@ Core::Ctors::impls{
     Core::Ctors::Table
 };
 
-const std::unordered_map<ObjType, Core::Ctor>
+const HashTable<ObjType, Core::Ctor>
 Core::Ctors::search{
     {ObjType::Void,     Ctor::Object},
     {ObjType::Int,      Ctor::Int},

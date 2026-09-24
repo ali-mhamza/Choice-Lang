@@ -27,7 +27,7 @@
 		return;                 	\
 	} while (false)
 
-static const std::unordered_map<std::string_view, TokenType> keywords{
+static const HashTable<std::string_view, TokenType> keywords{
 	// Literals.
 
 	{"true", TOK_TRUE}, {"false", TOK_FALSE}, {"null", TOK_NULL},
@@ -136,9 +136,8 @@ TokenType Lexer::identifierType()
 		return TOK_IDENTIFIER;
 
 	std::string_view text{start, static_cast<u8>(current - start)};
-	auto it{keywords.find(text)};
-	if (it != keywords.end())
-		return it->second;
+	const auto* it{keywords.get(text)};
+	if (it != nullptr) return *it;
 
 	return TOK_IDENTIFIER;
 }

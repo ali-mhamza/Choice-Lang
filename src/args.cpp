@@ -18,7 +18,7 @@
 
 namespace Args
 {
-    const std::unordered_map<std::string_view, Option> options{
+    const HashTable<std::string_view, Option> options{
         {"-token",      Option::EmitTokens},        {"-t",  Option::EmitTokens},
         {"-ast",        Option::PrintAST},          // No short version for now.
         {"-bytecode",   Option::EmitBytecode},      {"-b",  Option::EmitBytecode},
@@ -31,7 +31,7 @@ namespace Args
         {"-test",       Option::RunTests}           // No short version for now.
     };
 
-    const std::unordered_map<Option, Handler> optionHandlers{
+    const HashTable<Option, Handler> optionHandlers{
         {Option::EmitTokens,        optionEmitTokens},
         {Option::PrintAST,          optionPrintAST},
         {Option::EmitBytecode,      optionEmitBytecode},
@@ -44,7 +44,7 @@ namespace Args
         {Option::ExplainError,      optionExplainError}
     };
 
-    const std::unordered_map<std::string_view, DebugInfoState> debugInfoOptions{
+    const HashTable<std::string_view, DebugInfoState> debugInfoOptions{
         {"-c", DebugInfoState::Combined},   {"-combined", DebugInfoState::Combined},
         {"-s", DebugInfoState::Separate},	{"-separate", DebugInfoState::Separate},
         {"-n", DebugInfoState::Stripped},	{"-nodebug", DebugInfoState::Stripped}
@@ -120,51 +120,49 @@ namespace Args
     {
         if (argc == 4)
         {
-            auto it{options.find(argv[1])};
-            if ((it == options.end()) || (it->second != Option::CacheBytecode))
+            const auto* it{options.get(argv[1])};
+            if ((it == nullptr) || (*it != Option::CacheBytecode))
                 invalidOption();
 
-            auto stateIt{debugInfoOptions.find(argv[2])};
-            if (stateIt == debugInfoOptions.end())
+            const auto* stateIt{debugInfoOptions.get(argv[2])};
+            if (stateIt == nullptr)
                 invalidOption();
 
-            debugInfoState = stateIt->second;
+            debugInfoState = *stateIt;
             validateChoiceFile(argv[3], false);
-            return { RunOption::RunFile, it->second, optionCacheBytecode, argv[3] };
+            return { RunOption::RunFile, *it, optionCacheBytecode, argv[3] };
         }
 
         else if (argc == 3)
         {
-            auto it{options.find(argv[1])};
-            if (it == options.end()) invalidOption();
+            const auto* it{options.get(argv[1])};
+            if (it == nullptr) invalidOption();
 
-            if (it->second == Option::ExplainError)
-                return { RunOption::RunDirect, it->second, optionExplainError, argv[2] };
+            if (*it == Option::ExplainError)
+                return { RunOption::RunDirect, *it, optionExplainError, argv[2] };
             else
             {
                 auto checkIt{std::find(optionsUsingSourceFiles.begin(),
-                    optionsUsingSourceFiles.end(), it->second)};
+                    optionsUsingSourceFiles.end(), *it)};
                 bool isCacheFile{checkIt == optionsUsingSourceFiles.end()};
                 validateChoiceFile(argv[2], isCacheFile);
-                return { RunOption::RunFile, it->second, optionHandlers.at(it->second),
-                    argv[2] };
+                return { RunOption::RunFile, *it, optionHandlers[*it], argv[2] };
             }
         }
 
         else if (argc == 2)
         {
-            auto it{options.find(argv[1])};
-            if (it != options.end())
+            const auto* it{options.get(argv[1])};
+            if (it != nullptr)
             {
-                auto checkIt{std::find(fileOnlyOptions.begin(), fileOnlyOptions.end(),
-                    it->second)};
+                auto checkIt{std::find(fileOnlyOptions.begin(), fileOnlyOptions.end(), *it)};
                 if (checkIt != fileOnlyOptions.end())
                 {
                     CH_PRINT_ERROR("Invalid command-line option for REPL mode.\n");
                     exit(64);
                 }
 
-                return { RunOption::RunRepl, it->second, optionHandlers.at(it->second) };
+                return { RunOption::RunRepl, *it, optionHandlers[*it] };
             }
             else
             {

@@ -27,9 +27,9 @@ Object Core::Methods::getTypeMember(Object& obj, const std::string& name)
 
 Object Core::Methods::getCommonMember(Object& obj, const std::string& name)
 {
-    auto it{search.find(name)};
-    if (it != search.end())
-        return CH_ALLOC_CORE_METHOD(obj, names[it->second], impls[it->second]);
+    const auto* it{search.get(name)};
+    if (it != nullptr)
+        return CH_ALLOC_CORE_METHOD(obj, names[*it], impls[*it]);
 
     throw RuntimeError(
         CORE_METHOD_NOT_DEFINED,
@@ -73,7 +73,7 @@ Core::Methods::impls[Core::Methods::methodCount]{
 };
 
 [[maybe_unused]] static u8 index_{0};
-const std::unordered_map<Core::sv, u8>
+const HashTable<Core::sv, u8>
 Core::Methods::search{
     #define X(name) {#name, index_++},
     METHOD_LIST

@@ -44,7 +44,7 @@ TableMethods::impls[TableMethods::methodCount]{
 };
 
 static u8 index_{0};
-const std::unordered_map<Core::sv, u8>
+const HashTable<Core::sv, u8>
 TableMethods::search{
     #define X(name) {#name, index_++},
     METHOD_LIST
