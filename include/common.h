@@ -252,6 +252,21 @@ template<
 >
 using HashTable = LinearTable<Key, Value, HashFunc, Compare, Alloc>;
 
+/* Defer. */
+
+template<typename F>
+struct Defer
+{
+	F func;
+
+	Defer(F&& func) : func{func} {}
+	~Defer() { func(); }
+};
+
+#define PRIV_DEFER_IMPL(code, line)	Defer defer_##line{[&]() -> void { code; }}
+#define PRIV_DEFER(code, line)		PRIV_DEFER_IMPL(code, line)
+#define CH_DEFER(code)				PRIV_DEFER(code, __LINE__)
+
 /* Global variables. */
 
 class SourceManager;

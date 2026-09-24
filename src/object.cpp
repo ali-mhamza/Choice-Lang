@@ -398,24 +398,6 @@ Hash Object::hash() const
 
 static HashTable<const HeapObj*, u64> printedCollections{};
 
-#define PRINTING_ENTER(obj)                                                                 \
-    do {                                                                                    \
-        if (IS_COLLECTION(*(obj)))                                                          \
-        {                                                                                   \
-            nested = (printedCollections.get((obj)->heapPointer()) != nullptr);             \
-            printedCollections[(obj)->heapPointer()]++;                                     \
-        }                                                                                   \
-    } while (false)
-
-#define PRINTING_EXIT(obj) \
-    do {                                                            \
-        if (IS_COLLECTION(*(obj)))                                  \
-        {                                                           \
-            if ((--printedCollections[(obj)->heapPointer()]) == 0)  \
-                printedCollections.remove((obj)->heapPointer());    \
-        }                                                           \
-    } while (false)
-
 [[nodiscard]] static std::string doubleToStr(double d)
 {
     auto output{CH_STR("{:.6f}", d)};
@@ -434,66 +416,59 @@ static HashTable<const HeapObj*, u64> printedCollections{};
 // since this is used for register printing in debug builds.
 std::string Object::printVal() const
 {
-    std::string ret{};
     bool nested{false};
-    PRINTING_ENTER(this);
+    if (IS_COLLECTION(*this))
+    {
+        nested = (printedCollections.get(heapPointer()) != nullptr);
+        printedCollections[heapPointer()]++;
+    }
+
+    CH_DEFER({
+        if (IS_COLLECTION(*this))
+        {
+            if ((--printedCollections[heapPointer()]) == 0)
+                printedCollections.remove(heapPointer());
+        }
+    });
 
     switch (type())
     {
-        case ObjType::Int:      ret = std::to_string(AS_INT(*this));                            break;
-        case ObjType::Dec:      ret = doubleToStr(AS_DEC(*this));                               break;
-        case ObjType::Bool:     ret = (AS_BOOL(*this) ? "true" : "false");                      break;
-        case ObjType::Null:     ret = "null";                                                   break;
-        case ObjType::Module:   ret = CH_STR("<module {}>", AS_MODULE(*this)->name);            break;
-        case ObjType::CoreType: ret = objTypes[static_cast<u8>(AS_CORE_TYPE(*this))];           break;
-        case ObjType::UserType: ret = CH_STR("<type {}>", AS_USER_TYPE(*this)->name);           break;
-        case ObjType::Instance: ret = AS_INSTANCE(*this)->printVal();                           break;
-        case ObjType::CoreFunc: ret = CH_STR("<builtin {}>", names[AS_CORE_FUNC(*this)]);       break;
-        case ObjType::UserFunc: ret = CH_STR("<func {}>", AS_USER_FUNC(*this)->name);           break;
-        case ObjType::Lambda:   ret = "<lambda>";                                               break;
+        case ObjType::Int:          return std::to_string(AS_INT(*this));
+        case ObjType::Dec:          return doubleToStr(AS_DEC(*this));
+        case ObjType::Bool:         return (AS_BOOL(*this) ? "true" : "false");
+        case ObjType::Null:         return "null";
+        case ObjType::Module:       return CH_STR("<module {}>", AS_MODULE(*this)->name);
+        case ObjType::CoreType:     return std::string{objTypes[static_cast<u8>(AS_CORE_TYPE(*this))]};
+        case ObjType::UserType:     return CH_STR("<type {}>", AS_USER_TYPE(*this)->name);
+        case ObjType::Instance:     return AS_INSTANCE(*this)->printVal();
+        case ObjType::CoreFunc:     return CH_STR("<builtin {}>", names[AS_CORE_FUNC(*this)]);
+        case ObjType::UserFunc:     return CH_STR("<func {}>", AS_USER_FUNC(*this)->name);
+        case ObjType::Lambda:       return "<lambda>";
         case ObjType::Closure:
         {
-            const Closure* closure{AS_CLOSURE(*this)};
-            if (closure->function->name == nullptr)
-                ret = "lambda";
-            else
-                ret = CH_STR("<func {}>", closure->function->name);
-            break;
+            const char* name{AS_CLOSURE(*this)->function->name};
+            return (name == nullptr ? "lambda" : CH_STR("<func {}>", name));
         }
-        case ObjType::CoreMethod:
-        {
-            const auto* method{AS_CORE_METHOD(*this)};
-            ret = method->name;
-            break;
-        }
-        case ObjType::UserMethod:
-        {
-            const Function* func{AS_FUNCOBJ(*this)};
-            ret = CH_STR("<method {}>", func->name);
-            break;
-        }
+        case ObjType::CoreMethod:   return std::string{AS_CORE_METHOD(*this)->name};
+        case ObjType::UserMethod:   return CH_STR("<method {}>", AS_FUNCOBJ(*this)->name);
         // Pass nesting status to possibly nesting collection types.
         // Only lists and tables actually need this.
-        case ObjType::Text:     ret = AS_TEXT(*this)->printVal(nested);                         break;
-        case ObjType::String:   ret = AS_STRING(*this)->printVal(nested);                       break;
-        case ObjType::Range:    ret = AS_RANGE(*this)->printVal(nested);                        break;
-        case ObjType::List:     ret = AS_LIST(*this)->printVal(nested);                         break;
-        case ObjType::Table:    ret = AS_TABLE(*this)->printVal(nested);                        break;
-        case ObjType::Ref:      ret = CH_STR("*({})", AS_REF(*this)->location->printVal());     break;
-        case ObjType::Void:     ret = "()";                                                     break;
+        case ObjType::Text:         return AS_TEXT(*this)->printVal(nested);
+        case ObjType::String:       return AS_STRING(*this)->printVal(nested);
+        case ObjType::Range:        return AS_RANGE(*this)->printVal(nested);
+        case ObjType::List:         return AS_LIST(*this)->printVal(nested);
+        case ObjType::Table:        return AS_TABLE(*this)->printVal(nested);
+        case ObjType::Ref:          return CH_STR("*({})", AS_REF(*this)->location->printVal());
+        case ObjType::Void:         return "()";
         case ObjType::Iter:
         {
             const auto& iter{AS_ITER(*this)->iter};
-            std::visit([&ret, nested](auto&& iter) {
-                ret = "->" + iter.obj->printVal(nested);
+            return std::visit([nested](auto&& iter) {
+                return "->" + iter.obj->printVal(nested);
             }, iter);
-            break;
         }
         default: CH_UNREACHABLE();
     }
-
-    PRINTING_EXIT(this);
-    return ret;
 }
 
 std::string_view Object::printType() const
