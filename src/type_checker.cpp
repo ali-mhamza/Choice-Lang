@@ -1224,7 +1224,7 @@ TYPE_GETTER(RefExpr)
 {
     return Type{
         TypeTag::Reference,
-        std::make_shared<Type>(getExprType(node->obj))
+        InnerType{ std::make_shared<Type>(getExprType(node->obj)) }
     };
 }
 
