@@ -177,7 +177,13 @@ void VM::amendFileName()
     if (inRepl)
         AS_TEXT(name)->reset("<repl>");
     else
-        AS_TEXT(name)->reset(sourceManager.getFile(currentCode->getID()));
+    {
+        FileID id{currentCode->getID()};
+        if (id == 0)
+            AS_TEXT(name)->reset("<main>");
+        else
+            AS_TEXT(name)->reset(sourceManager.getFile(id));
+    }
 }
 
 u8 VM::readByte()
