@@ -1352,7 +1352,19 @@ CHECKER(VarDecl)
     u64 valueCount{node->values.size()};
 
     // For now.
-    if (nameCount != valueCount) return;
+    if (nameCount != valueCount)
+    {
+        if ((nameCount == 1) && (valueCount == 0))
+        {
+            const auto& name{node->names.front()};
+            Type varType{typeFromHint(name.typeHint)};
+            varRecords->add(
+                VarEntry{ name.var.text, scope },
+                VarRecord{ varType }
+            );
+        }
+        return;
+    }
 
     for (u64 i{0}; i < nameCount; i++)
     {
