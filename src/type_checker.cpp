@@ -173,6 +173,263 @@ void TypeChecker::TypeError::print() const
     #undef CASE
 }
 
+/* Type-checking initialization. */
+
+void TypeChecker::addBasicRecord(
+    const std::string& name,
+    std::vector<Type> paramTypes,
+    Type returnType,
+    bool hasDefaultArgs,
+    u8 defaultStart
+)
+{
+    funcRecords->add(
+        VarEntry{ name, scope },
+        FuncRecord{ std::move(paramTypes), {}, std::move(returnType),
+            hasDefaultArgs, defaultStart}
+    );
+}
+
+void TypeChecker::addVariadicRecord(
+    const std::string& name,
+    Type variadicType,
+    Type returnType
+)
+{
+    funcRecords->add(
+        VarEntry{ name, scope },
+        FuncRecord{ {}, std::move(variadicType), std::move(returnType),
+            0, 0, true}
+    );
+};
+
+void TypeChecker::initBuiltinRecords()
+{
+    // Built-in functions.
+    const u64 BUILTIN_FUNC_START{__LINE__};
+
+    initFuncPrint();
+    initFuncPrintln();
+    initFuncTypeof();
+    initFuncLen();
+    initFuncClock();
+    initFuncRead();
+    initFuncQuit();
+    initFuncGetattr();
+    initFuncSetattr();
+    initFuncBinary();
+    initFuncHex();
+    initFuncMembers();
+    initFuncRandom();
+
+    const u64 BUILTIN_FUNC_END{__LINE__};
+    const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
+    static_assert(
+        BUILTIN_FUNC_COUNT == static_cast<u64>(Core::Function::Count),
+        "You missed some built-in functions."
+    );
+
+    // Built-in types/ctors.
+    const u64 BUILTIN_CTOR_START{__LINE__};
+
+    initObjectCtor();
+    initIntCtor();
+    initDecCtor();
+    initBoolCtor();
+    initTextCtor();
+    initStringCtor();
+    initRangeCtor();
+    initListCtor();
+    initTableCtor();
+
+    const u64 BUILTIN_CTOR_END{__LINE__};
+    const u64 BUILTIN_CTOR_COUNT{BUILTIN_CTOR_END - BUILTIN_CTOR_START - 3};
+    static_assert(
+        BUILTIN_CTOR_COUNT == static_cast<u64>(Core::Ctor::Count),
+        "You missed some built-in ctors."
+    );
+}
+
+void TypeChecker::initFuncPrint()
+{
+    addVariadicRecord("print", ANY_TYPE, BUILTIN_TYPE(Void));
+}
+
+void TypeChecker::initFuncPrintln()
+{
+    addVariadicRecord("println", ANY_TYPE, BUILTIN_TYPE(Void));
+}
+
+void TypeChecker::initFuncTypeof()
+{
+    Type baseType{ TypeTag::Basic, BasicType{ false, "Type" } };
+    Generic generic{std::make_shared<Type>(baseType)};
+    addBasicRecord("typeof", {ANY_TYPE}, Type{ TypeTag::Generic, generic });
+}
+
+void TypeChecker::initFuncLen()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+    list.add(BUILTIN_TYPE(Range));
+    list.add(BUILTIN_TYPE(List));
+    list.add(BUILTIN_TYPE(Table));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord("read", {param}, BUILTIN_TYPE(Int));
+}
+
+void TypeChecker::initFuncClock()
+{
+    addBasicRecord("clock", {}, BUILTIN_TYPE(Int));
+}
+
+void TypeChecker::initFuncRead()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord("read", {param}, BUILTIN_TYPE(String), true, 0);
+}
+
+void TypeChecker::initFuncQuit()
+{
+    // TODO: Update DUMMY_TYPE here to represent a proper
+    // 'never' type (since 'quit' exits the program).
+    addBasicRecord("quit", {BUILTIN_TYPE(Int)}, DUMMY_TYPE, true, 0);
+}
+
+// TODO: Figure out a way to correct these two.
+// They should only take in user-type instances (is this true?)
+// for their first arguments.
+
+void TypeChecker::initFuncGetattr()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord(
+        "getattr",
+        {ANY_TYPE, param},
+        ANY_TYPE
+    );
+}
+
+void TypeChecker::initFuncSetattr()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord(
+        "getattr",
+        {ANY_TYPE, param, ANY_TYPE},
+        BUILTIN_TYPE(Void)
+    );
+}
+
+void TypeChecker::initFuncBinary()
+{
+    addBasicRecord("binary", {BUILTIN_TYPE(Int)}, BUILTIN_TYPE(String));
+}
+
+void TypeChecker::initFuncHex()
+{
+    addBasicRecord("binary", {BUILTIN_TYPE(Int)}, BUILTIN_TYPE(String));
+}
+
+void TypeChecker::initFuncMembers()
+{
+    Type base{BUILTIN_TYPE(List)};
+    TypeList specs;
+    specs.add(BUILTIN_TYPE(Text));
+
+    Generic generic{std::make_shared<Type>(base), specs};
+    addBasicRecord("members", {ANY_TYPE}, Type{ TypeTag::Generic, generic });
+}
+
+void TypeChecker::initFuncRandom()
+{
+    addBasicRecord(
+        "random",
+        {BUILTIN_TYPE(Int), BUILTIN_TYPE(Int)},
+        BUILTIN_TYPE(Int),
+        true,
+        0
+    );
+}
+
+void TypeChecker::initObjectCtor()
+{
+    addBasicRecord("Object", {}, BUILTIN_TYPE(Void));
+}
+
+// TODO: Requires some more work since the ctor is
+// technically overloaded with different parameter sets.
+void TypeChecker::initIntCtor() {}
+
+void TypeChecker::initDecCtor()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Int));
+    list.add(BUILTIN_TYPE(Dec));
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord("Dec", {param}, BUILTIN_TYPE(Dec), true, 0);
+}
+
+void TypeChecker::initBoolCtor()
+{
+    addBasicRecord("Bool", {ANY_TYPE}, BUILTIN_TYPE(Bool), true, 0);
+}
+
+void TypeChecker::initTextCtor()
+{
+    addBasicRecord("Text", {ANY_TYPE}, BUILTIN_TYPE(Text), true, 0);
+}
+
+void TypeChecker::initStringCtor()
+{
+    addBasicRecord("String", {ANY_TYPE}, BUILTIN_TYPE(String), true, 0);
+}
+
+void TypeChecker::initRangeCtor()
+{
+    addBasicRecord(
+        "Range",
+        {BUILTIN_TYPE(Int), BUILTIN_TYPE(Int), BUILTIN_TYPE(Int)},
+        BUILTIN_TYPE(Range),
+        true,
+        2
+    );
+}
+
+void TypeChecker::initListCtor()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+    list.add(BUILTIN_TYPE(Range));
+    list.add(BUILTIN_TYPE(List));
+    list.add(BUILTIN_TYPE(Table));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord("List", {param}, BUILTIN_TYPE(List), true, 0);
+}
+
+// TODO: Requires some better generic support.
+// Ctor accepts either another table or a list made up entirely
+// of pairs.
+void TypeChecker::initTableCtor() {}
+
 /* Type-checking helpers. */
 
 template<typename RecordT>
@@ -517,8 +774,6 @@ bool TypeChecker::validArgsForCtor(const CallExpr* node, const TypeRecord& recor
 
 bool TypeChecker::validArgsForCallable(const CallExpr* node) const
 {
-    if (node->builtin) return true; // For now.
-
     const VarExpr* var{static_cast<const VarExpr*>(node->callee.get())};
     std::string name{var->name.text};
 
@@ -819,11 +1074,8 @@ TYPE_GETTER(IndexExpr)
 
 TYPE_GETTER(CallExpr)
 {
-    if (node->builtin || (node->callee == nullptr)
-        || (node->callee->type != ExprType::VarExpr))
-    {
+    if ((node->callee == nullptr) || (node->callee->type != ExprType::VarExpr))
         return DUMMY_TYPE;
-    }
 
     const VarExpr* var{static_cast<const VarExpr*>(node->callee.get())};
     std::string name{var->name.text};
@@ -1520,7 +1772,10 @@ void TypeChecker::checkExpr(const ExprUP& node)
 }
 
 TypeChecker::TypeChecker(TypeChecker* checker) :
-    scopeChecker{checker} {}
+    scopeChecker{checker}
+{
+    if (checker == nullptr) initBuiltinRecords();
+}
 
 TypeChecker::~TypeChecker() = default;
 

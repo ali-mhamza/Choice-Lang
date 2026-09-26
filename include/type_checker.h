@@ -1,5 +1,6 @@
 #pragma once
 #include "astnodes.h"
+#include "core.h"
 #include "object.h"
 #include "token.h"
 #include "vartable.h"
@@ -18,7 +19,7 @@ class TypeChecker
     private:
         enum class TypeTag : u8
         {
-            Dummy,      // Empty type object.
+            Dummy,      // Empty and/or invalid type object.
             Any,        // Match to any type.
             Basic,      // Basic type.
             Signature,  // Function signature.
@@ -76,6 +77,8 @@ class TypeChecker
             TypeList specTypes{};
 
             Generic() = default;
+            Generic(TypeSP baseType) :
+                baseType{std::move(baseType)} {}
             Generic(TypeSP baseType, TypeList& specTypes) :
                 baseType{std::move(baseType)}, specTypes{std::move(specTypes)} {}
             bool operator==(const Generic& other) const;
@@ -93,8 +96,12 @@ class TypeChecker
         #undef X
 
         using TypeVariant = std::variant<
-            std::monostate, BasicType, Signature, TypeList, Generic,
-            InnerType
+            std::monostate, // Responsible for: Dummy, Any.
+            BasicType,      // Responsible for: Basic.
+            Signature,      // Responsible for: Signature.
+            TypeList,       // Responsible for: Option, Group.
+            Generic,        // Responsible for: Generic.
+            InnerType       // Responsible for: Reference, Nullable.
         >;
 
         struct Type
@@ -139,7 +146,12 @@ class TypeChecker
         struct FuncRecord
         {
             std::vector<Type> paramTypes{};
+            Type variadicType{};
             Type returnType{};
+
+            bool hasDefaultArgs{false};
+            u8 defaultStart{};
+            bool variadic{false};
         };
 
         struct TypeRecord
@@ -173,6 +185,68 @@ class TypeChecker
         const TypeChecker* const scopeChecker{};
         Type currentReturnType{};
         u8 scope{0};
+
+        /* Initialization. */
+
+        void initBuiltinRecords();
+        // Add a regular function record for a built-in function
+        // or ctor.
+        void addBasicRecord(
+            const std::string& name,
+            std::vector<Type> paramTypes,
+            Type returnType,
+            bool hasDefaultArgs = false,
+            u8 defaultStart = 0
+        );
+        // Add a function record for a built-in function or ctor
+        // that takes a variable number of parameters.
+        void addVariadicRecord(
+            const std::string& name,
+            Type variadicType,
+            Type returnType
+        );
+        // TODO: Very brittle approach.
+        static const u64 BUILTIN_FUNC_START{__LINE__};
+
+        void initFuncPrint();
+        void initFuncPrintln();
+        void initFuncTypeof();
+        void initFuncLen();
+        void initFuncClock();
+        void initFuncRead();
+        void initFuncQuit();
+        void initFuncGetattr();
+        void initFuncSetattr();
+        void initFuncBinary();
+        void initFuncHex();
+        void initFuncMembers();
+        void initFuncRandom();
+
+        static const u64 BUILTIN_FUNC_END{__LINE__};
+        static const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
+        static_assert(
+            BUILTIN_FUNC_COUNT == static_cast<u64>(Core::Function::Count),
+            "You missed some built-in functions."
+        );
+
+        static const u64 BUILTIN_CTOR_START{__LINE__};
+
+        void initObjectCtor();
+        void initIntCtor();
+        void initDecCtor();
+        void initBoolCtor();
+        void initTextCtor();
+        void initStringCtor();
+        void initRangeCtor();
+        void initListCtor();
+        void initTableCtor();
+
+        static const u64 BUILTIN_CTOR_END{__LINE__};
+        static const u64 BUILTIN_CTOR_COUNT{BUILTIN_CTOR_END - BUILTIN_CTOR_START - 3};
+        static_assert(
+            BUILTIN_CTOR_COUNT == static_cast<u64>(Core::Ctor::Count),
+            "You missed some built-in ctors."
+        );
 
         /* Helpers. */
 
