@@ -729,14 +729,28 @@ bool TypeChecker::validArgsForObj(const CallExpr* node, const VarRecord& record)
     return true;
 }
 
+// TODO: Apply further updates to handle variadic functions.
+// Variadic parameter type-hints apply *after* they are
+// transformed into lists inside the function. Arguments are
+// still passed as normal, not as a list of additional arguments.
 bool TypeChecker::validArgsForFunc(const CallExpr* node, const FuncRecord& record) const
 {
-    if (node->args.size() != record.paramTypes.size())
-        return false;
-
     u8 argCount{static_cast<u8>(node->args.size())};
+    u8 paramCount{static_cast<u8>(record.paramTypes.size())};
+
+    if ((argCount > paramCount) && !record.variadic)
+        return false;
+    else if ((argCount < paramCount)
+            && !(record.hasDefaultArgs && (argCount >= record.defaultStart)))
+    {
+        return false;
+    }
+
     for (u8 i{0}; i < argCount; i++)
     {
+        // TODO: Handle variadic parameters properly here.
+        if (i >= paramCount) break;
+
         Type argType{getExprType(node->args[i])};
         if (!compatibleTypes(record.paramTypes[i], argType))
             return false;
@@ -1271,14 +1285,32 @@ void TypeChecker::reportTypeError(ErrorCode code)
 
 /* Type-checking functions. */
 
+// TODO: Does not properly handle variadic parameters.
+// They transform into lists within the function body,
+// but are not passed as lists when the function is called.
 TypeChecker::FuncRecord TypeChecker::makeFuncRecord(const FuncDecl* func) const
 {
     std::vector<Type> paramTypes{};
-    for (const auto& paramEntry : func->params)
-        paramTypes.push_back(typeFromHint(paramEntry.param.typeHint));
-    Type returnType{typeFromHint(func->typeHint)};
+    bool hasDefaultArgs{false}, variadic{false};
+    u8 defaultStart{};
 
-    return FuncRecord{ paramTypes, returnType };
+    for (u64 i{0}; i < func->params.size(); i++)
+    {
+        const auto& paramEntry{func->params[i]};
+        if ((paramEntry.defaultVal != nullptr) && !hasDefaultArgs)
+        {
+            hasDefaultArgs = true;
+            defaultStart = i;
+        }
+        else if (paramEntry.variadic)
+            variadic = true;
+
+        paramTypes.push_back(typeFromHint(paramEntry.param.typeHint));
+    }
+
+    Type returnType{typeFromHint(func->typeHint)};
+    return FuncRecord{ paramTypes, {}, returnType, hasDefaultArgs,
+        defaultStart, variadic};
 }
 
 template<typename NodeT>
