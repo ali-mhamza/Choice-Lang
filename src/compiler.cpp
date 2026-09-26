@@ -70,13 +70,12 @@ void Compiler::defineBuiltinGlobals()
 {
     defVar("_file_", nextReg++, accessFix);
 
-    // For now.
     VarAttr attr{};
     markClosed(attr);
     for (auto ctor : Core::Ctors::names)
         defVar(std::string{ctor}, nextReg++, accessFix, DeclType::Func, attr);
     for (auto func : Core::Functions::names)
-        defVar(std::string{func}, nextReg++, accessVar, DeclType::Func, attr);
+        defVar(std::string{func}, nextReg++, accessFix, DeclType::Func, attr);
 }
 
 void Compiler::defineBuiltinLocals(const std::string& funcName)
