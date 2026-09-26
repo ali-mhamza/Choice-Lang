@@ -1264,11 +1264,7 @@ TYPE_GETTER(LiteralExpr)
     switch (node->value.type)
     {
         case TOK_NUM:       return BUILTIN_TYPE(Int);
-        case TOK_NUM_DEC:
-        {
-            bool approximatelyInt{fmod(node->value.content.d, 1.0) == 0.0};
-            return (approximatelyInt ? BUILTIN_TYPE(Int) : BUILTIN_TYPE(Dec));
-        }
+        case TOK_NUM_DEC:   return BUILTIN_TYPE(Dec);
         case TOK_STR_LIT:   return BUILTIN_TYPE(Text);
         case TOK_RAW_STR:   return BUILTIN_TYPE(Text);
         case TOK_TRUE:      return BUILTIN_TYPE(Bool);
