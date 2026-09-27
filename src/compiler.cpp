@@ -1006,14 +1006,16 @@ void Compiler::compileUseModule(
 )
 {
     std::string name{node->module.text};
-    std::string dir{};
+    std::string dir{moduleDir};
     std::string alias{};
+
     if (node->directory)
     {
         // Trim quote-marks around the path string as well.
-        dir = std::string{node->directory.text.substr(1)};
+        dir += "/" + std::string{node->directory.text.substr(1)};
         dir.pop_back();
     }
+
     if (node->alias)
         alias = std::string{node->alias.text};
 
@@ -1037,11 +1039,11 @@ void Compiler::compileUseModuleEntries(
 )
 {
     std::string name{node->module.text};
-    std::string dir{};
+    std::string dir{moduleDir};
     if (node->directory)
     {
         // Trim quote-marks around the path string as well.
-        dir = std::string{node->directory.text.substr(1)};
+        dir += "/" + std::string{node->directory.text.substr(1)};
         dir.pop_back();
     }
 

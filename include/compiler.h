@@ -418,6 +418,8 @@ class Compiler
         // Whether or not we are compiling a module (globals are also
         // captured in closures within modules).
         bool inModule{false};
+        // Containing directory of the current module being compiled.
+        std::string moduleDir{"."};
 
         static bool clearDeclaredVars;
         static u8 clearIndex;
