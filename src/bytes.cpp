@@ -97,7 +97,7 @@ void CodeReader::readVersionNum()
 	{
 		CH_PRINT_ERROR(
 			"File version is incompatible with current language implementation.\n" \
-			"Please update to a newer, compatible version."
+			"Please update to a newer, compatible version.\n"
 		);
 		exit(EXIT_FAILURE);
 	}
