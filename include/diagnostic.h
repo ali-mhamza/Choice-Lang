@@ -390,10 +390,6 @@ struct Diagnostic
     // sv note{};
     // sv helpMsg{}, helpBody{};
 
-    // Both helpers effectively return the same information.
-    // getDiagCodeSection() helps to identify the opcode integer
-    // equivalent.
-
     [[nodiscard]] static DiagFamily getDiagCodeFamily(DiagCode code);
     [[nodiscard]] DiagFamily getDiagCodeFamily() const;
 
@@ -403,18 +399,23 @@ struct Diagnostic
     // diagnostics (to properly align line numbers when
     // printing a stack trace).
 
+    // Displays error location with truncation if the span is
+    // too large.
     void displayTruncatedErrorPart(
         u64 line,
         u64 col,
         sv text,
         u64 maxLineNo = 0
     ) const;
+    // Displays the error location while truncating the surrounding
+    // line if it is too large.
     void displayTruncatedLine(
         u64 line,
         u64 col,
         sv text,
         u64 maxLineNo = 0
     ) const;
+    // Trims additional tab indentations in the source code.
     void trimDiagnosticWhiteSpace(
         sv& text,
         u64& col
