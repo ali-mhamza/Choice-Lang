@@ -20,7 +20,7 @@ namespace Args
 {
     const HashTable<std::string_view, Option> options{
         {"-token",      Option::EmitTokens},        {"-t",  Option::EmitTokens},
-        {"-ast",        Option::PrintAST},          // No short version for now.
+        {"-ast",        Option::PrintAST},          {"-a",  Option::PrintAST},
         {"-bytecode",   Option::EmitBytecode},      {"-b",  Option::EmitBytecode},
         {"-cache",      Option::CacheBytecode},		{"-c",  Option::CacheBytecode},
         {"-dis",        Option::DisProgram},	    {"-d",  Option::DisProgram},
@@ -172,12 +172,12 @@ namespace Args
         }
 
         else if (argc == 1)
-            return Config{ RunOption::RunRepl };
+            return { RunOption::RunRepl };
 
         else
         {
             CH_PRINT_ERROR("Too many command-line arguments.\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
 }
