@@ -351,7 +351,7 @@ static void runTests(
 			else
 				CH_PRINT("{}PASS{}\n", GREEN, NORMAL);
 
-			fflush(stdout);
+			std::fflush(stdout);
 			diagEngine.clearReports();
 		}
 	}
