@@ -480,7 +480,8 @@ DEF_STMT(TypeDecl)
 
     for (auto& field : raw->fields)
         optimizeExpr(field.init);
-    optimize(raw->methods);
+    for (auto& method : raw->methods)
+        optimizeStmt(method.obj);
 }
 
 DEF_STMT(AliasDecl)

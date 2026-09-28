@@ -30,8 +30,8 @@ class Parser
         Token previousTok{}, currentTok{};
 
         vT::const_iterator it{};
-        // For functions and control-flow.
-        bool inFunc{false}, inInit{false}, inDrop{false};
+        // For functions, types, and control-flow.
+        bool inFunc{false}, inType{false}, inInit{false}, inDrop{false};
         bool inLoop{false}, inComprehension{false};
         bool inMatch{false}, fallthrough{false};
         // We are currently in an error state.
@@ -39,6 +39,9 @@ class Parser
         // Currently parsing lambda parameter list (don't consume
         // the closing '|' except if inside grouping expression).
         bool inLambdaParams{false};
+        // We are parsing a fixed method (only valid inside type
+        // declarations).
+        bool fixedMethod{false};
 
         // Utilities.
 
@@ -104,7 +107,7 @@ class Parser
             AST::Decl& decl
         );
         void parseMethod(
-            StmtVec& methods,
+            std::vector<AST::Statement::TypeDecl::Method>& methods,
             AST::Decl& decl
         );
         [[nodiscard]] StmtUP typeDecl();

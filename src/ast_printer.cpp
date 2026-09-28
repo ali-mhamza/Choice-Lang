@@ -379,7 +379,9 @@ DEF(TypeDecl)
     if (hasMethods)
     {
         beginChild("Methods", LAST_CHILD, ADD_NEWLINE);
-        forEachChild(node->methods, PRINT_LAMBDA(printStmt));
+        forEachChild(node->methods, [this](const auto& entry, bool last) {
+            printStmt(entry.obj, last);
+        });
         endChild();
     }
 }

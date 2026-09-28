@@ -1428,7 +1428,7 @@ CHECKER(TypeDecl)
     std::vector<FuncRecord> methodRecords{};
     for (const auto& method : node->methods)
     {
-        const FuncDecl* decl{static_cast<const FuncDecl*>(method.get())};
+        const FuncDecl* decl{static_cast<const FuncDecl*>(method.obj.get())};
         methods.push_back(std::string{decl->name.text});
         methodRecords.push_back(makeFuncRecord(decl));
     }
@@ -1447,7 +1447,7 @@ CHECKER(TypeDecl)
             reportTypeError(ErrorCode::InitMismatch);
     }
     for (const auto& method : node->methods)
-        checkStmt(method);
+        checkStmt(method.obj);
 }
 
 CHECKER(AliasDecl)

@@ -705,7 +705,7 @@ std::pair<ByteCode*, u8> Compiler::paramHelper(
     ByteCode* temp{defaultArgs};
     // Temporary bytecode storage since we recycle the compiler's
     // bytecode.
-    ByteCode store{};
+    ByteCode store{miniCompiler.code};
 
     for (auto it{params.begin()}; it != params.end(); it++)
     {
@@ -887,12 +887,12 @@ bool Compiler::checkMethodCollisions(
 
     for (u64 i{0}; i < methodCount; i++)
     {
-        const FuncDecl* firstDecl{static_cast<FuncDecl*>(methods[i].get())};
+        const FuncDecl* firstDecl{static_cast<FuncDecl*>(methods[i].obj.get())};
         for (u64 j{0}; j < methodCount; j++)
         {
             if (i == j) continue;
 
-            const FuncDecl* secondDecl{static_cast<FuncDecl*>(methods[j].get())};
+            const FuncDecl* secondDecl{static_cast<FuncDecl*>(methods[j].obj.get())};
             if ((firstDecl == nullptr) || (secondDecl == nullptr)) continue;
 
             if (firstDecl->name.text == secondDecl->name.text)
@@ -920,7 +920,7 @@ bool Compiler::checkMixedCollisions(
     {
         for (u64 j{0}; j < methodCount; j++)
         {
-            const FuncDecl* decl{static_cast<FuncDecl*>(methods[j].get())};
+            const FuncDecl* decl{static_cast<FuncDecl*>(methods[j].obj.get())};
             if (decl == nullptr) continue;
 
             if (fields[i].name.var.text == decl->name.text)
@@ -978,7 +978,7 @@ DEF(TypeDecl)
 
     for (const auto& method : node->methods)
     {
-        FuncDecl* func{static_cast<FuncDecl*>(method.get())};
+        FuncDecl* func{static_cast<FuncDecl*>(method.obj.get())};
         if (func == nullptr) continue;
 
         if ((func->name.text == CH_DESTRUCTOR) && (func->params.size() != 0))
@@ -990,6 +990,8 @@ DEF(TypeDecl)
 
         miniCompiler.defVar("self", 0, accessFix);
         miniCompiler.reserveReg();
+        if (method.fix) miniCompiler.code.addOp(OP_IMMUT, 0);
+
         u8 methodAccess{static_cast<u8>(!isPrivate(func->decl.attr))};
         funcBodyHelper(miniCompiler, func, funcReg, name);
         code.addOp(OP_METHOD, typeReg, funcReg, methodAccess);

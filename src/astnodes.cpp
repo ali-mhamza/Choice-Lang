@@ -40,10 +40,13 @@ TypeDecl::Field::Field(Decl& decl, bool fix, Var& name, ExprUP init) :
     decl{std::move(decl)}, fix{fix}, name{std::move(name)},
     init{std::move(init)} {}
 
+TypeDecl::Method::Method(StmtUP& obj, bool fix) :
+    obj{std::move(obj)}, fix{fix} {}
+
 TypeDecl::TypeDecl(
     const Token& name,
     std::vector<Field>& fields,
-    StmtVec& methods
+    std::vector<Method>& methods
 ) :
     Stmt{StmtType::TypeDecl},
     name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}

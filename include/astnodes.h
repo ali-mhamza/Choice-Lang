@@ -225,16 +225,27 @@ namespace AST
                 );
             };
 
+            struct Method
+            {
+                StmtUP obj{}; // Only function declarations.
+                bool fix{};
+
+                Method(
+                    StmtUP& obj,
+                    bool fix = false
+                );
+            };
+
             Decl decl{};
 
             const Token name{};
             std::vector<Field> fields{};
-            StmtVec methods{}; // Only contains function declarations.
+            std::vector<Method> methods{};
 
             TypeDecl(
                 const Token& name,
                 std::vector<Field>& fields,
-                StmtVec& methods
+                std::vector<Method>& methods
             );
         };
 

@@ -655,6 +655,9 @@ std::pair<StmtUP, AST::Types::TypeHint> Parser::funcBodyHelper(
     if (!matchError(TOK_RIGHT_PAREN, "expect ')' to close function signature"))
         return {};
 
+    if (inType && consumeTok(TOK_FIX))
+        fixedMethod = true;
+
     auto typeHint{ANY_TYPE};
     CONSUME_RETURN_TYPE(typeHint, {});
 
@@ -722,7 +725,7 @@ bool Parser::parseField(
 }
 
 void Parser::parseMethod(
-    StmtVec& methods,
+    std::vector<TypeDecl::Method>& methods,
     AST::Decl& decl
 )
 {
@@ -732,10 +735,16 @@ void Parser::parseMethod(
     else if (currentTok.text == CH_DESTRUCTOR)
         inDrop = true;
 
-    methods.push_back(funcDecl());
-    SET_DECL_INFO(methods.back(), FuncDecl);
+    bool fixed{fixedMethod};
+    fixedMethod = false;
+
+    StmtUP obj{funcDecl()};
+    methods.push_back(TypeDecl::Method{ obj, fixedMethod });
+    SET_DECL_INFO(methods.back().obj, FuncDecl);
+
     inInit = init;
     inDrop = drop;
+    fixedMethod = fixed;
 }
 
 StmtUP Parser::typeDecl()
@@ -743,8 +752,13 @@ StmtUP Parser::typeDecl()
     MATCH_TOK(TOK_IDENTIFIER, "expect type name");
     Token name{previousTok};
 
+    bool type{inType};
+    inType = true;
+
+    CH_DEFER({ inType = type; });
+
     std::vector<TypeDecl::Field> fields{};
-    StmtVec methods{};
+    std::vector<TypeDecl::Method> methods{};
 
     if (!consumeTok(TOK_SEMICOLON))
     {
