@@ -136,6 +136,7 @@ static void buildLine(std::string& line)
 		line.back() = '\n';
 		std::string temp{};
 		CH_PRINT("... ");
+		std::fflush(stdout);
 		std::getline(std::cin, temp);
 		line += temp;
 	}
