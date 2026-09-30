@@ -752,6 +752,14 @@ StmtUP Parser::typeDecl()
     MATCH_TOK(TOK_IDENTIFIER, "expect type name");
     Token name{previousTok};
 
+    ExprUP parent{nullptr};
+    if (consumeTok(TOK_LEFT_PAREN))
+    {
+        MATCH_TOK(TOK_IDENTIFIER, "expect parent type name");
+        parent = std::make_unique<VarExpr>(previousTok);
+        MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after parent type name");
+    }
+
     bool type{inType};
     inType = true;
 
@@ -788,7 +796,7 @@ StmtUP Parser::typeDecl()
         MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' to conclude type declaration");
     }
 
-    return std::make_unique<TypeDecl>(name, fields, methods);
+    return std::make_unique<TypeDecl>(name, parent, fields, methods);
 }
 
 #undef SET_DECL_INFO

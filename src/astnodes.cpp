@@ -45,11 +45,13 @@ TypeDecl::Method::Method(StmtUP& obj, bool fix) :
 
 TypeDecl::TypeDecl(
     const Token& name,
+    ExprUP& parent,
     std::vector<Field>& fields,
     std::vector<Method>& methods
 ) :
     Stmt{StmtType::TypeDecl},
-    name{name}, fields{std::move(fields)}, methods{std::move(methods)} {}
+    name{name}, parent{std::move(parent)}, fields{std::move(fields)},
+    methods{std::move(methods)} {}
 
 AliasDecl::AliasDecl(const Token& alias, AST::Types::TypeHint& hint) :
     Stmt{StmtType::AliasDecl},

@@ -55,6 +55,10 @@ class TypeChecker
 
             void add(const Type& type);
             u64 size() const { return types.size(); }
+
+            TypeSP& front() { return types.front(); }
+            const TypeSP& front() const { return types.front(); }
+
             const TypeSP& operator[](u64 i) const { return types[i]; }
         };
 
@@ -128,7 +132,8 @@ class TypeChecker
             ArgMismatch,
             ReturnMismatch,
             FieldMismatch,
-            InstanceMismatch
+            InstanceMismatch,
+            InheritMismatch
         };
 
         struct TypeError
@@ -156,6 +161,7 @@ class TypeChecker
 
         struct TypeRecord
         {
+            Type parentType{};
             std::vector<std::string> fields{};
             std::vector<std::string> methods{};
             std::vector<Type> fieldTypes{};
@@ -254,6 +260,9 @@ class TypeChecker
         const RecordT* getRecord(const std::string& name) const;
 
         bool compatibleTypes(const Type& t1, const Type& t2) const;
+        // Must define here since we need access to the checker's
+        // type records.
+        bool inheritsFrom(const Type& t1, const Type& t2) const;
         bool canApplyLogicOperator(TokenType oper, const Type& t1, const Type& t2) const;
         bool canApplyCompareOperator(TokenType oper, const Type& t1, const Type& t2) const;
         bool canApplyBitOperator(TokenType oper, const Type& t1, const Type& t2) const;
@@ -264,6 +273,7 @@ class TypeChecker
         bool canIndexInto(const Type& type) const;
         bool canIndexWith(const Type& objType, const Type& indexType) const;
         bool canCall(const Type& type) const;
+        bool canInheritFrom(const std::string& name) const;
 
         bool validArgsForObj(
             const AST::Expression::CallExpr* node,

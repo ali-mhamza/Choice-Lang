@@ -1444,6 +1444,18 @@ void VM::executeOp(Opcode op)
             AS_USER_TYPE(registers[typeReg])->addMethod(registers[funcReg], pub);
             DISPATCH();
         }
+        CASE(OP_INHERIT):
+        {
+            u8 typeReg{readByte()};
+            u8 parentReg{readByte()};
+
+            if (!IS_USER_TYPE(registers[parentReg]))
+                throw RuntimeError(INHERIT_NOT_TYPE);
+
+            Type* type{AS_USER_TYPE(registers[typeReg])};
+            type->inherit(AS_USER_TYPE(registers[parentReg]));
+            DISPATCH();
+        }
 
         CASE(OP_INSTANCE):
         {

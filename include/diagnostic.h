@@ -217,6 +217,8 @@ enum DiagCode : u8
     // Attempting to retrieve a field on an object that isn't
     // an instance.
     FIELD_NO_INSTANCE,
+    // Attempting to inherit from a non-type object.
+    INHERIT_NOT_TYPE,
 
 
     /* Value errors. */

@@ -362,8 +362,23 @@ DEF(TypeDecl)
 
     printName("TypeDecl", !ADD_NEWLINE);
     CH_PRINT(" '{}'\n", node->name.text);
-    bool hasFields{!node->fields.empty()}, hasMethods{!node->methods.empty()};
-    printDecl(node->decl, !hasFields && !hasMethods);
+    bool hasParent{node->parent != nullptr};
+    bool hasFields{!node->fields.empty()};
+    bool hasMethods{!node->methods.empty()};
+    printDecl(node->decl, !hasParent && !hasFields && !hasMethods);
+
+    if (hasParent)
+    {
+        CH_ASSERT(
+            node->parent->type == ExprType::VarExpr,
+            "Invariant on type parent node is not maintained."
+        );
+
+        const VarExpr* var{static_cast<const VarExpr*>(node->parent.get())};
+        beginChild("Parent", !hasFields && !hasMethods, !ADD_NEWLINE);
+        CH_PRINT(": '{}'\n", var->name.text);
+        endChild();
+    }
 
     if (hasFields)
     {

@@ -603,6 +603,32 @@ Type::~Type() noexcept
     delete[] fieldInits;
 }
 
+void Type::inherit(const Type* parent)
+{
+    this->parent = parent;
+    u8 count{static_cast<u8>(fields.size())};
+
+    // This method runs after the type object has been constructed
+    // inside the constant pool (see ctor above) and before addField()
+    // has been called to initialize any fields.
+    // Thus, all of these initializers are empty when this method is
+    // called, so we can avoid any copies and resize directly.
+    delete[] fieldInits;
+    fieldInits = new Object[count + parent->fields.size()];;
+
+    for (u8 pos{0}; pos < parent->fields.size(); pos++)
+    {
+        const auto& field{parent->fields[pos]};
+        if (!this->fieldTable.contains(field.name))
+        {
+            this->fieldTable.add(field.name, count);
+            this->addField(count, parent->fieldInits[pos]);
+            this->fields.push_back(field);
+            count++;
+        }
+    }
+}
+
 void Type::addField(u8 pos, const Object& field)
 {
     fieldInits[pos] = field;
@@ -619,6 +645,13 @@ void Type::addMethod(const Object& method, bool pub)
     methods.add(name, Object{CH_ALLOC_USER_METHOD(method, pub)});
 }
 
+const Object* Type::getMethod(const std::string& name) const
+{
+    const Object* checkThis{methods.get(name)};
+    if (checkThis != nullptr) return checkThis;
+    return (parent == nullptr) ? nullptr : parent->getMethod(name);
+}
+
 bool Type::defines(const std::string& method) const
 {
     return methods.contains(method);
@@ -633,8 +666,8 @@ bool Type::isPublicField(const std::string& field) const
 
 bool Type::isPublicMethod(const std::string& method) const
 {
-    const Object* obj{methods.get(method)};
-    CH_ASSERT(obj != nullptr, "Checking access for non-existent method");
+    const Object* obj{getMethod(method)};
+    CH_ASSERT(obj != nullptr, "Checking access for non-existent method.");
     return AS_USER_METHOD(*obj)->pub;
 }
 
@@ -714,7 +747,7 @@ const Object* Instance::findField(const std::string& name) const
     const Object* location{fields.get(name)};
     if (location == nullptr)
     {
-        location = type->methods.get(name);
+        location = type->getMethod(name);
         if (location != nullptr)
             AS_USER_METHOD(*location)->boundInstance = this;
         else

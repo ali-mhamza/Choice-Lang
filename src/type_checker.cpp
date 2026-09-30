@@ -168,6 +168,7 @@ void TypeChecker::TypeError::print() const
         CASE(ReturnMismatch);
         CASE(FieldMismatch);
         CASE(InstanceMismatch);
+        CASE(InheritMismatch);
     }
 
     #undef CASE
@@ -465,7 +466,6 @@ bool TypeChecker::compatibleTypes(const Type& t1, const Type& t2) const
     if (t1.tag == TypeTag::Any)
         return true;
 
-    // Special handling for optional types.
     if (t1.tag == TypeTag::Option)
     {
         const auto& list{std::get<TypeList>(t1.variant)};
@@ -485,6 +485,8 @@ bool TypeChecker::compatibleTypes(const Type& t1, const Type& t2) const
             t2.isBasicWithTypes(ObjType::Null) || compatibleTypes(type, t2)
         );
     }
+    else if (inheritsFrom(t1, t2)) // Will check that they are both basic.
+        return true;
     else if (t1.tag != t2.tag)
         return false;
 
@@ -497,6 +499,22 @@ bool TypeChecker::compatibleTypes(const Type& t1, const Type& t2) const
         else
             return false;
     }, t1.variant, t2.variant);
+}
+
+bool TypeChecker::inheritsFrom(const Type& t1, const Type& t2) const
+{
+    if (!t1.isBasic() || !t2.isBasic()) return false;
+
+    const BasicType& left{std::get<BasicType>(t1.variant)};
+    const BasicType& right{std::get<BasicType>(t2.variant)};
+    if (left.builtin || right.builtin) return false;
+
+    const auto& name{std::get<std::string>(right.type)};
+    const auto* record{getRecord<TypeRecord>(name)};
+    if ((record == nullptr) || (record->parentType.tag == TypeTag::Dummy))
+        return false;
+
+    return ((record->parentType == t1) || inheritsFrom(t1, record->parentType));
 }
 
 bool TypeChecker::canApplyLogicOperator(
@@ -705,6 +723,28 @@ bool TypeChecker::canCall(const Type& type) const
             if (!basic.builtin && (std::get<std::string>(basic.type) == "Type"))
                 return true;
         }
+    }
+
+    return false;
+}
+
+bool TypeChecker::canInheritFrom(const std::string& name) const
+{
+    // Check if it's a type.
+    const auto* typeRecord{getRecord<TypeRecord>(name)};
+    if (typeRecord != nullptr) return true;
+
+    // Check if it is a variable holding a type object.
+    const auto* varRecord{getRecord<VarRecord>(name)};
+    if ((varRecord == nullptr) || (varRecord->type.tag != TypeTag::Generic))
+        return false;
+
+    const auto& generic{std::get<Generic>(varRecord->type.variant)};
+    if (generic.baseType->isBasic())
+    {
+        const auto& basic{std::get<BasicType>(generic.baseType->variant)};
+        if (!basic.builtin && (std::get<std::string>(basic.type) == "Type"))
+            return true;
     }
 
     return false;
@@ -1416,6 +1456,25 @@ CHECKER(TypeDecl)
         return stmt->expr;
     };
 
+    Type parentType{};
+    if (node->parent != nullptr)
+    {
+        CH_ASSERT(
+            node->parent->type == ExprType::VarExpr,
+            "Invariant on type parent node is not maintained."
+        );
+
+        const VarExpr* var{static_cast<const VarExpr*>(node->parent.get())};
+        std::string name{var->name.text};
+        // We store a simpler form of the parent type here.
+        // This should really be a generic type like this: Type[PARENT_TYPE].
+        // For simplicity, we're really just storing 'PARENT_TYPE'.
+        // This allows for easier compatibility checks.
+        parentType = Type{TypeTag::Basic, BasicType{ false, name }};
+        if (!canInheritFrom(name))
+            reportTypeError(ErrorCode::InheritMismatch);
+    }
+
     std::vector<std::string> fields{};
     std::vector<Type> fieldTypes{};
     for (const auto& field : node->fields)
@@ -1435,7 +1494,7 @@ CHECKER(TypeDecl)
 
     typeRecords->add(
         VarEntry{ node->name.text, scope },
-        TypeRecord{ fields, methods, fieldTypes, methodRecords }
+        TypeRecord{ parentType, fields, methods, fieldTypes, methodRecords }
     );
 
     for (const auto& field : node->fields)

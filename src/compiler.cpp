@@ -966,6 +966,12 @@ DEF(TypeDecl)
     Object typeObj{CH_ALLOC_USER_TYPE(name, fields)};
     code.loadRegConst(typeObj, typeReg);
 
+    if (node->parent != nullptr)
+    {
+        u8 parentReg{compileExpr(node->parent)};
+        code.addOp(OP_INHERIT, typeReg, parentReg);
+    }
+
     u8 count{0};
     for (const auto& field : node->fields)
     {

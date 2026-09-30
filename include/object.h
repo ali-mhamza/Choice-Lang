@@ -467,6 +467,7 @@ struct Type : public HeapObj
     };
 
     const char* name{};
+    const Type* parent{nullptr};
     std::vector<Field> fields{};
     // Field default initializers. Each field has one.
     // Each initializer is a lambda object to permit
@@ -480,8 +481,11 @@ struct Type : public HeapObj
     Type(const std::string& name, std::vector<Field>& fields) noexcept;
     ~Type() noexcept;
 
+    void inherit(const Type* parent);
+
     void addField(u8 pos, const Object& field);
     void addMethod(const Object& method, bool pub);
+    const Object* getMethod(const std::string& method) const;
 
     bool defines(const std::string& method) const;
     bool isPublicField(const std::string& field) const;

@@ -239,11 +239,13 @@ namespace AST
             Decl decl{};
 
             const Token name{};
+            ExprUP parent{}; // Currently only permits variable expressions.
             std::vector<Field> fields{};
             std::vector<Method> methods{};
 
             TypeDecl(
                 const Token& name,
+                ExprUP& parent,
                 std::vector<Field>& fields,
                 std::vector<Method>& methods
             );
