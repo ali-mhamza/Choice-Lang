@@ -648,7 +648,12 @@ void Type::addMethod(const Object& method, bool pub)
 const Object* Type::getMethod(const std::string& name) const
 {
     const Object* checkThis{methods.get(name)};
-    if (checkThis != nullptr) return checkThis;
+    if (checkThis != nullptr)
+    {
+        AS_USER_METHOD(*checkThis)->type = this;
+        return checkThis;
+    }
+
     return (parent == nullptr) ? nullptr : parent->getMethod(name);
 }
 

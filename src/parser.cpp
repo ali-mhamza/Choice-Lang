@@ -656,7 +656,7 @@ std::pair<StmtUP, AST::Types::TypeHint> Parser::funcBodyHelper(
         return {};
 
     if (inType && consumeTok(TOK_FIX))
-        fixedMethod = true;
+        inFixedMethod = true;
 
     auto typeHint{ANY_TYPE};
     CONSUME_RETURN_TYPE(typeHint, {});
@@ -735,16 +735,16 @@ void Parser::parseMethod(
     else if (currentTok.text == CH_DESTRUCTOR)
         inDrop = true;
 
-    bool fixed{fixedMethod};
-    fixedMethod = false;
+    bool fixedMethod{inFixedMethod};
+    inFixedMethod = false;
 
     StmtUP obj{funcDecl()};
-    methods.push_back(TypeDecl::Method{ obj, fixedMethod });
+    methods.push_back(TypeDecl::Method{ obj, inFixedMethod });
     SET_DECL_INFO(methods.back().obj, FuncDecl);
 
     inInit = init;
     inDrop = drop;
-    fixedMethod = fixed;
+    inFixedMethod = fixedMethod;
 }
 
 StmtUP Parser::typeDecl()
@@ -753,17 +753,22 @@ StmtUP Parser::typeDecl()
     Token name{previousTok};
 
     ExprUP parent{nullptr};
+    bool inheritingType{inInheritingType};
     if (consumeTok(TOK_LEFT_PAREN))
     {
         MATCH_TOK(TOK_IDENTIFIER, "expect parent type name");
         parent = std::make_unique<VarExpr>(previousTok);
         MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after parent type name");
+        inInheritingType = true;
     }
 
     bool type{inType};
     inType = true;
 
-    CH_DEFER({ inType = type; });
+    CH_DEFER({
+        inType = type;
+        inInheritingType = inheritingType;
+    });
 
     std::vector<TypeDecl::Field> fields{};
     std::vector<TypeDecl::Method> methods{};
@@ -847,7 +852,7 @@ StmtUP Parser::statement()
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'fallthrough'");
         if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
             REPORT_SEMANTIC(STMT_AFTER_FALLTHROUGH, currentTok);
-        fallthrough = true;
+        inFallthrough = true;
         return nullptr;
     }
     else if (consumeTok(TOK_END))
@@ -1041,9 +1046,9 @@ StmtUP Parser::matchStmt()
         if (defaultCase && consumeTok(TOK_IS))
             REPORT_SEMANTIC(CASE_AFTER_DEFAULT, previousTok);
 
-        // 'fallthrough' updated in statement().
-        cases.emplace_back(caseValue, caseBody, fallthrough);
-        fallthrough = false; // Reset.
+        // 'inFallthrough' updated in statement().
+        cases.emplace_back(caseValue, caseBody, inFallthrough);
+        inFallthrough = false; // Reset.
         if (defaultCase) break;
     }
 
@@ -1802,6 +1807,20 @@ ExprUP Parser::formatString()
     return std::make_unique<FormatExpr>(parts);
 }
 
+ExprUP Parser::super()
+{
+    if (!inType)
+        REPORT_SEMANTIC(SUPER_OUTSIDE_CLASS, previousTok);
+    else if (!inInheritingType)
+        REPORT_SEMANTIC(SUPER_OUTSIDE_CHILD, previousTok);
+
+    CHECK_DEPTH(previousTok);
+    MATCH_TOK(TOK_DOT, "expect '.' after 'super'");
+    MATCH_TOK(TOK_IDENTIFIER, "expect super method name");
+
+    return std::make_unique<SuperExpr>(previousTok);
+}
+
 ExprUP Parser::primary()
 {
     u64 start{currentTok.byteOffset};
@@ -1847,6 +1866,9 @@ ExprUP Parser::primary()
 
     else if (type == TOK_LEFT_BRACE)
         expr = table();
+
+    else if (type == TOK_SUPER)
+        expr = super();
 
     else
         REPORT_SYNTAX(INVALID_TOKEN, previousTok);

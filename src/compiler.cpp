@@ -1962,6 +1962,13 @@ DEF(FieldExpr)
     code.addOp(OP_GET_FIELD, objReg, objReg, fieldReg);
 }
 
+DEF(SuperExpr)
+{
+    Object name{CH_ALLOC_STRING(node->method.text)};
+    code.loadRegConst(name, nextReg);
+    code.addOp(OP_SUPER, nextReg);
+}
+
 DEF(ScopeExpr)
 {
     u8 moduleReg{compileExpr(node->module)};
@@ -2340,6 +2347,7 @@ u8 Compiler::compileExpr(const ExprUP& node)
         CASE(IndexExpr):        COMPILE(IndexExpr);         break;
         CASE(CallExpr):         COMPILE(CallExpr);          break;
         CASE(FieldExpr):        COMPILE(FieldExpr);         break;
+        CASE(SuperExpr):        COMPILE(SuperExpr);         break;
         CASE(ScopeExpr):        COMPILE(ScopeExpr);         break;
         CASE(IfExpr):           COMPILE(IfExpr);            break;
         CASE(LambdaExpr):       COMPILE(LambdaExpr);        break;

@@ -164,6 +164,10 @@ FieldExpr::FieldExpr(ExprUP& obj, const Token& field) :
     Expr{ExprType::FieldExpr},
     obj{std::move(obj)}, field{field} {}
 
+SuperExpr::SuperExpr(const Token& method) :
+    Expr{ExprType::SuperExpr},
+    method{method} {}
+
 ScopeExpr::ScopeExpr(ExprUP& module, const Token& entry) :
     Expr{ExprType::ScopeExpr},
     module{std::move(module)}, entry{entry} {}

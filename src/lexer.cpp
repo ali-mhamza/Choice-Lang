@@ -42,9 +42,9 @@ static const HashTable<std::string_view, TokenType> keywords{
 
 	// Miscellaneous keywords.
 
-	{"immut", TOK_IMMUT}, 	{"mut", TOK_MUT}, 	{"and", TOK_AND},
-	{"or", TOK_OR},			{"not", TOK_NOT},	{"return", TOK_RETURN},
-	{"in", TOK_IN},
+	{"immut", TOK_IMMUT}, 	{"mut", TOK_MUT}, 		{"and", TOK_AND},
+	{"or", TOK_OR},			{"not", TOK_NOT},		{"return", TOK_RETURN},
+	{"in", TOK_IN},			{"super", TOK_SUPER},
 
 	// Declarations.
 

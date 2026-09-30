@@ -266,6 +266,7 @@ bool Optimizer::isConstant(const ExprUP& node)
         }
         case ExprType::CallExpr:    return false;
         case ExprType::FieldExpr:   return false;
+        case ExprType::SuperExpr:   return false;
         case ExprType::ScopeExpr:   return false;
         case ExprType::IfExpr:
         {
@@ -703,6 +704,11 @@ DEF_EXPR(FieldExpr)
     optimizeExpr(raw->obj);
 }
 
+DEF_EXPR(SuperExpr)
+{
+    PASS;
+}
+
 DEF_EXPR(ScopeExpr)
 {
     PASS;
@@ -846,6 +852,7 @@ void Optimizer::optimizeExpr(ExprUP& node)
         CASE(IndexExpr):        OPTIMIZE(IndexExpr);        break;
         CASE(CallExpr):         OPTIMIZE(CallExpr);         break;
         CASE(FieldExpr):        OPTIMIZE(FieldExpr);        break;
+        CASE(SuperExpr):        OPTIMIZE(SuperExpr);        break;
         CASE(ScopeExpr):        OPTIMIZE(ScopeExpr);        break;
         CASE(IfExpr):           OPTIMIZE(IfExpr);           break;
         CASE(LambdaExpr):       OPTIMIZE(LambdaExpr);       break;

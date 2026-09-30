@@ -709,6 +709,12 @@ DEF(FieldExpr)
     printExpr(node->obj, true);
 }
 
+DEF(SuperExpr)
+{
+    printName("Super", !ADD_NEWLINE);
+    CH_PRINT(" '.{}'\n", node->method.text);
+}
+
 DEF(ScopeExpr)
 {
     printName("Scope", !ADD_NEWLINE);
@@ -907,6 +913,7 @@ void ASTPrinter::printExpr(const ExprUP& node, bool last)
         CASE(IndexExpr):        PRINT(IndexExpr);       break;
         CASE(CallExpr):         PRINT(CallExpr);        break;
         CASE(FieldExpr):        PRINT(FieldExpr);       break;
+        CASE(SuperExpr):        PRINT(SuperExpr);       break;
         CASE(ScopeExpr):        PRINT(ScopeExpr);       break;
         CASE(IfExpr):           PRINT(IfExpr);          break;
         CASE(LambdaExpr):       PRINT(LambdaExpr);      break;

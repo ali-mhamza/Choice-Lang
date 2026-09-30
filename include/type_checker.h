@@ -308,6 +308,7 @@ class TypeChecker
         TYPE_GETTER(IndexExpr);
         TYPE_GETTER(CallExpr);
         TYPE_GETTER(FieldExpr);
+        TYPE_GETTER(SuperExpr);
         TYPE_GETTER(ScopeExpr);
         TYPE_GETTER(IfExpr);
         TYPE_GETTER(LambdaExpr);
@@ -361,6 +362,7 @@ class TypeChecker
         CHECK_EXPR(IndexExpr);
         CHECK_EXPR(CallExpr);
         CHECK_EXPR(FieldExpr);
+        CHECK_EXPR(SuperExpr);
         CHECK_EXPR(ScopeExpr);
         CHECK_EXPR(IfExpr);
         CHECK_EXPR(LambdaExpr);

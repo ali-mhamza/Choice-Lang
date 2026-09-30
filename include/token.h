@@ -132,6 +132,7 @@ enum TokenType : u8
 	TOK_TYPE,			// type
 	TOK_DOT,			// .
 	TOK_RARROW,			// ->
+	TOK_SUPER,			// super
 	TOK_ALIAS,			// alias
 
 	/* Modules. */

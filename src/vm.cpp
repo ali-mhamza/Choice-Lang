@@ -732,12 +732,10 @@ void VM::callUserMethod(const Object& callee, u8 start, u8 argCount)
         &registers[start + argCount + 1]);
 
     const Method* method{AS_USER_METHOD(callee)};
-    const Type* type{AS_INSTANCE(method->boundInstance)->type};
-
     Object copy{registers[start - 1]};
     registers[start - 1] = method->funcObj;
     registers[start] = method->boundInstance;
-    callUserFunc(method->funcObj, start, argCount, type);
+    callUserFunc(method->funcObj, start, argCount, method->type);
     registers[start - 1] = CH_MOVE(copy);
 }
 
@@ -1454,6 +1452,24 @@ void VM::executeOp(Opcode op)
 
             Type* type{AS_USER_TYPE(registers[typeReg])};
             type->inherit(AS_USER_TYPE(registers[parentReg]));
+            DISPATCH();
+        }
+        CASE(OP_SUPER):
+        {
+            u8 nameReg{readByte()};
+            const auto& name{AS_STRING(registers[nameReg])->str};
+            const Object* obj{currentMethodType->parent->getMethod(name)};
+            if (obj == nullptr)
+            {
+                const auto* parent{currentMethodType->parent->name};
+                throw RuntimeError(
+                    FIELD_NOT_DEFINED,
+                    CH_STR("parent class '{}' has no method '{}'", parent, name)
+                );
+            }
+
+            AS_USER_METHOD(*obj)->boundInstance = registers[0]; // The 'self' parameter.
+            registers[nameReg] = *obj;
             DISPATCH();
         }
 

@@ -376,6 +376,7 @@ class Compiler
         DECL_EXPR(IndexExpr);
         DECL_EXPR(CallExpr);
         DECL_EXPR(FieldExpr);
+        DECL_EXPR(SuperExpr);
         DECL_EXPR(ScopeExpr);
         DECL_EXPR(IfExpr);
         DECL_EXPR(LambdaExpr);

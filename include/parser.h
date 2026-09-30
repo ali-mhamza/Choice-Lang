@@ -30,18 +30,31 @@ class Parser
         Token previousTok{}, currentTok{};
 
         vT::const_iterator it{};
-        // For functions, types, and control-flow.
-        bool inFunc{false}, inType{false}, inInit{false}, inDrop{false};
+
+        // For functions.
+
+        bool inFunc{false}, inInit{false}, inDrop{false};
+
+        // For control-flow.
+
         bool inLoop{false}, inComprehension{false};
-        bool inMatch{false}, fallthrough{false};
+        bool inMatch{false}, inFallthrough{false};
+
+        // For types.
+
+        bool inType{false};
+        // We are inside a type with a specified base class.
+        // 'super' calls are invalid if this is false.
+        bool inInheritingType{false};
+        // We are parsing a fixed method (only valid inside type
+        // declarations).
+        bool inFixedMethod{false};
+
         // We are currently in an error state.
         bool syntaxError{false}, semanticError{false};
         // Currently parsing lambda parameter list (don't consume
         // the closing '|' except if inside grouping expression).
         bool inLambdaParams{false};
-        // We are parsing a fixed method (only valid inside type
-        // declarations).
-        bool fixedMethod{false};
 
         // Utilities.
 
@@ -166,6 +179,7 @@ class Parser
         [[nodiscard]] ExprUP listComprehension();
         [[nodiscard]] ExprUP tableComprehension();
         [[nodiscard]] ExprUP formatString();
+        [[nodiscard]] ExprUP super();
         [[nodiscard]] ExprUP primary();
 
     public:

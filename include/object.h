@@ -570,12 +570,16 @@ struct Method : public HeapObj
 {
     // Function or closure.
     const Object funcObj{};
-    // We store an object instead of an Instance*
-    // so we can maintain an additional reference to
-    // the instance object through a method bound to it,
-    // preventing it from becoming a dangling pointer
-    // when using ref-counting.
+    // We store an object instead of an Instance* so we can
+    // maintain an additional reference to the instance object
+    // through a method bound to it, preventing it from becoming
+    // a dangling pointer when using ref-counting.
     Object boundInstance{};
+    // Only used to easily retrieve a method's defining type.
+    // Not used to uniquely identify the method object (we use
+    // the internal function object + bound instance for this
+    // instead).
+    const Type* type{};
     const bool pub{};
 
     Method(const Object& funcObj, bool pub) noexcept;

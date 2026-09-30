@@ -420,6 +420,7 @@ namespace AST
             IndexExpr,
             CallExpr,
             FieldExpr,
+            SuperExpr,
             ScopeExpr,
             IfExpr,
             LambdaExpr,
@@ -586,6 +587,13 @@ namespace AST
                 ExprUP& obj,
                 const Token& field
             );
+        };
+
+        struct SuperExpr : public Expr
+        {
+            const Token method{};
+
+            SuperExpr(const Token& method);
         };
 
         // Scoped access from within a module.

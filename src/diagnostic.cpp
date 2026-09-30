@@ -27,7 +27,7 @@ constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
     SCOPE_NOT_IDENT, CORE_METHOD_NOT_DEFINED, TEST_FUNC_HAS_PARAMS,
-    INHERIT_NOT_TYPE, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
+    SUPER_OUTSIDE_CHILD, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
     RETURN_IN_DROP, CLOSED_NON_FUNCTION, INVALID_CALLABLE_TYPE,
     UNREACHABLE_CODE, MUT_TO_IMMUT
@@ -99,6 +99,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Wrong argument type or value.", "Cannot unpack non-collection object.",
     "Cannot unpack a table.", "Object is not an instantiable type.",
     "Only type instances have fields.", "Can only inherit from another type object.",
+    "Cannot use 'super' outside a class.",
+    "Cannot use super in a class with no parent class.",
 
     // Value errors.
 

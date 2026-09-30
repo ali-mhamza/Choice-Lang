@@ -1000,6 +1000,7 @@ TypeChecker::Type TypeChecker::getExprType(const ExprUP& node) const
         case ExprType::IndexExpr:       GET_TYPE(IndexExpr);
         case ExprType::CallExpr:        GET_TYPE(CallExpr);
         case ExprType::FieldExpr:       GET_TYPE(FieldExpr);
+        case ExprType::SuperExpr:       GET_TYPE(SuperExpr);
         case ExprType::ScopeExpr:       GET_TYPE(ScopeExpr);
         case ExprType::IfExpr:          GET_TYPE(IfExpr);
         case ExprType::LambdaExpr:      GET_TYPE(LambdaExpr);
@@ -1192,6 +1193,12 @@ TYPE_GETTER(FieldExpr)
     }
 
     return DUMMY_TYPE;
+}
+
+TYPE_GETTER(SuperExpr)
+{
+    PASS;
+    return ANY_TYPE;
 }
 
 TYPE_GETTER(ScopeExpr)
@@ -1703,6 +1710,11 @@ CHECKER(FieldExpr)
         reportTypeError(ErrorCode::FieldMismatch);
 }
 
+CHECKER(SuperExpr)
+{
+    PASS;
+}
+
 CHECKER(ScopeExpr)
 {
     Type moduleType{getExprType(node->module)};
@@ -1854,6 +1866,7 @@ void TypeChecker::checkExpr(const ExprUP& node)
         case ExprType::IndexExpr:       CHECK(IndexExpr);       break;
         case ExprType::CallExpr:        CHECK(CallExpr);        break;
         case ExprType::FieldExpr:       CHECK(FieldExpr);       break;
+        case ExprType::SuperExpr:       CHECK(SuperExpr);       break;
         case ExprType::ScopeExpr:       CHECK(ScopeExpr);       break;
         case ExprType::IfExpr:          CHECK(IfExpr);          break;
         case ExprType::LambdaExpr:      CHECK(LambdaExpr);      break;

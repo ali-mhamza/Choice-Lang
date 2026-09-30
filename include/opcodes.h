@@ -109,6 +109,7 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_FIELD,			// Store the initializer for a type field (internally a lambda).
 	OP_METHOD,          // Create and store a type method from a loaded function object.
 	OP_INHERIT,			// Inherit from another type.
+	OP_SUPER,			// Retrieve an object from the parent class (if any).
 
 	OP_INSTANCE,        // Create a new instance of a given type.
 	OP_FINISH_FIELDS,   // Finish initializing all fields for an instance.
