@@ -221,6 +221,7 @@ void TypeChecker::initBuiltinRecords()
     initFuncHex();
     initFuncMembers();
     initFuncRandom();
+    initFuncInstanceof();
 
     const u64 BUILTIN_FUNC_END{__LINE__};
     const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
@@ -362,6 +363,18 @@ void TypeChecker::initFuncRandom()
         BUILTIN_TYPE(Int),
         true,
         0
+    );
+}
+
+void TypeChecker::initFuncInstanceof()
+{
+    // TODO: Change the second ANY_TYPE here to properly
+    // represent T[TYPE], where TYPE is a core or user type.
+
+    addBasicRecord(
+        "instanceof",
+        {ANY_TYPE, ANY_TYPE},
+        BUILTIN_TYPE(Bool)
     );
 }
 

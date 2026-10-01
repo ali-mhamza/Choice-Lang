@@ -16,7 +16,8 @@
     X(binary)           \
     X(hex)              \
     X(members)          \
-    X(random)
+    X(random)           \
+    X(instanceof)
 
 /* Forward declarations. */
 
@@ -314,6 +315,38 @@ FUNC(random)
 
         u64 value{generator()};
         it[-1] = static_cast<i64>(min + (value % (max - min + 1)));
+    }
+}
+
+// Returns true if t1 == t2 or if t1 inherits from t2 at
+// some inheritance depth.
+// Returns false othewise.
+static bool sameOrChildType(const Type* t1, const Type* t2)
+{
+    if (t1 == t2) return true;
+    return (t1->parent == nullptr) ? false : sameOrChildType(t1->parent, t2);
+}
+
+FUNC(instanceof)
+{
+    checkArity(2, 2, true, args);
+
+    if (!IS_CORE_TYPE(it[1]) && !IS_USER_TYPE(it[1]))
+        throw RuntimeError(WRONG_ARG_TYPE, "second argument must be a type");
+
+    if (IS_INSTANCE(it[0]))
+    {
+        it[-1] = (
+            IS_USER_TYPE(it[1])
+            && sameOrChildType(AS_INSTANCE(it[0])->type, AS_USER_TYPE(it[1]))
+        );
+    }
+    else
+    {
+        it[-1] = (
+            IS_CORE_TYPE(it[1])
+            && (it[0].type() == AS_CORE_TYPE(it[1]))
+        );
     }
 }
 

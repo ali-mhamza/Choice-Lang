@@ -36,6 +36,7 @@ namespace Core
         hex,
         members,
         random,
+        instanceof,
         Count
     };
 

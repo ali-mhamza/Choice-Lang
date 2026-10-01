@@ -227,6 +227,7 @@ class TypeChecker
         void initFuncHex();
         void initFuncMembers();
         void initFuncRandom();
+        void initFuncInstanceof();
 
         static const u64 BUILTIN_FUNC_END{__LINE__};
         static const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
