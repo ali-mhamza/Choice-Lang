@@ -356,9 +356,6 @@ TYPE_LIST
 #define IS_COLLECTION(obj) \
     (((obj).type() >= ObjType::Text) && ((obj).type() <= ObjType::Table))
 
-// Object can be compared with <, >, or == operators.
-#define IS_COMPARABLE(obj)  (IS_NUM(obj) || IS_TEXT(obj) || IS_STRING(obj))
-
 // Object data is stored in-line within the object as a payload.
 #define IS_PRIMITIVE(obj)   (!IS_HEAP_OBJ(obj) && !IS_ITER(obj))
 
@@ -394,6 +391,16 @@ TYPE_LIST
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
 const Function* AS_FUNCOBJ(const Object& obj);
+
+// Whether or not two types can be compared with the
+// > and < operators.
+inline bool comparable(const Object& left, const Object& right)
+{
+    return (
+        (IS_NUM(left) && IS_NUM(right))
+        || (IS_STRING_LIKE(left) && IS_STRING_LIKE(right))
+    );
+}
 
 inline std::string getElementText(const Object& obj)
 {

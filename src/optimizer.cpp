@@ -83,9 +83,8 @@ WALKER(CompareExpr)
         (expr->oper == TOK_GT) || (expr->oper == TOK_LT) ||
         (expr->oper == TOK_GT_EQ) || (expr->oper == TOK_LT_EQ)
     };
-    bool comparable{IS_COMPARABLE(left) && IS_COMPARABLE(right)};
 
-    if (!valid || (inequality && !comparable))
+    if (!valid || (inequality && !comparable(left, right)))
         return Object{};
 
     try

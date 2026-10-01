@@ -398,11 +398,8 @@ Object VM::compareOper(Opcode op, u8 firstOper)
     const Object& a{registers[firstOper]};
     const Object& b{registers[readByte()]};
 
-    if (((op == OP_GT) || (op == OP_LT))
-        && (!IS_COMPARABLE(a) || !IS_COMPARABLE(b)))
-    {
+    if (((op == OP_GT) || (op == OP_LT)) && !comparable(a, b))
         throw reportBinaryOperator(op, a, b);
-    }
 
     switch (op)
     {
