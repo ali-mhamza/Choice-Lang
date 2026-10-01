@@ -107,39 +107,39 @@ std::vector<std::string> split(std::string_view str, std::string_view delim);
 
 /* Inline functions. */
 
-[[nodiscard]] static inline i64 fromUnsigned(u64 num)
+[[nodiscard]] inline i64 fromUnsigned(u64 num)
 {
     i64 i{};
     std::memcpy(&i, &num, sizeof(u64));
     return i;
 }
 
-[[nodiscard]] static inline bool isBinary(char c)
+[[nodiscard]] inline bool isBinary(char c)
 {
     return ((c == '0') || (c == '1'));
 }
 
-[[nodiscard]] static inline bool isOctal(char c)
+[[nodiscard]] inline bool isOctal(char c)
 {
     return ((c >= '0') && (c <= '7'));
 }
 
-[[nodiscard]] static inline bool isHex(char c)
+[[nodiscard]] inline bool isHex(char c)
 {
     return isxdigit(c);
 }
 
-[[nodiscard]] static inline u8 fromBinary(char c)
+[[nodiscard]] inline u8 fromBinary(char c)
 {
     return (c - '0');
 }
 
-[[nodiscard]] static inline u8 fromOctal(char c)
+[[nodiscard]] inline u8 fromOctal(char c)
 {
     return (c - '0');
 }
 
-[[nodiscard]] static inline u8 fromHex(char c)
+[[nodiscard]] inline u8 fromHex(char c)
 {
     if (isdigit(c)) return (c - '0');
     if (isupper(c)) return (c - 'A' + 10);

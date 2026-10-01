@@ -315,14 +315,14 @@ std::array<std::string_view, to_num(ObjType::Count)> objTypes{
 /* Object helper functions and macros. */
 
 #define X(TYPE, name, field) \
-    [[nodiscard]] static inline bool IS_##TYPE(const Object& obj) { \
-        return (obj.type() == ObjType::name);                       \
-    }                                                               \
-    [[nodiscard]] static inline auto AS_##TYPE(const Object& obj) { \
-        return enum_or_self(obj.as.field);                          \
-    }                                                               \
-    [[nodiscard]] static inline auto& AS_##TYPE(Object& obj) {      \
-        return obj.as.field;                                        \
+    [[nodiscard]] inline bool IS_##TYPE(const Object& obj) {    \
+        return (obj.type() == ObjType::name);                   \
+    }                                                           \
+    [[nodiscard]] inline auto AS_##TYPE(const Object& obj) {    \
+        return enum_or_self(obj.as.field);                      \
+    }                                                           \
+    [[nodiscard]] inline auto& AS_##TYPE(Object& obj) {         \
+        return obj.as.field;                                    \
     }
 
 TYPE_LIST
@@ -408,12 +408,12 @@ inline std::string getElementText(const Object& obj)
     return obj.printVal();
 }
 
-static inline u8 getMutFlags(const Object& obj)
+inline u8 getMutFlags(const Object& obj)
 {
     return (obj.type_ & (INIT_FLAG | IMMUT_FLAG));
 }
 
-static inline void setMutFlags(Object& obj, u8 flags)
+inline void setMutFlags(Object& obj, u8 flags)
 {
     // Mutable containers cannot make any immutable
     // elements within them mutable, though the opposite
@@ -848,7 +848,7 @@ struct CustomDealloc
 
 #define X(TYPE, name, field)                                            \
     template<typename... Ts>                                            \
-    [[nodiscard]] static inline auto* CH_ALLOC_##TYPE(Ts&&... args) {   \
+    [[nodiscard]] inline auto* CH_ALLOC_##TYPE(Ts&&... args) {          \
         using T = std::remove_pointer_t<decltype(Object{}.as.field)>;   \
         return CH_ALLOC(T, args...);                                    \
     }

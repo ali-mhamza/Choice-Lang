@@ -25,12 +25,12 @@ enum DeclAttr : ATTR_BASE_TYPE
     #undef X
 };
 
-#define X(NAME, name)                                           \
-    [[nodiscard]] static inline bool is##name(VarAttr attr) {   \
-        return ((attr & POS_BIT(ATTR_##NAME + 1)) != 0);        \
-    }                                                           \
-    static inline void mark##name(VarAttr& varAttr) {           \
-        varAttr |= POS_BIT(ATTR_##NAME + 1);                    \
+#define X(NAME, name)                                       \
+    [[nodiscard]] inline bool is##name(VarAttr attr) {      \
+        return ((attr & POS_BIT(ATTR_##NAME + 1)) != 0);    \
+    }                                                       \
+    inline void mark##name(VarAttr& varAttr) {              \
+        varAttr |= POS_BIT(ATTR_##NAME + 1);                \
     }
 
 ATTR_LIST
