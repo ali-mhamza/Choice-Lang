@@ -99,8 +99,8 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Wrong argument type or value.", "Cannot unpack non-collection object.",
     "Cannot unpack a table.", "Object is not an instantiable type.",
     "Only type instances have fields.", "Can only inherit from another type object.",
-    "Cannot use 'super' outside a class.",
-    "Cannot use super in a class with no parent class.",
+    "Cannot use 'super' outside a type.",
+    "Cannot use super in a type with no parent type.",
 
     // Value errors.
 

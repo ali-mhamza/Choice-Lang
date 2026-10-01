@@ -1810,7 +1810,7 @@ ExprUP Parser::formatString()
 ExprUP Parser::super()
 {
     if (!inType)
-        REPORT_SEMANTIC(SUPER_OUTSIDE_CLASS, previousTok);
+        REPORT_SEMANTIC(SUPER_OUTSIDE_TYPE, previousTok);
     else if (!inInheritingType)
         REPORT_SEMANTIC(SUPER_OUTSIDE_CHILD, previousTok);
 

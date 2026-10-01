@@ -219,9 +219,9 @@ enum DiagCode : u8
     FIELD_NO_INSTANCE,
     // Attempting to inherit from a non-type object.
     INHERIT_NOT_TYPE,
-    // Using 'super' outside a class.
-    SUPER_OUTSIDE_CLASS,
-    // Using 'super' outside a child class.
+    // Using 'super' outside a type.
+    SUPER_OUTSIDE_TYPE,
+    // Using 'super' outside a child type.
     SUPER_OUTSIDE_CHILD,
 
 
