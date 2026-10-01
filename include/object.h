@@ -497,7 +497,7 @@ struct Type : public HeapObj
 
 struct Instance : public HeapObj
 {
-    const Type* type{};
+    const Type* const type{};
     HashTable<std::string, Object> fields{};
 
     Instance(const Type* type) noexcept;
