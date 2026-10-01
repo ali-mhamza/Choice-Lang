@@ -5,7 +5,6 @@
 #include <array>
 #include <string_view>
 #include <type_traits>
-#include <unordered_map>
 
 // Core/built-in parts of the language.
 // Includes built-in functions, constructors and type methods.

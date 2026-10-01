@@ -15,7 +15,6 @@
 #include <cstring>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #define PREVIOUS_OFFSET	(offset - 1)
 #define CURRENT_OFFSET	(offset)

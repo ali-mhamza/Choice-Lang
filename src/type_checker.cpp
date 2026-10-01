@@ -5,7 +5,6 @@
 #include <functional>
 #include <string_view>
 #include <type_traits>
-#include <unordered_map>
 #include <variant>
 
 #if CH_TYPE_CHECKING_ON
