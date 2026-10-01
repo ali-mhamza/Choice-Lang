@@ -165,7 +165,7 @@ constexpr std::array<std::string_view, TOTAL_OPS> opNames{
     #if OPCODE_STRIP_PREFIX
         #define LABEL(name, ...) std::string_view{#name}.substr(3),
 	#else
-	    #define LABEL(name) #name
+	    #define LABEL(name, ...) #name
 	#endif
 
 	#include "opcode_list.inc"
