@@ -1463,7 +1463,7 @@ void VM::executeOp(Opcode op)
                 const auto* parent{currentMethodType->parent->name};
                 throw RuntimeError(
                     FIELD_NOT_DEFINED,
-                    CH_STR("parent class '{}' has no method '{}'", parent, name)
+                    CH_STR("parent type '{}' has no method '{}'", parent, name)
                 );
             }
 
