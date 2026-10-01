@@ -278,7 +278,7 @@ void TypeChecker::initFuncLen()
     list.add(BUILTIN_TYPE(Table));
 
     Type param{ TypeTag::Option, std::move(list) };
-    addBasicRecord("read", {param}, BUILTIN_TYPE(Int));
+    addBasicRecord("len", {param}, BUILTIN_TYPE(Int));
 }
 
 void TypeChecker::initFuncClock()
