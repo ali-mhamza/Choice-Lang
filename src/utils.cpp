@@ -113,6 +113,41 @@ bool startsWith(std::string_view str, std::string_view prefix)
 			&& (str.compare(0, prefix.size(), prefix) == 0));
 }
 
+// TODO: Handle any encoding errors.
+std::vector<std::string> getRunes(std::string_view str)
+{
+	#define PUSH_BACK_SEQ(count)			\
+		do {								\
+			for (u64 i{0}; i < count; i++)	\
+			{								\
+				entry.push_back(*it);		\
+				it++;						\
+			}								\
+		} while (false)
+
+	std::vector<std::string> array;
+	auto it{str.begin()};
+	while (it != str.end())
+	{
+		auto& entry{array.emplace_back()};
+		char c{*it};
+		if ((c & 0b11111000) == 0b11110000)
+			PUSH_BACK_SEQ(4);
+		else if ((c & 0b11110000) == 0b11100000)
+			PUSH_BACK_SEQ(3);
+		else if ((c & 0b11100000) == 0b11000000)
+			PUSH_BACK_SEQ(2);
+		else if ((c & 0b10000000) == 0b00000000)
+			PUSH_BACK_SEQ(1);
+		else
+			CH_ASSERT(false, "Invalid byte value in UTF-8 string.");
+	}
+
+	return array;
+
+	#undef PUSH_BACK_SEQ
+}
+
 // Partial credit for split: Shubham Agrawal.
 // Source: https://stackoverflow.com/questions/14265581/.
 std::vector<std::string> split(std::string_view str, std::string_view delim)

@@ -103,6 +103,8 @@ bool endsWith(const std::string_view str, const std::string_view suffix);
 bool startsWith(const std::string_view str, const std::string_view prefix);
 
 [[nodiscard]]
+std::vector<std::string> getRunes(std::string_view str);
+[[nodiscard]]
 std::vector<std::string> split(std::string_view str, std::string_view delim);
 
 /* Inline functions. */

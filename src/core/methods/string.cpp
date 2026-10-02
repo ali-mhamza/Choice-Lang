@@ -1,8 +1,11 @@
 #include "../../../include/core.h"
 #include "../../../include/error.h"
+#include "../../../include/utils.h"
 
 #define METHOD_LIST \
+    X(chars)        \
     X(empty)        \
+    X(runes)        \
     X(substr)
 
 /* Forward declarations. */
@@ -59,12 +62,35 @@ StringMethods::search{
 #define METHOD_STUB(name) \
 	METHOD(name) { (void) instance; (void) it; (void) args; return Object{}; }
 
+METHOD(chars)
+{
+    (void) it;
+    checkArity(0, 0, true, args);
+
+    auto impl{Core::Ctors::impls[to_num(Core::Ctor::List)]};
+    return impl(&instance, 1);
+}
+
 METHOD(empty)
 {
     (void) it;
     checkArity(0, 0, true, args);
 
     return instance.getObjectText().empty();
+}
+
+METHOD(runes)
+{
+    (void) it;
+    checkArity(0, 0, true, args);
+
+    const auto view{instance.getObjectText()};
+    auto runes{getRunes(view)};
+    auto* list{CH_ALLOC_LIST(runes.size())};
+    for (const auto& rune : runes)
+        list->array.push(CH_ALLOC_STRING(rune));
+
+    return list;
 }
 
 METHOD(substr)
