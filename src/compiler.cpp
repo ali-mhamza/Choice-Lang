@@ -230,12 +230,7 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
             // To suppress any capturing or further error-reporting.
             if (info.type == VarType::Dummy) return info;
 
-            bool capturingClosedFunction{
-                (info.declInfo.type == DeclType::Func)
-                && isClosed(info.declInfo.attr)
-            };
-
-            if (isClosed(currentAttr) && !capturingClosedFunction)
+            if (isClosed(currentAttr) && !isClosed(info.declInfo.attr))
             {
                 reportError(CLOSED_FUNC_CAPTURING, token);
                 info.type = VarType::Dummy;
