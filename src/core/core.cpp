@@ -9,26 +9,26 @@ void Core::checkArity(u8 min, u8 max, bool exclusive, u8 args)
         if (min == max)
         {
             throw RuntimeError(ARITY_MISMATCH,
-                CH_STR("expect {} argument{} but found {}", max,
+                CH_STR("expected {} argument{} but found {}", max,
                     (max == 1 ? "" : "s"), args)
             );
         }
         else if (exclusive || (max == min + 1))
         {
             throw RuntimeError(ARITY_MISMATCH,
-                CH_STR("expect {} or {} arguments but found {}", min, max, args)
+                CH_STR("expected {} or {} arguments but found {}", min, max, args)
             );
         }
         else if (min == 0)
         {
             throw RuntimeError(ARITY_MISMATCH,
-                CH_STR("expect at most {} arguments but found {}", max, args)
+                CH_STR("expected at most {} arguments but found {}", max, args)
             );
         }
         else
         {
             throw RuntimeError(ARITY_MISMATCH,
-                CH_STR("expect {}-{} arguments but found {}", min, max, args)
+                CH_STR("expected {}-{} arguments but found {}", min, max, args)
             );
         }
     }
