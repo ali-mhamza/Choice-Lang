@@ -30,7 +30,6 @@ getModuleTable(const std::filesystem::path& path)
 
     Compiler compiler{};
     compiler.inModule = true;
-    compiler.moduleDir = path.parent_path().string();
 
     VM vm{};
     vm.globalVM = false;

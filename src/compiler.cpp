@@ -19,6 +19,7 @@
 #include "../include/utils.h"
 #include <algorithm>
 #include <climits>
+#include <filesystem>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -605,6 +606,17 @@ void Compiler::reportPartError(
     if ((code == WRONG_TOKEN_FOUND) || (code == WRONG_CHAR_FOUND))
         code = (token.type == TOK_EOF) ? UNEXPECTED_INPUT_END : code;
     reportPart(true, code, token.byteOffset + offset, length, message);
+}
+
+void Compiler::setModuleDir()
+{
+    moduleDir = ".";
+    if (!inRepl)
+    {
+        std::filesystem::path path{sourceManager.getFile(id)};
+        if (path.has_parent_path())
+            moduleDir = path.parent_path().string();
+    }
 }
 
 /* AST node compilation functions. */
@@ -2420,6 +2432,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
     code.clear();
     metadata.clear();
     clearDeclarations();
+    setModuleDir();
     // Inherit hitError from parser.
 
     hoistClosedFunctions(program);

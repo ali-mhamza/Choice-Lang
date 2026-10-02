@@ -96,6 +96,9 @@ class Compiler
         std::vector<u64>* breakJumps{};
         std::vector<u64>* continueJumps{};
 
+        // Containing directory of the current module being compiled.
+        std::string moduleDir{};
+
         /* Variables. */
 
         // Emit an appropriate get or set instruction.
@@ -220,6 +223,8 @@ class Compiler
             u64 length,
             std::string_view message = ""
         );
+
+        void setModuleDir();
 
         /* Declarations. */
 
@@ -419,8 +424,6 @@ class Compiler
         // Whether or not we are compiling a module (globals are also
         // captured in closures within modules).
         bool inModule{false};
-        // Containing directory of the current module being compiled.
-        std::string moduleDir{"."};
 
         static bool clearDeclaredVars;
         static u8 clearIndex;
