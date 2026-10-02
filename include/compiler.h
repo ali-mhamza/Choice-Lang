@@ -15,10 +15,8 @@
 
 class Compiler
 {
-    #define DECL_STMT(type) \
-        void compile##type(const AST::Statement::type* node)
-    #define DECL_EXPR(type) \
-        void compile##type(const AST::Expression::type* node)
+    #define DECL_STMT(type) void compile##type(const AST::Statement::type* node)
+    #define DECL_EXPR(type) void compile##type(const AST::Expression::type* node)
 
     private:
         enum class DeclType : u8 { Var, Func, Type };
@@ -76,10 +74,10 @@ class Compiler
         const u8 depth{};       // Our current function scope depth.
         VarAttr currentAttr{};  // Attribute for current declaration being compiled.
 
-        using VarTable = HashTable<VarEntry, u8, VarHasher>;
-        using DeclTable = HashTable<u8, DeclInfo>;
-        using AccessTable = HashTable<u8, bool>;
-        using LabelTable = HashTable<std::string_view, std::vector<u64>>;
+        using VarTable      = HashTable<VarEntry, u8, VarHasher>;
+        using DeclTable     = HashTable<u8, DeclInfo>;
+        using AccessTable   = HashTable<u8, bool>;
+        using LabelTable    = HashTable<std::string_view, std::vector<u64>>;
 
         std::stack<std::vector<std::string>> varScopes{};
         const std::unique_ptr<VarTable> varLocations{new VarTable};
