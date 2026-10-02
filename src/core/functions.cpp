@@ -189,7 +189,7 @@ FUNC(quit)
         throw RuntimeError(WRONG_ARG_TYPE, "argument cannot be negative");
 
     u8 exitCode{static_cast<u8>((args == 0) ? 0 : (code & 0xff))};
-    exit(exitCode);
+    std::exit(exitCode);
     // No return value.
 }
 
