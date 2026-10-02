@@ -330,13 +330,13 @@ TYPE_LIST
 #undef X
 
 // Object is a function object.
-#define IS_FUNCOBJ(obj) \
+#define IS_FUNC_OBJ(obj) \
     (IS_USER_FUNC(obj) || IS_LAMBDA(obj) || IS_CLOSURE(obj) || IS_USER_METHOD(obj))
 
 // Object can be called.
 #define IS_CALLABLE(obj)                                            \
     (IS_CORE_FUNC(obj) || IS_CORE_TYPE(obj) || IS_CORE_METHOD(obj)  \
-    || IS_FUNCOBJ(obj) || IS_USER_TYPE(obj))
+    || IS_FUNC_OBJ(obj) || IS_USER_TYPE(obj))
 
 // Object is allocated/involves allocation on the heap.
 #define IS_HEAP_OBJ(obj) \
@@ -390,7 +390,7 @@ TYPE_LIST
 #define AS_NUM(obj)         (IS_INT(obj) ? AS_INT(obj) : AS_DEC(obj))
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
-const Function* AS_FUNCOBJ(const Object& obj);
+const Function* AS_FUNC_OBJ(const Object& obj);
 
 // Whether or not two types can be compared with the
 // > and < operators.

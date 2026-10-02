@@ -55,10 +55,10 @@
     #define SET_REGSLOT_MAX(a, b)
 #endif
 
-#define COMPUTE_OBJ(reg)                                                    \
-    do {                                                                    \
-        if (IS_FUNCOBJ(registers[reg]) && AS_FUNCOBJ(registers[reg])->iife) \
-            callObj(registers[reg], reg + 1, 0);                            \
+#define COMPUTE_OBJ(reg)                                                        \
+    do {                                                                        \
+        if (IS_FUNC_OBJ(registers[reg]) && AS_FUNC_OBJ(registers[reg])->iife)   \
+            callObj(registers[reg], reg + 1, 0);                                \
     } while (false)
 
 VM::VM()
@@ -902,7 +902,7 @@ void VM::finishFields(Instance& instance, u8 start)
             u8 pos{*(type->fieldTable.get(field))};
             const Object& init{type->fieldInits[pos]};
 
-            if (AS_FUNCOBJ(init)->iife)
+            if (AS_FUNC_OBJ(init)->iife)
             {
                 instance.initField(field, init);
                 continue;

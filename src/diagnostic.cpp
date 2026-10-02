@@ -684,7 +684,7 @@ std::string DiagnosticEngine::printStackEntry(
     if (index != 0)
     {
         const Object& obj{frames[index].window[-1]};
-        func = AS_FUNCOBJ(obj);
+        func = AS_FUNC_OBJ(obj);
     }
 
     std::string output{};

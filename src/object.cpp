@@ -449,7 +449,7 @@ std::string Object::printVal() const
             return (name == nullptr ? "lambda" : CH_STR("<func {}>", name));
         }
         case ObjType::CoreMethod:   return std::string{AS_CORE_METHOD(*this)->name};
-        case ObjType::UserMethod:   return CH_STR("<method {}>", AS_FUNCOBJ(*this)->name);
+        case ObjType::UserMethod:   return CH_STR("<method {}>", AS_FUNC_OBJ(*this)->name);
         // Pass nesting status to possibly nesting collection types.
         // Only lists and tables actually need this.
         case ObjType::Text:         return AS_TEXT(*this)->printVal(nested);
@@ -506,16 +506,16 @@ ObjIter* Object::makeIter()
     return CH_ALLOC_ITER(*this);
 }
 
-const Function* AS_FUNCOBJ(const Object& obj)
+const Function* AS_FUNC_OBJ(const Object& obj)
 {
-    CH_ASSERT(IS_FUNCOBJ(obj), "AS_FUNCOBJ called on non-function object.");
+    CH_ASSERT(IS_FUNC_OBJ(obj), "AS_FUNC_OBJ called on non-function object.");
 
     switch (obj.type())
     {
         case ObjType::UserFunc:     return AS_USER_FUNC(obj);
         case ObjType::Lambda:       return AS_LAMBDA(obj);
         case ObjType::Closure:      return AS_CLOSURE(obj)->function;
-        case ObjType::UserMethod:   return AS_FUNCOBJ(AS_USER_METHOD(obj)->funcObj);
+        case ObjType::UserMethod:   return AS_FUNC_OBJ(AS_USER_METHOD(obj)->funcObj);
         default: CH_UNREACHABLE();
     }
 }
