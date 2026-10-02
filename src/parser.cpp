@@ -1434,7 +1434,8 @@ ExprUP Parser::product()
 {
     u64 start{currentTok.byteOffset};
     ExprUP expr{unary()};
-    while (consumeToks(TOK_STAR, TOK_SLASH, TOK_PERCENT))
+    while (consumeToks(TOK_STAR, TOK_SLASH, TOK_LT_SLASH, TOK_GT_SLASH,
+        TOK_PERCENT))
     {
         TokenType oper{previousTok.type};
         expr = std::make_unique<BinaryExpr>(expr, oper, unary());

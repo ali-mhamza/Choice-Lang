@@ -627,6 +627,8 @@ static constexpr std::string_view operatorString(TokenType op)
         case TOK_MINUS:         return "-";
         case TOK_STAR:          return "*";
         case TOK_SLASH:         return "/";
+        case TOK_LT_SLASH:      return "</";
+        case TOK_GT_SLASH:      return ">/";
         case TOK_PERCENT:       return "%";
         case TOK_STAR_STAR:     return "**";
 

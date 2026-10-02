@@ -635,6 +635,8 @@ void Lexer::singleToken()
 		{
 			if (consumeChar('>'))
 				conditionalToken('=', TOK_RSHIFT_EQ, TOK_RIGHT_SHIFT);
+			else if (consumeChar('/'))
+				conditionalToken('=', TOK_GT_SLASH_EQ, TOK_GT_SLASH);
 			else
 				conditionalToken('=', TOK_GT_EQ, TOK_GT);
 			break;
@@ -643,6 +645,8 @@ void Lexer::singleToken()
 		{
 			if (consumeChar('<'))
 				conditionalToken('=', TOK_LSHIFT_EQ, TOK_LEFT_SHIFT);
+			else if (consumeChar('/'))
+				conditionalToken('=', TOK_LT_SLASH_EQ, TOK_LT_SLASH);
 			else
 				conditionalToken('=', TOK_LT_EQ, TOK_LT);
 			break;

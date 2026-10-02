@@ -48,6 +48,11 @@ reportBinaryOperator(Opcode oper, const Object& first, const Object& second)
             return { code, CH_STR("cannot divide ({}) by ({})", firstType,
                 secondType) };
         }
+        case OP_DIV_DOWN:   case OP_DIV_UP:
+        {
+            return { code, CH_STR("cannot integer divide ({} by ({}))", firstType,
+                secondType) };
+        }
         case OP_MOD:
         {
             return { code, CH_STR("cannot take modulus of ({}) with base ({})",

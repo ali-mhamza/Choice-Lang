@@ -64,6 +64,8 @@ enum TokenType : u8
 	TOK_MINUS,			// -
 	TOK_STAR,			// *
 	TOK_SLASH,			// /
+	TOK_LT_SLASH,		// </
+	TOK_GT_SLASH,		// >/
 	TOK_PERCENT,		// %
 	TOK_STAR_STAR,		// **
 
@@ -103,6 +105,8 @@ enum TokenType : u8
 	TOK_MINUS_EQ,		// -=
 	TOK_STAR_EQ,		// *=
 	TOK_SLASH_EQ,		// /=
+	TOK_LT_SLASH_EQ,	// </=
+	TOK_GT_SLASH_EQ,	// >/=
 	TOK_PERCENT_EQ,		// %=
 	TOK_STAR_STAR_EQ,	// **=
 

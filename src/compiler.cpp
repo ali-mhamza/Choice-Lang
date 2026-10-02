@@ -1458,6 +1458,8 @@ Opcode Compiler::getCompoundAssignOpcode(
         case TOK_MINUS_EQ:      return OP_SUB;
         case TOK_STAR_EQ:       return OP_MULT;
         case TOK_SLASH_EQ:      return OP_DIV;
+        case TOK_LT_SLASH_EQ:   return OP_DIV_DOWN;
+        case TOK_GT_SLASH_EQ:   return OP_DIV_UP;
         case TOK_PERCENT_EQ:    return OP_MOD;
         case TOK_STAR_STAR_EQ:  return OP_POWER;
 
@@ -1764,14 +1766,16 @@ DEF(BinaryExpr)
     Opcode op{};
     switch (node->oper)
     {
-        case TOK_PLUS:          op = OP_ADD;    break;
-        case TOK_MINUS:         op = OP_SUB;    break;
-        case TOK_STAR:          op = OP_MULT;   break;
-        case TOK_SLASH:         op = OP_DIV;    break;
-        case TOK_PERCENT:       op = OP_MOD;    break;
-        case TOK_STAR_STAR:     op = OP_POWER;  break;
-        case TOK_DOT_DOT_EQ:    op = OP_RANGE;  break;
-        case TOK_DOT_DOT_LT:    op = OP_RANGE;  break;
+        case TOK_PLUS:          op = OP_ADD;        break;
+        case TOK_MINUS:         op = OP_SUB;        break;
+        case TOK_STAR:          op = OP_MULT;       break;
+        case TOK_SLASH:         op = OP_DIV;        break;
+        case TOK_LT_SLASH:      op = OP_DIV_DOWN;   break;
+        case TOK_GT_SLASH:      op = OP_DIV_UP;     break;
+        case TOK_PERCENT:       op = OP_MOD;        break;
+        case TOK_STAR_STAR:     op = OP_POWER;      break;
+        case TOK_DOT_DOT_EQ:    op = OP_RANGE;      break;
+        case TOK_DOT_DOT_LT:    op = OP_RANGE;      break;
         default: CH_UNREACHABLE();
     }
 

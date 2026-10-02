@@ -651,6 +651,10 @@ bool TypeChecker::canApplyBinaryOperator(
     switch (oper)
     {
         case TOK_PLUS:
+        case TOK_MINUS:
+        case TOK_STAR:
+        case TOK_SLASH:
+        case TOK_STAR_STAR:
         {
             bool numeric{
                 t1.isBasicWithTypes(ObjType::Int, ObjType::Dec)
@@ -663,11 +667,9 @@ bool TypeChecker::canApplyBinaryOperator(
 
             return (numeric || strings);
         }
-        case TOK_MINUS:
-        case TOK_STAR:
-        case TOK_SLASH:
+        case TOK_LT_SLASH:
+        case TOK_GT_SLASH:
         case TOK_PERCENT:
-        case TOK_STAR_STAR:
         case TOK_DOT_DOT_EQ:
         case TOK_DOT_DOT_LT:
         {
@@ -1091,6 +1093,10 @@ TYPE_GETTER(BinaryExpr)
     switch (node->oper)
     {
         case TOK_PLUS:
+        case TOK_MINUS:
+        case TOK_STAR:
+        case TOK_SLASH:
+        case TOK_STAR_STAR:
         {
             Type t1{getExprType(node->left)};
             Type t2{getExprType(node->right)};
@@ -1108,17 +1114,18 @@ TYPE_GETTER(BinaryExpr)
                 && t2.isBasicWithTypes(ObjType::Text, ObjType::String)
             };
 
-            if (integers) return BUILTIN_TYPE(Int);
-            else if (numeric) return BUILTIN_TYPE(Dec);
-            else if (strings) return BUILTIN_TYPE(String);
+            if (integers)
+                return BUILTIN_TYPE(Int);
+            else if (numeric)
+                return BUILTIN_TYPE(Dec);
+            else if ((node->oper == TOK_PLUS) && strings)
+                return BUILTIN_TYPE(String);
 
             return DUMMY_TYPE;
         }
-        case TOK_MINUS:
-        case TOK_STAR:
-        case TOK_SLASH:
+        case TOK_LT_SLASH:
+        case TOK_GT_SLASH:
         case TOK_PERCENT:
-        case TOK_STAR_STAR:
         {
             return BUILTIN_TYPE(Int);
         }

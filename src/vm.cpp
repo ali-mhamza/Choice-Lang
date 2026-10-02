@@ -358,6 +358,17 @@ Object VM::arithOper(Opcode op, u8 firstOper)
                 if (bVal == 0) throw RuntimeError(DIVISION_BY_ZERO);
                 return static_cast<double>(aVal) / static_cast<double>(bVal);
             }
+            case OP_DIV_DOWN:
+            {
+                if (bVal == 0) throw RuntimeError(DIVISION_BY_ZERO);
+                return aVal / bVal;
+            }
+            case OP_DIV_UP:
+            {
+                if (bVal == 0) throw RuntimeError(DIVISION_BY_ZERO);
+                double result{static_cast<double>(aVal) / static_cast<double>(bVal)};
+                return static_cast<i64>(std::ceil(result));
+            }
             case OP_MOD:
             {
                 if (bVal == 0) throw RuntimeError(MODULUS_WITH_ZERO);
@@ -382,9 +393,7 @@ Object VM::arithOper(Opcode op, u8 firstOper)
                 return aVal / bVal;
             }
             case OP_POWER:  return pow(aVal, bVal);
-            case OP_MOD:
-                throw reportBinaryOperator(op, a, b);
-            default: CH_UNREACHABLE();
+            default:        throw reportBinaryOperator(op, a, b);
         }
     }
     else if (IS_STRING_LIKE(a) && IS_STRING_LIKE(b) && (op == OP_ADD))
@@ -1615,8 +1624,9 @@ void VM::executeOp(Opcode op)
 
         // Arithmetic operators.
 
-        CASE(OP_ADD):   CASE(OP_SUB):   CASE(OP_MULT):
-        CASE(OP_DIV):   CASE(OP_MOD):   CASE(OP_POWER):
+        CASE(OP_ADD):   CASE(OP_SUB):       CASE(OP_MULT):
+        CASE(OP_DIV):   CASE(OP_DIV_DOWN):  CASE(OP_DIV_UP):
+        CASE(OP_MOD):   CASE(OP_POWER):
         {
             u8 dest{readByte()};
             registers[dest] = arithOper(op, dest);

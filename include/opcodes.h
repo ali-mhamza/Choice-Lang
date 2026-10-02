@@ -27,6 +27,8 @@ enum Opcode : u8 // Each opcode is a single byte.
 	OP_SUB,				// Subtract two values.
 	OP_MULT,			// Multiply two values.
 	OP_DIV,				// Divide two values.
+	OP_DIV_DOWN,		// Divide two values, rounding *down* to the nearest integer.
+	OP_DIV_UP,			// Divide two values, rounding *up* to the nearest integer.
 	OP_POWER,			// Raise a value to a power.
 	OP_MOD,				// Take the modulus between two values.
 	OP_NEG,				// Invert a value's sign.
