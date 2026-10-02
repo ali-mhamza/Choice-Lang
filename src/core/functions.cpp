@@ -292,7 +292,8 @@ FUNC(random)
 {
     checkArity(0, 2, true, args);
 
-    static std::mt19937_64 generator{};
+    static std::random_device rd{};
+    static std::mt19937_64 generator{rd()};
     constexpr u64 intMax{static_cast<u64>(std::numeric_limits<i64>::max())};
 
     if (args == 0)
