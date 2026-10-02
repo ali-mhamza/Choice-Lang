@@ -558,8 +558,8 @@ std::optional<DiagCode> DiagnosticEngine::validateCode(sv code)
     #define IS_VALID_CODE(code) (((code) >= 0) && ((code) < NUM_CODES))
 
     constexpr u64 codeLength{5};
-    bool isError{starts_with(code, "E")};
-    bool isWarning{starts_with(code, "W")};
+    bool isError{startsWith(code, "E")};
+    bool isWarning{startsWith(code, "W")};
 
     if ((!isError && !isWarning) || (code.size() != codeLength))
     {

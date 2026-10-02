@@ -103,12 +103,12 @@ namespace Args
             exit(66);
         }
 
-        if (!isCacheFile && !ends_with(fileName, CH_FILE_EXT))
+        if (!isCacheFile && !endsWith(fileName, CH_FILE_EXT))
         {
             CH_PRINT_ERROR("Invalid Choice source file.\n");
             exit(65);
         }
-        else if (isCacheFile && !ends_with(fileName, CH_BYTECODE_EXT))
+        else if (isCacheFile && !endsWith(fileName, CH_BYTECODE_EXT))
         {
             CH_PRINT_ERROR("Invalid Choice bytecode file.\n");
             exit(65);

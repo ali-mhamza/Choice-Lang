@@ -131,7 +131,7 @@ static void printReplIntro()
 
 static void buildLine(std::string& line)
 {
-	while (ends_with(line, "\\"))
+	while (endsWith(line, "\\"))
 	{
 		line.back() = '\n';
 		std::string temp{};

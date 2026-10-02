@@ -98,9 +98,9 @@ void normalizeInput(std::string& input);
 std::string formatMultiLineString(const std::string_view& sv);
 
 [[nodiscard]]
-bool ends_with(const std::string_view str, const std::string_view suffix);
+bool endsWith(const std::string_view str, const std::string_view suffix);
 [[nodiscard]]
-bool starts_with(const std::string_view str, const std::string_view prefix);
+bool startsWith(const std::string_view str, const std::string_view prefix);
 
 [[nodiscard]]
 std::vector<std::string> split(std::string_view str, std::string_view delim);

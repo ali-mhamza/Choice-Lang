@@ -244,8 +244,8 @@ std::string& Lexer::formatNumber(const std::string_view text, bool dec)
 	str.reserve(textSize);
 
 	u8 i{0};
-	if (starts_with(text, "0b") || starts_with(text, "0o")
-		|| starts_with(text, "0x"))
+	if (startsWith(text, "0b") || startsWith(text, "0o")
+		|| startsWith(text, "0x"))
 	{
 		i += 2;
 	}
