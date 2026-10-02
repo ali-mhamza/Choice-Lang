@@ -749,20 +749,24 @@ Object* Instance::findField(const std::string& name)
 const Object* Instance::findField(const std::string& name) const
 {
     const Object* location{fields.get(name)};
-    if (location == nullptr)
+    if (location != nullptr) return location;
+
+    location = type->getMethod(name);
+    if (location != nullptr)
     {
-        location = type->getMethod(name);
-        if (location != nullptr)
-            AS_USER_METHOD(*location)->boundInstance = this;
-        else
-        {
-            throw RuntimeError(FIELD_NOT_DEFINED,
-                CH_STR("type '{}' has no field or method '{}'", type->name, name)
-            );
-        }
+        AS_USER_METHOD(*location)->boundInstance = this;
+        return location;
     }
 
-   return location;
+    static Object ref{this};    // 'static' since we only need to initialize it once.
+    static Object core;         // 'static' so we can return a pointer to it safely.
+    core = Core::Methods::getCommonMember(ref, name);
+    if (IS_CORE_METHOD(core))
+        return &core;
+
+    throw RuntimeError(FIELD_NOT_DEFINED,
+        CH_STR("type '{}' has no field or method '{}'", type->name, name)
+    );
 }
 
 Object Instance::getField(const std::string& name) const
@@ -780,7 +784,8 @@ Object Instance::getField(
         throw RuntimeError(FIELD_UNINIT_READ);
     else if (check != type)
     {
-        if (IS_USER_METHOD(*location))
+        if (IS_CORE_METHOD(*location)); // To exit the block.
+        else if (IS_USER_METHOD(*location))
         {
             if (name == CH_CONSTRUCTOR)
                 throw RuntimeError(INIT_METHOD_GET);

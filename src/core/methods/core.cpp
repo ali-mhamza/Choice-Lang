@@ -31,10 +31,7 @@ Object Core::Methods::getCommonMember(Object& obj, const std::string& name)
     if (it != nullptr)
         return CH_ALLOC_CORE_METHOD(obj, names[*it], impls[*it]);
 
-    throw RuntimeError(
-        CORE_METHOD_NOT_DEFINED,
-        CH_STR("method '{}' is not defined for type ({})", name, obj.printType())
-    );
+    return Object{};
 }
 
 

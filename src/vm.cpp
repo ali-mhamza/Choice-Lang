@@ -1515,21 +1515,36 @@ void VM::executeOp(Opcode op)
             u8 destReg{readByte()};
             u8 instanceReg{readByte()};
             u8 fieldReg{readByte()};
+
+            const Object& instance{registers[instanceReg]};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
 
-            if (IS_INSTANCE(registers[instanceReg]))
+            if (IS_INSTANCE(instance))
             {
-                Instance* obj{AS_INSTANCE(registers[instanceReg])};
+                Instance* obj{AS_INSTANCE(instance)};
                 // Replace the instance.
                 registers[destReg] = obj->getField(field, currentMethodType);
                 COMPUTE_OBJ(destReg);
             }
             else
             {
-                registers[destReg] = Core::Methods::getTypeMember(
+                Object member{Core::Methods::getTypeMember(
                     registers[instanceReg],
                     field
-                );
+                )};
+
+                if (!IS_CORE_METHOD(member))
+                {
+                    throw RuntimeError(
+                        CORE_METHOD_NOT_DEFINED,
+                        CH_STR(
+                            "method '{}' is not defined for type ({})",
+                            field, instance.printType()
+                        )
+                    );
+                }
+
+                registers[destReg] = member;
             }
 
             DISPATCH();
