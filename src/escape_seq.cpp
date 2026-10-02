@@ -237,6 +237,7 @@ static int consumeUnicodeSequence(
 
             break;
         }
+
         if (count++ == 6)
         {
             // More than 6 digits (3).
@@ -255,6 +256,7 @@ static int consumeUnicodeSequence(
         setError(pair.second, "expect hex digits after opening brace for '\\u'");
         return -1;
     }
+
     // No closing brace (4).
     if ((it + count == end) || (it[count] != '}'))
     {
