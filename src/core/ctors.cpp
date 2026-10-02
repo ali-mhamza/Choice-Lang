@@ -225,27 +225,54 @@ Obj Core::Ctors::Range(iter it, u8 args)
 
 Obj Core::Ctors::List(iter it, u8 args)
 {
-    checkArity(0, 1, true, args);
+    checkArity(0, 2, false, args);
 
-    auto* list{CH_ALLOC_LIST(DEFAULT_LIST_SIZE)};
-    if (args == 1)
+    if (IS_INT(it[0]))
     {
-        if (!IS_ITERABLE(*it))
-            throw RuntimeError(WRONG_ARG_TYPE, "argument is not iterable");
-        ObjIter* iter{it->makeIter()}; // Guaranteed to succeed.
-        Obj temp{};
+        i64 size{AS_INT(it[0])};
+        if (size <= 0)
+            throw RuntimeError(WRONG_ARG_TYPE, "size argument must be positive");
 
-        if (iter->start(temp))
+        auto* list{CH_ALLOC_LIST(static_cast<u64>(size))};
+        for (u64 i{0}; i < static_cast<u64>(size); i++)
         {
-            list->array.push(temp);
-            while (iter->next(temp))
-                list->array.push(temp);
+            Obj elem{(args == 2) ? it[1] : Obj::typed(ObjType::Null)};
+            list->array.push(elem);
         }
 
-        CH_DEALLOC(iter);
+        return list;
     }
 
-    return list;
+    else
+    {
+        if (args == 2)
+        {
+            throw RuntimeError(
+                WRONG_ARG_TYPE,
+                "can only supply one iterable argument"
+            );
+        }
+
+        auto* list{CH_ALLOC_LIST(DEFAULT_LIST_SIZE)};
+        if (args == 1)
+        {
+            if (!IS_ITERABLE(*it))
+                throw RuntimeError(WRONG_ARG_TYPE, "argument is not iterable");
+            ObjIter* iter{it->makeIter()}; // Guaranteed to succeed.
+            Obj temp{};
+
+            if (iter->start(temp))
+            {
+                list->array.push(temp);
+                while (iter->next(temp))
+                    list->array.push(temp);
+            }
+
+            CH_DEALLOC(iter);
+        }
+
+        return list;
+    }
 }
 
 Obj Core::Ctors::Table(iter it, u8 args)

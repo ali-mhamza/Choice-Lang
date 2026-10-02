@@ -451,18 +451,9 @@ void TypeChecker::initRangeCtor()
     );
 }
 
-void TypeChecker::initListCtor()
-{
-    TypeList list;
-    list.add(BUILTIN_TYPE(Text));
-    list.add(BUILTIN_TYPE(String));
-    list.add(BUILTIN_TYPE(Range));
-    list.add(BUILTIN_TYPE(List));
-    list.add(BUILTIN_TYPE(Table));
-
-    Type param{ TypeTag::Option, std::move(list) };
-    addBasicRecord("List", {param}, BUILTIN_TYPE(List), true, 0);
-}
+// TODO: Requires some more work since the ctor is
+// technically overloaded with different parameter sets.
+void TypeChecker::initListCtor() {}
 
 // TODO: Requires some better generic support.
 // Ctor accepts either another table or a list made up entirely
