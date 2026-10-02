@@ -38,6 +38,7 @@ namespace Core
         random,
         instanceof,
         panic,
+        byte,
         Count
     };
 

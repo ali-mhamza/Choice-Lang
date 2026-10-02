@@ -223,6 +223,7 @@ void TypeChecker::initBuiltinRecords()
     initFuncRandom();
     initFuncInstanceof();
     initFuncPanic();
+    initFuncByte();
 
     const u64 BUILTIN_FUNC_END{__LINE__};
     const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
@@ -391,6 +392,16 @@ void TypeChecker::initFuncPanic()
         true,
         0
     );
+}
+
+void TypeChecker::initFuncByte()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Text));
+    list.add(BUILTIN_TYPE(String));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord("byte", {param}, BUILTIN_TYPE(Int));
 }
 
 void TypeChecker::initObjectCtor()

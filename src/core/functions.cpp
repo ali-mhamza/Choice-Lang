@@ -18,7 +18,8 @@
     X(members)          \
     X(random)           \
     X(instanceof)       \
-    X(panic)
+    X(panic)            \
+    X(byte)
 
 /* Forward declarations. */
 
@@ -361,6 +362,24 @@ FUNC(panic)
         CH_PRINT_ERROR_ARGS("Panicked with: {}\n", it[0].printVal());
 
     std::exit(1);
+}
+
+FUNC(byte)
+{
+    checkArity(1, 1, true, args);
+    if (!IS_STRING_LIKE(it[0]))
+        throw RuntimeError(WRONG_ARG_TYPE, "argument must be string-like");
+
+    const auto view{it[0].getObjectText()};
+    if (view.size() != 1)
+    {
+        throw RuntimeError(
+            WRONG_ARG_TYPE,
+            "argument must be exactly 1 character in length"
+        );
+    }
+
+    it[-1] = static_cast<i64>(view.front());
 }
 
 #undef FUNCTION_LIST

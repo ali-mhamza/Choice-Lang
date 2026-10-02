@@ -229,6 +229,7 @@ class TypeChecker
         void initFuncRandom();
         void initFuncInstanceof();
         void initFuncPanic();
+        void initFuncByte();
 
         static const u64 BUILTIN_FUNC_END{__LINE__};
         static const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
