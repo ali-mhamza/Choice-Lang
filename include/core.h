@@ -37,6 +37,7 @@ namespace Core
         members,
         random,
         instanceof,
+        panic,
         Count
     };
 

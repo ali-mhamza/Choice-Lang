@@ -222,6 +222,7 @@ void TypeChecker::initBuiltinRecords()
     initFuncMembers();
     initFuncRandom();
     initFuncInstanceof();
+    initFuncPanic();
 
     const u64 BUILTIN_FUNC_END{__LINE__};
     const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
@@ -375,6 +376,20 @@ void TypeChecker::initFuncInstanceof()
         "instanceof",
         {ANY_TYPE, ANY_TYPE},
         BUILTIN_TYPE(Bool)
+    );
+}
+
+void TypeChecker::initFuncPanic()
+{
+    // TODO: Update DUMMY_TYPE here to represent a proper
+    // 'never' type (since 'panic' exits the program).
+
+    addBasicRecord(
+        "panic",
+        {ANY_TYPE},
+        DUMMY_TYPE,
+        true,
+        0
     );
 }
 

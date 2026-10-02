@@ -17,7 +17,8 @@
     X(hex)              \
     X(members)          \
     X(random)           \
-    X(instanceof)
+    X(instanceof)       \
+    X(panic)
 
 /* Forward declarations. */
 
@@ -348,6 +349,18 @@ FUNC(instanceof)
             && (it[0].type() == AS_CORE_TYPE(it[1]))
         );
     }
+}
+
+FUNC(panic)
+{
+    checkArity(0, 1, true, args);
+
+    if (args == 0)
+        CH_PRINT_ERROR("Panicked with unknown error.\n");
+    else
+        CH_PRINT_ERROR_ARGS("Panicked with: {}\n", it[0].printVal());
+
+    std::exit(1);
 }
 
 #undef FUNCTION_LIST
