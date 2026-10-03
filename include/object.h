@@ -597,7 +597,7 @@ struct Method : public HeapObj
 
 struct Text : public HeapObj
 {
-    static inline constexpr u64 INLINE_SIZE{sizeof(const char*)};
+    static inline constexpr u64 INLINE_SIZE{sizeof(char*)};
     union {
         char* str{};
         char buf[INLINE_SIZE];
