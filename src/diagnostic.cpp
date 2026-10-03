@@ -529,12 +529,13 @@ void Diagnostic::displayErrorLine(
 //     }
 // }
 
-void Diagnostic::report() const
+void Diagnostic::report()
 {
     const auto [lineNo, col, lineStr] = sourceManager.getPositionData(
         id, byteOffset
     );
 
+    byteOffset = sourceManager.getColumnNumber(id, byteOffset) - 1;
     sv fileName{sourceManager.getFile(id)};
 
     displayReportTitle();
@@ -714,7 +715,8 @@ void DiagnosticEngine::displayErrorLine(
     // Must check before trying to fetch (non-existent) diagnostics.
     if (!inRepl && text.empty()) return;
 
-    const auto& diag{reports.back()};
+    auto& diag{reports.back()};
+    diag.byteOffset = sourceManager.getColumnNumber(diag.id, diag.byteOffset) - 1;
 
     if (diag.length > DIAG_LINE_LENGTH_MAX)
         diag.displayTruncatedErrorPart(line, col, text, maxLineNo);

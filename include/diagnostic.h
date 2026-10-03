@@ -439,7 +439,7 @@ struct Diagnostic
     //     const std::string& gap
     // ) const;
 
-    void report() const;
+    void report();
 };
 
 enum class ErrorSource : u8 { Lexer, Parser, Compiler, VM };
