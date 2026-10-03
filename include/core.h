@@ -39,6 +39,7 @@ namespace Core
         instanceof,
         panic,
         byte,
+        round,
         Count
     };
 

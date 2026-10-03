@@ -224,6 +224,7 @@ void TypeChecker::initBuiltinRecords()
     initFuncInstanceof();
     initFuncPanic();
     initFuncByte();
+    initFuncRound();
 
     const u64 BUILTIN_FUNC_END{__LINE__};
     const u64 BUILTIN_FUNC_COUNT{BUILTIN_FUNC_END - BUILTIN_FUNC_START - 3};
@@ -402,6 +403,16 @@ void TypeChecker::initFuncByte()
 
     Type param{ TypeTag::Option, std::move(list) };
     addBasicRecord("byte", {param}, BUILTIN_TYPE(Int));
+}
+
+void TypeChecker::initFuncRound()
+{
+    TypeList list;
+    list.add(BUILTIN_TYPE(Int));
+    list.add(BUILTIN_TYPE(Dec));
+
+    Type param{ TypeTag::Option, std::move(list) };
+    addBasicRecord("round", {param}, BUILTIN_TYPE(Dec));
 }
 
 void TypeChecker::initObjectCtor()

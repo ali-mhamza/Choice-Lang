@@ -1,5 +1,6 @@
 #include "../../include/core.h"
 #include "../../include/error.h"
+#include <cmath>
 #include <limits>
 #include <random>
 
@@ -19,7 +20,8 @@
     X(random)           \
     X(instanceof)       \
     X(panic)            \
-    X(byte)
+    X(byte)             \
+    X(round)
 
 /* Forward declarations. */
 
@@ -381,6 +383,18 @@ FUNC(byte)
     }
 
     it[-1] = static_cast<i64>(view.front());
+}
+
+FUNC(round)
+{
+    checkArity(1, 1, true, args);
+
+    if (IS_INT(it[0]))
+        it[-1] = static_cast<double>(AS_INT(it[0]));
+    else if (IS_DEC(it[0]))
+        it[-1] = std::round(AS_DEC(it[0]));
+    else
+        throw RuntimeError(WRONG_ARG_TYPE, "argument must be a number");
 }
 
 #undef FUNCTION_LIST
