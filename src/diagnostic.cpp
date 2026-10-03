@@ -666,8 +666,7 @@ void DiagnosticEngine::emitReports()
             break;
         }
 
-        const auto& diag{reports[i]};
-        diag.report();
+        reports[i].report();
     }
 
     reports.clear();
