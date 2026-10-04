@@ -16,9 +16,9 @@
 
 #define COPY_INLINE 0
 
-class Disassembler;
-struct RuntimeError;
-enum DiagCode : u8;
+class   Disassembler;
+struct  RuntimeError;
+enum    DiagCode : u8;
 
 struct CallFrame
 {
@@ -182,7 +182,7 @@ class VM
         void errorReset();
 
         void executeOp(Opcode op);
-        void executeChunk(const ByteCode& chunk, Function* func = nullptr);
+        void executeChunk(const ByteCode& chunk, const Function* func = nullptr);
         void executeCode();
 
     public:

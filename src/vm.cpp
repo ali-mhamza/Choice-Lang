@@ -223,7 +223,8 @@ Cell* VM::captureValue(u8 slot, bool local)
 
     Cell* cell{CH_ALLOC_REF(addr)};
     // Insert the cell in sorted order.
-    auto it{std::lower_bound(activeCells.begin(),
+    auto it{std::lower_bound(
+        activeCells.begin(),
         activeCells.end(),
         cell,
         [](Cell* c1, Cell* c2) -> bool {
@@ -1910,7 +1911,7 @@ void VM::executeOp(Opcode op)
     #undef PRINT_REGS
 }
 
-void VM::executeChunk(const ByteCode& chunk, Function* func)
+void VM::executeChunk(const ByteCode& chunk, const Function* func)
 {
     (void) func; // In case it isn't used below.
 
@@ -1919,7 +1920,7 @@ void VM::executeChunk(const ByteCode& chunk, Function* func)
     this->pool = chunk.pool.data();
 
     #if WATCH_EXEC
-        Function* temp{func};
+        const Function* temp{func};
         if (func == nullptr) temp = CH_ALLOC_USER_FUNC(chunk);
         this->dis = new Disassembler{temp};
     #endif
