@@ -161,7 +161,7 @@ def run_error_script(lines: list[str]) -> int:
     #     print(line.encode("utf-8").decode("unicode_escape"))
     errors = len(error_lines)
     for error in error_lines:
-        if "E00" not in error:
+        if "E0" not in error:
             errors -= 1
 
     return errors
