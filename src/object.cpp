@@ -730,8 +730,23 @@ Instance::Instance(const Type* type) noexcept:
 
 bool Instance::operator==(const Instance& other) const
 {
-    // For now.
-    return (this->type == other.type);
+    if (this->type != other.type) return false;
+
+    // Same type -> same field table layout.
+
+    auto thisIter{this->fields.begin()}, thisEnd{this->fields.end()};
+    auto otherIter{other.fields.begin()};
+
+    while (thisIter != thisEnd)
+    {
+        const auto& [_thisKey, thisObj] = *thisIter;
+        const auto& [_otherKey, otherObj] = *otherIter;
+        if (thisObj != otherObj) return false;
+        thisIter++;
+        otherIter++;
+    }
+
+    return true;
 }
 
 Object* Instance::findField(const std::string& name)
