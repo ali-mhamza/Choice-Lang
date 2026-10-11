@@ -335,8 +335,10 @@ Object& Object::deref()
 
 u64 Object::collectionSize() const
 {
-    CH_ASSERT(IS_COLLECTION(*this),
-        "collectionSize() called on non-collection object.");
+    CH_ASSERT(
+        IS_COLLECTION(*this),
+        "collectionSize() called on non-collection object."
+    );
 
     switch (type())
     {
@@ -658,6 +660,7 @@ const Object* Type::getMethod(const std::string& name) const
 
 bool Type::defines(const std::string& method) const
 {
+    // TODO: Update to check parent classes as well?
     return methods.contains(method);
 }
 
@@ -734,16 +737,14 @@ bool Instance::operator==(const Instance& other) const
 Object* Instance::findField(const std::string& name)
 {
     Object* location{fields.get(name)};
+    if (location != nullptr) return location;
+
     // Since this function is only used for field writes,
     // we don't search methods.
-    if (location == nullptr)
-    {
-        throw RuntimeError(FIELD_NOT_DEFINED,
-            CH_STR("type '{}' has no field '{}'", type->name, name)
-        );
-    }
 
-    return location;
+    throw RuntimeError(FIELD_NOT_DEFINED,
+        CH_STR("type '{}' has no field '{}'", type->name, name)
+    );
 }
 
 const Object* Instance::findField(const std::string& name) const
