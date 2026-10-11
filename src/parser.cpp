@@ -754,14 +754,6 @@ StmtUP Parser::typeDecl()
 
     ExprUP parent{nullptr};
     bool inheritingType{inInheritingType};
-    if (consumeTok(TOK_LEFT_PAREN))
-    {
-        MATCH_TOK(TOK_IDENTIFIER, "expect parent type name");
-        parent = std::make_unique<VarExpr>(previousTok);
-        MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after parent type name");
-        inInheritingType = true;
-    }
-
     bool type{inType};
     inType = true;
 
@@ -769,6 +761,19 @@ StmtUP Parser::typeDecl()
         inType = type;
         inInheritingType = inheritingType;
     });
+
+    if (consumeTok(TOK_LEFT_PAREN))
+    {
+        MATCH_TOK(TOK_IDENTIFIER, "expect parent type name or name of its module");
+        parent = std::make_unique<VarExpr>(previousTok);
+        if (consumeTok(TOK_SCOPE))
+        {
+            MATCH_TOK(TOK_IDENTIFIER, "expect parent type name");
+            parent = std::make_unique<ScopeExpr>(parent, previousTok);
+        }
+        MATCH_TOK(TOK_RIGHT_PAREN, "expect ')' after parent type");
+        inInheritingType = true;
+    }
 
     std::vector<TypeDecl::Field> fields{};
     std::vector<TypeDecl::Method> methods{};
