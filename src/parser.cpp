@@ -144,6 +144,18 @@ bool Parser::checkTok(TokenType type) const
     return (currentTok.type == type);
 }
 
+template<typename... Type>
+bool Parser::checkToks(Type... toks) const
+{
+    for (TokenType type : {toks...})
+    {
+        if (checkTok(type))
+            return true;
+    }
+
+    return false;
+}
+
 bool Parser::consumeTok(TokenType type)
 {
     if (checkTok(type))
@@ -398,7 +410,7 @@ AST::Types::TypeHint Parser::consumeGenericType()
 AST::Types::TypeHint Parser::consumeSignatureType()
 {
     AST::Types::TypeVec paramTypes{};
-    if (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
+    if (!checkToks(TOK_RIGHT_PAREN, TOK_EOF))
     {
         do {
             paramTypes.emplace_back(
@@ -797,7 +809,7 @@ StmtUP Parser::typeDecl()
             }
         }
 
-        while (checkTok(TOK_FUNC) || checkTok(TOK_AT))
+        while (checkToks(TOK_FUNC, TOK_AT))
         {
             AST::Decl decl{consumeAttributes()};
             MATCH_TOK(TOK_FUNC, "expect 'func' keyword to declare method");
@@ -855,7 +867,7 @@ StmtUP Parser::statement()
         if (!inMatch)
             REPORT_SEMANTIC(INVALID_FALLTHROUGH, previousTok);
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'fallthrough'");
-        if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
+        if (!checkToks(TOK_IS, TOK_RIGHT_BRACE))
             REPORT_SEMANTIC(STMT_AFTER_FALLTHROUGH, currentTok);
         inFallthrough = true;
         return nullptr;
@@ -1030,7 +1042,7 @@ StmtUP Parser::matchStmt()
     cases.reserve(MATCH_CASES_MAX);
 
     bool match{inMatch};
-    while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
+    while (!checkToks(TOK_RIGHT_BRACE, TOK_EOF))
     {
         if (cases.size() == MATCH_CASES_MAX)
             REPORT_SEMANTIC(HIT_MATCH_CASE_MAX, currentTok);
@@ -1041,7 +1053,7 @@ StmtUP Parser::matchStmt()
 
         MATCH_TOK(TOK_COLON, "expect ':' before case body");
         StmtUP caseBody{nullptr};
-        if (!checkTok(TOK_IS) && !checkTok(TOK_RIGHT_BRACE))
+        if (!checkToks(TOK_IS, TOK_RIGHT_BRACE))
         {
             inMatch = true; // Before any potential 'fallthrough' or 'end' statements.
             caseBody = statement();
@@ -1137,7 +1149,7 @@ StmtUP Parser::blockStmt()
     StmtVec block{};
     block.reserve(10);
 
-    while (!checkTok(TOK_RIGHT_BRACE) && !checkTok(TOK_EOF))
+    while (!checkToks(TOK_RIGHT_BRACE, TOK_EOF))
         block.push_back(declaration());
     MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after block");
 
@@ -1523,7 +1535,7 @@ ExprUP Parser::call(ExprUP&& expr, u64 start)
     }
 
     ExprVec args{};
-    if (!checkTok(TOK_RIGHT_PAREN) && !checkTok(TOK_EOF))
+    if (!checkToks(TOK_RIGHT_PAREN, TOK_EOF))
     {
         do {
             if (args.size() == CODE_MAX)
@@ -1791,7 +1803,7 @@ ExprUP Parser::formatString()
     ExprVec parts{};
     parts.emplace_back(std::make_unique<StringPartExpr>(previousTok));
     setExprLocation(parts.back(), previousTok.byteOffset);
-    while (!checkTok(TOK_INTER_END) && !checkTok(TOK_EOF))
+    while (!checkToks(TOK_INTER_END, TOK_EOF))
     {
         if (hitError) return nullptr; // To not get into an infinite loop.
 

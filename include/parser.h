@@ -60,6 +60,8 @@ class Parser
 
         void nextTok();
         [[nodiscard]] bool checkTok(TokenType type) const;
+        template<typename... Type>
+        [[nodiscard]] bool checkToks(Type... toks) const;
         bool consumeTok(TokenType type);
         template<typename... Type>
         [[nodiscard]] bool consumeToks(Type... toks);
