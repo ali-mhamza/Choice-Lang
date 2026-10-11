@@ -179,9 +179,13 @@ u64 ByteCode::countPool() const
                 break;
     		}
 			case ObjType::UserFunc:
-			case ObjType::Lambda:
 			{
 				count += AS_USER_FUNC(obj)->byteSize();
+				break;
+			}
+			case ObjType::Lambda:
+			{
+				count += AS_LAMBDA(obj)->byteSize();
 				break;
 			}
 			case ObjType::Text:
@@ -195,7 +199,9 @@ u64 ByteCode::countPool() const
 				break;
 			}
 			default:
+			{
 				CH_UNREACHABLE();
+			}
 		}
 	}
 

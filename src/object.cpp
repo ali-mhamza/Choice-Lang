@@ -123,7 +123,7 @@ HeapObj* Object::heapPointer() const
         case ObjType::Module:       return static_cast<HeapObj*>(as.moduleVal);
         case ObjType::UserType:     return static_cast<HeapObj*>(as.userTypeVal);
         case ObjType::Instance:     return static_cast<HeapObj*>(as.instanceVal);
-        case ObjType::UserFunc:
+        case ObjType::UserFunc:     return static_cast<HeapObj*>(as.userFuncVal);
         case ObjType::Lambda:       return static_cast<HeapObj*>(as.userFuncVal);
         case ObjType::Closure:      return static_cast<HeapObj*>(as.closureVal);
         case ObjType::UserMethod:   return static_cast<HeapObj*>(as.userMethodVal);
@@ -154,8 +154,8 @@ bool Object::operator==(const Object& other) const
         case ObjType::UserType:     return AS_USER_TYPE(*this) == AS_USER_TYPE(other);
         case ObjType::Instance:     return *(AS_INSTANCE(*this)) == *(AS_INSTANCE(other));
         case ObjType::CoreFunc:     return AS_CORE_FUNC(*this) == AS_CORE_FUNC(other);
-        case ObjType::UserFunc:
-        case ObjType::Lambda:       return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
+        case ObjType::UserFunc:     return AS_USER_FUNC(*this) == AS_USER_FUNC(other);
+        case ObjType::Lambda:       return AS_LAMBDA(*this) == AS_LAMBDA(other);
         case ObjType::Closure:      return AS_CLOSURE(*this) == AS_CLOSURE(other);
         case ObjType::CoreMethod:   return *(AS_CORE_METHOD(*this)) == *(AS_CORE_METHOD(other));
         case ObjType::UserMethod:   return *(AS_USER_METHOD(*this)) == *(AS_USER_METHOD(other));
@@ -239,7 +239,7 @@ bool Object::isTruthy() const
         case ObjType::Table:    return (AS_TABLE(*this)->table.size() != 0);
         case ObjType::Void:     return false;
         // Rest are always truthy.
-        default:            return true;
+        default:                return true;
     }
 }
 
@@ -364,8 +364,8 @@ Hash Object::hash() const
         case ObjType::UserType: return hashKey(AS_USER_TYPE(*this));
         case ObjType::Instance: return AS_INSTANCE(*this)->hash();
         case ObjType::CoreFunc: return hashKey(static_cast<u8>(AS_CORE_FUNC(*this)));
-        case ObjType::UserFunc:
-        case ObjType::Lambda:   return hashKey(AS_USER_FUNC(*this));
+        case ObjType::UserFunc: return hashKey(AS_USER_FUNC(*this));
+        case ObjType::Lambda:   return hashKey(AS_LAMBDA(*this));
         case ObjType::Closure:  return hashKey(AS_CLOSURE(*this));
         case ObjType::CoreMethod:
         {
@@ -489,8 +489,8 @@ void Object::emit(std::ofstream& os) const
         case ObjType::Dec:      Bytes::encodeValue(os, AS_DEC(*this));  break;
         case ObjType::Module:   AS_MODULE(*this)->emit(os);             break;
         case ObjType::UserType: AS_USER_TYPE(*this)->emit(os);          break;
-        case ObjType::UserFunc:
-        case ObjType::Lambda:   AS_USER_FUNC(*this)->emit(os);          break;
+        case ObjType::UserFunc: AS_USER_FUNC(*this)->emit(os);          break;
+        case ObjType::Lambda:   AS_LAMBDA(*this)->emit(os);             break;
         case ObjType::Text:     AS_TEXT(*this)->emit(os);               break;
         case ObjType::String:   AS_STRING(*this)->emit(os);             break;
         default: CH_UNREACHABLE();
