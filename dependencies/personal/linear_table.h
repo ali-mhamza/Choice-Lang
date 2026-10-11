@@ -491,7 +491,7 @@ class LinearTable
                     return *this;
                 }
 
-                iterator& operator++(int)
+                iterator operator++(int)
                 {
                     iterator temp{*this};
                     ptr++;
@@ -561,7 +561,7 @@ class LinearTable
                     return *this;
                 }
 
-                const_iterator& operator++(int)
+                const_iterator operator++(int)
                 {
                     const_iterator temp{*this};
                     ptr++;
