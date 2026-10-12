@@ -749,10 +749,10 @@ bool Instance::operator==(const Instance& other) const
     return true;
 }
 
-Object* Instance::findField(const std::string& name)
+Object& Instance::findField(const std::string& name)
 {
     Object* location{fields.get(name)};
-    if (location != nullptr) return location;
+    if (location != nullptr) return *location;
 
     // Since this function is only used for field writes,
     // we don't search methods.
@@ -762,46 +762,46 @@ Object* Instance::findField(const std::string& name)
     );
 }
 
-const Object* Instance::findField(const std::string& name) const
+const Object& Instance::findField(const std::string& name) const
 {
     const Object* location{fields.get(name)};
-    if (location != nullptr) return location;
+    if (location != nullptr) return *location;
 
     location = type->getMethod(name);
     if (location != nullptr)
     {
         AS_USER_METHOD(*location)->boundInstance = this;
-        return location;
+        return *location;
     }
 
     static Object ref{this};    // 'static' since we only need to initialize it once.
     static Object core;         // 'static' so we can return a pointer to it safely.
     core = Core::Methods::getCommonMember(ref, name);
     if (IS_CORE_METHOD(core))
-        return &core;
+        return core;
 
     throw RuntimeError(FIELD_NOT_DEFINED,
         CH_STR("type '{}' has no field or method '{}'", type->name, name)
     );
 }
 
-Object Instance::getField(const std::string& name) const
+const Object& Instance::getField(const std::string& name) const
 {
     return getField(name, type);
 }
 
-Object Instance::getField(
+const Object& Instance::getField(
     const std::string& name,
     const Type* check
 ) const
 {
-    const Object* location{findField(name)};
-    if (!IS_VALID(*location))
+    const Object& location{findField(name)};
+    if (!IS_VALID(location))
         throw RuntimeError(FIELD_UNINIT_READ);
     else if (check != type)
     {
-        if (IS_CORE_METHOD(*location)); // To exit the block.
-        else if (IS_USER_METHOD(*location))
+        if (IS_CORE_METHOD(location)); // To exit the block.
+        else if (IS_USER_METHOD(location))
         {
             if (name == CH_CONSTRUCTOR)
                 throw RuntimeError(INIT_METHOD_GET);
@@ -814,7 +814,7 @@ Object Instance::getField(
             throw RuntimeError(FIELD_PRIVATE);
     }
 
-    return *location;
+    return location;
 }
 
 void Instance::setField(const std::string& name, const Object& value)
@@ -828,20 +828,20 @@ void Instance::setField(
     const Type* check
 )
 {
-    Object* location{findField(name)};
+    Object& location{findField(name)};
     // Field is fixed, but the flag is placed on the value itself.
-    if (IS_FIXED(*location))
+    if (IS_FIXED(location))
         throw RuntimeError(MOD_FIXED_FIELD);
     else if ((check != type) && !type->isPublicField(name))
         throw RuntimeError(FIELD_PRIVATE);
 
-    *location = value;
+    location = value;
 }
 
 void Instance::initField(const std::string& name, const Object& value)
 {
-    Object* location{findField(name)};
-    *location = value;
+    Object& location{findField(name)};
+    location = value;
 
     // Field must exist if we have reached this point.
     u8 position{type->fieldTable[name]};
@@ -849,8 +849,8 @@ void Instance::initField(const std::string& name, const Object& value)
 
     if (fix)
     {
-        MAKE_FIXED(*location);
-        if (!IS_MUT(*location)) MAKE_IMMUT(*location);
+        MAKE_FIXED(location);
+        if (!IS_MUT(location)) MAKE_IMMUT(location);
     }
 }
 

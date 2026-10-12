@@ -510,20 +510,22 @@ struct Instance : public HeapObj
     Instance(const Type* type) noexcept;
     bool operator==(const Instance& other) const;
 
-    [[nodiscard]] Object* findField(const std::string& name);
-    [[nodiscard]] const Object* findField(const std::string& name) const;
+    [[nodiscard]] Object& findField(const std::string& name);
+    [[nodiscard]] const Object& findField(const std::string& name) const;
 
-    [[nodiscard]] Object getField(const std::string& name) const;
-    [[nodiscard]] Object getField(
+    [[nodiscard]] const Object& getField(const std::string& name) const;
+    [[nodiscard]] const Object& getField(
         const std::string& name,
         const Type* check
     ) const;
+
     void setField(const std::string& name, const Object& value);
     void setField(
         const std::string& name,
         const Object& value,
         const Type* check
     );
+
     // Will not perform immutability checks on the field.
     void initField(const std::string& name, const Object& value);
 

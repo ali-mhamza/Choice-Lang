@@ -1858,19 +1858,19 @@ void VM::executeOp(Opcode op)
 
             Instance* obj{AS_INSTANCE(registers[instanceReg])};
             const std::string& field{AS_STRING(registers[fieldReg])->str};
-            Object* find{obj->findField(field)};
+            Object& find{obj->findField(field)};
 
             if (IS_IMMUT(registers[instanceReg]))
             {
                 // If the instance is immutable, we cannot reassign its
                 // fields.
-                MAKE_FIXED(*find);
+                MAKE_FIXED(find);
                 // If the instance is immutable and the field *value* is
                 // not explicitly mutable, the value is made immutable.
-                if (!IS_MUT(*find)) MAKE_IMMUT(*find);
+                if (!IS_MUT(find)) MAKE_IMMUT(find);
             }
 
-            registers[instanceReg] = CH_ALLOC_REF(find);
+            registers[instanceReg] = CH_ALLOC_REF(&find);
             DISPATCH();
         }
 
