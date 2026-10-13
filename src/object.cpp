@@ -499,7 +499,12 @@ void Object::emit(std::ofstream& os) const
 
 void Object::emitMetadata(std::ofstream& os) const
 {
-    AS_USER_FUNC(*this)->emitMetadata(os);
+    switch (type())
+    {
+        case ObjType::UserFunc: AS_USER_FUNC(*this)->emitMetadata(os);  break;
+        case ObjType::Lambda:   AS_LAMBDA(*this)->emitMetadata(os);     break;
+        default: break;
+    }
 }
 
 ObjIter* Object::makeIter()
