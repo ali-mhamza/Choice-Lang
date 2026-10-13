@@ -195,6 +195,7 @@ class TypeChecker
         /* Initialization. */
 
         void initBuiltinRecords();
+
         // Add a regular function record for a built-in function
         // or ctor.
         void addBasicRecord(
@@ -204,6 +205,7 @@ class TypeChecker
             bool hasDefaultArgs = false,
             u8 defaultStart = 0
         );
+
         // Add a function record for a built-in function or ctor
         // that takes a variable number of parameters.
         void addVariadicRecord(
@@ -211,6 +213,7 @@ class TypeChecker
             Type variadicType,
             Type returnType
         );
+
         // TODO: Very brittle approach.
         static const u64 BUILTIN_FUNC_START{__LINE__};
 

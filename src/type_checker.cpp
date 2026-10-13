@@ -1934,7 +1934,8 @@ void TypeChecker::checkExpr(const ExprUP& node)
 TypeChecker::TypeChecker(TypeChecker* checker) :
     scopeChecker{checker}
 {
-    if (checker == nullptr) initBuiltinRecords();
+    if (checker == nullptr)
+        initBuiltinRecords();
 }
 
 TypeChecker::~TypeChecker() = default;
