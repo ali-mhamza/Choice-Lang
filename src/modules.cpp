@@ -42,9 +42,23 @@ getModuleTable(const std::filesystem::path& path)
     const auto& tokens{lexer.tokenize(id, content)};
     auto& program{parser.parseToAST(id, tokens)};
 
-    #if CH_TYPE_CHECKING_ON
-		TypeChecker{}.check(program);
-	#endif
+    // We don't type-check modules when actually importing them
+    // (at runtime).
+    // This transfers some compile-time error checks (in the form
+    // of type-checking) to runtime, which shouldn't happen.
+    // Module type-checking should either happen with global-scope
+    // code compilation (whether while compiling a script or REPL
+    // input) or not at all.
+    // This distinction doesn't have much of an observable effect in
+    // the REPL since compilation errors are interspersed with code
+    // execution, but it is evident when running scripts since we would
+    // end up getting type errors after the script itself has
+    // successfully compiled (without any of its own type errors).
+    // This wouldn't only be confusing to users (why are we getting new,
+    // unmentioned compilation errors after the script has already
+    // compiled, possibly during execution at that?), but would also
+    // clutter visible output with type errors and arbitrarily abort
+    // otherwise well-composed programs.
 
 	#if CH_OPTIMIZATIONS_ON
 		Optimizer::optimize(program);
