@@ -189,7 +189,7 @@ class TypeChecker
         const std::unique_ptr<TypeTable> typeRecords{new TypeTable};
 
         const TypeChecker* const scopeChecker{};
-        Type currentReturnType{};
+        static Type currentReturnType;
         u8 scope{0};
 
         /* Initialization. */

@@ -64,6 +64,7 @@ static const HashTable<std::string_view, ObjType> typeTokens{
 };
 
 std::vector<TypeChecker::TypeError> TypeChecker::errors{};
+TypeChecker::Type TypeChecker::currentReturnType{};
 
 /* Helper data structures. */
 
