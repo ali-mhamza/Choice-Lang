@@ -11,6 +11,7 @@
 #include "../include/diagnostic.h"
 #include "../include/object.h"
 #include "../include/opcodes.h"
+#include "../include/utils.h"
 #include <string_view>
 
 #if OPCODE_STRIP_PREFIX
@@ -69,7 +70,8 @@ void Disassembler::disFunction(const Function* func) const
 
 void Disassembler::printOperValue(const Object& oper) const
 {
-	CH_PRINT("'{}' {}\n", oper.printVal(), oper.printType());
+	auto valueString{formatMultiLineString(oper.printVal())};
+	CH_PRINT("'{}' {}\n", valueString, oper.printType());
 
 	// We only disassemble functions when requested, and not
 	// with concurrent disassembler output during VM execution.
