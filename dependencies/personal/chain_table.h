@@ -492,7 +492,6 @@ class ChainTable
                     {
                         this->node = other.node;
                         this->pair = other.pair;
-                        this->bucketIndex = other.bucketIndex;
                     }
 
                     return *this;
@@ -664,7 +663,6 @@ class ChainTable
                     {
                         this->node = other.node;
                         this->pair = other.pair;
-                        this->bucketIndex = other.bucketIndex;
                     }
 
                     return *this;
