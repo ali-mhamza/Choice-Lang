@@ -231,7 +231,8 @@ void Parser::reset()
             case TOK_MATCH:     case TOK_IS:        case TOK_FALL:
             case TOK_END:       case TOK_MAKE:      case TOK_FIX:
             case TOK_FUNC:      case TOK_TYPE:      case TOK_USE:
-            case TOK_RETURN:    case TOK_AT:        case TOK_LEFT_BRACE:
+            case TOK_RETURN:    case TOK_SUPER:     case TOK_AT:
+            case TOK_LEFT_BRACE:
                 return;
             default:
                 nextTok();
