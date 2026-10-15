@@ -3,12 +3,18 @@
 
 #if defined(_WIN32) || defined(_WIN64)
     #include <io.h>
-    #define DUP             _dup
-    #define DUP2            (void) _dup2
-    #define FILENO          _fileno
-    #define STDOUT_FILENO   FILENO(stdout)
-    #define STDERR_FILENO   FILENO(stderr)
-    #define NULL_FILE       "NUL"
+    #define DUP         _dup
+    #define DUP2        (void) _dup2
+    #define FILENO      _fileno
+    #define NULL_FILE   "NUL"
+
+    #if !defined(STDOUT_FILENO)
+        #define STDOUT_FILENO   FILENO(stdout)
+    #endif
+
+    #if !defined(STDERR_FILENO)
+        #define STDERR_FILENO   FILENO(stderr)
+    #endif
 #else
     #include <unistd.h>
     #define DUP         dup
