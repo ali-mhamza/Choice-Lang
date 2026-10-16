@@ -1919,8 +1919,8 @@ DEF(UnaryExpr)
 
 DEF(IndexExpr)
 {
-    u64 objectReg{compileExpr(node->obj)};
-    u64 indexReg{compileExpr(node->index)};
+    u8 objectReg{compileExpr(node->obj)};
+    u8 indexReg{compileExpr(node->index)};
 
     // The object should replace the first operand (the second's
     // register is freed up).
