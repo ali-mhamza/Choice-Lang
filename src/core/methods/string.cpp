@@ -3,6 +3,7 @@
 #include "../../../include/utils.h"
 
 #define METHOD_LIST \
+    X(bytes)        \
     X(chars)        \
     X(empty)        \
     X(runes)        \
@@ -61,6 +62,20 @@ StringMethods::search{
 // For methods we want to define but have yet to do so.
 #define METHOD_STUB(name) \
 	METHOD(name) { (void) instance; (void) it; (void) args; return Object{}; }
+
+METHOD(bytes)
+{
+    (void) it;
+    checkArity(0, 0, true, args);
+
+    const auto view{instance.getObjectText()};
+    auto* list{CH_ALLOC_LIST(view.size())};
+
+    for (auto c : view)
+        list->array.push(static_cast<i64>(c));
+
+    return list;
+}
 
 METHOD(chars)
 {
