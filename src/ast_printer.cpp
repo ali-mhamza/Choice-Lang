@@ -93,7 +93,7 @@ void ASTPrinter::printLoopHeader(const AST::LoopHeader& header)
     forEachChild(header.vars, PRINT_LAMBDA(printVar));
     endChild();
 
-    // Still 'beginChild' even if there is no 'where' clause
+    // Still not last child even if there is no 'where' clause
     // or unpack state to display, since the body of the loop
     // always follows.
     beginChild("Iter", !LAST_CHILD, ADD_NEWLINE);
