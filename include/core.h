@@ -112,7 +112,8 @@ namespace Core
             X(String)               \
             X(Range)                \
             X(List)                 \
-            X(Table)
+            X(Table)                \
+            X(Module)               \
 
         #define NAMESPACE(name)                                                     \
             namespace name                                                          \
