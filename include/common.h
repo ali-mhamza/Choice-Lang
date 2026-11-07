@@ -16,7 +16,7 @@
 // Compiler and OS.
 
 #if defined(__GNUC__)
-	#define CH_COMPILER "g++"
+	#define CH_COMPILER "GCC"
 #elif defined(__clang__)
 	#define CH_COMPILER "Clang"
 #elif defined(_MSC_VER)
