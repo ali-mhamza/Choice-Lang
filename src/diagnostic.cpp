@@ -26,7 +26,7 @@
 constexpr u8 warningStart{static_cast<u8>(UNUSED_VARIABLE)};
 
 static constexpr std::array<DiagCode, NUM_FAMILIES> familyMarkers{
-    SCOPE_NOT_IDENT, CORE_METHOD_NOT_DEFINED, TEST_FUNC_HAS_PARAMS,
+    DUPLICATE_LOOP_LABEL, CORE_METHOD_NOT_DEFINED, TEST_FUNC_HAS_PARAMS,
     SUPER_OUTSIDE_CHILD, INVALID_NUM_BASE, HIT_CALL_DEPTH_MAX,
     INVALID_INCR_DECR_TARGET, ALIAS_SPEC_MODULE, IMMUT_TO_MUT,
     RETURN_IN_DROP, CLOSED_NON_FUNCTION, INVALID_CALLABLE_TYPE,
@@ -66,6 +66,7 @@ static constexpr std::array<DiagnosticEntry, NUM_CODES> reportData{
     "Too many values to unpack into left-hand side.",
     "Value being referenced is not assignable.",
     "The scope operator :: can only be used on a module name.",
+    "Duplicated loop label.",
 
     // Variable errors.
 

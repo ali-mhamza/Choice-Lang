@@ -136,6 +136,8 @@ enum DiagCode : u8
     REF_NOT_ASSIGN,
     // Scope operator used on non-identifier expression.
     SCOPE_NOT_IDENT,
+    // Duplicate loop label.
+    DUPLICATE_LOOP_LABEL,
 
 
     /* Variable errors. */

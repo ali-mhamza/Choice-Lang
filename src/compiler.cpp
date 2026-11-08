@@ -1120,8 +1120,12 @@ DEF(WhileStmt)
     u64 loopStart{code.getLoopStart()};
     if (node->label)
     {
-        breakLabels->add(node->label.text, {});
-        continueLabels->add(node->label.text, {});
+        const auto& label{node->label.text};
+        if (breakLabels->contains(label))
+            REPORT_ERROR(DUPLICATE_LOOP_LABEL, node->label);
+
+        breakLabels->add(label, {});
+        continueLabels->add(label, {});
     }
 
     std::vector<u64> breaks{};
