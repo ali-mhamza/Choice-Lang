@@ -279,8 +279,8 @@ Obj Core::Ctors::Table(iter it, u8 args)
 {
     checkArity(0, 1, true, args);
 
-    auto* table{CH_ALLOC_TABLE()};
-    auto insertEntry = [table](const Obj& obj) {
+    auto* value{CH_ALLOC_TABLE()};
+    auto insertEntry = [value](const Obj& obj) {
         if (!IS_LIST(obj) || (AS_LIST(obj)->array.count() != 2))
         {
             throw RuntimeError(WRONG_ARG_TYPE,
@@ -288,7 +288,7 @@ Obj Core::Ctors::Table(iter it, u8 args)
         }
 
         const auto& array{AS_LIST(obj)->array};
-        table->table.add(array[0], array[1]);
+        value->table.add(array[0], array[1]);
     };
 
     if (args == 1)
@@ -313,5 +313,5 @@ Obj Core::Ctors::Table(iter it, u8 args)
         CH_DEALLOC(iter);
     }
 
-    return table;
+    return value;
 }
