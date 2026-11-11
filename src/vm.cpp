@@ -517,7 +517,7 @@ void VM::pushCurrentStackFrame()
     frames.emplace_back(CallFrame::Args{
         currentCode, currentMethodType, currentClosure, registers, ip
         #if WATCH_EXEC
-        , this->dis
+        , std::move(this->dis)
         #endif
     });
 }
@@ -559,7 +559,7 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
     const u8* ip{this->ip};
     const Object* pool{this->pool};
     #if WATCH_EXEC
-        Disassembler* const dis{this->dis};
+        Disassembler* const dis{this->dis.release()};
     #endif
 
     u8 funcDefaultArgs{static_cast<u8>(func->arityMax - func->arityMin)};
@@ -572,7 +572,7 @@ void VM::prepFuncArgs(const Function* func, u8 argCount)
     this->ip = ip;
     this->pool = pool;
     #if WATCH_EXEC
-        this->dis = dis;
+        this->dis.reset(dis);
     #endif
 }
 
@@ -586,8 +586,7 @@ void VM::restoreData()
     ip = frame.ip;
     pool = currentCode->pool.data();
     #if WATCH_EXEC
-        delete this->dis;
-        this->dis = frame.dis;
+        this->dis = std::move(frame.dis);
     #endif
 
     frames.pop_back();
@@ -654,7 +653,9 @@ void VM::callUserFunc(
         pool = currentCode->pool.data();
 
         #if WATCH_EXEC
-            this->dis = new Disassembler{func};
+            // pushCurrentStackFrame already released the current
+            // disassembler, so this assignment does not deallocate it.
+            this->dis = std::make_unique<Disassembler>(func);
         #endif
     }
 }
@@ -1922,7 +1923,7 @@ void VM::executeChunk(const ByteCode& chunk, const Function* func)
     #if WATCH_EXEC
         const Function* temp{func};
         if (func == nullptr) temp = CH_ALLOC_USER_FUNC(chunk);
-        this->dis = new Disassembler{temp};
+        this->dis = std::make_unique<Disassembler>(temp);
     #endif
 
     executeCode();
@@ -1930,7 +1931,6 @@ void VM::executeChunk(const ByteCode& chunk, const Function* func)
     #if WATCH_EXEC
         // Braces in case CH_DEALLOC is #defined to nothing.
         if (func == nullptr) { CH_DEALLOC(temp); }
-        delete this->dis;
     #endif
 }
 
@@ -1972,8 +1972,7 @@ void VM::execute(Function* script)
     pool = currentCode->pool.data();
 
     #if WATCH_EXEC
-        Disassembler dis(script);
-        this->dis = &dis;
+        this->dis = std::make_unique<Disassembler>(script);
     #endif
 
     frames.reserve(CALL_FRAMES_DEFAULT);
@@ -2001,14 +2000,14 @@ void VM::execute(Function* script)
 
 /* CallFrame constructor. */
 
-CallFrame::CallFrame(const Args& args) :
+CallFrame::CallFrame(Args&& args) :
     code{args.code},
     methodType{args.methodType},
     closure{args.closure},
     window{args.window},
     ip{args.ip}
     #if WATCH_EXEC
-    , dis{args.dis}
+    , dis{std::move(args.dis)}
     #endif
     {}
 

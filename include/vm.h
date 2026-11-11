@@ -2,8 +2,10 @@
 #include "bytecode.h"
 #include "common.h"
 #include "config.h"
+#include "disasm.h"
 #include "object.h"
 #include "opcodes.h"
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -17,7 +19,6 @@
 #define COPY_INLINE 0
 
 enum    DiagCode : u8;
-class   Disassembler;
 struct  RuntimeError;
 
 struct CallFrame
@@ -31,7 +32,7 @@ struct CallFrame
         const u8* ip{};
 
         #if WATCH_EXEC
-        Disassembler* dis;
+        std::unique_ptr<Disassembler> dis;
         #endif
     };
 
@@ -42,11 +43,11 @@ struct CallFrame
     const u8* ip{};
 
     #if WATCH_EXEC
-    Disassembler* dis;
+    std::unique_ptr<Disassembler> dis;
     #endif
 
     CallFrame() = default;
-    CallFrame(const Args& args);
+    CallFrame(Args&& args);
 };
 
 class VM
@@ -95,7 +96,7 @@ class VM
         #endif
 
         #if WATCH_EXEC
-        Disassembler* dis{};
+        std::unique_ptr<Disassembler> dis{};
         #endif
 
         // Utilities.
