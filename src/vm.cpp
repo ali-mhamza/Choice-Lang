@@ -1102,7 +1102,10 @@ void VM::reportWarning(DiagCode code, const std::string& label)
 
 void VM::errorReset()
 {
+    // Clear implicit call state.
     implicitCall = false;
+
+    // Clear variable state.
     if (inDeclaration)
     {
         Compiler::clearDeclaredVars = true;
@@ -1912,7 +1915,7 @@ void VM::executeOp(Opcode op)
     #undef PRINT_REGS
 }
 
-void VM::executeChunk(const ByteCode& chunk, const Function* func)
+void VM::executeChunk(const ByteCode& chunk, const Function* func /* = nullptr */)
 {
     (void) func; // In case it isn't used below.
 
