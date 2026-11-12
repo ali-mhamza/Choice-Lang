@@ -75,16 +75,17 @@ class Compiler
         VarAttr currentAttr{};  // Attribute for current declaration being compiled.
 
         using VarTable      = HashTable<VarEntry, u8, VarHasher>;
-        using DeclTable     = HashTable<u8, DeclInfo>;
-        using AccessTable   = HashTable<u8, bool>;
+        using AccessTable   = std::vector<std::optional<bool>>;
+        using DeclTable     = std::vector<std::optional<DeclInfo>>;
         using LabelTable    = HashTable<std::string_view, std::vector<u64>>;
 
         std::stack<std::vector<std::string>> varScopes{};
-        const std::unique_ptr<VarTable> varLocations{new VarTable};
-        const std::unique_ptr<DeclTable> declData{new DeclTable};
-        const std::unique_ptr<AccessTable> varAccess{new AccessTable};
-        const std::unique_ptr<LabelTable> breakLabels{new LabelTable};
-        const std::unique_ptr<LabelTable> continueLabels{new LabelTable};
+
+        VarTable varLocations{};
+        AccessTable varAccess{};
+        DeclTable declData{};
+        LabelTable breakLabels{};
+        LabelTable continueLabels{};
 
         std::vector<CellInfo> captures{};
         HashTable<std::string, u8> captureNames{};

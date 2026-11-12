@@ -56,6 +56,9 @@ Compiler::Compiler(Compiler* comp) :
     currentAttr{comp == nullptr ? VarAttr{} : comp->currentAttr},
     inModule{comp == nullptr ? false : comp->inModule}
 {
+    varAccess.resize(CODE_MAX);
+    declData.resize(CODE_MAX);
+
     if (depth == 0) // Global scope compiler.
         defineBuiltinGlobals();
     else
@@ -133,9 +136,9 @@ void Compiler::defVar(
     VarAttr attr
 )
 {
-    (*varLocations)[{ name, scope }] = reg;
-    (*varAccess)[reg] = access;
-    (*declData)[reg] = { type, attr };
+    varLocations[{ name, scope }] = reg;
+    varAccess[reg] = access;
+    declData[reg] = { type, attr };
 
     if (scope != 0)
         varScopes.top().push_back(name);
@@ -146,11 +149,11 @@ void Compiler::defVar(
 void Compiler::removeVar(const std::string& name)
 {
     VarEntry entry{name, scope};
-    u8 reg{(*varLocations)[entry]};
+    u8 reg{varLocations[entry]};
 
-    varLocations->remove(entry);
-    varAccess->remove(reg);
-    declData->remove(reg);
+    varLocations.remove(entry);
+    varAccess[reg] = std::nullopt;
+    declData[reg] = std::nullopt;
 
     if (scope != 0)
         varScopes.top().pop_back();
@@ -169,8 +172,8 @@ void Compiler::clearDeclarations()
         {
             const auto& pair{declaredVars[clearIndex++]};
 
-            varLocations->remove({ pair.name, scope });
-            varAccess->remove(pair.reg);
+            varLocations.remove({ pair.name, scope });
+            varAccess[pair.reg] = std::nullopt;
         }
     }
 
@@ -181,24 +184,24 @@ void Compiler::clearDeclarations()
 
 Compiler::DeclInfo Compiler::getDeclInfo(u8 reg) const
 {
-    DeclInfo* ret{declData->get(reg)};
-    CH_ASSERT(ret != nullptr,
+    const auto& ret{declData[reg]};
+    CH_ASSERT(ret.has_value(),
         "Variable registered with no declaration info.");
-    return *ret;
+    return ret.value();
 }
 
 bool Compiler::getAccess(u8 reg) const
 {
-    bool* ret{varAccess->get(reg)};
-    CH_ASSERT(ret != nullptr,
+    const auto& ret{varAccess[reg]};
+    CH_ASSERT(ret.has_value(),
         "Variable registered with no access field.");
-    return *ret;
+    return ret.value();
 }
 
 Compiler::LocalInfo Compiler::getScopeLocal(const Token& token) const
 {
     VarEntry entry{token.text, scope};
-    u8* slot{varLocations->get(entry)};
+    const u8* slot{varLocations.get(entry)};
     if (slot != nullptr)
         return { true, *slot };
 
@@ -211,7 +214,7 @@ Compiler::VarInfo Compiler::resolveVariable(const Token& token)
     for (u8 i{0}; i <= scope; i++)
     {
         VarEntry entry{token.text, static_cast<u8>(scope - i)};
-        u8* slot{varLocations->get(entry)};
+        const u8* slot{varLocations.get(entry)};
         if (slot != nullptr)
         {
             VarType type{VarType::Local};
@@ -312,7 +315,7 @@ void Compiler::pushScope()
 void Compiler::popScope()
 {
     for (std::string& var : varScopes.top())
-        varLocations->remove({var, scope});
+        varLocations.remove({var, scope});
 
     varScopes.pop();
     nextReg = scopeStart;
@@ -478,16 +481,16 @@ void Compiler::patchLoopLabelJumps(const Token& label, bool patchBreaks)
 
     if (patchBreaks)
     {
-        auto* vec{breakLabels->get(label.text)};
+        auto* vec{breakLabels.get(label.text)};
         for (u64 jump : *vec)
             code.patchJump(jump);
         // Breaks are always patched at the very end.
-        breakLabels->remove(label.text);
-        continueLabels->remove(label.text);
+        breakLabels.remove(label.text);
+        continueLabels.remove(label.text);
     }
     else
     {
-        auto* vec{continueLabels->get(label.text)};
+        auto* vec{continueLabels.get(label.text)};
         for (u64 jump : *vec)
             code.patchJump(jump);
     }
@@ -629,7 +632,7 @@ void Compiler::compileSingleVarDecl(
     {
         if (inRepl && (depth == 0) && (scope == 0))
         {
-            (*varAccess)[localInfo.slot] = (fix ? accessFix : accessVar);
+            varAccess[localInfo.slot] = (fix ? accessFix : accessVar);
             if (init)
             {
                 // Always a local variable.
@@ -1121,11 +1124,11 @@ DEF(WhileStmt)
     if (node->label)
     {
         const auto& label{node->label.text};
-        if (breakLabels->contains(label))
+        if (breakLabels.contains(label))
             REPORT_ERROR(DUPLICATE_LOOP_LABEL, node->label);
 
-        breakLabels->add(label, {});
-        continueLabels->add(label, {});
+        breakLabels.add(label, {});
+        continueLabels.add(label, {});
     }
 
     std::vector<u64> breaks{};
@@ -1223,8 +1226,8 @@ DEF(ForStmt)
     pushScope();
     if (node->label)
     {
-        breakLabels->add(node->label.text, {});
-        continueLabels->add(node->label.text, {});
+        breakLabels.add(node->label.text, {});
+        continueLabels.add(node->label.text, {});
     }
 
     std::vector<u64> breaks{};
@@ -1316,8 +1319,8 @@ DEF(RepeatStmt)
 {
     if (node->label)
     {
-        breakLabels->add(node->label.text, {});
-        continueLabels->add(node->label.text, {});
+        breakLabels.add(node->label.text, {});
+        continueLabels.add(node->label.text, {});
     }
 
     std::vector<u64> breaks{};
@@ -1373,7 +1376,7 @@ DEF(BreakStmt)
         this->breakJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec{breakLabels->get(node->label.text)};
+        auto* vec{breakLabels.get(node->label.text)};
         if (vec == nullptr)
             REPORT_ERROR(INVALID_LOOP_LABEL, node->label);
         else
@@ -1387,7 +1390,7 @@ DEF(ContinueStmt)
         this->continueJumps->push_back(code.addJump(OP_JUMP));
     else
     {
-        auto* vec{continueLabels->get(node->label.text)};
+        auto* vec{continueLabels.get(node->label.text)};
         if (vec == nullptr)
             REPORT_ERROR(INVALID_LOOP_LABEL, node->label);
         else
@@ -2459,7 +2462,7 @@ Function* Compiler::compile(FileID id, const StmtVec& program)
 std::pair<const Compiler::VarTable&, const Compiler::DeclTable&>
 Compiler::getSymbolTable() const
 {
-    return { *varLocations, *declData };
+    return { varLocations, declData };
 }
 
 #undef DEF
