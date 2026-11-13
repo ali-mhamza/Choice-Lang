@@ -25,12 +25,6 @@ using namespace AST::Expression;
         return nullptr;             \
     } while (false)
 
-#define REPORT_SEMANTIC(...)            \
-    do {                                \
-        reportSemantic(__VA_ARGS__);    \
-        return nullptr;                 \
-    } while (false)
-
 #define MATCH_TOK(...)                              \
     if (!matchError(__VA_ARGS__)) return nullptr;
 
@@ -489,11 +483,9 @@ AST::Decl Parser::consumeAttributes()
             }
 
             if (attrTokens[declAttr])
-            {
                 reportSemantic(REPEATED_ATTR, previousTok);
-                break;
-            }
-            attrTokens[declAttr] = previousTok;
+            else
+                attrTokens[declAttr] = previousTok;
         } while (consumeTok(TOK_COMMA));
 
         if (!matchError(TOK_RIGHT_PAREN, "expect ')' after attribute(s)"))
@@ -572,12 +564,13 @@ StmtUP Parser::declaration()
     else
         ret = statement();
 
-    if (syntaxError || semanticError)
+    semanticError = false;
+    if (syntaxError)
     {
         reset();
-        syntaxError = semanticError = false;
+        syntaxError = false;
     }
-
+ 
     setStmtLocation(ret, start);
     return ret;
 }
@@ -602,7 +595,7 @@ StmtUP Parser::varDecl()
     else if (declType == TOK_FIX)
     {
         if (currentTok.type == TOK_SEMICOLON)
-            REPORT_SEMANTIC(MISSING_INITIALIZER, currentTok);
+            reportSemantic(MISSING_INITIALIZER, currentTok);
         else
         {
             REPORT_SYNTAX(WRONG_TOKEN_FOUND, currentTok,
@@ -866,17 +859,17 @@ StmtUP Parser::statement()
     else if (consumeTok(TOK_FALL))
     {
         if (!inMatch)
-            REPORT_SEMANTIC(INVALID_FALLTHROUGH, previousTok);
+            reportSemantic(INVALID_FALLTHROUGH, previousTok);
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'fallthrough'");
         if (!checkToks(TOK_IS, TOK_RIGHT_BRACE))
-            REPORT_SEMANTIC(STMT_AFTER_FALLTHROUGH, currentTok);
+            reportSemantic(STMT_AFTER_FALLTHROUGH, currentTok);
         inFallthrough = true;
         return nullptr;
     }
     else if (consumeTok(TOK_END))
     {
         if (!inMatch)
-            REPORT_SEMANTIC(INVALID_END, previousTok);
+            reportSemantic(INVALID_END, previousTok);
         MATCH_TOK(TOK_SEMICOLON, "expect ';' after 'end'");
         stmt = std::make_unique<EndStmt>();
     }
@@ -1046,7 +1039,7 @@ StmtUP Parser::matchStmt()
     while (!checkToks(TOK_RIGHT_BRACE, TOK_EOF))
     {
         if (cases.size() == MATCH_CASES_MAX)
-            REPORT_SEMANTIC(HIT_MATCH_CASE_MAX, currentTok);
+            reportSemantic(HIT_MATCH_CASE_MAX, currentTok);
 
         MATCH_TOK(TOK_IS, "expect 'is' before case value");
         bool defaultCase{consumeTok(TOK_QMARK)};
@@ -1062,7 +1055,7 @@ StmtUP Parser::matchStmt()
         }
 
         if (defaultCase && consumeTok(TOK_IS))
-            REPORT_SEMANTIC(CASE_AFTER_DEFAULT, previousTok);
+            reportSemantic(CASE_AFTER_DEFAULT, previousTok);
 
         // 'inFallthrough' updated in statement().
         cases.emplace_back(caseValue, caseBody, inFallthrough);
@@ -1098,14 +1091,14 @@ StmtUP Parser::repeatStmt()
 
 StmtUP Parser::returnStmt()
 {
-    if (!inFunc) REPORT_SEMANTIC(INVALID_RETURN, previousTok);
+    if (!inFunc) reportSemantic(INVALID_RETURN, previousTok);
 
     Token keyword{previousTok};
     ExprUP expr{nullptr};
     if (!checkTok(TOK_SEMICOLON))
     {
-        if (inInit) REPORT_SEMANTIC(RETURN_IN_INIT, currentTok);
-        else if (inDrop) REPORT_SEMANTIC(RETURN_IN_DROP, currentTok);
+        if (inInit) reportSemantic(RETURN_IN_INIT, currentTok);
+        else if (inDrop) reportSemantic(RETURN_IN_DROP, currentTok);
         expr = returnExpr();
     }
     MATCH_TOK(TOK_SEMICOLON, "expect ';' after return statement");
@@ -1116,7 +1109,7 @@ StmtUP Parser::breakStmt()
 {
     if (!inLoop)
     {
-        REPORT_SEMANTIC(inComprehension ? BREAK_IN_COMPREHEN : INVALID_BREAK,
+        reportSemantic(inComprehension ? BREAK_IN_COMPREHEN : INVALID_BREAK,
             previousTok);
     }
 
@@ -1131,7 +1124,7 @@ StmtUP Parser::continueStmt()
 {
     if (!inLoop)
     {
-        REPORT_SEMANTIC(inComprehension ? CONT_IN_COMPREHEN : INVALID_CONTINUE,
+        reportSemantic(inComprehension ? CONT_IN_COMPREHEN : INVALID_CONTINUE,
             previousTok);
     }
 
@@ -1219,7 +1212,7 @@ ExprUP Parser::multiAssignment()
         {
             if (!CAN_ASSIGN(targets[i]))
             {
-                REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok,
+                reportSemantic(INVALID_ASSIGN_TARGET, previousTok,
                     CH_STR("target {} does not support assignment", i + 1));
             }
         }
@@ -1294,7 +1287,7 @@ ExprUP Parser::assignment()
         nextTok();
         Token oper{previousTok};
         if ((target == nullptr) || !CAN_ASSIGN(target))
-            REPORT_SEMANTIC(INVALID_ASSIGN_TARGET, previousTok);
+            reportSemantic(INVALID_ASSIGN_TARGET, previousTok);
 
         CHECK_DEPTH(previousTok);
         targets.push_back(std::move(target));
@@ -1475,7 +1468,7 @@ ExprUP Parser::unary()
         ExprUP target{unary()};
 
         if ((target == nullptr) || !CAN_ASSIGN(target))
-            REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, oper);
+            reportSemantic(INVALID_INCR_DECR_TARGET, oper);
         expr = std::make_unique<UnaryExpr>(oper, std::move(target), false);
     }
     else if (consumeToks(TOK_MINUS, TOK_BANG, TOK_NOT, TOK_TILDE))
@@ -1530,7 +1523,7 @@ ExprUP Parser::call(ExprUP&& expr, u64 start)
     if (previousTok.type == TOK_BANG)
     {
         if ((expr == nullptr) || (expr->type != ExprType::VarExpr))
-            REPORT_SEMANTIC(BUILTIN_CALL_NO_NAME, previousTok);
+            reportSemantic(BUILTIN_CALL_NO_NAME, previousTok);
         MATCH_TOK(TOK_LEFT_PAREN, "expect '(' after function name and '!'");
         builtin = true;
     }
@@ -1540,7 +1533,7 @@ ExprUP Parser::call(ExprUP&& expr, u64 start)
     {
         do {
             if (args.size() == CODE_MAX)
-                REPORT_SEMANTIC(HIT_ARGS_MAX, currentTok);
+                reportSemantic(HIT_ARGS_MAX, currentTok);
 
             args.push_back(consumeTok(TOK_STAR) ? reference() : expression());
         } while (consumeTok(TOK_COMMA));
@@ -1576,7 +1569,7 @@ ExprUP Parser::post()
         {
             CHECK_DEPTH(previousTok);
             if ((expr == nullptr) || !CAN_ASSIGN(expr))
-                REPORT_SEMANTIC(INVALID_INCR_DECR_TARGET, previousTok);
+                reportSemantic(INVALID_INCR_DECR_TARGET, previousTok);
             Token oper{previousTok};
             expr = std::make_unique<UnaryExpr>(oper, std::move(expr), true);
         }
@@ -1590,7 +1583,7 @@ ExprUP Parser::post()
         {
             CHECK_DEPTH(previousTok);
             if ((expr == nullptr) || (expr->type != ExprType::VarExpr))
-                REPORT_SEMANTIC(SCOPE_NOT_IDENT, previousTok);
+                reportSemantic(SCOPE_NOT_IDENT, previousTok);
             MATCH_TOK(TOK_IDENTIFIER, "expect name of module entry");
             expr = std::make_unique<ScopeExpr>(expr, previousTok);
 
@@ -1627,7 +1620,7 @@ ExprUP Parser::ifExpr()
         MATCH_TOK(TOK_RIGHT_BRACE, "expect '}' after conditional expression");
     }
     else
-        REPORT_SEMANTIC(IF_EXPR_MISSING_FALSE, currentTok);
+        reportSemantic(IF_EXPR_MISSING_FALSE, currentTok);
 
     return std::make_unique<IfExpr>(condition, trueBranch, falseBranch);
 }
@@ -1829,9 +1822,9 @@ ExprUP Parser::formatString()
 ExprUP Parser::super()
 {
     if (!inType)
-        REPORT_SEMANTIC(SUPER_OUTSIDE_TYPE, previousTok);
+        reportSemantic(SUPER_OUTSIDE_TYPE, previousTok);
     else if (!inInheritingType)
-        REPORT_SEMANTIC(SUPER_OUTSIDE_CHILD, previousTok);
+        reportSemantic(SUPER_OUTSIDE_CHILD, previousTok);
 
     CHECK_DEPTH(previousTok);
     MATCH_TOK(TOK_DOT, "expect '.' after 'super'");
@@ -1924,7 +1917,6 @@ StmtVec& Parser::parseToAST(FileID id, const vT& tokens)
 }
 
 #undef REPORT_SYNTAX
-#undef REPORT_SEMATIC
 #undef MATCH_TOK
 #undef CONSUME_VAR_TYPE
 #undef CONSUME_RETURN_TYPE
