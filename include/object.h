@@ -391,6 +391,7 @@ TYPE_LIST
 #define AS_UINT(obj)        (static_cast<u64>(AS_INT(obj)))
 
 const Function* AS_FUNC_OBJ(const Object& obj);
+std::string getElementText(const Object& obj);
 
 // Whether or not two types can be compared with the
 // > and < operators.
@@ -400,12 +401,6 @@ inline bool comparable(const Object& left, const Object& right)
         (IS_NUM(left) && IS_NUM(right))
         || (IS_STRING_LIKE(left) && IS_STRING_LIKE(right))
     );
-}
-
-inline std::string getElementText(const Object& obj)
-{
-    if (IS_STRING_LIKE(obj)) return CH_QUOTED(obj.printVal());
-    return obj.printVal();
 }
 
 inline u8 getMutFlags(const Object& obj)

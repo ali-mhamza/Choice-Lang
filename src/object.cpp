@@ -527,6 +527,15 @@ const Function* AS_FUNC_OBJ(const Object& obj)
     }
 }
 
+std::string getElementText(const Object& obj)
+{
+    if (IS_STRING_LIKE(obj))
+        return CH_QUOTED(obj.printVal());
+    else if (IS_INSTANCE(obj))
+        return std::string{AS_INSTANCE(obj)->type->name} + "{...}";
+    return obj.printVal();
+}
+
 /* Object structs. */
 
 // strdup is not a standard C++ function, but is instead from POSIX.
