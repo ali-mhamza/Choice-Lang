@@ -476,6 +476,11 @@ std::string_view Object::printType() const
 {
     if (IS_INSTANCE(*this))
         return AS_INSTANCE(*this)->type->name;
+
+    CH_ASSERT(
+        static_cast<u8>(type()) < objTypes.size(),
+        "Invalid type tag."
+    );
     return objTypes[static_cast<u8>(type())];
 }
 

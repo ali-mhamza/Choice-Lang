@@ -319,9 +319,11 @@ std::array<std::string_view, to_num(ObjType::Count)> objTypes{
         return (obj.type() == ObjType::name);                   \
     }                                                           \
     [[nodiscard]] inline auto AS_##TYPE(const Object& obj) {    \
+        CH_ASSERT(IS_##TYPE(obj), CH_STR("Object is a {}.", obj.printType())); \
         return enum_or_self(obj.as.field);                      \
     }                                                           \
     [[nodiscard]] inline auto& AS_##TYPE(Object& obj) {         \
+        CH_ASSERT(IS_##TYPE(obj), CH_STR("Object is a {}.", obj.printType())); \
         return obj.as.field;                                    \
     }
 
