@@ -12,13 +12,13 @@
 #include "../include/compiler.h"
 #include "../include/debug.h"
 #include "../include/disasm.h"
-#include "../include/tokprinter.h"
 #include "../include/lexer.h"
 #include "../include/linear_alloc.h"
 #include "../include/object.h"
 #include "../include/optimizer.h"
 #include "../include/parser.h"
 #include "../include/silencer.h"
+#include "../include/token.h"
 #include "../include/type_checker.h"
 #include "../include/utils.h"
 #include "../include/vm.h"
@@ -83,7 +83,28 @@ void optionEmitTokens(FileID id, std::string_view input)
 {
     vT& tokens{runLexer(id, input)};
     REPORT_ERRORS();
-    TokenPrinter{id, tokens}.printTokens();
+
+	if (tokens.empty()) return;
+
+    for (const Token& token : tokens)
+    {
+		CH_PRINT("{:<20}", tokenTypeStrings[token.type]);
+		if (token.type != TOK_EOF)
+		{
+			const auto& [line, column] = sourceManager.getLineColumn(id, token.byteOffset);
+			std::string format{CH_STR("({}:{})", line, column)};
+			CH_PRINT("{:<10}", format);
+
+			if ((token.type != TOK_STR_LIT) && (token.type != TOK_RAW_STR))
+				CH_PRINT("'{}' ", token.text);
+			else
+				CH_PRINT("'{}' ", formatMultiLineString(token.text));
+		}
+
+		CH_PRINT("\n");
+	}
+
+    CH_PRINT("TOK COUNT: {}\n", tokens.size());
 }
 
 void optionPrintAST(FileID id, std::string_view input)
