@@ -465,9 +465,13 @@ void Lexer::multiLineStringToken(bool raw)
 
 bool Lexer::formatParam()
 {
+	u64 parenDepth{0};
 	consumeChars(2); // Skip the %(.
-	while ((peekChar() != ')') && !hitEnd())
+	while (((peekChar() != ')') || parenDepth-- != 0) && !hitEnd())
+	{
+		if (peekChar() == '(') parenDepth++;
 		singleToken();
+	}
 
 	if (hitEnd())
 	{
@@ -492,9 +496,10 @@ void Lexer::formatStringToken(char endDelim)
 	}
 
 	makeToken(TOK_INTER_START);
-	if (!formatParam()) return;
-
+	bool success{formatParam()};
 	nestingDepth--;
+	if (!success) return;
+
 	while ((peekChar() != endDelim) && !hitEnd())
 	{
 		if (FORMAT_PARAM(peekChar()))
