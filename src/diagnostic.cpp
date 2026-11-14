@@ -758,7 +758,8 @@ DiagnosticEngine::emitStackTrace(const std::vector<CallFrame>& frames)
             range.sourceEnd - range.sourceStart, "");
     }
 
-    auto it{std::max_element(outputLines.begin(), outputLines.end(),
+    auto it{std::max_element(
+        outputLines.begin(), outputLines.end(),
         [](auto& str1, auto& str2) { return str1.size() < str2.size(); }
     )};
     u64 maxLineNo{lineDataExists ?
