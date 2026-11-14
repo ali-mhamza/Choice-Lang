@@ -155,7 +155,7 @@ namespace Args
             if (it != nullptr)
             {
                 auto checkIt{std::find(fileOnlyOptions.begin(), fileOnlyOptions.end(), *it)};
-                if (checkIt != fileOnlyOptions.end())
+                if ((checkIt != fileOnlyOptions.end()) || (*checkIt == Option::ExplainError))
                 {
                     CH_PRINT_ERROR("Invalid command-line option for REPL mode.\n");
                     exit(64);
