@@ -139,7 +139,7 @@ bool TypeChecker::Type::isBasicWithTypes(Types... types) const
 
     if (tag == TypeTag::Any) return true;
     if (tag != TypeTag::Basic) return false;
-    BasicType basic{std::get<BasicType>(variant)};
+    const BasicType& basic{std::get<BasicType>(variant)};
     if (!basic.builtin) return false;
 
     ObjType objType{std::get<ObjType>(basic.type)};
@@ -728,7 +728,7 @@ bool TypeChecker::canIndexWith(const Type& objType, const Type& indexType) const
 {
     if (objType.isAny()) return true;
     if (!objType.isBasic()) return false;
-    BasicType basic{std::get<BasicType>(objType.variant)};
+    const BasicType& basic{std::get<BasicType>(objType.variant)};
     if (!basic.builtin) return false;
 
     ObjType obj{std::get<ObjType>(basic.type)};
@@ -891,7 +891,7 @@ bool TypeChecker::validFieldForType(const Type& type, const Token& field) const
     if (type.isAny()) return true;
     if (!type.isBasic()) return false;
 
-    BasicType basic{std::get<BasicType>(type.variant)};
+    const BasicType& basic{std::get<BasicType>(type.variant)};
     if (basic.builtin) return false; // For now.
 
     const auto& typeName{std::get<std::string>(basic.type)};
@@ -1010,7 +1010,7 @@ TypeChecker::Type TypeChecker::getElementType(const Type& type) const
     if (type.isAny()) return ANY_TYPE;
     if (!type.isBasic()) return DUMMY_TYPE; // For now.
 
-    BasicType basic{std::get<BasicType>(type.variant)};
+    const BasicType& basic{std::get<BasicType>(type.variant)};
     if (!basic.builtin) return DUMMY_TYPE;
 
     switch (std::get<ObjType>(basic.type))
@@ -1214,7 +1214,7 @@ TYPE_GETTER(FieldExpr)
 
     // For now, only handling singular types.
     if (!objType.isBasic()) return DUMMY_TYPE;
-    BasicType basic{std::get<BasicType>(objType.variant)};
+    const BasicType& basic{std::get<BasicType>(objType.variant)};
     if (basic.builtin) return DUMMY_TYPE;
 
     const auto& typeName{std::get<std::string>(basic.type)};
@@ -1351,8 +1351,17 @@ TYPE_GETTER(VarExpr)
     return DUMMY_TYPE;
 }
 
-TYPE_GETTER(StringPartExpr) { PASS; RETURN; }
-TYPE_GETTER(FormatExpr)     { PASS; RETURN; }
+TYPE_GETTER(StringPartExpr)
+{
+    PASS;
+    RETURN;
+}
+
+TYPE_GETTER(FormatExpr)
+{
+    PASS;
+    RETURN;
+}
 
 TYPE_GETTER(LiteralExpr)
 {
@@ -1654,9 +1663,20 @@ CHECKER(ReturnStmt)
     }
 }
 
-CHECKER(BreakStmt)      { PASS; }
-CHECKER(ContinueStmt)   { PASS; }
-CHECKER(EndStmt)        { PASS; }
+CHECKER(BreakStmt)
+{
+    PASS;
+}
+
+CHECKER(ContinueStmt)
+{
+    PASS;
+}
+
+CHECKER(EndStmt)
+{
+    PASS;
+}
 
 CHECKER(ExprStmt)
 {
@@ -1861,8 +1881,15 @@ CHECKER(RefExpr)
     checkExpr(node->obj);
 }
 
-CHECKER(VarExpr)        { PASS; }
-CHECKER(StringPartExpr) { PASS; }
+CHECKER(VarExpr)
+{
+    PASS;
+}
+
+CHECKER(StringPartExpr)
+{
+    PASS;
+}
 
 CHECKER(FormatExpr)
 {
@@ -1870,7 +1897,10 @@ CHECKER(FormatExpr)
         checkExpr(part);
 }
 
-CHECKER(LiteralExpr) { PASS; }
+CHECKER(LiteralExpr)
+{
+    PASS;
+}
 
 void TypeChecker::checkStmt(const StmtUP& node)
 {
