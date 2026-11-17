@@ -91,7 +91,7 @@ void optionEmitTokens(FileID id, std::string_view input)
 		CH_PRINT("{:<20}", tokenTypeStrings[token.type]);
 		if (token.type != TOK_EOF)
 		{
-			const auto& [line, column] = sourceManager.getLineColumn(id, token.byteOffset);
+			const auto [line, column] = sourceManager.getLineColumn(id, token.byteOffset);
 			std::string format{CH_STR("({}:{})", line, column)};
 			CH_PRINT("{:<10}", format);
 
