@@ -133,6 +133,7 @@ clean-debug:
 
 fclean: clean
 	rm -f $(NAME)
+	rm -f $(RELEASE)
 	rm -f $(DEBUG)
 	rm -f $(REPL_LIB)
 
