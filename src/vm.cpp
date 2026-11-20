@@ -96,7 +96,13 @@ namespace
     {
         bool operator()(const fs::path& path) const
         {
-            return static_cast<Hash>(std::hash<fs::path>{}(path));
+            // We don't directly construct an std::hash object and call
+            // it as below:
+            // `return static_cast<Hash>(std::hash<fs::path>{}(path));`
+            // This fails with some older versions of libc++ and libstdc++,
+            // even when telling compilers to use C++17 (particularly on
+            // some older MacOS devices).
+            return static_cast<Hash>(fs::hash_value(path));
         }
     };
 
